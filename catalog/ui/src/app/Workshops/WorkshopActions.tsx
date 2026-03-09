@@ -10,15 +10,16 @@ const WorkshopActions: React.FC<{
     start?: () => void | null;
     stop?: () => void | null;
   };
+  canManageCollaborators?: boolean;
   className?: string;
   isDisabled?: boolean;
   workshopName?: string;
   isLocked?: boolean;
-}> = ({ actionHandlers, className, isDisabled, workshopName, isLocked = false }) => {
+}> = ({ actionHandlers, canManageCollaborators = true, className, isDisabled, workshopName, isLocked = false }) => {
   const actionDropdownItems = [
     <ActionDropdownItem
       key="delete"
-      isDisabled={isLocked || !actionHandlers.delete}
+      isDisabled={isLocked || !canManageCollaborators || !actionHandlers.delete}
       label={workshopName ? `Delete ${workshopName}` : 'Delete'}
       onSelect={actionHandlers.delete}
       icon={isLocked ? <LockedIcon /> : null}

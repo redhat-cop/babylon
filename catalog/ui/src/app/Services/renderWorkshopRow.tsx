@@ -89,7 +89,7 @@ const renderWorkshopRow = ({
   const statusCell = (
     <>
       {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
-        <ServiceStatus resourceClaim={workshop.resourceClaims[0]} />
+        <ServiceStatus resourceClaim={workshop.resourceClaims.filter((r) => !r.metadata.deletionTimestamp)[0]} />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled
@@ -154,7 +154,7 @@ const renderWorkshopRow = ({
         />
         <ButtonCircleIcon
           key="actions__delete"
-          isDisabled={isLocked}
+          isDisabled={isLocked || workshop.isCollaborator}
           onClick={actionHandlers.delete}
           description="Delete"
           icon={TrashIcon}

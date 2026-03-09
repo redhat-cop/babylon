@@ -227,7 +227,7 @@ const renderResourceClaimRow = ({
           key="actions__manage-workshop"
         />
       ) : null}
-      <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} />
+      <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} isDisabled={resourceClaim.isCollaborator} />
       {
         // Lab Interface
         labUserInterfaceUrl ? (

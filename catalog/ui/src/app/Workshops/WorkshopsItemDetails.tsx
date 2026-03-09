@@ -31,7 +31,8 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
-  silentFetcher,
+  optionalFetcher,
+  FORBIDDEN_RESPONSE,
 } from '@app/api';
 import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno, READY_BY_LEAD_TIME_MS } from '@app/util';
@@ -99,16 +100,18 @@ const WorkshopsItemDetails: React.FC<{
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   
   const {
-    data: serviceAccessConfig,
+    data: serviceAccessConfigResponse,
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
-  } = useSWR<ServiceAccessConfig | null>(
+  } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
     apiPaths.SERVICE_ACCESS_CONFIG({
       namespace: workshop.metadata.namespace,
       name: workshop.metadata.name,
     }),
-    silentFetcher,
+    optionalFetcher,
   );
+  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
 
   const serviceAccessUsers = useMemo(() => {
     if (!serviceAccessConfig?.spec?.users) return [];
@@ -540,46 +543,48 @@ const WorkshopsItemDetails: React.FC<{
         )}
       </DescriptionListGroup>
 
-      <DescriptionListGroup>
-        <DescriptionListTerm>
-          Collaborators{' '}
-          <Tooltip position="right" content={<p>Users who have access to this workshop service.</p>}>
-            <OutlinedQuestionCircleIcon
-              aria-label="Users who have access to this workshop service."
-              className="tooltip-icon-only"
-            />
-          </Tooltip>
-        </DescriptionListTerm>
-        <DescriptionListDescription>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-            {serviceAccessLoading ? (
-              <LoadingIcon />
-            ) : serviceAccessUsers.length > 0 ? (
-              <LabelGroup>
-                {serviceAccessUsers.map((email: string) => (
-                  <Label
-                    key={email}
-                    onClose={() => handleRemoveServiceAccessUser(email)}
-                    closeBtnAriaLabel={`Remove ${email}`}
-                  >
-                    {email}
-                  </Label>
-                ))}
-              </LabelGroup>
-            ) : (
-              <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No collaborators configured</span>
-            )}
-            <Button
-              variant="link"
-              icon={<PlusCircleIcon />}
-              onClick={() => setModalAddServiceAccess(true)}
-              style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
-            >
-              Add Collaborator
-            </Button>
-          </div>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
+      {canManageCollaborators ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>
+            Collaborators{' '}
+            <Tooltip position="right" content={<p>Users who have access to this workshop service.</p>}>
+              <OutlinedQuestionCircleIcon
+                aria-label="Users who have access to this workshop service."
+                className="tooltip-icon-only"
+              />
+            </Tooltip>
+          </DescriptionListTerm>
+          <DescriptionListDescription>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+              {serviceAccessLoading ? (
+                <LoadingIcon />
+              ) : serviceAccessUsers.length > 0 ? (
+                <LabelGroup>
+                  {serviceAccessUsers.map((email: string) => (
+                    <Label
+                      key={email}
+                      onClose={() => handleRemoveServiceAccessUser(email)}
+                      closeBtnAriaLabel={`Remove ${email}`}
+                    >
+                      {email}
+                    </Label>
+                  ))}
+                </LabelGroup>
+              ) : (
+                <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No collaborators configured</span>
+              )}
+              <Button
+                variant="link"
+                icon={<PlusCircleIcon />}
+                onClick={() => setModalAddServiceAccess(true)}
+                style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
+              >
+                Add Collaborator
+              </Button>
+            </div>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
 
       {autoStartTime && autoStartTime > Date.now() ? (
         <DescriptionListGroup>

@@ -116,13 +116,17 @@ const WorkshopsItemServices: React.FC<{
     [workshopProvisions, unusedResourceClaims, resourceClaims],
   );
 
-  if (resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length == 0) {
+  const activeResourceClaimsCount = resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length;
+  
+  if (activeResourceClaimsCount == 0) {
     return (
       <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services Found" variant="full">
         <EmptyStateBody>No services have been provisioned for this workshop.</EmptyStateBody>
       </EmptyState>
     );
   }
+
+  const canDelete = activeResourceClaimsCount === workshopProvisions?.[0]?.spec?.count;
 
   return (
     <>
@@ -146,8 +150,6 @@ const WorkshopsItemServices: React.FC<{
               restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
               delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
             };
-            const canDelete =
-              resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length === workshopProvisions?.[0]?.spec?.count;
             // Find lab user interface information either in the resource claim or inside resources
             // associated with the provisioned service.
             const labUserInterfaceData =
@@ -338,7 +340,7 @@ const WorkshopsItemServices: React.FC<{
           ) : null}
         </Form>
       </Modal>
-      {unusedResourceClaims.length > 0 ? (
+      {unusedResourceClaims.length > 0 && canDelete ? (
         <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
           <Button onClick={() => setIsOpen(true)}>Delete unused instances</Button>
         </ActionGroup>

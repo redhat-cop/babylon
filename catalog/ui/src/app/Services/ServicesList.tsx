@@ -463,6 +463,11 @@ const ServicesList: React.FC<{
     }
   }
 
+  // Check if any selected service is a collaborator service (can't delete those)
+  const selectedHasCollaborator = selectedUids.length > 0 && services.some(
+    (service) => selectedUids.includes(service.metadata.uid) && service.isCollaborator
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
@@ -513,6 +518,7 @@ const ServicesList: React.FC<{
               isDisabled={selectedUids.length === 0}
               position="right"
               serviceName="Selected"
+              canManageCollaborators={!selectedHasCollaborator}
               actionHandlers={{
                 delete: () => showModal({ modal: 'action', action: 'delete' }),
                 start: () => showModal({ modal: 'action', action: 'start' }),

@@ -43,6 +43,8 @@ import {
   deleteResourceClaim,
   fetcher,
   silentFetcher,
+  optionalFetcher,
+  FORBIDDEN_RESPONSE,
   patchResourceClaim,
   requestStatusForAllResourcesInResourceClaim,
   scheduleStartResourceClaim,
@@ -369,18 +371,20 @@ const ServicesItemComponent: React.FC<{
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
 
   const {
-    data: serviceAccessConfig,
+    data: serviceAccessConfigResponse,
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
-  } = useSWR<ServiceAccessConfig | null>(
+  } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
     !isPartOfWorkshop
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
         })
       : null,
-    silentFetcher,
+    optionalFetcher,
   );
+  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
 
   const serviceAccessUsers = useMemo(() => {
     if (!serviceAccessConfig?.spec?.users) return [];
@@ -518,21 +522,30 @@ const ServicesItemComponent: React.FC<{
       return provision_data?.osp_cluster_api || provision_data?.openstack_auth_url;
     });
 
-  const actionHandlers = {
+  const actionHandlers: {
+    runtime?: () => void;
+    lifespan?: () => void;
+    delete?: () => void;
+    start?: () => void;
+    stop?: () => void;
+    manageWorkshop?: () => void;
+    rate?: () => void;
+  } = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
+  
   if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
-    actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
+    actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
   if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
-    actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
-    actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+    actionHandlers.stop = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
+    actionHandlers.runtime = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
   if (isPartOfWorkshop) {
-    actionHandlers['manageWorkshop'] = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
+    actionHandlers.manageWorkshop = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
   } else {
-    actionHandlers['rate'] = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
+    actionHandlers.rate = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -809,7 +822,7 @@ const ServicesItemComponent: React.FC<{
                   {externalPlatformUrl}
                 </Button>
               ) : (
-                <ServiceActions position="right" resourceClaim={resourceClaim} actionHandlers={actionHandlers} />
+                <ServiceActions position="right" resourceClaim={resourceClaim} actionHandlers={actionHandlers} canManageCollaborators={canManageCollaborators} />
               )}
             </Bullseye>
           </SplitItem>
@@ -1054,7 +1067,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isPartOfWorkshop ? (
+                  {!isPartOfWorkshop && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Collaborators{' '}

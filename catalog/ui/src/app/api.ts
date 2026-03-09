@@ -186,6 +186,29 @@ export async function silentFetcher(path: string, opt?: Record<string, unknown>)
   }
 }
 
+/**
+ * Fetcher that returns null for 404 (resource not found) and { forbidden: true } for 403.
+ * Useful when you need to distinguish between "resource doesn't exist" and "no permission to access"
+ * without throwing errors that propagate to the UI.
+ */
+export const FORBIDDEN_RESPONSE = { forbidden: true } as const;
+export type ForbiddenResponse = typeof FORBIDDEN_RESPONSE;
+
+export async function optionalFetcher(path: string, opt?: Record<string, unknown>) {
+  try {
+    return await fetcher(path, opt);
+  } catch (error) {
+    const status = (error as Response).status;
+    if (status === 404) {
+      return null;
+    }
+    if (status === 403) {
+      return FORBIDDEN_RESPONSE;
+    }
+    throw error;
+  }
+}
+
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
   const items = [];
   let continueId: Nullable<string> = null;
