@@ -43,24 +43,23 @@ jest.mock('@app/api', () => ({
 
 describe('Catalog Page Layout Scenario', () => {
   test("When app layout renders, should display 'Catalog' option", async () => {
-    const { getAllByText } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = getAllByText('Catalog')[0];
-    await waitFor(() => expect(testVar).toBeInTheDocument());
+    const { findAllByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const testVar = (await findAllByText('Catalog'))[0];
+    expect(testVar).toBeInTheDocument();
   });
   test("When app layout renders, should display 'My Services' option", async () => {
-    const { getByText } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = getByText('My Services');
-    await waitFor(() => expect(testVar).toBeInTheDocument());
+    const { findByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const testVar = await findByText('My Services');
+    expect(testVar).toBeInTheDocument();
   });
   test('When app layout renders, should display user name', async () => {
-    const { getByText } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = getByText('test@redhat.com');
-    await waitFor(() => expect(testVar).toBeInTheDocument());
+    const { findByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const testVar = await findByText('test@redhat.com');
+    expect(testVar).toBeInTheDocument();
   });
   test('When app layout renders, should display hamburger toggle', async () => {
     const { container } = render(<AppLayout title="test">Test</AppLayout>);
-    const testVar = container.querySelector('#nav-toggle');
-    await waitFor(() => expect(testVar).toBeTruthy());
+    await waitFor(() => expect(container.querySelector('#nav-toggle')).toBeTruthy());
   });
 });
 
