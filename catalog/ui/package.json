@@ -5,7 +5,7 @@
   "repository": "https://github.com/redhat-cop/babylon.git",
   "homepage": "https://github.com/redhat-cop/babylon",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "scripts": {
     "prebuild": "if test \"$KEEP_ASSETS\" != \"true\" ; then npm run clean ; fi ",
     "dr:surge": "node dr-surge.js",
