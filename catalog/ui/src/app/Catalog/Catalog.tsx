@@ -58,6 +58,7 @@ import {
   getStatusFromCatalogItem,
   getRating,
   getSLA,
+  SLAs,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -296,8 +297,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           if (sortBy.selected === 'Featured') {
             const aSLA = getSLA(a);
             const bSLA = getSLA(b);
-            const aIsFeatured = aSLA === 'Featured';
-            const bIsFeatured = bSLA === 'Featured';
+            const aIsFeatured = aSLA === SLAs.Featured;
+            const bIsFeatured = bSLA === SLAs.Featured;
 
             // If one is Featured and the other isn't, Featured comes first
             if (aIsFeatured !== bIsFeatured) {
@@ -504,9 +505,24 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   ]);
 
   const catalogItemsResult = useMemo(() => {
-    const items = searchString
+    let items = searchString
       ? _catalogItems.search("'" + searchString.split(' ').join(" '")).map((x) => x.item)
       : _catalogItemsCpy;
+
+    // When searching, prioritize Featured items while maintaining relative order
+    if (searchString) {
+      const featuredItems: CatalogItem[] = [];
+      const nonFeaturedItems: CatalogItem[] = [];
+      for (const item of items) {
+        if (getSLA(item) === SLAs.Featured) {
+          featuredItems.push(item);
+        } else {
+          nonFeaturedItems.push(item);
+        }
+      }
+      items = featuredItems.concat(nonFeaturedItems);
+    }
+
     const operationalItems = [];
     const disabledItems = [];
     for (let catalogItem of items) {

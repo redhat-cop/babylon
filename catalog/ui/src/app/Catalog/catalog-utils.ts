@@ -23,19 +23,19 @@ export function getStage(catalogItem: CatalogItem) {
   return catalogItem.metadata.labels?.[`${domain}/${key}`];
 }
 
-const supportedSLAs = [
-  'Featured',
-  'Enterprise_Premium',
-  'Enterprise_Standard',
-  'Community',
-  'External_Support',
-] as const;
-type SLAs = (typeof supportedSLAs)[number];
-export function getSLA(catalogItem: CatalogItem): SLAs {
+export const SLAs = {
+  Featured: 'Featured',
+  Enterprise_Premium: 'Enterprise_Premium',
+  Enterprise_Standard: 'Enterprise_Standard',
+  Community: 'Community',
+  External_Support: 'External_Support',
+} as const;
+export type SLA = (typeof SLAs)[keyof typeof SLAs];
+export function getSLA(catalogItem: CatalogItem): SLA | null {
   const { domain, key } = CUSTOM_LABELS.SLA;
-  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] as SLAs;
-  if (!supportedSLAs.includes(sla)) return null;
-  return sla;
+  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`];
+  if (!Object.values(SLAs).includes(sla as SLA)) return null;
+  return sla as SLA;
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
