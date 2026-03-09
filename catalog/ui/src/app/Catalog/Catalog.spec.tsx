@@ -1,9 +1,8 @@
 import React from 'react';
-import { render, waitFor, fireEvent, within, generateSession } from '../utils/test-utils';
+import { render, waitFor, fireEvent, generateSession } from '../utils/test-utils';
 import Catalog from './Catalog';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
 import { CatalogItem } from '@app/types';
-import { createMemoryHistory } from 'history';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
