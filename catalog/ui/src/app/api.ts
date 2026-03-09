@@ -13,6 +13,7 @@ import {
   ResourceHandle,
   ResourcePool,
   ResourceProvider,
+  ServiceAccessConfig,
   ServiceNamespace,
   Workshop,
   WorkshopProvision,
@@ -21,7 +22,6 @@ import {
   Session,
   Nullable,
   WorkshopUserAssignment,
-  SfdcType,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -31,7 +31,6 @@ import {
   DEMO_DOMAIN,
   canExecuteAction,
   generateRandom5CharsSuffix,
-  upsertSalesforceItem,
 } from '@app/util';
 
 declare const window: Window &
@@ -184,6 +183,29 @@ export async function silentFetcher(path: string, opt?: Record<string, unknown>)
     return await fetcher(path, opt);
   } catch (_) {
     return null;
+  }
+}
+
+/**
+ * Fetcher that returns null for 404 (resource not found) and { forbidden: true } for 403.
+ * Useful when you need to distinguish between "resource doesn't exist" and "no permission to access"
+ * without throwing errors that propagate to the UI.
+ */
+export const FORBIDDEN_RESPONSE = { forbidden: true } as const;
+export type ForbiddenResponse = typeof FORBIDDEN_RESPONSE;
+
+export async function optionalFetcher(path: string, opt?: Record<string, unknown>) {
+  try {
+    return await fetcher(path, opt);
+  } catch (error) {
+    const status = (error as Response).status;
+    if (status === 404) {
+      return null;
+    }
+    if (status === 403) {
+      return FORBIDDEN_RESPONSE;
+    }
+    throw error;
   }
 }
 
@@ -2052,6 +2074,108 @@ export async function updateWorkshop(workshop: Workshop) {
   return updateK8sObject(workshop);
 }
 
+export async function getServiceAccessConfig({
+  name,
+  namespace,
+}: {
+  name: string;
+  namespace: string;
+}): Promise<ServiceAccessConfig | null> {
+  try {
+    return await getK8sObject<ServiceAccessConfig>({
+      apiVersion: `${BABYLON_DOMAIN}/v1`,
+      name,
+      namespace,
+      plural: 'serviceaccessconfigs',
+    });
+  } catch (error: unknown) {
+    if ((error as Response).status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function createServiceAccessConfig({
+  name,
+  namespace,
+  serviceName,
+  serviceNamespace,
+  serviceKind = 'Workshop',
+  users,
+}: {
+  name: string;
+  namespace: string;
+  serviceName: string;
+  serviceNamespace: string;
+  serviceKind?: 'Workshop' | 'ResourceClaim';
+  users: string[];
+}): Promise<ServiceAccessConfig> {
+  const labelKey = serviceKind === 'Workshop' ? 'workshop' : 'resourceclaim';
+  const definition: ServiceAccessConfig = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'ServiceAccessConfig',
+    metadata: {
+      name,
+      namespace,
+      labels: {
+        [`${BABYLON_DOMAIN}/${labelKey}`]: serviceName,
+        [`${BABYLON_DOMAIN}/${labelKey}-namespace`]: serviceNamespace,
+      },
+    },
+    spec: {
+      kind: serviceKind,
+      name: serviceName,
+      users: users.map((email) => ({ name: email })),
+    },
+  };
+  return await createK8sObject(definition);
+}
+
+export async function patchServiceAccessConfig({
+  name,
+  namespace,
+  users,
+}: {
+  name: string;
+  namespace: string;
+  users: string[];
+}): Promise<ServiceAccessConfig> {
+  return await patchK8sObject<ServiceAccessConfig>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    name,
+    namespace,
+    plural: 'serviceaccessconfigs',
+    patch: {
+      spec: {
+        users: users.map((email) => ({ name: email })),
+      },
+    },
+  });
+}
+
+export async function deleteServiceAccessConfig({
+  name,
+  namespace,
+}: {
+  name: string;
+  namespace: string;
+}): Promise<ServiceAccessConfig | null> {
+  const definition: ServiceAccessConfig = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'ServiceAccessConfig',
+    metadata: {
+      name,
+      namespace,
+    },
+    spec: {
+      kind: 'Workshop',
+      name: '',
+    },
+  };
+  return await deleteK8sObject(definition);
+}
+
 export function setProvisionRating(
   requestUid: string,
   rating: number,
@@ -2255,6 +2379,18 @@ export const apiPaths = {
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
   WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
+  SERVICE_ACCESS_CONFIG: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccessconfigs/${name}`,
+  SERVICE_ACCESSES: ({
+    namespace,
+    limit,
+    continueId,
+  }: {
+    namespace: string;
+    limit?: number | string;
+    continueId?: string;
+  }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccesses?${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   SFDC_ACCOUNTS: ({ sales_type, account_value }: { sales_type: string; account_value: string }) =>
     `/api/salesforce/accounts?sales_type=${sales_type}&value=${account_value}`,
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>

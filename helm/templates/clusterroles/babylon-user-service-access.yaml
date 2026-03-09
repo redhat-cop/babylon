@@ -38,3 +38,11 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - serviceaccesses
+  verbs:
+  - get
+  - list
+  - watch

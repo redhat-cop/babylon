@@ -23,6 +23,8 @@ import {
   deleteWorkshop,
   fetcher,
   fetcherItemsInAllPages,
+  optionalFetcher,
+  FORBIDDEN_RESPONSE,
   patchWorkshop,
   patchWorkshopProvision,
   SERVICES_KEY,
@@ -36,6 +38,7 @@ import {
   NamespaceList,
   RequestUsageCost,
   ResourceClaim,
+  ServiceAccessConfig,
   Workshop,
   WorkshopProvision,
   WorkshopUserAssignment,
@@ -130,6 +133,19 @@ const WorkshopsItemComponent: React.FC<{
       dedupingInterval: 2000, // Dedupe requests within 2s
     },
   );
+  
+  // Check if user can manage collaborators (i.e., is the owner, not a collaborator)
+  const { data: serviceAccessConfigResponse } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
+    workshop
+      ? apiPaths.SERVICE_ACCESS_CONFIG({
+          namespace: workshop.metadata.namespace,
+          name: workshop.metadata.name,
+        })
+      : null,
+    optionalFetcher,
+  );
+  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     apiPaths.WORKSHOP_USER_ASSIGNMENTS({
       workshopName,
@@ -541,6 +557,7 @@ const WorkshopsItemComponent: React.FC<{
                     ? () => showModal({ action: 'stopServices', resourceClaims })
                     : null,
                 }}
+                canManageCollaborators={canManageCollaborators}
                 isLocked={isWorkshopLocked(workshop)}
               />
             </Bullseye>

@@ -14,19 +14,20 @@ const ServiceActions: React.FC<{
   actionHandlers: {
     runtime?: () => void;
     lifespan?: () => void;
-    delete: () => void;
+    delete?: () => void;
     start?: () => void;
     stop?: () => void;
     manageWorkshop?: () => void;
     rate?: () => void;
   };
+  canManageCollaborators?: boolean;
   className?: string;
   isDisabled?: boolean;
   position?: 'right' | 'left';
   resourceClaim?: ResourceClaim;
   serviceName?: string;
   iconOnly?: boolean;
-}> = ({ actionHandlers, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
+}> = ({ actionHandlers, canManageCollaborators = true, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems = [];
   const { ratings_enabled } = useInterfaceConfig();
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
@@ -61,6 +62,7 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="delete"
         label={serviceName ? `Delete ${serviceName}` : 'Delete'}
+        isDisabled={!canManageCollaborators}
         onSelect={actionHandlers.delete}
       />,
     );

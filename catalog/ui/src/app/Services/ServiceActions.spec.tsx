@@ -161,4 +161,97 @@ describe('ServiceActions', () => {
     fireEvent.click(button);
     await waitFor(() => expect(getByText('Edit Auto-Stop')).toBeInTheDocument());
   });
+
+  test('When canManageCollaborators is false, Delete should be disabled', async () => {
+    const openDeleteModal = jest.fn();
+    const openScheduleActionModal = jest.fn();
+    const openStartModal = jest.fn();
+    const openStopModal = jest.fn();
+
+    render(
+      <ServiceActions
+        position="right"
+        resourceClaim={resourceClaimObj as ResourceClaim}
+        canManageCollaborators={false}
+        actionHandlers={{
+          delete: () => openDeleteModal('resourceClaim'),
+          lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
+          runtime: () => openScheduleActionModal('resourceClaim', 'stop'),
+          start: () => openStartModal('resourceClaim', 'start'),
+          stop: () => openStopModal('resourceClaim', 'stop'),
+        }}
+      />
+    );
+    const button = screen.getByText('Actions');
+    fireEvent.click(button);
+    
+    await waitFor(() => {
+      const deleteButton = screen.getByText('Delete');
+      expect(deleteButton).toBeInTheDocument();
+      // PatternFly dropdown items have disabled class on the li element
+      expect(deleteButton.closest('li')).toHaveClass('pf-m-disabled');
+    });
+  });
+
+  test('When canManageCollaborators is true (default), Delete should be enabled', async () => {
+    const openDeleteModal = jest.fn();
+    const openScheduleActionModal = jest.fn();
+    const openStartModal = jest.fn();
+    const openStopModal = jest.fn();
+
+    render(
+      <ServiceActions
+        position="right"
+        resourceClaim={resourceClaimObj as ResourceClaim}
+        canManageCollaborators={true}
+        actionHandlers={{
+          delete: () => openDeleteModal('resourceClaim'),
+          lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
+          runtime: () => openScheduleActionModal('resourceClaim', 'stop'),
+          start: () => openStartModal('resourceClaim', 'start'),
+          stop: () => openStopModal('resourceClaim', 'stop'),
+        }}
+      />
+    );
+    const button = screen.getByText('Actions');
+    fireEvent.click(button);
+    
+    await waitFor(() => {
+      const deleteButton = screen.getByText('Delete');
+      expect(deleteButton).toBeInTheDocument();
+      // PatternFly dropdown items should NOT have disabled class when enabled
+      expect(deleteButton.closest('li')).not.toHaveClass('pf-m-disabled');
+    });
+  });
+
+  test('When canManageCollaborators is false, clicking Delete should not call handler', async () => {
+    const openDeleteModal = jest.fn();
+    const openScheduleActionModal = jest.fn();
+    const openStartModal = jest.fn();
+    const openStopModal = jest.fn();
+
+    render(
+      <ServiceActions
+        position="right"
+        resourceClaim={resourceClaimObj as ResourceClaim}
+        canManageCollaborators={false}
+        actionHandlers={{
+          delete: () => openDeleteModal('resourceClaim'),
+          lifespan: () => openScheduleActionModal('resourceClaim', 'retirement'),
+          runtime: () => openScheduleActionModal('resourceClaim', 'stop'),
+          start: () => openStartModal('resourceClaim', 'start'),
+          stop: () => openStopModal('resourceClaim', 'stop'),
+        }}
+      />
+    );
+    const button = screen.getByText('Actions');
+    fireEvent.click(button);
+    
+    await waitFor(() => {
+      const deleteButton = screen.getByText('Delete');
+      fireEvent.click(deleteButton);
+    });
+    
+    expect(openDeleteModal).not.toHaveBeenCalled();
+  });
 });

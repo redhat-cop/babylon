@@ -24,7 +24,7 @@ const ResourceClaimDeleteModal: React.FC<{
         resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
       );
     }
-  }, [resourceClaims, setTitle]);
+  }, [resourceClaims, restart, setTitle]);
   return <p>Cloud resources will be deleted. Restore for deleted resources is not available.</p>;
 };
 

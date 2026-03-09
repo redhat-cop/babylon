@@ -1,5 +1,5 @@
 import React, { ReactElement, Suspense, useLayoutEffect, useState } from 'react';
-import { render, RenderOptions, queries, RenderResult } from '@testing-library/react';
+import { render, RenderOptions, RenderResult, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from '@app/store';
@@ -31,7 +31,7 @@ const AllTheProviders = ({ children, history }) => {
 const customRender = (
   ui: ReactElement,
   options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>,
-): RenderResult<typeof queries> => {
+): RenderResult => {
   function getOptions({ history = createMemoryHistory({ initialEntries: ['/'] }), ...rest }) {
     return { rest, history };
   }
@@ -45,10 +45,9 @@ const customRender = (
 // re-export everything
 export * from '@testing-library/react';
 
-// override render method
-export { customRender as render };
+// override render method and explicitly export common utilities
+export { customRender as render, waitFor, fireEvent, within, screen };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const generateSession = ({
   email = 'test@redhat.com',
   isAdmin = false,

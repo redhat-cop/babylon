@@ -73,6 +73,11 @@ const renderWorkshopRow = ({
       >
         {displayName(workshop)}
       </Link>
+      {workshop.isCollaborator ? (
+        <Label key="workshop-name__collaborator" tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}>
+          Collaborator
+        </Label>
+      ) : null}
       {stage !== 'prod' ? <Label key="workshop-name__stage">{stage}</Label> : null}
       <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
         Workshop UI
@@ -84,7 +89,7 @@ const renderWorkshopRow = ({
   const statusCell = (
     <>
       {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
-        <ServiceStatus resourceClaim={workshop.resourceClaims[0]} />
+        <ServiceStatus resourceClaim={workshop.resourceClaims.filter((r) => !r.metadata.deletionTimestamp)[0]} />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled
@@ -149,7 +154,7 @@ const renderWorkshopRow = ({
         />
         <ButtonCircleIcon
           key="actions__delete"
-          isDisabled={isLocked}
+          isDisabled={isLocked || workshop.isCollaborator}
           onClick={actionHandlers.delete}
           description="Delete"
           icon={TrashIcon}
