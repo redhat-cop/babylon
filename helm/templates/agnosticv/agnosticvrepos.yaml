@@ -33,6 +33,10 @@ spec:
   - name: babylon_anarchy_governor
     {{- index $ansibleRoles.sources.babylon_anarchy_governor | toYaml | nindent 4 }}
   {{- end }}
+{{- with $repo.defaults }}
+  defaults:
+    {{ . | toYaml | nindent 4 }}
+{{- end }}
 {{- with $repo.gitHub }}
   gitHub:
 {{- if .tokenSecret }}
@@ -45,6 +49,10 @@ spec:
     {{- (dict $k $v) | toYaml | nindent 4 }}
 {{- end }}
 {{- end }}
+{{- end }}
+{{- with $repo.overrides }}
+  overrides:
+    {{ . | toYaml | nindent 4 }}
 {{- end }}
 {{- with $repo.sshKey }}
   sshKey: {{ . }}
