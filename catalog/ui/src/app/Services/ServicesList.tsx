@@ -29,7 +29,8 @@ import {
   stopAllResourcesInResourceClaim,
   stopWorkshop,
 } from '@app/api';
-import { ResourceClaim, Service, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import { ResourceClaim, ResourceClaimWithCollaborator, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import { fetcher } from '@app/api';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
   checkResourceClaimCanStart,
@@ -55,9 +56,10 @@ import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 
 import './services-list.css';
 
-function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[]) {
+function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[], isCollaborator = false) {
   const workshopWithResourceClaims: WorkshopWithResourceClaims = workshop;
   workshopWithResourceClaims.resourceClaims = resourceClaims;
+  workshopWithResourceClaims.isCollaborator = isCollaborator;
   return workshopWithResourceClaims;
 }
 
@@ -67,7 +69,7 @@ async function fetchServices(namespace: string): Promise<Service[]> {
       apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     )) as ResourceClaim[];
   }
-  async function fetchWorksops(namespace: string) {
+  async function fetchWorkshops(namespace: string) {
     return await fetcherItemsInAllPages((continueId) =>
       apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     ).then(async (workshops: Workshop[]) => {
@@ -83,7 +85,7 @@ async function fetchServices(namespace: string): Promise<Service[]> {
               limit: FETCH_BATCH_LIMIT,
               continueId,
             }),
-          ).then((r) => setResourceClaims(workshop, r)),
+          ).then((r) => setResourceClaims(workshop, r, false)),
         );
         workshopsEnriched.push(_workshopEnriched);
       }
@@ -91,10 +93,60 @@ async function fetchServices(namespace: string): Promise<Service[]> {
       return workshopsEnriched;
     });
   }
+  async function fetchSharedServices(namespace: string) {
+    const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+    )) as ServiceAccess[];
+    
+    const sharedServices: Service[] = [];
+    
+    for (const serviceAccess of serviceAccesses) {
+      try {
+        if (serviceAccess.spec.kind === 'Workshop') {
+          const workshop = (await fetcher(
+            apiPaths.WORKSHOP({
+              namespace: serviceAccess.spec.namespace,
+              workshopName: serviceAccess.spec.name,
+            }),
+          )) as Workshop;
+          
+          const resourceClaims = (await fetcherItemsInAllPages((continueId) =>
+            apiPaths.RESOURCE_CLAIMS({
+              namespace: workshop.metadata.namespace,
+              labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
+              limit: FETCH_BATCH_LIMIT,
+              continueId,
+            }),
+          )) as ResourceClaim[];
+          
+          sharedServices.push(setResourceClaims(workshop, resourceClaims, true));
+        } else if (serviceAccess.spec.kind === 'ResourceClaim') {
+          const resourceClaim = (await fetcher(
+            apiPaths.RESOURCE_CLAIM({
+              namespace: serviceAccess.spec.namespace,
+              resourceClaimName: serviceAccess.spec.name,
+            }),
+          )) as ResourceClaim;
+          
+          const resourceClaimWithCollaborator: ResourceClaimWithCollaborator = {
+            ...resourceClaim,
+            isCollaborator: true,
+          };
+          
+          sharedServices.push(resourceClaimWithCollaborator);
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`, error);
+      }
+    }
+    
+    return sharedServices;
+  }
   const services: Service[] = [];
   const promises = [];
   promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
-  promises.push(fetchWorksops(namespace).then((w) => services.push(...w)));
+  promises.push(fetchWorkshops(namespace).then((w) => services.push(...w)));
+  promises.push(fetchSharedServices(namespace).then((s) => services.push(...s)));
   await Promise.all(promises);
   return services;
 }

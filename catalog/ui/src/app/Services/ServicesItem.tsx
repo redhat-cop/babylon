@@ -13,6 +13,9 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
+  FormGroup,
+  Label as PFLabel,
+  LabelGroup,
   PageSection,
   Spinner,
   Split,
@@ -34,6 +37,7 @@ import {
   NumberInput,
   Popover,
 } from '@patternfly/react-core';
+import { Modal as DeprecatedModal, ModalVariant } from '@patternfly/react-core/deprecated';
 import {
   apiPaths,
   deleteResourceClaim,
@@ -50,6 +54,9 @@ import {
   setProvisionRating,
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
+  createServiceAccessConfig,
+  patchServiceAccessConfig,
+  deleteServiceAccessConfig,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -58,6 +65,7 @@ import {
   NamespaceList,
   RequestUsageCost,
   ResourceClaim,
+  ServiceAccessConfig,
   ServiceActionActions,
   Workshop,
   WorkshopUserAssignment,
@@ -345,6 +353,8 @@ const ServicesItemComponent: React.FC<{
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
+  const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
+  const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
@@ -355,6 +365,83 @@ const ServicesItemComponent: React.FC<{
     };
     submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
+
+  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+
+  const {
+    data: serviceAccessConfig,
+    isLoading: serviceAccessLoading,
+    mutate: mutateServiceAccessConfig,
+  } = useSWR<ServiceAccessConfig | null>(
+    !isPartOfWorkshop
+      ? apiPaths.SERVICE_ACCESS_CONFIG({
+          namespace: resourceClaim.metadata.namespace,
+          name: resourceClaim.metadata.name,
+        })
+      : null,
+    silentFetcher,
+  );
+
+  const serviceAccessUsers = useMemo(() => {
+    if (!serviceAccessConfig?.spec?.users) return [];
+    return serviceAccessConfig.spec.users.map((u) => u.name);
+  }, [serviceAccessConfig]);
+
+  async function handleAddServiceAccessUser() {
+    const email = newServiceAccessEmail.trim();
+    if (!email) return;
+
+    const updatedUsers = [...serviceAccessUsers, email];
+
+    try {
+      if (serviceAccessConfig) {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: resourceClaim.metadata.name,
+          namespace: resourceClaim.metadata.namespace,
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(updatedConfig);
+      } else {
+        const newConfig = await createServiceAccessConfig({
+          name: resourceClaim.metadata.name,
+          namespace: resourceClaim.metadata.namespace,
+          serviceName: resourceClaim.metadata.name,
+          serviceNamespace: resourceClaim.metadata.namespace,
+          serviceKind: 'ResourceClaim',
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(newConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
+    }
+
+    setNewServiceAccessEmail('');
+    setModalAddServiceAccess(false);
+  }
+
+  async function handleRemoveServiceAccessUser(emailToRemove: string) {
+    const updatedUsers = serviceAccessUsers.filter((email: string) => email !== emailToRemove);
+
+    try {
+      if (updatedUsers.length === 0) {
+        await deleteServiceAccessConfig({
+          name: resourceClaim.metadata.name,
+          namespace: resourceClaim.metadata.namespace,
+        });
+        mutateServiceAccessConfig(null);
+      } else {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: resourceClaim.metadata.name,
+          namespace: resourceClaim.metadata.namespace,
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(updatedConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
+    }
+  }
 
   useEffect(() => {
     if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
@@ -416,7 +503,6 @@ const ServicesItemComponent: React.FC<{
   };
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
-  const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const whiteGloved = getWhiteGloved(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
@@ -968,6 +1054,51 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
+                  {!isPartOfWorkshop ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>
+                        Collaborators{' '}
+                        <Tooltip position="right" content={<p>Users who have access to this service.</p>}>
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Users who have access to this service."
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
+                      </DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                          {serviceAccessLoading ? (
+                            <Spinner size="md" />
+                          ) : serviceAccessUsers.length > 0 ? (
+                            <LabelGroup>
+                              {serviceAccessUsers.map((email: string) => (
+                                <PFLabel
+                                  key={email}
+                                  onClose={() => handleRemoveServiceAccessUser(email)}
+                                  closeBtnAriaLabel={`Remove ${email}`}
+                                >
+                                  {email}
+                                </PFLabel>
+                              ))}
+                            </LabelGroup>
+                          ) : (
+                            <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
+                              No collaborators configured
+                            </span>
+                          )}
+                          <Button
+                            variant="link"
+                            icon={<PlusCircleIcon />}
+                            onClick={() => setModalAddServiceAccess(true)}
+                            style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
+                          >
+                            Add Collaborator
+                          </Button>
+                        </div>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
                   {!isPartOfWorkshop && isAdmin ? (
                     <>
                       <DescriptionListGroup className="services-item__admin-section">
@@ -1234,6 +1365,50 @@ const ServicesItemComponent: React.FC<{
         }}
         isAdmin={isAdmin}
       />
+      <DeprecatedModal
+        variant={ModalVariant.small}
+        title="Add Collaborator"
+        isOpen={modalAddServiceAccess}
+        onClose={() => {
+          setModalAddServiceAccess(false);
+          setNewServiceAccessEmail('');
+        }}
+        actions={[
+          <Button
+            key="add"
+            variant="primary"
+            onClick={handleAddServiceAccessUser}
+            isDisabled={!newServiceAccessEmail.trim()}
+          >
+            Add
+          </Button>,
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => {
+              setModalAddServiceAccess(false);
+              setNewServiceAccessEmail('');
+            }}
+          >
+            Cancel
+          </Button>,
+        ]}
+      >
+        <FormGroup label="Email address" isRequired fieldId="service-access-email">
+          <TextInput
+            id="service-access-email"
+            type="email"
+            value={newServiceAccessEmail}
+            onChange={(_event, value) => setNewServiceAccessEmail(value)}
+            placeholder="user@example.com"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                handleAddServiceAccessUser();
+              }
+            }}
+          />
+        </FormGroup>
+      </DeprecatedModal>
     </>
   );
 };

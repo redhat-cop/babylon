@@ -23,16 +23,15 @@ import { Select, SelectOption, SelectList } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import BetaBadge from '@app/components/BetaBadge';
 import {
   apiPaths,
   patchResourceClaim,
   patchWorkshop,
   patchWorkshopProvision,
-  getServiceAccessConfig,
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
+  silentFetcher,
 } from '@app/api';
 import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno, READY_BY_LEAD_TIME_MS } from '@app/util';
@@ -54,7 +53,7 @@ import {
 } from './workshops-utils';
 import { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
-import { useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
 import { PlusCircleIcon } from '@patternfly/react-icons';
@@ -97,33 +96,24 @@ const WorkshopsItemDetails: React.FC<{
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
-  const [serviceAccessConfig, setServiceAccessConfig] = useState<ServiceAccessConfig | null>(null);
-  const [serviceAccessLoading, setServiceAccessLoading] = useState(true);
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   
+  const {
+    data: serviceAccessConfig,
+    isLoading: serviceAccessLoading,
+    mutate: mutateServiceAccessConfig,
+  } = useSWR<ServiceAccessConfig | null>(
+    apiPaths.SERVICE_ACCESS_CONFIG({
+      namespace: workshop.metadata.namespace,
+      name: workshop.metadata.name,
+    }),
+    silentFetcher,
+  );
+
   const serviceAccessUsers = useMemo(() => {
     if (!serviceAccessConfig?.spec?.users) return [];
     return serviceAccessConfig.spec.users.map((u) => u.name);
   }, [serviceAccessConfig]);
-
-  useEffect(() => {
-    async function fetchServiceAccessConfig() {
-      setServiceAccessLoading(true);
-      try {
-        const config = await getServiceAccessConfig({
-          name: workshop.metadata.name,
-          namespace: workshop.metadata.namespace,
-        });
-        setServiceAccessConfig(config);
-      } catch (error) {
-        console.error('Failed to fetch ServiceAccessConfig:', error);
-        setServiceAccessConfig(null);
-      } finally {
-        setServiceAccessLoading(false);
-      }
-    }
-    fetchServiceAccessConfig();
-  }, [workshop.metadata.name, workshop.metadata.namespace]);
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
@@ -296,16 +286,17 @@ const WorkshopsItemDetails: React.FC<{
           namespace: workshop.metadata.namespace,
           users: updatedUsers,
         });
-        setServiceAccessConfig(updatedConfig);
+        mutateServiceAccessConfig(updatedConfig);
       } else {
         const newConfig = await createServiceAccessConfig({
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
-          workshopName: workshop.metadata.name,
-          workshopNamespace: workshop.metadata.namespace,
+          serviceName: workshop.metadata.name,
+          serviceNamespace: workshop.metadata.namespace,
+          serviceKind: 'Workshop',
           users: updatedUsers,
         });
-        setServiceAccessConfig(newConfig);
+        mutateServiceAccessConfig(newConfig);
       }
     } catch (error) {
       console.error('Failed to update ServiceAccessConfig:', error);
@@ -324,14 +315,14 @@ const WorkshopsItemDetails: React.FC<{
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
         });
-        setServiceAccessConfig(null);
+        mutateServiceAccessConfig(null);
       } else {
         const updatedConfig = await patchServiceAccessConfig({
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           users: updatedUsers,
         });
-        setServiceAccessConfig(updatedConfig);
+        mutateServiceAccessConfig(updatedConfig);
       }
     } catch (error) {
       console.error('Failed to update ServiceAccessConfig:', error);

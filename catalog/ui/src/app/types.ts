@@ -619,6 +619,21 @@ export interface ServiceAccessConfigList {
   metadata: K8sObjectListMeta;
 }
 
+export interface ServiceAccess extends K8sObject {
+  spec: ServiceAccessSpec;
+}
+
+export interface ServiceAccessSpec {
+  kind: 'ResourceClaim' | 'Workshop';
+  name: string;
+  namespace: string;
+}
+
+export interface ServiceAccessList {
+  items: ServiceAccess[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface WorkshopUserAssignmentSpec {
   data?: any;
   messages?: string;
@@ -755,10 +770,15 @@ export type ResourceType =
 
 export type ServiceActionActions = 'start' | 'stop' | 'delete' | 'rate' | 'retirement';
 
+export type ResourceClaimWithCollaborator = ResourceClaim & {
+  isCollaborator?: boolean;
+};
+
 export type WorkshopWithResourceClaims = Workshop & {
   resourceClaims?: ResourceClaim[];
+  isCollaborator?: boolean;
 };
-export type Service = ResourceClaim | WorkshopWithResourceClaims;
+export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims;
 
 export type Incident = {
   id: number;

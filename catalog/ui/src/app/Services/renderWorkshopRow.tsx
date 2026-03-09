@@ -73,6 +73,11 @@ const renderWorkshopRow = ({
       >
         {displayName(workshop)}
       </Link>
+      {workshop.isCollaborator ? (
+        <Label key="workshop-name__collaborator" tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}>
+          Collaborator
+        </Label>
+      ) : null}
       {stage !== 'prod' ? <Label key="workshop-name__stage">{stage}</Label> : null}
       <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
         Workshop UI

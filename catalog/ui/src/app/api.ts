@@ -22,7 +22,6 @@ import {
   Session,
   Nullable,
   WorkshopUserAssignment,
-  SfdcType,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -32,7 +31,6 @@ import {
   DEMO_DOMAIN,
   canExecuteAction,
   generateRandom5CharsSuffix,
-  upsertSalesforceItem,
 } from '@app/util';
 
 declare const window: Window &
@@ -2078,16 +2076,19 @@ export async function getServiceAccessConfig({
 export async function createServiceAccessConfig({
   name,
   namespace,
-  workshopName,
-  workshopNamespace,
+  serviceName,
+  serviceNamespace,
+  serviceKind = 'Workshop',
   users,
 }: {
   name: string;
   namespace: string;
-  workshopName: string;
-  workshopNamespace: string;
+  serviceName: string;
+  serviceNamespace: string;
+  serviceKind?: 'Workshop' | 'ResourceClaim';
   users: string[];
 }): Promise<ServiceAccessConfig> {
+  const labelKey = serviceKind === 'Workshop' ? 'workshop' : 'resourceclaim';
   const definition: ServiceAccessConfig = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'ServiceAccessConfig',
@@ -2095,13 +2096,13 @@ export async function createServiceAccessConfig({
       name,
       namespace,
       labels: {
-        [`${BABYLON_DOMAIN}/workshop`]: workshopName,
-        [`${BABYLON_DOMAIN}/workshop-namespace`]: workshopNamespace,
+        [`${BABYLON_DOMAIN}/${labelKey}`]: serviceName,
+        [`${BABYLON_DOMAIN}/${labelKey}-namespace`]: serviceNamespace,
       },
     },
     spec: {
-      kind: 'Workshop',
-      name: workshopName,
+      kind: serviceKind,
+      name: serviceName,
       users: users.map((email) => ({ name: email })),
     },
   };
@@ -2357,14 +2358,16 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
   SERVICE_ACCESS_CONFIG: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccessconfigs/${name}`,
-  SERVICE_ACCESS_CONFIGS_FOR_WORKSHOP: ({
-    workshopName,
-    workshopNamespace,
+  SERVICE_ACCESSES: ({
+    namespace,
+    limit,
+    continueId,
   }: {
-    workshopName: string;
-    workshopNamespace: string;
+    namespace: string;
+    limit?: number | string;
+    continueId?: string;
   }) =>
-    `/apis/${BABYLON_DOMAIN}/v1/serviceaccessconfigs?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName},${BABYLON_DOMAIN}/workshop-namespace=${workshopNamespace}`,
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccesses?${limit ? `limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   SFDC_ACCOUNTS: ({ sales_type, account_value }: { sales_type: string; account_value: string }) =>
     `/api/salesforce/accounts?sales_type=${sales_type}&value=${account_value}`,
   SFDC_BY_ACCOUNT: ({ sales_type, account_id }: { sales_type: string; account_id: string }) =>

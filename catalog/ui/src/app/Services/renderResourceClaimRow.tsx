@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResourceClaim, ServiceActionActions } from '@app/types';
+import { ResourceClaimWithCollaborator, ServiceActionActions } from '@app/types';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 
@@ -30,7 +30,7 @@ const renderResourceClaimRow = ({
   isAdmin,
   navigate,
 }: {
-  resourceClaim: ResourceClaim;
+  resourceClaim: ResourceClaimWithCollaborator;
   showModal: ({
     modal,
     action,
@@ -38,7 +38,7 @@ const renderResourceClaimRow = ({
   }: {
     modal: string;
     action?: ServiceActionActions;
-    resourceClaim?: ResourceClaim;
+    resourceClaim?: ResourceClaimWithCollaborator;
   }) => void;
   isAdmin: boolean;
   navigate: (n: string) => void;
@@ -133,6 +133,11 @@ const renderResourceClaimRow = ({
       >
         {displayName(resourceClaim)}
       </Link>
+      {resourceClaim.isCollaborator ? (
+        <Label key="resource-claim-name__collaborator" tooltipDescription={<div>You have been granted access to this service as a collaborator</div>}>
+          Collaborator
+        </Label>
+      ) : null}
       {stage !== 'prod' ? <Label key="resource-claim-name__stage">{stage}</Label> : null}
       {workshopName ? (
         <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
