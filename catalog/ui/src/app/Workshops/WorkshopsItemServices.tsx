@@ -9,8 +9,11 @@ import {
   NumberInput,
   FormGroup,
   Form,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -296,9 +299,40 @@ const WorkshopsItemServices: React.FC<{
         className="delete-unused-modal"
         isOpen={isOpen}
         onClose={closeModal}
-        title="Delete unused instances"
-        variant={ModalVariant.medium}
-        actions={[
+        variant="medium"
+        aria-label="Delete unused instances"
+      >
+        <ModalHeader title="Delete unused instances" />
+        <ModalBody>
+          <Form>
+            <p>Unused instances: {unusedResourceClaims.length}</p>
+            <FormGroup label="Number of instances to delete" fieldId="delete-instances">
+              <NumberInput
+                id="delete-instances"
+                max={unusedResourceClaims.length}
+                min={0}
+                name="delete-instances"
+                value={instancesToDelete}
+                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                  const value = parseInt(event.currentTarget.value);
+                  if (isNaN(value)) {
+                    return;
+                  }
+                  setInstancesToDelete(value);
+                }}
+                onMinus={() => setInstancesToDelete(instancesToDelete - 1)}
+                onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
+              />
+            </FormGroup>
+            {instancesToDelete > 0 ? (
+              <p>
+                This action will size down the workshop to{' '}
+                {resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length - instancesToDelete} instances
+              </p>
+            ) : null}
+          </Form>
+        </ModalBody>
+        <ModalFooter>
           <Button
             key="confirm"
             variant="primary"
@@ -306,39 +340,11 @@ const WorkshopsItemServices: React.FC<{
             onClick={confirmModal}
           >
             {isLoading ? <Spinner size="sm" /> : null} Confirm
-          </Button>,
+          </Button>
           <Button key="cancel" variant="link" onClick={closeModal}>
             Cancel
-          </Button>,
-        ]}
-      >
-        <Form>
-          <p>Unused instances: {unusedResourceClaims.length}</p>
-          <FormGroup label="Number of instances to delete" fieldId="delete-instances">
-            <NumberInput
-              id="delete-instances"
-              max={unusedResourceClaims.length}
-              min={0}
-              name="delete-instances"
-              value={instancesToDelete}
-              onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                const value = parseInt(event.currentTarget.value);
-                if (isNaN(value)) {
-                  return;
-                }
-                setInstancesToDelete(value);
-              }}
-              onMinus={() => setInstancesToDelete(instancesToDelete - 1)}
-              onPlus={() => setInstancesToDelete(instancesToDelete + 1)}
-            />
-          </FormGroup>
-          {instancesToDelete > 0 ? (
-            <p>
-              This action will size down the workshop to{' '}
-              {resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length - instancesToDelete} instances
-            </p>
-          ) : null}
-        </Form>
+          </Button>
+        </ModalFooter>
       </Modal>
       {unusedResourceClaims.length > 0 && canDelete ? (
         <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>

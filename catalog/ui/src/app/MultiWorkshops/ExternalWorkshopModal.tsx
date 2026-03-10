@@ -4,7 +4,6 @@ import {
   TextInput,
   TextArea,
 } from '@patternfly/react-core';
-import { ModalVariant } from '@patternfly/react-core/deprecated';
 import Modal from '@app/Modal/Modal';
 
 interface ExternalWorkshopFormData {
@@ -83,7 +82,7 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
         title="Add External Asset"
         confirmText="Add Asset"
         isDisabled={!formData.url.trim() || !formData.displayName.trim()}
-        variant={ModalVariant.medium}
+        variant="medium"
         ref={ref}
       >
       <div>

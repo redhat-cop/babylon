@@ -37,7 +37,7 @@ import {
   NumberInput,
   Popover,
 } from '@patternfly/react-core';
-import { Modal as DeprecatedModal, ModalVariant } from '@patternfly/react-core/deprecated';
+import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFooter, ModalHeader as PFModalHeader } from '@patternfly/react-core';
 import {
   apiPaths,
   deleteResourceClaim,
@@ -1393,15 +1393,33 @@ const ServicesItemComponent: React.FC<{
         }}
         isAdmin={isAdmin}
       />
-      <DeprecatedModal
-        variant={ModalVariant.small}
-        title="Add Collaborator"
+      <PFModal
+        variant="small"
         isOpen={modalAddServiceAccess}
         onClose={() => {
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        actions={[
+        aria-label="Add Collaborator"
+      >
+        <PFModalHeader title="Add Collaborator" />
+        <PFModalBody>
+          <FormGroup label="Email address" isRequired fieldId="service-access-email">
+            <TextInput
+              id="service-access-email"
+              type="email"
+              value={newServiceAccessEmail}
+              onChange={(_event, value) => setNewServiceAccessEmail(value)}
+              placeholder="user@example.com"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                  handleAddServiceAccessUser();
+                }
+              }}
+            />
+          </FormGroup>
+        </PFModalBody>
+        <PFModalFooter>
           <Button
             key="add"
             variant="primary"
@@ -1409,7 +1427,7 @@ const ServicesItemComponent: React.FC<{
             isDisabled={!newServiceAccessEmail.trim()}
           >
             Add
-          </Button>,
+          </Button>
           <Button
             key="cancel"
             variant="link"
@@ -1419,24 +1437,9 @@ const ServicesItemComponent: React.FC<{
             }}
           >
             Cancel
-          </Button>,
-        ]}
-      >
-        <FormGroup label="Email address" isRequired fieldId="service-access-email">
-          <TextInput
-            id="service-access-email"
-            type="email"
-            value={newServiceAccessEmail}
-            onChange={(_event, value) => setNewServiceAccessEmail(value)}
-            placeholder="user@example.com"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
-                handleAddServiceAccessUser();
-              }
-            }}
-          />
-        </FormGroup>
-      </DeprecatedModal>
+          </Button>
+        </PFModalFooter>
+      </PFModal>
     </>
   );
 };

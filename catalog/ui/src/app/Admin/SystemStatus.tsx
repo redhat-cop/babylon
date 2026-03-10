@@ -18,8 +18,11 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, updateSystemStatus, SystemStatus as SystemStatusType } from '@app/api';
@@ -308,44 +311,49 @@ const SystemStatus: React.FC = () => {
       <Modal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
-        title="Are you sure you want to disable this functionality?"
-        titleIconVariant="warning"
-        variant={ModalVariant.small}
-        actions={[
+        variant="small"
+        aria-label="Confirm disable ordering"
+      >
+        <ModalHeader
+          title="Are you sure you want to disable this functionality?"
+          titleIconVariant="warning"
+        />
+        <ModalBody>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <ExclamationTriangleIcon 
+              style={{ 
+                color: 'var(--pf-t--global--color--status--warning--default)', 
+                fontSize: '2rem',
+                flexShrink: 0,
+                marginTop: '0.25rem'
+              }} 
+            />
+            <div>
+              <p style={{ marginBottom: '1rem' }}>
+                <strong>This action affects the entire platform and may impact all users.</strong>
+              </p>
+              <p>
+                Make sure you have manager approval before proceeding. Do you want to continue?
+              </p>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
           <Button
             key="confirm"
             variant="danger"
             onClick={handleConfirmDisable}
           >
             Yes, Disable Ordering
-          </Button>,
+          </Button>
           <Button
             key="cancel"
             variant="link"
             onClick={() => setIsConfirmModalOpen(false)}
           >
             Cancel
-          </Button>,
-        ]}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-          <ExclamationTriangleIcon 
-            style={{ 
-              color: 'var(--pf-t--global--color--status--warning--default)', 
-              fontSize: '2rem',
-              flexShrink: 0,
-              marginTop: '0.25rem'
-            }} 
-          />
-          <div>
-            <p style={{ marginBottom: '1rem' }}>
-              <strong>This action affects the entire platform and may impact all users.</strong>
-            </p>
-            <p>
-              Make sure you have manager approval before proceeding. Do you want to continue?
-            </p>
-          </div>
-        </div>
+          </Button>
+        </ModalFooter>
       </Modal>
     </PageSection>
   );

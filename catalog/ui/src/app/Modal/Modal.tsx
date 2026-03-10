@@ -10,14 +10,15 @@ import React, {
   Suspense,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, Spinner } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useModal from './useModal';
 
 import './modal.css';
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
+
+export type ModalVariantType = 'small' | 'medium' | 'large' | 'default';
 
 const ModalComponent: ForwardRefRenderFunction<
   {
@@ -37,7 +38,7 @@ const ModalComponent: ForwardRefRenderFunction<
     type?: 'action' | 'ack';
     confirmText?: string;
     className?: string;
-    variant?: ModalVariant;
+    variant?: ModalVariantType;
   }
 > = (
   {
@@ -51,7 +52,7 @@ const ModalComponent: ForwardRefRenderFunction<
     passModifiers = false,
     type = 'action',
     confirmText = 'Confirm',
-    variant = ModalVariant.small,
+    variant = 'small',
     className,
   },
   ref,
@@ -114,7 +115,6 @@ const ModalComponent: ForwardRefRenderFunction<
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape, false);
-      // Add backdrop click handler
       setTimeout(() => {
         document.addEventListener('click', handleBackdropClick, true);
       }, 100);
@@ -168,13 +168,46 @@ const ModalComponent: ForwardRefRenderFunction<
     return child;
   });
 
+  const renderActions = () => {
+    if (type === 'action') {
+      return (
+        <>
+          <Button
+            key="confirm"
+            variant="primary"
+            onClick={handleOnConfirm}
+            isDisabled={_isDisabled || isLoading}
+            icon={isLoading ? <Spinner size="sm" /> : null}
+          >
+            {confirmText}
+          </Button>
+          <Button key="cancel" variant="link" onClick={close}>
+            Cancel
+          </Button>
+        </>
+      );
+    }
+    return (
+      <Button
+        key="confirm"
+        variant="primary"
+        onClick={handleOnConfirm}
+        isDisabled={isDisabled || isLoading}
+      >
+        Close
+      </Button>
+    );
+  };
+
   return domReady
     ? createPortal(
         isOpen ? (
           <Suspense
             fallback={
               <Modal isOpen variant={variant} onClose={close} aria-label="Modal: Loading">
-                <LoadingSection />
+                <ModalBody>
+                  <LoadingSection />
+                </ModalBody>
               </Modal>
             }
           >
@@ -183,40 +216,14 @@ const ModalComponent: ForwardRefRenderFunction<
                 .map((flag) => `optional-flags__${flag}`)
                 .join(' ')}`}
               variant={variant}
-              title={_title}
               onClose={close}
               aria-label={`Modal: ${_title}`}
               isOpen={isOpen}
               disableFocusTrap={false}
-              actions={
-                type === 'action'
-                  ? [
-                      <Button
-                        key="confirm"
-                        variant="primary"
-                        onClick={handleOnConfirm}
-                        isDisabled={_isDisabled || isLoading}
-                        icon={isLoading ? <Spinner size="sm" /> : null}
-                      >
-                        {confirmText}
-                      </Button>,
-                      <Button key="cancel" variant="link" onClick={close}>
-                        Cancel
-                      </Button>,
-                    ]
-                  : [
-                      <Button
-                        key="confirm"
-                        variant="primary"
-                        onClick={handleOnConfirm}
-                        isDisabled={isDisabled || isLoading}
-                      >
-                        Close
-                      </Button>,
-                    ]
-              }
             >
-              {childrenWithProps}
+              {_title && <ModalHeader title={_title} />}
+              <ModalBody>{childrenWithProps}</ModalBody>
+              <ModalFooter>{renderActions()}</ModalFooter>
             </Modal>
           </Suspense>
         ) : null,

@@ -17,7 +17,6 @@ import {
   Radio,
   SearchInput,
 } from '@patternfly/react-core';
-import { ModalVariant } from '@patternfly/react-core/deprecated';
 import LoadingIcon from './LoadingIcon';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
@@ -219,7 +218,7 @@ const SearchSalesforceIdModal: React.FC<{
       onConfirm={() => onSubmitCb(selectedAccount.id, sfdcType)}
       isDisabled={!selectedAccount || sfdcType === 'opportunity'}
       onClose={onClose}
-      variant={ModalVariant.large}
+      variant="large"
     >
       <div style={{ minHeight: '460px' }}>
         <FormGroup
