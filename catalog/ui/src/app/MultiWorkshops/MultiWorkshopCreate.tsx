@@ -58,6 +58,7 @@ import ProjectSelector from '@app/components/ProjectSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
 import purposeOptions from './purposeOptions.json';
 import useSystemStatus from '@app/utils/useSystemStatus';
+import UserDisabledModal from '@app/components/UserDisabledModal';
 
 import './multiworkshop-create.css';
 
@@ -78,6 +79,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
+  const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
@@ -496,8 +498,12 @@ const MultiWorkshopCreate: React.FC = () => {
 
       // Navigate to the created multiworkshop detail page
       navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
-    } catch (error) {
-      console.error('Error creating MultiWorkshop:', error);
+    } catch (error: unknown) {
+      if ((error as Response).status === 403) {
+        setIsUserDisabledModalOpen(true);
+      } else {
+        console.error('Error creating MultiWorkshop:', error);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1146,6 +1152,10 @@ const MultiWorkshopCreate: React.FC = () => {
         onClose={closeCatalogSelector}
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for Workshop"
+      />
+      <UserDisabledModal
+        isOpen={isUserDisabledModalOpen}
+        onClose={() => setIsUserDisabledModalOpen(false)}
       />
     </div>
   );

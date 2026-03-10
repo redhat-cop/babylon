@@ -118,6 +118,7 @@ import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import UserDisabledModal from '@app/components/UserDisabledModal';
 
 import './services-item.css';
 
@@ -356,6 +357,7 @@ const ServicesItemComponent: React.FC<{
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
+  const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const [modalState, setModalState] = useState<{
     action: ServiceActionActions;
@@ -734,9 +736,22 @@ const ServicesItemComponent: React.FC<{
       <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
         <ServicesAction actionState={modalState} setActionState={setModalState} />
       </Modal>
-      <Modal ref={modalCreateWorkshop} onConfirm={onModalWorkshopCreate} passModifiers={true}>
+      <Modal
+        ref={modalCreateWorkshop}
+        onConfirm={onModalWorkshopCreate}
+        passModifiers={true}
+        onError={(error: unknown) => {
+          if ((error as Response).status === 403) {
+            setIsUserDisabledModalOpen(true);
+          }
+        }}
+      >
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
+      <UserDisabledModal
+        isOpen={isUserDisabledModalOpen}
+        onClose={() => setIsUserDisabledModalOpen(false)}
+      />
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
           action={
