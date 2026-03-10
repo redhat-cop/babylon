@@ -19,8 +19,7 @@ import {
   LabelGroup,
   TextInput,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
@@ -847,14 +846,32 @@ const WorkshopsItemDetails: React.FC<{
       )}
 
       <Modal
-        variant={ModalVariant.small}
-        title="Add Collaborator"
+        variant="small"
         isOpen={modalAddServiceAccess}
         onClose={() => {
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        actions={[
+        aria-label="Add Collaborator"
+      >
+        <ModalHeader title="Add Collaborator" />
+        <ModalBody>
+          <FormGroup label="Email address" isRequired fieldId="service-access-email">
+            <TextInput
+              id="service-access-email"
+              type="email"
+              value={newServiceAccessEmail}
+              onChange={(_event, value) => setNewServiceAccessEmail(value)}
+              placeholder="user@example.com"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                  handleAddServiceAccessUser();
+                }
+              }}
+            />
+          </FormGroup>
+        </ModalBody>
+        <ModalFooter>
           <Button
             key="add"
             variant="primary"
@@ -862,7 +879,7 @@ const WorkshopsItemDetails: React.FC<{
             isDisabled={!newServiceAccessEmail.trim()}
           >
             Add
-          </Button>,
+          </Button>
           <Button
             key="cancel"
             variant="link"
@@ -872,23 +889,8 @@ const WorkshopsItemDetails: React.FC<{
             }}
           >
             Cancel
-          </Button>,
-        ]}
-      >
-        <FormGroup label="Email address" isRequired fieldId="service-access-email">
-          <TextInput
-            id="service-access-email"
-            type="email"
-            value={newServiceAccessEmail}
-            onChange={(_event, value) => setNewServiceAccessEmail(value)}
-            placeholder="user@example.com"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
-                handleAddServiceAccessUser();
-              }
-            }}
-          />
-        </FormGroup>
+          </Button>
+        </ModalFooter>
       </Modal>
     </DescriptionList>
   );

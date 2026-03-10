@@ -25,7 +25,6 @@ import {
   Checkbox,
   SearchInput,
 } from '@patternfly/react-core';
-import { ModalVariant } from '@patternfly/react-core/deprecated';
 import {
   Table,
   Thead,
@@ -382,7 +381,7 @@ const MultiWorkshopDetail: React.FC = () => {
         title="Add Existing Workshops"
         confirmText="Add Selected Workshops"
         isDisabled={selectedWorkshops.length === 0}
-        variant={ModalVariant.large}
+        variant="large"
         onClose={() => {
           setSelectedWorkshops([]);
           setWorkshopSearchValue('');

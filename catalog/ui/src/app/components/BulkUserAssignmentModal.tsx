@@ -5,12 +5,12 @@ import {
 	Form,
 	FormGroup,
 	HelperText,
+	Modal,
+	ModalBody,
+	ModalFooter,
+	ModalHeader,
 	TextArea
 } from '@patternfly/react-core';
-import {
-	Modal,
-	ModalVariant
-} from '@patternfly/react-core/deprecated';
 
 import './bulk-user-assignment-modal.css';
 
@@ -42,23 +42,26 @@ const BulkUserAssignmentModal: React.FunctionComponent<BulkUserAssignmentModalPr
       className="bulk-user-assignment-modal"
       isOpen={isOpen}
       onClose={onClose}
-      title="Bulk User Assignment"
-      variant={ModalVariant.medium}
-      actions={[
+      variant="medium"
+      aria-label="Bulk User Assignment"
+    >
+      <ModalHeader title="Bulk User Assignment" />
+      <ModalBody>
+        <Form>
+          <FormGroup fieldId="emails" label="User Emails">
+            <HelperText>Enter workshop user email addresses separated by commas, whitespace, or blank lines.</HelperText>
+            <TextArea autoFocus id="emails" onChange={(_event, v) => setEmailsText(v)} type="text" value={emailsText} />
+          </FormGroup>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button key="confirm" variant="primary" onClick={onConfirmClicked}>
           Confirm
-        </Button>,
+        </Button>
         <Button key="cancel" variant="link" onClick={onClose}>
           Cancel
-        </Button>,
-      ]}
-    >
-      <Form>
-        <FormGroup fieldId="emails" label="User Emails">
-          <HelperText>Enter workshop user email addresses separated by commas, whitespace, or blank lines.</HelperText>
-          <TextArea autoFocus id="emails" onChange={(_event, v) => setEmailsText(v)} type="text" value={emailsText} />
-        </FormGroup>
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

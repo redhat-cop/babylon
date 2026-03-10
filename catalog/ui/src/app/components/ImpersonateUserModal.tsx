@@ -11,9 +11,12 @@ import {
   MenuSearch,
   MenuSearchInput,
   MenuToggle,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   SearchInput,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
 import { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
@@ -86,60 +89,63 @@ const ImpersonateUserModal: React.FC<{
   return (
     <Modal
       className="impersonate-user-modal"
-      title="Impersonate User"
       isOpen={isOpen}
       onClose={onClose}
       variant="small"
-      actions={[
+      aria-label="Impersonate User"
+    >
+      <ModalHeader title="Impersonate User" />
+      <ModalBody>
+        <Dropdown
+          isOpen={userSelectIsOpen}
+          onOpenChangeKeys={['Escape']}
+          toggle={(toggleRef) => (
+            <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userSelectIsOpen}>
+              {user?.metadata?.name || 'Select User'}
+            </MenuToggle>
+          )}
+          ref={menuRef}
+          id="context-selector"
+          onSelect={onSelect}
+          isScrollable
+        >
+          <MenuSearch>
+            <MenuSearchInput>
+              <InputGroup>
+                <InputGroupItem isFill>
+                  <SearchInput
+                    value={userSearchValue}
+                    placeholder={user?.metadata?.name || 'Search'}
+                    onChange={(_event, value) => setUserSearchValue(value)}
+                    onKeyPress={onEnterPressed}
+                    aria-labelledby="pf-v6-context-selector-search-button-id-1"
+                  />
+                </InputGroupItem>
+              </InputGroup>
+            </MenuSearchInput>
+          </MenuSearch>
+          <Divider />
+          <DropdownList>
+            {filteredItems
+              .filter((u) => u.metadata.name != authUser)
+              .map((u, index) => {
+                return (
+                  <DropdownItem itemId={u.metadata.name} key={index} value={u.metadata.name}>
+                    {u.metadata.name}
+                  </DropdownItem>
+                );
+              })}
+          </DropdownList>
+        </Dropdown>
+      </ModalBody>
+      <ModalFooter>
         <Button key="confirm" variant="primary" onClick={() => onConfirm()}>
           Confirm
-        </Button>,
+        </Button>
         <Button key="cancel" variant="link" onClick={onClose}>
           Cancel
-        </Button>,
-      ]}
-    >
-      <Dropdown
-        isOpen={userSelectIsOpen}
-        onOpenChangeKeys={['Escape']}
-        toggle={(toggleRef) => (
-          <MenuToggle ref={toggleRef} onClick={onToggleClick} isExpanded={userSelectIsOpen}>
-            {user?.metadata?.name || 'Select User'}
-          </MenuToggle>
-        )}
-        ref={menuRef}
-        id="context-selector"
-        onSelect={onSelect}
-        isScrollable
-      >
-        <MenuSearch>
-          <MenuSearchInput>
-            <InputGroup>
-              <InputGroupItem isFill>
-                <SearchInput
-                  value={userSearchValue}
-                  placeholder={user?.metadata?.name || 'Search'}
-                  onChange={(_event, value) => setUserSearchValue(value)}
-                  onKeyPress={onEnterPressed}
-                  aria-labelledby="pf-v6-context-selector-search-button-id-1"
-                />
-              </InputGroupItem>
-            </InputGroup>
-          </MenuSearchInput>
-        </MenuSearch>
-        <Divider />
-        <DropdownList>
-          {filteredItems
-            .filter((u) => u.metadata.name != authUser)
-            .map((u, index) => {
-              return (
-                <DropdownItem itemId={u.metadata.name} key={index} value={u.metadata.name}>
-                  {u.metadata.name}
-                </DropdownItem>
-              );
-            })}
-        </DropdownList>
-      </Dropdown>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

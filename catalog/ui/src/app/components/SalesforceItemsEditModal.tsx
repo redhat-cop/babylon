@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Button,
   Modal,
-  ModalVariant,
   ModalBody,
   ModalFooter,
   ModalHeader,
@@ -54,7 +53,8 @@ const SalesforceItemsEditModal: React.FC<SalesforceItemsEditModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      variant={ModalVariant.medium}
+      variant="medium"
+      aria-label="Edit Salesforce IDs"
     >
       <ModalHeader><b>Salesforce IDs</b></ModalHeader>
       <ModalBody>
