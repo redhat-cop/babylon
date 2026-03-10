@@ -65,6 +65,7 @@ import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import DateTimePicker from '@app/components/DateTimePicker';
+import UserDisabledModal from '@app/components/UserDisabledModal';
 
 import './catalog-item-form.css';
 
@@ -77,6 +78,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<AvailabilityCheckResponse | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
@@ -112,7 +114,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       provisionConcurrency: catalogItem.spec.workshopUserMode === 'multi' ? 1 : 10,
       provisionStartDelay: 30,
     }),
-    [_displayName, catalogItem.spec.workshopUserMode === 'multi'],
+    [_displayName, catalogItem.spec.workshopUserMode],
   );
 
   const onToggleClick = () => {
@@ -281,7 +283,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     setIsLoading(true);
     const parameterValues: CreateServiceRequestParameterValues = {};
     for (const parameterState of Object.values(formState.parameters)) {
-      // Add parameters for request that have values and are not disabled or hidden
       if (
         parameterState.value !== undefined &&
         !parameterState.isDisabled &&
@@ -295,88 +296,97 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
 
-    if (catalogItem.spec.externalUrl) {
-      await saveExternalItemRequest({
-        asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'],
-        requester: formState.serviceNamespace.requester || email,
-        purpose: formState.purpose,
-        purposeActivity: formState.activity,
-        purposeExplanation: formState.explanation,
-        salesforceId: formState.salesforceItems?.[0]?.id,
-        salesType: formState.salesforceItems?.[0]?.type,
-        stage: getStageFromK8sObject(catalogItem),
-      });
+    try {
+      if (catalogItem.spec.externalUrl) {
+        await saveExternalItemRequest({
+          asset_uuid: catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'],
+          requester: formState.serviceNamespace.requester || email,
+          purpose: formState.purpose,
+          purposeActivity: formState.activity,
+          purposeExplanation: formState.explanation,
+          salesforceId: formState.salesforceItems?.[0]?.id,
+          salesType: formState.salesforceItems?.[0]?.type,
+          stage: getStageFromK8sObject(catalogItem),
+        });
+        setIsLoading(false);
+        window.open(catalogItem.spec.externalUrl, '_blank');
+        return null;
+      }
+
+      if (formState.workshop) {
+        const {
+          accessPassword,
+          description,
+          displayName,
+          userRegistration,
+          provisionConcurrency,
+          provisionCount,
+          provisionStartDelay,
+        } = formState.workshop;
+        const workshop = await createWorkshop({
+          accessPassword,
+          description,
+          displayName,
+          catalogItem: catalogItem,
+          openRegistration: userRegistration === 'open',
+          serviceNamespace: formState.serviceNamespace,
+          stopDate: formState.stopDate,
+          endDate: formState.endDate,
+          startDate: formState.startDate,
+          readyByDate: useDirectProvisioningDate && formState.startDate 
+            ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
+            : undefined,
+          email,
+          parameterValues,
+          skippedSfdc: formState.salesforceId.skip,
+          whiteGloved: formState.whiteGloved,
+          salesforceItems: formState.salesforceItems,
+        });
+        const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
+        await createWorkshopProvision({
+          catalogItem: catalogItem,
+          concurrency: provisionConcurrency,
+          count: provisionCount,
+          parameters: {
+            ...parameterValues,
+            salesforce_items: JSON.stringify(formState.salesforceItems),
+          },
+          startDelay: provisionStartDelay,
+          workshop: workshop,
+          useAutoDetach: formState.useAutoDetach,
+          usePoolIfAvailable: formState.usePoolIfAvailable,
+        });
+        navigate(redirectUrl);
+      } else {
+        const resourceClaim = await createServiceRequest({
+          catalogItem,
+          catalogNamespaceName: catalogNamespaceName,
+          groups,
+          isAdmin,
+          parameterValues,
+          serviceNamespace: formState.serviceNamespace,
+          usePoolIfAvailable: formState.usePoolIfAvailable,
+          useAutoDetach: formState.useAutoDetach,
+          startDate: formState.startDate,
+          stopDate: formState.stopDate,
+          endDate: formState.endDate,
+          email,
+          skippedSfdc: formState.salesforceId.skip,
+          whiteGloved: formState.whiteGloved,
+          salesforceItems: formState.salesforceItems,
+        });
+
+        navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
+      }
+    } catch (error: unknown) {
+      if ((error as Response).status === 403) {
+        setIsUserDisabledModalOpen(true);
+      } else {
+        throw error;
+      }
+    } finally {
       setIsLoading(false);
-      window.open(catalogItem.spec.externalUrl, '_blank');
-      return null;
     }
-
-    if (formState.workshop) {
-      const {
-        accessPassword,
-        description,
-        displayName,
-        userRegistration,
-        provisionConcurrency,
-        provisionCount,
-        provisionStartDelay,
-      } = formState.workshop;
-      const workshop = await createWorkshop({
-        accessPassword,
-        description,
-        displayName,
-        catalogItem: catalogItem,
-        openRegistration: userRegistration === 'open',
-        serviceNamespace: formState.serviceNamespace,
-        stopDate: formState.stopDate,
-        endDate: formState.endDate,
-        startDate: formState.startDate,
-        readyByDate: useDirectProvisioningDate && formState.startDate 
-          ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
-          : undefined,
-        email,
-        parameterValues,
-        skippedSfdc: formState.salesforceId.skip,
-        whiteGloved: formState.whiteGloved,
-        salesforceItems: formState.salesforceItems,
-      });
-      const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
-      await createWorkshopProvision({
-        catalogItem: catalogItem,
-        concurrency: provisionConcurrency,
-        count: provisionCount,
-        parameters: {
-          ...parameterValues,
-          salesforce_items: JSON.stringify(formState.salesforceItems),
-        },
-        startDelay: provisionStartDelay,
-        workshop: workshop,
-        useAutoDetach: formState.useAutoDetach,
-        usePoolIfAvailable: formState.usePoolIfAvailable,
-      });
-      navigate(redirectUrl);
-    } else {
-      const resourceClaim = await createServiceRequest({
-        catalogItem,
-        catalogNamespaceName: catalogNamespaceName,
-        groups,
-        isAdmin,
-        parameterValues,
-        serviceNamespace: formState.serviceNamespace,
-        usePoolIfAvailable: formState.usePoolIfAvailable,
-        useAutoDetach: formState.useAutoDetach,
-        startDate: formState.startDate,
-        stopDate: formState.stopDate,
-        endDate: formState.endDate,
-        email,
-        skippedSfdc: formState.salesforceId.skip,
-        whiteGloved: formState.whiteGloved,
-        salesforceItems: formState.salesforceItems,
-      });
-
-      navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
-    }
-    setIsLoading(false);
   }
 
   if ('deny' === checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin)) {
@@ -423,6 +433,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             salesforceItems: [{ id: value, type }],
           })
         }
+      />
+      <UserDisabledModal
+        isOpen={isUserDisabledModalOpen}
+        onClose={() => setIsUserDisabledModalOpen(false)}
       />
       <Breadcrumb>
         <BreadcrumbItem

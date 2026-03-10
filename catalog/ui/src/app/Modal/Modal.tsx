@@ -28,6 +28,7 @@ const ModalComponent: ForwardRefRenderFunction<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onConfirm: (_: any) => Promise<void> | void;
     onClose?: () => void;
+    onError?: (error: unknown) => void;
     defaultOpened?: boolean;
     title?: string;
     children: React.ReactNode;
@@ -43,6 +44,7 @@ const ModalComponent: ForwardRefRenderFunction<
     children,
     onConfirm,
     onClose,
+    onError,
     title = '',
     defaultOpened = false,
     isDisabled = false,
@@ -135,10 +137,14 @@ const ModalComponent: ForwardRefRenderFunction<
       }
       await onConfirm(state);
       close();
-    } catch {
+    } catch (error: unknown) {
       setIsLoading(false);
+      if (onError) {
+        onError(error);
+        close();
+      }
     }
-  }, [close, onConfirm, onConfirmCb, state, type]);
+  }, [close, onConfirm, onConfirmCb, onError, state, type]);
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
