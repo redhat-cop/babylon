@@ -113,12 +113,12 @@ const MultiWorkshopCreate: React.FC = () => {
   });
 
   // Service quota check
-  const { standaloneServicesCount, workshopsCount, isQuotaExceeded } = useServiceQuota({
+  const { standaloneServicesCount, workshopsCount, currentServicesCount, quotaLimit } = useServiceQuota({
     namespace: selectedNamespace?.name,
     isAdmin,
   });
 
-  // Get catalog items for metrics fetching
+  // Get catalog items for metrics fetching (each asset = 1 workshop toward quota)
   const validAssets = useMemo(
     () =>
       createFormData.assets.filter(
@@ -130,6 +130,10 @@ const MultiWorkshopCreate: React.FC = () => {
       ),
     [createFormData.assets],
   );
+
+  // Check if adding these assets would exceed quota (admins bypass)
+  const remainingQuota = Math.max(0, quotaLimit - currentServicesCount);
+  const wouldExceedQuota = !isAdmin && (currentServicesCount + validAssets.length > quotaLimit);
 
   // Create a stable key for catalog items fetching
   const catalogItemsKey = useMemo(() => {
@@ -284,7 +288,7 @@ const MultiWorkshopCreate: React.FC = () => {
     createFormData.activity &&
     createFormData.purpose &&
     (!isSalesforceRequired || hasAtLeastOneSalesforce) &&
-    !isQuotaExceeded;
+    !wouldExceedQuota;
 
   async function onCreateMultiWorkshop(): Promise<void> {
     if (!isFormValid) return;
@@ -1015,12 +1019,25 @@ const MultiWorkshopCreate: React.FC = () => {
             </Button>
           </FormGroup>
 
-          {isQuotaExceeded && (
+          {wouldExceedQuota && (
             <Alert variant="warning" title="Service Quota Exceeded" style={{ marginBottom: '24px' }}>
               <p>
-                You have reached your quota of 5 services ({standaloneServicesCount} standalone
-                {standaloneServicesCount !== 1 ? ' services' : ' service'} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
-                You cannot create a new multi-asset workshop until you retire existing services or workshops.
+                {currentServicesCount >= quotaLimit ? (
+                  <>
+                    You have reached your quota of {quotaLimit} services ({standaloneServicesCount} standalone
+                    {standaloneServicesCount !== 1 ? ' services' : ' service'} + {workshopsCount} workshop
+                    {workshopsCount !== 1 ? 's' : ''}). You cannot create a new multi-asset workshop until you retire
+                    existing services or workshops.
+                  </>
+                ) : (
+                  <>
+                    You have {currentServicesCount} of {quotaLimit} services ({standaloneServicesCount} standalone
+                    {standaloneServicesCount !== 1 ? ' services' : ' service'} + {workshopsCount} workshop
+                    {workshopsCount !== 1 ? 's' : ''}). Adding {validAssets.length} asset
+                    {validAssets.length !== 1 ? 's' : ''} would exceed your quota. You can add up to{' '}
+                    {remainingQuota} more asset{remainingQuota !== 1 ? 's' : ''}.
+                  </>
+                )}
               </p>
             </Alert>
           )}
