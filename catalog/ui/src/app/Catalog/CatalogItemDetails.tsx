@@ -25,20 +25,18 @@ import {
 } from '@patternfly/react-core';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
-import { apiPaths, fetcher, fetcherItemsInAllPages, silentFetcher } from '@app/api';
-import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident, ResourceClaim } from '@app/types';
+import { apiPaths, fetcher, silentFetcher } from '@app/api';
+import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
+import useServiceQuota from '@app/utils/useServiceQuota';
 import {
   checkAccessControl,
   displayName,
   renderContent,
   BABYLON_DOMAIN,
-  FETCH_BATCH_LIMIT,
   isLabDeveloper,
-  isResourceClaimPartOfWorkshop,
-  compareK8sObjectsArr,
   CATALOG_MANAGER_DOMAIN,
   getStageFromK8sObject,
   calculateUptimePercentage,
@@ -117,36 +115,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   if (asset_uuid && assetsFavList) {
     isFavorite = assetsFavList.bookmarks.some((b) => b.asset_uuid === asset_uuid);
   }
-  const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
-    userNamespace?.name
-      ? apiPaths.RESOURCE_CLAIMS({
-          namespace: userNamespace.name,
-          limit: 'ALL',
-        })
-      : null,
-    () =>
-      fetcherItemsInAllPages((continueId) =>
-        apiPaths.RESOURCE_CLAIMS({
-          namespace: userNamespace.name,
-          limit: FETCH_BATCH_LIMIT,
-          continueId,
-        }),
-      ),
-    {
-      refreshInterval: 8000,
-      compare: compareK8sObjectsArr,
-    },
-  );
 
-  const services: ResourceClaim[] = useMemo(
-    () =>
-      Array.isArray(userResourceClaims)
-        ? [].concat(
-            ...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp),
-          )
-        : [],
-    [userResourceClaims],
-  );
+  // Service quota check
+  const { standaloneServicesCount, workshopsCount, isQuotaExceeded } = useServiceQuota({
+    namespace: userNamespace?.name,
+    isAdmin,
+  });
 
   const descriptionHtml = useMemo(
     () => (
@@ -177,16 +151,18 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       ? CatalogItemAccess.Allow
       : accessCheckResult === 'deny'
         ? CatalogItemAccess.Deny
-        : services.length >= 5
+        : isQuotaExceeded
           ? CatalogItemAccess.Deny
           : accessCheckResult === 'allow'
             ? CatalogItemAccess.Allow
             : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
-    catalogItemAccess !== CatalogItemAccess.Deny ? null : services.length >= 5 ? (
+    catalogItemAccess !== CatalogItemAccess.Deny ? null : isQuotaExceeded ? (
       <p>
-        You have reached your quota of 5 services. You will not be able to request any new applications until you retire
-        existing services. If you feel this is an error, please{' '}
+        You have reached your quota of 5 services ({standaloneServicesCount} standalone service
+        {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
+        You will not be able to request any new applications until you retire existing services or workshops.
+        If you feel this is an error, please{' '}
         <a href={helpLink} target="_blank" rel="noopener noreferrer">
           contact us
         </a>

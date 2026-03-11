@@ -46,9 +46,17 @@ import {
   SandboxCloudSelector,
   TPurposeOpts,
 } from '@app/types';
-import { checkAccessControl, displayName, getStageFromK8sObject, isLabDeveloper, randomString, READY_BY_LEAD_TIME_MS } from '@app/util';
+import {
+  checkAccessControl,
+  displayName,
+  getStageFromK8sObject,
+  isLabDeveloper,
+  randomString,
+  READY_BY_LEAD_TIME_MS,
+} from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
+import useServiceQuota from '@app/utils/useServiceQuota';
 import useDebounce from '@app/utils/useDebounce';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import DynamicFormInput from '@app/components/DynamicFormInput';
@@ -100,6 +108,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       suspense: false,
     },
   );
+
+  // Service quota check
+  const { standaloneServicesCount, workshopsCount, isQuotaExceeded } = useServiceQuota({
+    namespace: userNamespace?.name,
+    isAdmin,
+  });
 
   const _displayName = displayName(catalogItem);
   const estimatedCost = useMemo(() => getEstimatedCost(catalogItem), [catalogItem]);
@@ -158,7 +172,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? workshopOrderingBlockedMessage 
     : serviceOrderingBlockedMessage;
   const submitRequestEnabled =
-    isOrderingBlocked ? false : (incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading);
+    isOrderingBlocked || isQuotaExceeded ? false : (incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading);
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
@@ -1229,6 +1243,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 <p>{orderingBlockedMessage || (formState.workshop 
                   ? "Workshop ordering is temporarily disabled. Please try again later." 
                   : "Service ordering is temporarily disabled. Please try again later.")}</p>
+              </Alert>
+            </AlertGroup>
+          )}
+
+          {isQuotaExceeded && (
+            <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <Alert variant="warning" title="Service Quota Exceeded" isInline>
+                <p>
+                  You have reached your quota of 5 services ({standaloneServicesCount} standalone service
+                  {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
+                  You cannot request any new applications until you retire existing services or workshops.
+                </p>
               </Alert>
             </AlertGroup>
           )}

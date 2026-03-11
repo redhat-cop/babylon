@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
+import useServiceQuota from '@app/utils/useServiceQuota';
 import {
   PageSection,
   Title,
@@ -41,13 +41,10 @@ import {
   apiPaths,
   silentFetcher,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts, ServiceNamespace, ResourceClaim, Nullable, SalesforceItem } from '@app/types';
+import { CatalogItem, TPurposeOpts, ServiceNamespace, Nullable, SalesforceItem } from '@app/types';
 import {
-  compareK8sObjectsArr,
   displayName,
-  FETCH_BATCH_LIMIT,
   getStageFromK8sObject,
-  isResourceClaimPartOfWorkshop,
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
@@ -115,39 +112,11 @@ const MultiWorkshopCreate: React.FC = () => {
     };
   });
 
-  // Fetch user's existing services for quota check
-  const { data: userResourceClaims } = useSWR<ResourceClaim[]>(
-    selectedNamespace?.name
-      ? apiPaths.RESOURCE_CLAIMS({
-          namespace: selectedNamespace.name,
-          limit: 'ALL',
-        })
-      : null,
-    () =>
-      fetcherItemsInAllPages(
-        (continueId) =>
-          apiPaths.RESOURCE_CLAIMS({
-            namespace: selectedNamespace.name,
-            limit: FETCH_BATCH_LIMIT,
-            continueId,
-          }),
-        {
-          refreshInterval: 8000,
-          compare: compareK8sObjectsArr,
-        },
-      ),
-  );
-
-  // Calculate current active services (excluding deleted ones and workshop-related ones)
-  const currentServices: ResourceClaim[] = useMemo(
-    () =>
-      Array.isArray(userResourceClaims)
-        ? [].concat(
-            ...userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp),
-          )
-        : [],
-    [userResourceClaims],
-  );
+  // Service quota check
+  const { standaloneServicesCount, workshopsCount, isQuotaExceeded } = useServiceQuota({
+    namespace: selectedNamespace?.name,
+    isAdmin,
+  });
 
   // Get catalog items for metrics fetching
   const validAssets = useMemo(
@@ -235,9 +204,6 @@ const MultiWorkshopCreate: React.FC = () => {
     },
   );
 
-  // Calculate how many catalog assets will be created (each counts as 1 service)
-  const catalogAssetsCount = validAssets.length;
-
   // Calculate estimates based on metrics data
   const estimates = useMemo(() => {
     if (!metricsData.data || !catalogItemsData.data) {
@@ -301,11 +267,6 @@ const MultiWorkshopCreate: React.FC = () => {
     validAssets.length,
   ]);
 
-  const wouldExceedQuota = useMemo(() => {
-    if (isAdmin) return false;
-    return currentServices.length + catalogAssetsCount > 5;
-  }, [currentServices.length, catalogAssetsCount, isAdmin]);
-
   const hasAtLeastOneSalesforce = (createFormData.salesforceItems || []).some(
     (i) => (i?.id || '').trim() && (i?.type || null),
   );
@@ -323,7 +284,7 @@ const MultiWorkshopCreate: React.FC = () => {
     createFormData.activity &&
     createFormData.purpose &&
     (!isSalesforceRequired || hasAtLeastOneSalesforce) &&
-    !wouldExceedQuota;
+    !isQuotaExceeded;
 
   async function onCreateMultiWorkshop(): Promise<void> {
     if (!isFormValid) return;
@@ -1054,13 +1015,12 @@ const MultiWorkshopCreate: React.FC = () => {
             </Button>
           </FormGroup>
 
-          {wouldExceedQuota && (
+          {isQuotaExceeded && (
             <Alert variant="warning" title="Service Quota Exceeded" style={{ marginBottom: '24px' }}>
               <p>
-                You have {currentServices.length} active service{currentServices.length !== 1 ? 's' : ''} and this multi
-                workshop would create {catalogAssetsCount} additional service{catalogAssetsCount !== 1 ? 's' : ''}. You
-                cannot exceed the quota of 5 services. Please reduce the number of catalog assets or retire existing
-                services.
+                You have reached your quota of 5 services ({standaloneServicesCount} standalone
+                {standaloneServicesCount !== 1 ? ' services' : ' service'} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
+                You cannot create a new multi-asset workshop until you retire existing services or workshops.
               </p>
             </Alert>
           )}
