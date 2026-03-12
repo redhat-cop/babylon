@@ -17,6 +17,16 @@ jest.mock('@app/utils/useSession', () =>
     getSession: () => generateSession({ isAdmin: true }),
   })),
 );
+jest.mock('@app/utils/useServiceQuota', () => {
+  return jest.fn(() => ({
+    standaloneServicesCount: 0,
+    workshopsCount: 0,
+    currentServicesCount: 0,
+    isQuotaExceeded: false,
+    quotaLimit: 5,
+    isLoading: false,
+  }));
+});
 
 describe('Catalog Component', () => {
   afterEach(() => {

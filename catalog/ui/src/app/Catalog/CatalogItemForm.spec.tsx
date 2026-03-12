@@ -49,6 +49,17 @@ jest.mock('@app/utils/useInterfaceConfig', () => {
 jest.mock('@app/utils/useHelpLink', () => {
   return jest.fn(() => 'https://red.ht/open-support');
 });
+const mockUseServiceQuota = jest.fn(() => ({
+  standaloneServicesCount: 0,
+  workshopsCount: 0,
+  currentServicesCount: 0,
+  isQuotaExceeded: false,
+  quotaLimit: 5,
+  isLoading: false,
+}));
+jest.mock('@app/utils/useServiceQuota', () => {
+  return () => mockUseServiceQuota();
+});
 
 describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
@@ -158,5 +169,99 @@ describe('CatalogItemForm Component', () => {
     await userEvent.clear(input);
 
     expect(button).toBeDisabled();
+  });
+
+  describe('Service Quota', () => {
+    beforeEach(() => {
+      mockUseServiceQuota.mockReset();
+    });
+
+    test('Order button should be disabled when quota is exceeded', async () => {
+      mockUseServiceQuota.mockReturnValue({
+        standaloneServicesCount: 3,
+        workshopsCount: 2,
+        currentServicesCount: 5,
+        isQuotaExceeded: true,
+        quotaLimit: 5,
+        isLoading: false,
+      });
+
+      const { getByRole } = render(<CatalogItemForm />);
+      const button = await waitFor(() =>
+        getByRole('button', {
+          name: /Order/i,
+        }),
+      );
+
+      expect(button).toBeDisabled();
+    });
+
+    test('Quota exceeded alert should be displayed when quota is exceeded', async () => {
+      mockUseServiceQuota.mockReturnValue({
+        standaloneServicesCount: 3,
+        workshopsCount: 2,
+        currentServicesCount: 5,
+        isQuotaExceeded: true,
+        quotaLimit: 5,
+        isLoading: false,
+      });
+
+      const { getByText } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(getByText('Service Quota Exceeded')).toBeInTheDocument();
+        expect(getByText(/You have reached your quota of 5 services/)).toBeInTheDocument();
+        expect(getByText(/3 standalone services/)).toBeInTheDocument();
+        expect(getByText(/2 workshops/)).toBeInTheDocument();
+      });
+    });
+
+    test('Order button should be enabled when quota is not exceeded and form is valid', async () => {
+      mockUseServiceQuota.mockReturnValue({
+        standaloneServicesCount: 2,
+        workshopsCount: 1,
+        currentServicesCount: 3,
+        isQuotaExceeded: false,
+        quotaLimit: 5,
+        isLoading: false,
+      });
+
+      const { getByText, getByLabelText, getByRole, queryByText } = render(<CatalogItemForm />);
+      const button = await waitFor(() =>
+        getByRole('button', {
+          name: /Order/i,
+        }),
+      );
+
+      expect(button).toBeDisabled();
+      expect(queryByText('Service Quota Exceeded')).not.toBeInTheDocument();
+
+      const termsOfServiceAck = getByText('I confirm that I understand the above warnings.').parentElement.querySelector(
+        'input[type="checkbox"]',
+      );
+      fireEvent.click(termsOfServiceAck);
+      await userEvent.click(getByLabelText('Asset Development'));
+      await userEvent.click(getByText('- Select purpose -').closest('button'));
+      await userEvent.click(getByText('Other'));
+
+      expect(button).toBeEnabled();
+    });
+
+    test('Quota exceeded alert should not be displayed when quota is not exceeded', async () => {
+      mockUseServiceQuota.mockReturnValue({
+        standaloneServicesCount: 1,
+        workshopsCount: 1,
+        currentServicesCount: 2,
+        isQuotaExceeded: false,
+        quotaLimit: 5,
+        isLoading: false,
+      });
+
+      const { queryByText } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(queryByText('Service Quota Exceeded')).not.toBeInTheDocument();
+      });
+    });
   });
 });
