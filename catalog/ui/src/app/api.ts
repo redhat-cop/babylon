@@ -9,6 +9,7 @@ import {
   JSONPatch,
   K8sObject,
   K8sObjectList,
+  K8sOwnerReference,
   ResourceClaim,
   ResourceHandle,
   ResourcePool,
@@ -611,6 +612,7 @@ export async function createWorkshop({
   customWorkshopName,
   customLabels,
   customAnnotations,
+  customOwnerReferences,
   salesforceItems,
 }: {
   accessPassword?: string;
@@ -630,6 +632,7 @@ export async function createWorkshop({
   customWorkshopName?: string;
   customLabels?: Record<string, string>;
   customAnnotations?: Record<string, string>;
+  customOwnerReferences?: K8sOwnerReference[];
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
   const session = await getApiSession();
@@ -664,6 +667,9 @@ export async function createWorkshop({
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         ...(customAnnotations || {}),
       },
+      ...(customOwnerReferences && customOwnerReferences.length > 0
+        ? { ownerReferences: customOwnerReferences }
+        : {}),
     },
     spec: {
       multiuserServices: catalogItem.spec.workshopUserMode !== 'none',
@@ -1055,39 +1061,6 @@ export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
 }
 
-export async function getWorkshopsForMultiWorkshop(multiworkshop: MultiWorkshop): Promise<Workshop[]> {
-  const workshops: Workshop[] = [];
-
-  // Get workshops directly from multiworkshop assets (only catalog type assets)
-  if (multiworkshop.spec.assets) {
-    for (const asset of multiworkshop.spec.assets) {
-      // Only include catalog assets (external assets don't have workshop objects)
-      if (asset.type !== 'external') {
-        const workshopName = asset.name || asset.key;
-        if (workshopName) {
-          try {
-            const workshop = await getK8sObject<Workshop>({
-              apiVersion: `${BABYLON_DOMAIN}/v1`,
-              name: workshopName,
-              namespace: multiworkshop.metadata.namespace,
-              plural: 'workshops',
-            });
-            workshops.push(workshop);
-          } catch (error) {
-            console.warn(
-              `Workshop ${workshopName} referenced in multiworkshop ${multiworkshop.metadata.name} not found:`,
-              error,
-            );
-            // Continue with other workshops even if one is missing
-          }
-        }
-      }
-    }
-  }
-
-  return workshops;
-}
-
 export async function deleteAssetFromMultiWorkshop({
   multiworkshop,
   assetIndex,
@@ -1136,19 +1109,8 @@ export async function deleteAssetFromMultiWorkshop({
 }
 
 export async function deleteMultiWorkshop(multiworkshop: MultiWorkshop) {
-  // First, delete all associated workshops
-  const workshops = await getWorkshopsForMultiWorkshop(multiworkshop);
-
-  for (const workshop of workshops) {
-    try {
-      await deleteWorkshop(workshop);
-    } catch (error) {
-      console.warn(`Failed to delete workshop ${workshop.metadata.name}:`, error);
-      // Continue with other workshops even if one fails
-    }
-  }
-
-  // Then delete the multiworkshop itself
+  // Workshops with ownerReferences pointing to this MultiWorkshop will be
+  // automatically cascade-deleted by Kubernetes when the MultiWorkshop is deleted.
   return await deleteK8sObject(multiworkshop);
 }
 
@@ -1370,6 +1332,15 @@ export async function createWorkshopFromAsset({
       [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopName,
       [`${BABYLON_DOMAIN}/multiworkshop-uid`]: multiworkshopUid,
     },
+    customOwnerReferences: [
+      {
+        apiVersion: `${BABYLON_DOMAIN}/v1`,
+        controller: true,
+        kind: 'MultiWorkshop',
+        name: multiworkshopName,
+        uid: multiworkshopUid,
+      },
+    ],
   });
 }
 
@@ -1655,6 +1626,42 @@ export async function patchWorkshop({
     namespace: namespace,
     plural: 'workshops',
     patch: patch,
+  });
+}
+
+export async function addOwnerReferenceToWorkshop({
+  workshop,
+  ownerReference,
+}: {
+  workshop: Workshop;
+  ownerReference: K8sOwnerReference;
+}): Promise<Workshop> {
+  const existingOwnerReferences = workshop.metadata.ownerReferences || [];
+  const alreadyHasOwner = existingOwnerReferences.some(
+    (ref) => ref.uid === ownerReference.uid && ref.kind === ownerReference.kind,
+  );
+
+  if (alreadyHasOwner) {
+    return workshop;
+  }
+
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch: {
+      metadata: {
+        ownerReferences: [...existingOwnerReferences, ownerReference],
+        labels: {
+          ...workshop.metadata.labels,
+          [`${BABYLON_DOMAIN}/multiworkshop`]: ownerReference.name,
+        },
+        annotations: {
+          ...workshop.metadata.annotations,
+          [`${BABYLON_DOMAIN}/multiworkshop-source`]: ownerReference.name,
+          [`${BABYLON_DOMAIN}/multiworkshop-uid`]: ownerReference.uid,
+        },
+      },
+    },
   });
 }
 
