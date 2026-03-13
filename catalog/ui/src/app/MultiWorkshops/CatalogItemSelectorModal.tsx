@@ -187,6 +187,32 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
+// Filter catalog items for multi-asset workshop selection
+// Admins: only check parameter annotations
+// Non-admins: check parameter annotations AND multiAsset label
+function filterCatalogItemsForMultiWorkshop(items: CatalogItem[], isAdmin: boolean): CatalogItem[] {
+  const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
+
+  return items.filter((item) => {
+    const parameters = item.spec?.parameters || [];
+
+    // Only allow items where ALL parameters have one of the allowed annotations
+    const allParametersHaveAllowedAnnotations = parameters.every((param) => {
+      const annotation = param.annotation;
+      return annotation && allowedAnnotations.includes(annotation);
+    });
+
+    // For non-admin users, also require multiAsset = true label
+    if (!isAdmin) {
+      const isMultiAsset =
+        item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
+      return allParametersHaveAllowedAnnotations && isMultiAsset === 'true';
+    }
+
+    return allParametersHaveAllowedAnnotations;
+  });
+}
+
 // Component that fetches catalog items for category selector
 const CategorySelectorContent: React.FC<{
   selectedCatalogNamespace: string | null;
@@ -201,34 +227,10 @@ const CategorySelectorContent: React.FC<{
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
-  const catalogItems: CatalogItem[] = useMemo(() => {
-    const items = catalogItemsArr || [];
-
-    // Apply the same filtering logic as in CatalogItemsContent
-    const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
-
-    return items.filter((item) => {
-      const parameters = item.spec?.parameters || [];
-
-      // Only allow items where ALL parameters have one of the allowed annotations
-      const allParametersHaveAllowedAnnotations = parameters.every((param) => {
-        const annotation = param.annotation;
-
-        // Parameter must have an annotation AND it must be in the allowed list
-        return annotation && allowedAnnotations.includes(annotation);
-      });
-
-      // Filter for catalog items with demo.redhat.com/assetGroup = ZEROTOUCH (only for non-admin users)
-      const assetGroupLabel = item.metadata?.labels?.['demo.redhat.com/assetGroup'];
-      const hasZerotouchAssetGroup = assetGroupLabel === 'ZEROTOUCH';
-
-      // For admin users: only check parameter annotations
-      // For non-admin users: check both parameter annotations AND ZEROTOUCH asset group
-      return isAdmin
-        ? allParametersHaveAllowedAnnotations
-        : allParametersHaveAllowedAnnotations && hasZerotouchAssetGroup;
-    });
-  }, [catalogItemsArr, isAdmin]);
+  const catalogItems: CatalogItem[] = useMemo(
+    () => filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin),
+    [catalogItemsArr, isAdmin],
+  );
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -263,35 +265,10 @@ const CatalogItemsContent: React.FC<{
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
-  const catalogItems: CatalogItem[] = useMemo(() => catalogItemsArr || [], [catalogItemsArr]);
-
-  const allowedCatalogItems = useMemo(() => {
-    // First filter out items with spec.parameters that have annotations other than allowed ones
-    const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
-
-    const filteredItems = catalogItems.filter((item) => {
-      const parameters = item.spec?.parameters || [];
-
-      // Only allow items where ALL parameters have one of the allowed annotations
-      const allParametersHaveAllowedAnnotations = parameters.every((param) => {
-        const annotation = param.annotation;
-
-        // Parameter must have an annotation AND it must be in the allowed list
-        return annotation && allowedAnnotations.includes(annotation);
-      });
-
-      // Filter for catalog items with demo.redhat.com/multiAsset = true (only for non-admin users)
-      const isMultiAsset =
-        item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
-      const hasMultiAssetGroup = isMultiAsset === 'true';
-
-      // For admin users: only check parameter annotations
-      // For non-admin users: check both parameter annotations AND multi asset group
-      return isAdmin ? allParametersHaveAllowedAnnotations : allParametersHaveAllowedAnnotations && hasMultiAssetGroup;
-    });
-
-    return filteredItems;
-  }, [catalogItems, isAdmin]);
+  const allowedCatalogItems = useMemo(
+    () => filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin),
+    [catalogItemsArr, isAdmin],
+  );
 
   const filteredCatalogItems = useMemo(() => {
     let items = allowedCatalogItems;
