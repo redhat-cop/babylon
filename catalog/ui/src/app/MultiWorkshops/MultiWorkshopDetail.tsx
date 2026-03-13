@@ -37,7 +37,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages } from '@app/api';
+import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshop } from '@app/api';
 import { MultiWorkshop, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
@@ -241,6 +241,24 @@ const MultiWorkshopDetail: React.FC = () => {
         };
       });
 
+      // Add ownerReferences to each selected workshop
+      const ownerReference = {
+        apiVersion: `${BABYLON_DOMAIN}/v1`,
+        controller: true,
+        kind: 'MultiWorkshop',
+        name: multiworkshop.metadata.name,
+        uid: multiworkshop.metadata.uid,
+      };
+
+      await Promise.all(
+        selectedWorkshops.map(async workshopName => {
+          const workshop = workshops.find(w => w.metadata.name === workshopName);
+          if (workshop) {
+            await addOwnerReferenceToWorkshop({ workshop, ownerReference });
+          }
+        })
+      );
+
       // Combine existing assets with new ones
       const existingAssets = multiworkshop.spec.assets || [];
       const combinedAssets = [...existingAssets, ...newAssets];
@@ -302,15 +320,15 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
-  // Get available workshops (exclude already added ones and those being deleted)
+  // Get available workshops (exclude those being deleted and those with ownerReferences)
   const availableWorkshops = workshops?.filter(workshop => {
     // Filter out workshops that are being deleted
     if (workshop.metadata.deletionTimestamp) {
       return false;
     }
     
-    const existingWorkshopNames = multiworkshop?.spec.assets?.map(asset => asset.name).filter(Boolean) || [];
-    return !existingWorkshopNames.includes(workshop.metadata.name);
+    // Filter out workshops that already have ownerReferences (they belong to a MultiWorkshop or other owner)
+    return !workshop.metadata.ownerReferences || workshop.metadata.ownerReferences.length === 0;
   }) || [];
 
   // Filter workshops by search value
