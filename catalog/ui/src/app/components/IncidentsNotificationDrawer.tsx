@@ -101,27 +101,32 @@ const IncidentsNotificationDrawer: React.FC = () => {
     }
   }, [setIsDrawerExpanded]);
 
-  // Calculate unread incidents count
-  const unreadIncidents = useMemo(() => {
+  // Filter out highlighted incidents (they appear as banners instead)
+  const drawerIncidents = useMemo(() => {
     if (!incidents) return [];
-    return incidents.filter((incident) => !readIncidentIds.has(incident.id));
-  }, [incidents, readIncidentIds]);
+    return incidents.filter((incident) => !incident.is_highlighted);
+  }, [incidents]);
 
-  // Mark all incidents as read when the drawer is opened
+  // Calculate unread incidents count (excluding highlighted ones)
+  const unreadIncidents = useMemo(() => {
+    return drawerIncidents.filter((incident) => !readIncidentIds.has(incident.id));
+  }, [drawerIncidents, readIncidentIds]);
+
+  // Mark all drawer incidents as read when the drawer is opened
   useEffect(() => {
-    if (isDrawerExpanded && incidents && incidents.length > 0) {
+    if (isDrawerExpanded && drawerIncidents.length > 0) {
       setReadIncidentIds((prevReadIds) => {
-        const currentIncidentIds = new Set(incidents.map((i) => i.id));
+        const currentIncidentIds = new Set(drawerIncidents.map((i) => i.id));
         // Only keep read IDs that are still active (cleanup old ones)
         const validReadIds = new Set([...prevReadIds].filter((id) => currentIncidentIds.has(id)));
         // Add all current incident IDs as read
-        incidents.forEach((incident) => validReadIds.add(incident.id));
+        drawerIncidents.forEach((incident) => validReadIds.add(incident.id));
 
         saveReadIncidentIds(validReadIds);
         return validReadIds;
       });
     }
-  }, [isDrawerExpanded, incidents]);
+  }, [isDrawerExpanded, drawerIncidents]);
 
   // Set up notification drawer
   useEffect(() => {
@@ -138,9 +143,9 @@ const IncidentsNotificationDrawer: React.FC = () => {
       <NotificationDrawer ref={drawerRef}>
         <NotificationDrawerHeader onClose={onCloseNotificationDrawer} title="Notifications" />
         <NotificationDrawerBody>
-          {incidents && incidents?.length > 0 ? (
+          {drawerIncidents.length > 0 ? (
             <NotificationDrawerList>
-              {incidents.map((incident) => {
+              {drawerIncidents.map((incident) => {
                 const variant = getNotificationVariant(incident.level);
                 return (
                   <NotificationDrawerListItem
@@ -177,7 +182,7 @@ const IncidentsNotificationDrawer: React.FC = () => {
     );
 
     setNotificationDrawer(notificationDrawer);
-  }, [incidents, incidents_enabled, onCloseNotificationDrawer, setNotificationDrawer, readIncidentIds]);
+  }, [drawerIncidents, incidents_enabled, onCloseNotificationDrawer, setNotificationDrawer, readIncidentIds]);
 
   const handleBadgeClick = useCallback(
     (event: React.MouseEvent) => {
@@ -199,7 +204,7 @@ const IncidentsNotificationDrawer: React.FC = () => {
     <ToolbarItem visibility={{ default: 'visible' }} selected={isDrawerExpanded}>
       <NotificationBadge
         variant={unreadIncidents.length > 0 ? 'unread' : 'read'}
-        count={incidents?.length || 0}
+        count={drawerIncidents.length}
         onClick={handleBadgeClick}
         aria-label="Notifications"
         isExpanded={isDrawerExpanded}
