@@ -1085,7 +1085,7 @@ const ServicesItemComponent: React.FC<{
                   {!isPartOfWorkshop && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
-                        Collaborators{' '}
+                        Share{' '}
                         <Tooltip position="right" content={<p>Users who have access to this service.</p>}>
                           <OutlinedQuestionCircleIcon
                             aria-label="Users who have access to this service."
@@ -1111,7 +1111,7 @@ const ServicesItemComponent: React.FC<{
                             </LabelGroup>
                           ) : (
                             <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
-                              No collaborators configured
+                              No users configured
                             </span>
                           )}
                           <Button
@@ -1120,7 +1120,7 @@ const ServicesItemComponent: React.FC<{
                             onClick={() => setModalAddServiceAccess(true)}
                             style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
                           >
-                            Add Collaborator
+                            Share
                           </Button>
                         </div>
                       </DescriptionListDescription>
@@ -1400,9 +1400,9 @@ const ServicesItemComponent: React.FC<{
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        aria-label="Add Collaborator"
+        aria-label="Share"
       >
-        <PFModalHeader title="Add Collaborator" />
+        <PFModalHeader title="Share" />
         <PFModalBody>
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput

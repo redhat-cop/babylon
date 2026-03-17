@@ -135,7 +135,7 @@ const renderResourceClaimRow = ({
       </Link>
       {resourceClaim.isCollaborator ? (
         <Label key="resource-claim-name__collaborator" tooltipDescription={<div>You have been granted access to this service as a collaborator</div>}>
-          Collaborator
+          Shared Service
         </Label>
       ) : null}
       {stage !== 'prod' ? <Label key="resource-claim-name__stage">{stage}</Label> : null}

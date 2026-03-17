@@ -545,7 +545,7 @@ const WorkshopsItemDetails: React.FC<{
       {canManageCollaborators ? (
         <DescriptionListGroup>
           <DescriptionListTerm>
-            Collaborators{' '}
+            Share{' '}
             <Tooltip position="right" content={<p>Users who have access to this workshop service.</p>}>
               <OutlinedQuestionCircleIcon
                 aria-label="Users who have access to this workshop service."
@@ -570,7 +570,7 @@ const WorkshopsItemDetails: React.FC<{
                   ))}
                 </LabelGroup>
               ) : (
-                <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No collaborators configured</span>
+                <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No users configured</span>
               )}
               <Button
                 variant="link"
@@ -578,7 +578,7 @@ const WorkshopsItemDetails: React.FC<{
                 onClick={() => setModalAddServiceAccess(true)}
                 style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
               >
-                Add Collaborator
+                Share
               </Button>
             </div>
           </DescriptionListDescription>
@@ -852,9 +852,9 @@ const WorkshopsItemDetails: React.FC<{
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        aria-label="Add Collaborator"
+        aria-label="Share"
       >
-        <ModalHeader title="Add Collaborator" />
+        <ModalHeader title="Share" />
         <ModalBody>
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput
