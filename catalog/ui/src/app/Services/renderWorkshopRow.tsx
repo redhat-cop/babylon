@@ -75,7 +75,7 @@ const renderWorkshopRow = ({
       </Link>
       {workshop.isCollaborator ? (
         <Label key="workshop-name__collaborator" tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}>
-          Collaborator
+          Shared Service
         </Label>
       ) : null}
       {stage !== 'prod' ? <Label key="workshop-name__stage">{stage}</Label> : null}
