@@ -46,7 +46,7 @@ const Header: React.FC<{
   const navigate = useNavigate();
   const helpLink = useHelpLink();
   const menuRef = React.useRef<HTMLDivElement>(null);
-  const { help_text, status_page_url, feedback_link, learn_more_link, workshop_support_text, workshop_support_link, onboarding_support_text, onboarding_support_link } =
+  const { help_text, status_page_url, feedback_link, learn_more_link } =
     useInterfaceConfig();
 
   function clearUserImpersonation() {
@@ -80,28 +80,6 @@ const Header: React.FC<{
     userHelpDropdownItems.push(
       <DropdownItem key="open-support" value={helpLink}>
         {help_text}
-      </DropdownItem>,
-    );
-  }
-
-  if (workshop_support_link) {
-    userHelpDropdownItems.push(
-      <DropdownItem key="workshop-support" value={workshop_support_link}>
-        {workshop_support_text}
-      </DropdownItem>,
-    );
-    if (onboarding_support_link) {
-      userHelpDropdownItems.push(
-        <DropdownItem key="onboarding-support" value={onboarding_support_link}>
-          {onboarding_support_text}
-        </DropdownItem>,
-      );
-    }
-  }
-  if (onboarding_support_link) {
-    userHelpDropdownItems.push(
-      <DropdownItem key="onboarding-support" value={onboarding_support_link}>
-        {onboarding_support_text}
       </DropdownItem>,
     );
   }
