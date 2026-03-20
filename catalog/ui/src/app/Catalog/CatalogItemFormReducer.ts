@@ -34,8 +34,8 @@ type FormState = {
   whiteGloved: boolean;
   workshop?: WorkshopProps;
   error: string;
-  usePoolIfAvailable: boolean;
   useAutoDetach: boolean;
+  selectedResourcePool?: string;
   startDate?: Date;
   stopDate?: Date;
   endDate: Date;
@@ -67,8 +67,8 @@ export type FormStateAction = {
     | 'termsOfServiceAgreed'
     | 'dates'
     | 'workshop'
-    | 'usePoolIfAvailable'
     | 'useAutoDetach'
+    | 'selectedResourcePool'
     | 'purpose'
     | 'salesforceItems'
     | 'skipSalesforceId'
@@ -96,8 +96,8 @@ export type FormStateAction = {
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
-  usePoolIfAvailable?: boolean;
   useAutoDetach?: boolean;
+  selectedResourcePool?: string;
   startDate?: Date;
   stopDate?: Date;
   endDate?: Date;
@@ -333,8 +333,8 @@ function reduceFormStateInit(
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
     workshop: null,
     error: '',
-    usePoolIfAvailable: true,
     useAutoDetach: true,
+    selectedResourcePool: undefined,
     activity: null,
     purpose: null,
     purposeOpts,
@@ -414,17 +414,17 @@ function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProp
   };
 }
 
-function reduceFormStateUsePoolIfAvailable(initialState: FormState, usePoolIfAvailable = true): FormState {
-  return {
-    ...initialState,
-    usePoolIfAvailable,
-  };
-}
-
 function reduceFormStateUseAutoDetach(initialState: FormState, useAutoDetach = true): FormState {
   return {
     ...initialState,
     useAutoDetach,
+  };
+}
+
+function reduceFormStateSelectedResourcePool(initialState: FormState, selectedResourcePool?: string): FormState {
+  return {
+    ...initialState,
+    selectedResourcePool,
   };
 }
 
@@ -536,10 +536,10 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormWhiteGloved(state, action.whiteGloved);
     case 'workshop':
       return reduceFormStateWorkshop(state, action.workshop);
-    case 'usePoolIfAvailable':
-      return reduceFormStateUsePoolIfAvailable(state, action.usePoolIfAvailable);
     case 'useAutoDetach':
       return reduceFormStateUseAutoDetach(state, action.useAutoDetach);
+    case 'selectedResourcePool':
+      return reduceFormStateSelectedResourcePool(state, action.selectedResourcePool);
     case 'complete':
       return reduceFormStateComplete(state, {
         error: action.error,

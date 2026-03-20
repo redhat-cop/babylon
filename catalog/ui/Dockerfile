@@ -7,7 +7,7 @@ RUN touch -t $(date -d "-3 months" +'%Y%m%d0000') ./timestamp
 RUN find ./previous -type f ! -newer ./timestamp -exec rm {} \;
 
 # Builder image
-FROM registry.redhat.io/rhel9/nodejs-20-minimal:latest AS builder
+FROM registry.redhat.io/rhel9/nodejs-22-minimal:latest AS builder
 USER root 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ COPY --from=previous /tmp/previous ./dist
 
 ENV KEEP_ASSETS=true
 COPY package.json package-lock.json ./
-RUN npm ci && npm cache clean --force
+RUN npm install && npm cache clean --force
 COPY ./ ./
 RUN npm run build
 

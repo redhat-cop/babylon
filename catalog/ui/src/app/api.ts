@@ -72,7 +72,7 @@ type CreateServiceRequestOpt = {
   groups: string[];
   isAdmin: boolean;
   parameterValues?: CreateServiceRequestParameterValues;
-  usePoolIfAvailable: boolean;
+  selectedResourcePool?: string;
   stopDate?: Date;
   endDate: Date;
   startDate?: Date;
@@ -92,7 +92,7 @@ type CreateWorkshopPovisionOpt = {
   startDelay: number;
   workshop: Workshop;
   useAutoDetach: boolean;
-  usePoolIfAvailable: boolean;
+  selectedResourcePool?: string;
 };
 
 export type CreateServiceRequestParameterValues = {
@@ -473,7 +473,7 @@ export async function createServiceRequest({
   startDate,
   stopDate,
   endDate,
-  usePoolIfAvailable,
+  selectedResourcePool,
   useAutoDetach,
   email,
   skippedSfdc,
@@ -484,6 +484,14 @@ export async function createServiceRequest({
   const session = await getApiSession();
   const access = checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin);
   const resourceClaimName = generateK8sNameWithSuffix(catalogItem.metadata.name);
+
+  const getResourcePoolAnnotation = () => {
+    if (selectedResourcePool) {
+      return { 'poolboy.gpte.redhat.com/resource-pool-name': selectedResourcePool };
+    }
+    return {};
+  };
+
   const requestResourceClaim: ResourceClaim = {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
@@ -495,7 +503,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
         [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/services/${serviceNamespace.name}/${resourceClaimName}`,
-        ...(usePoolIfAvailable === false ? { ['poolboy.gpte.redhat.com/resource-pool-name']: 'disable' } : {}),
+        ...getResourcePoolAnnotation(),
         ...(catalogItem.spec.userData
           ? { [`${BABYLON_DOMAIN}/userData`]: JSON.stringify(catalogItem.spec.userData) }
           : {}),
@@ -823,7 +831,7 @@ export async function createWorkshopProvision({
   startDelay,
   workshop,
   useAutoDetach,
-  usePoolIfAvailable,
+  selectedResourcePool,
 }: CreateWorkshopPovisionOpt) {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -861,7 +869,7 @@ export async function createWorkshopProvision({
       parameters,
       startDelay: startDelay,
       workshopName: workshop.metadata.name,
-      enableResourcePools: usePoolIfAvailable,
+      ...(selectedResourcePool ? { resourcePool: selectedResourcePool } : {}),
       ...(useAutoDetach
         ? {
             autoDetach: {
@@ -1376,7 +1384,6 @@ export async function createWorkshopProvisionFromAsset({
     startDelay: 10,
     workshop,
     useAutoDetach: false,
-    usePoolIfAvailable: true,
   });
 
   // Update the provision with MultiWorkshop-specific metadata
