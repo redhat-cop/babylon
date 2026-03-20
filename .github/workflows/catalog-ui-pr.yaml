@@ -27,7 +27,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Install packages
         working-directory: ./catalog/ui
-        run: npm install
+        run: npm ci
       - name: Run integration tests
         working-directory: ./catalog/ui
         run: npm run test

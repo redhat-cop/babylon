@@ -19,7 +19,7 @@ COPY --from=previous /tmp/previous ./dist
 
 ENV KEEP_ASSETS=true
 COPY package.json package-lock.json ./
-RUN npm install && npm cache clean --force
+RUN npm ci && npm cache clean --force
 COPY ./ ./
 RUN npm run build
 
