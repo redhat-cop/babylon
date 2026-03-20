@@ -1,7 +1,7 @@
 import React from 'react';
 import { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { displayName, getStageFromK8sObject } from '@app/util';
+import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import TimeInterval from '@app/components/TimeInterval';
 import { Link } from 'react-router-dom';
@@ -82,6 +82,11 @@ const renderWorkshopRow = ({
       <Label key="workshop-name__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
         Workshop UI
       </Label>
+      {workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] ? (
+        <Label key="workshop-name__multi-asset" tooltipDescription={<div>This workshop is managed by a Multi Asset Workshop</div>}>
+          Multi Asset Workshop
+        </Label>
+      ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}
     </>
   );

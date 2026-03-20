@@ -34,7 +34,7 @@ import {
   FORBIDDEN_RESPONSE,
 } from '@app/api';
 import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno, READY_BY_LEAD_TIME_MS } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useDebounce from '@app/utils/useDebounce';
@@ -59,6 +59,8 @@ import TimeInterval from '@app/components/TimeInterval';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import useDebounceState from '@app/utils/useDebounceState';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+
+import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
 import './workshops-item-details.css';
 
@@ -97,6 +99,7 @@ const WorkshopsItemDetails: React.FC<{
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
+  const multiworkshopSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
   
   const {
     data: serviceAccessConfigResponse,
@@ -119,6 +122,8 @@ const WorkshopsItemDetails: React.FC<{
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
+  const resourcePoolAnnotation = workshop.metadata.annotations?.['poolboy.gpte.redhat.com/resource-pool-name'];
+  const [selectedResourcePool, setSelectedResourcePool] = useState<string | undefined>(resourcePoolAnnotation);
 
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
@@ -275,6 +280,28 @@ const WorkshopsItemDetails: React.FC<{
     onWorkshopUpdate,
   ]);
 
+  useEffect(() => {
+    setSelectedResourcePool(resourcePoolAnnotation);
+  }, [resourcePoolAnnotation]);
+
+  async function handleResourcePoolChange(poolName: string | undefined) {
+    setSelectedResourcePool(poolName);
+    const patchObj = {
+      metadata: {
+        annotations: {
+          'poolboy.gpte.redhat.com/resource-pool-name': poolName || null,
+        },
+      },
+    };
+    onWorkshopUpdate(
+      await patchWorkshop({
+        name: workshop.metadata.name,
+        namespace: workshop.metadata.namespace,
+        patch: patchObj,
+      }),
+    );
+  }
+
   async function handleAddServiceAccessUser() {
     const email = newServiceAccessEmail.trim();
     if (!email) return;
@@ -354,6 +381,16 @@ const WorkshopsItemDetails: React.FC<{
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
+      {multiworkshopSource ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Multi Asset Workshop</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Link to={`/multi-workshop/${workshop.metadata.namespace}/${multiworkshopSource}`}>
+              {multiworkshopSource}
+            </Link>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
       <DescriptionListGroup>
         <DescriptionListTerm>Display Name</DescriptionListTerm>
         <DescriptionListDescription>
@@ -545,7 +582,7 @@ const WorkshopsItemDetails: React.FC<{
       {canManageCollaborators ? (
         <DescriptionListGroup>
           <DescriptionListTerm>
-            Share{' '}
+            Share service{' '}
             <Tooltip position="right" content={<p>Users who have access to this workshop service.</p>}>
               <OutlinedQuestionCircleIcon
                 aria-label="Users who have access to this workshop service."
@@ -578,7 +615,7 @@ const WorkshopsItemDetails: React.FC<{
                 onClick={() => setModalAddServiceAccess(true)}
                 style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
               >
-                Share
+                Share service
               </Button>
             </div>
           </DescriptionListDescription>
@@ -804,6 +841,28 @@ const WorkshopsItemDetails: React.FC<{
                 onChange={handleLockedChange}
               />
             </div>
+            <div
+              className="workshops-item-details__admin-field"
+              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <div className="workshops-item-details__group-control--single" style={{ maxWidth: 350 }}>
+                <label htmlFor="resource-pool-selector">Resource Pool</label>
+                <ResourcePoolSelector
+                  disableAutoSelect
+                  selectedPool={selectedResourcePool}
+                  onSelect={handleResourcePoolChange}
+                />
+                <Tooltip
+                  position="right"
+                  content={<p>Select a specific resource pool for this workshop.</p>}
+                >
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Select a specific resource pool for this workshop"
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </div>
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
@@ -852,9 +911,9 @@ const WorkshopsItemDetails: React.FC<{
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        aria-label="Share"
+        aria-label="Share service"
       >
-        <ModalHeader title="Share" />
+        <ModalHeader title="Share service" />
         <ModalBody>
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput

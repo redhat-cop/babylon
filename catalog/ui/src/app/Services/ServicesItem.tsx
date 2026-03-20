@@ -120,6 +120,8 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 
+import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
+
 import './services-item.css';
 
 const ComponentDetailsList: React.FC<{
@@ -351,6 +353,8 @@ const ServicesItemComponent: React.FC<{
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 300);
+  const resourcePoolAnnotation = resourceClaim.metadata.annotations?.['poolboy.gpte.redhat.com/resource-pool-name'];
+  const [selectedResourcePool, setSelectedResourcePool] = useState<string | undefined>(resourcePoolAnnotation);
   const salesforceItems = parseSalesforceItems(resourceClaim.metadata.annotations || {});
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
@@ -494,6 +498,23 @@ const ServicesItemComponent: React.FC<{
     resourceClaim.metadata.name,
     resourceClaim.metadata.namespace,
   ]);
+
+  useEffect(() => {
+    setSelectedResourcePool(resourcePoolAnnotation);
+  }, [resourcePoolAnnotation]);
+
+  async function handleResourcePoolChange(poolName: string | undefined) {
+    setSelectedResourcePool(poolName);
+    mutate(
+      await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+        metadata: {
+          annotations: {
+            'poolboy.gpte.redhat.com/resource-pool-name': poolName || null,
+          },
+        },
+      }),
+    );
+  }
 
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -1085,7 +1106,7 @@ const ServicesItemComponent: React.FC<{
                   {!isPartOfWorkshop && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
-                        Share{' '}
+                        Share service{' '}
                         <Tooltip position="right" content={<p>Users who have access to this service.</p>}>
                           <OutlinedQuestionCircleIcon
                             aria-label="Users who have access to this service."
@@ -1120,7 +1141,7 @@ const ServicesItemComponent: React.FC<{
                             onClick={() => setModalAddServiceAccess(true)}
                             style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
                           >
-                            Share
+                            Share service
                           </Button>
                         </div>
                       </DescriptionListDescription>
@@ -1189,6 +1210,28 @@ const ServicesItemComponent: React.FC<{
                                 >
                                   <OutlinedQuestionCircleIcon
                                     aria-label="Operations effort value for this workshop."
+                                    className="tooltip-icon-only"
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                            <div
+                              className="services-item__admin-field"
+                              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                            >
+                              <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
+                                <label htmlFor="resource-pool-selector">Resource Pool</label>
+                                <ResourcePoolSelector
+                                  disableAutoSelect
+                                  selectedPool={selectedResourcePool}
+                                  onSelect={handleResourcePoolChange}
+                                />
+                                <Tooltip
+                                  position="right"
+                                  content={<p>Select a specific resource pool for this service.</p>}
+                                >
+                                  <OutlinedQuestionCircleIcon
+                                    aria-label="Select a specific resource pool for this service"
                                     className="tooltip-icon-only"
                                   />
                                 </Tooltip>
@@ -1400,9 +1443,9 @@ const ServicesItemComponent: React.FC<{
           setModalAddServiceAccess(false);
           setNewServiceAccessEmail('');
         }}
-        aria-label="Share"
+        aria-label="Share service"
       >
-        <PFModalHeader title="Share" />
+        <PFModalHeader title="Share service" />
         <PFModalBody>
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput

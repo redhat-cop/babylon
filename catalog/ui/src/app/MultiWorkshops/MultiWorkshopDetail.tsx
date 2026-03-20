@@ -38,16 +38,18 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshop } from '@app/api';
-import { MultiWorkshop, Workshop } from '@app/types';
+import { MultiWorkshop, ResourceClaim, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import WorkshopStatus from '@app/Workshops/WorkshopStatus';
+import LoadingIcon from '@app/components/LoadingIcon';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
-import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import ExternalWorkshopModal from './ExternalWorkshopModal';
 
 import './multiworkshop-detail.css';
@@ -55,6 +57,35 @@ import './multiworkshop-detail.css';
 function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
+
+const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string }> = ({ workshopName, namespace }) => {
+  const { data: resourceClaims, isLoading } = useSWR<ResourceClaim[]>(
+    workshopName && namespace
+      ? apiPaths.RESOURCE_CLAIMS({
+          namespace,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshopName}`,
+          limit: 'ALL',
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({
+          namespace,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${workshopName}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        }),
+      ),
+    {
+      refreshInterval: 8000,
+      compare: compareK8sObjectsArr,
+    },
+  );
+
+  if (isLoading) return <LoadingIcon />;
+  if (!resourceClaims || resourceClaims.length === 0) return <span>-</span>;
+  return <WorkshopStatus resourceClaims={resourceClaims} />;
+};
 
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
@@ -671,6 +702,7 @@ const MultiWorkshopDetail: React.FC = () => {
                         <Th>Display Name</Th>
                         <Th>Description</Th>
                         <Th>Status</Th>
+                        <Th>Workshop Status</Th>
                         <Th>Actions</Th>
                       </Tr>
                     </Thead>
@@ -721,6 +753,16 @@ const MultiWorkshopDetail: React.FC = () => {
                               <span>Created</span>
                             ) : (
                               <span>Pending</span>
+                            )}
+                          </Td>
+                          <Td>
+                            {asset.type === 'Workshop' && asset.name ? (
+                              <AssetWorkshopStatus
+                                workshopName={asset.name}
+                                namespace={multiworkshop.metadata.namespace}
+                              />
+                            ) : (
+                              <span>-</span>
                             )}
                           </Td>
                           <Td>

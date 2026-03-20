@@ -529,6 +529,11 @@ const WorkshopsItemComponent: React.FC<{
               <Label key="workshop-item__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
                 Workshop UI
               </Label>
+              {workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] ? (
+                <Label key="workshop-item__multi-asset" tooltipDescription={<div>This workshop is managed by a Multi Asset Workshop</div>}>
+                  Multi Asset Workshop
+                </Label>
+              ) : null}
             </Title>
           </SplitItem>
           <SplitItem>
