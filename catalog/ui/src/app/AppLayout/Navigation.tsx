@@ -3,7 +3,7 @@ import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'reac
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
-import PilotBadge from '@app/components/PilotBadge';
+
 
 const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
   const resolved = useResolvedPath(to);
@@ -105,10 +105,7 @@ const Navigation: React.FC = () => {
         to={`/multi-workshop/${userNamespace.name}`}
         className={locationStartsWith('/multi-workshop/') ? 'pf-m-current' : ''}
       >
-        <span style={{ display: 'flex', alignItems: 'center' }}>
-                    Multi Asset Workshop
-          <PilotBadge />
-        </span>
+        Multi Asset Workshop
       </NavLink>
     </NavItem>
   ) : null;
