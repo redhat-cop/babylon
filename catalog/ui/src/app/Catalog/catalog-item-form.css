@@ -50,3 +50,28 @@
 .catalog-item-form__form .pf-v6-c-form__label-required {
   margin-left: 0;
 }
+
+.catalog-item-form__admin-section {
+  border-top: 2px solid var(--pf-t--chart--color--black--400);
+  margin-top: var(--pf-t--global--spacer--md);
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+.catalog-item-form__admin-section-content {
+  border-left: 3px solid var(--pf-t--chart--color--black--300);
+  background-color: var(--pf-t--color--background--disabled, #f5f5f5);
+  padding: var(--pf-t--global--spacer--md);
+  border-radius: var(--pf-t--global--border--radius--sm, 4px);
+}
+
+.catalog-item-form__admin-section-title {
+  margin-bottom: var(--pf-t--global--spacer--md);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.catalog-item-form__admin-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+}

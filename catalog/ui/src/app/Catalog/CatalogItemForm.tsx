@@ -74,6 +74,7 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import DateTimePicker from '@app/components/DateTimePicker';
 import UserDisabledModal from '@app/components/UserDisabledModal';
+import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
 import './catalog-item-form.css';
 
@@ -368,7 +369,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           startDelay: provisionStartDelay,
           workshop: workshop,
           useAutoDetach: formState.useAutoDetach,
-          usePoolIfAvailable: formState.usePoolIfAvailable,
+          selectedResourcePool: formState.selectedResourcePool,
         });
         navigate(redirectUrl);
       } else {
@@ -379,7 +380,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           isAdmin,
           parameterValues,
           serviceNamespace: formState.serviceNamespace,
-          usePoolIfAvailable: formState.usePoolIfAvailable,
+          selectedResourcePool: formState.selectedResourcePool,
           useAutoDetach: formState.useAutoDetach,
           startDate: formState.startDate,
           stopDate: formState.stopDate,
@@ -691,8 +692,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   });
                   if (isChecked) {
                     dispatchFormState({
-                      type: 'usePoolIfAvailable',
-                      usePoolIfAvailable: false,
+                      type: 'selectedResourcePool',
+                      selectedResourcePool: 'disabled',
                     });
                   }
                   if (!formState.startDate) {
@@ -1163,64 +1164,74 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </div>
         ) : null}
 
-        {isAdmin && !catalogItem.spec.externalUrl ? (
-          <FormGroup fieldId="white-glove" isRequired>
-            <div className="catalog-item-form__group-control--single">
-              <Switch
-                id="white-glove-switch"
-                aria-label="White-Glove Support"
-                label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-                isChecked={formState.whiteGloved}
-                hasCheckIcon
-                onChange={(_event, isChecked) => {
-                  dispatchFormState({
-                    type: 'whiteGloved',
-                    whiteGloved: isChecked,
-                  });
-                }}
-              />
-            </div>
-          </FormGroup>
-        ) : null}
-
-        {isAdmin && !catalogItem.spec.externalUrl ? (
-          <FormGroup key="pooling-switch" fieldId="pooling-switch">
-            <div className="catalog-item-form__group-control--single">
-              <Switch
-                id="pooling-switch"
-                aria-label="Use pool if available"
-                label="Use pool if available (only visible to admins)"
-                isChecked={formState.usePoolIfAvailable}
-                hasCheckIcon
-                onChange={(_event, isChecked) =>
-                  dispatchFormState({
-                    type: 'usePoolIfAvailable',
-                    usePoolIfAvailable: isChecked,
-                  })
-                }
-              />
-            </div>
-          </FormGroup>
-        ) : null}
-
         {(isAdmin || isLabDeveloper(groups)) && !catalogItem.spec.externalUrl ? (
-          <FormGroup key="auto-detach-switch" fieldId="auto-detach-switch">
-            <div className="catalog-item-form__group-control--single">
-              <Switch
-                id="auto-detach-switch"
-                aria-label="Keep instance if provision fails"
-                label="Keep instance if provision fails (only visible to admins)"
-                isChecked={!formState.useAutoDetach}
-                hasCheckIcon
-                onChange={(_event, isChecked) => {
-                  dispatchFormState({
-                    type: 'useAutoDetach',
-                    useAutoDetach: !isChecked,
-                  });
-                }}
-              />
+          <div className="catalog-item-form__admin-section">
+            <div className="catalog-item-form__admin-section-title">Admin Settings</div>
+            <div className="catalog-item-form__admin-section-content">
+              <div className="catalog-item-form__admin-fields">
+                {isAdmin && (
+                  <div className="catalog-item-form__group-control--single">
+                    <Switch
+                      id="white-glove-switch"
+                      aria-label="White-Glove Support"
+                      label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+                      isChecked={formState.whiteGloved}
+                      hasCheckIcon
+                      onChange={(_event, isChecked) => {
+                        dispatchFormState({
+                          type: 'whiteGloved',
+                          whiteGloved: isChecked,
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+
+                {isAdmin && !catalogItem.spec.externalUrl ? (
+                  <FormGroup fieldId="resource-pool-selector" label="Resource Pool">
+                    <div className="catalog-item-form__group-control--single">
+                      <ResourcePoolSelector
+                        catalogItemName={catalogItemName}
+                        disableAutoSelect={!!formState.workshop}
+                        selectedPool={formState.selectedResourcePool}
+                        onSelect={(poolName) =>
+                          dispatchFormState({
+                            type: 'selectedResourcePool',
+                            selectedResourcePool: poolName,
+                          })
+                        }
+                      />
+                      <Tooltip
+                        position="right"
+                        content={<p>Select a specific resource pool to use for provisioning. Leave empty for automatic pool selection.</p>}
+                      >
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Select a specific resource pool to use for provisioning"
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </div>
+                  </FormGroup>
+                ) : null}
+
+                <div className="catalog-item-form__group-control--single">
+                  <Switch
+                    id="auto-detach-switch"
+                    aria-label="Keep instance if provision fails"
+                    label="Keep instance if provision fails"
+                    isChecked={!formState.useAutoDetach}
+                    hasCheckIcon
+                    onChange={(_event, isChecked) => {
+                      dispatchFormState({
+                        type: 'useAutoDetach',
+                        useAutoDetach: !isChecked,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-          </FormGroup>
+          </div>
         ) : null}
 
         {catalogItem.spec.termsOfService ? (

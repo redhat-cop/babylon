@@ -25,6 +25,7 @@ const DynamicFormInput: React.FC<{
     if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
       return (parameter.openAPIV3Schema?.enum).map((v: string | number) => (
         <Radio
+          key={String(v)}
           isChecked={value === v}
           id={`${parameter.name}--${v}`}
           name={parameter.name}

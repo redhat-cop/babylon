@@ -560,7 +560,7 @@ export interface WorkshopProvisionSpec {
   parameters: any;
   startDelay?: number;
   workshopName: string;
-  enableResourcePools: boolean;
+  resourcePool?: string;
   lifespan?: {
     start?: string;
     end?: string;
