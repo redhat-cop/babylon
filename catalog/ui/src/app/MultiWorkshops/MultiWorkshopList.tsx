@@ -286,7 +286,7 @@ const MultiWorkshopList: React.FC = () => {
         ) : (
           <PageSection hasBodyWrapper={false} key="body">
             <SelectableTable
-              columns={['Event Name', 'Description', 'Total Assets', 'Seats', 'Start provisioning date', 'Default Asset Auto-destroy date', 'Created', 'Actions']}
+              columns={['Name', 'Description', 'Total Assets', 'Seats', 'Start provisioning', 'Auto-destroy', 'Created', 'Actions']}
               onSelectAll={(isSelected: boolean) => {
                 if (isSelected) {
                   setSelectedUids(multiworkshops.map((multiworkshop) => multiworkshop.metadata.uid));
@@ -301,7 +301,7 @@ const MultiWorkshopList: React.FC = () => {
 
                 const cells: unknown[] = [];
                 cells.push(
-                  // Event Name
+                  // Name
                   <Link
                     key="event-name"
                     to={`/multi-workshop/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
@@ -324,7 +324,7 @@ const MultiWorkshopList: React.FC = () => {
                       'Not scheduled'
                     )}
                   </>,
-                  // Default Asset Auto-destroy date
+                  // Auto-destroy date
                   <>
                     {multiworkshop.spec.endDate ? (
                       <LocalTimestamp key="end-timestamp" timestamp={multiworkshop.spec.endDate} />

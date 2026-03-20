@@ -226,6 +226,7 @@ class MultiWorkshop(CachedKopfObject):
         workshop_annotations = {
             f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
             f'{Babylon.demo_domain}/scheduled': 'true' if is_scheduled else 'false',
+            f'{Babylon.demo_domain}/lock-enabled': 'true',
             f'{Babylon.babylon_domain}/created-by': self.created_by,
             f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
             f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
@@ -263,6 +264,7 @@ class MultiWorkshop(CachedKopfObject):
             workshop_spec['actionSchedule']['start'] = self.start_date
         if self.end_date:
             workshop_spec['lifespan']['end'] = self.end_date
+            workshop_spec['actionSchedule']['stop'] = self.end_date
         if self.ready_by_date:
             workshop_spec['lifespan']['readyBy'] = self.ready_by_date
 
