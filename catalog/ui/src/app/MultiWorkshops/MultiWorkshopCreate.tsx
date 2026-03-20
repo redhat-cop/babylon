@@ -34,9 +34,6 @@ import BetaBadge from '@app/components/BetaBadge';
 import {
   createMultiWorkshop,
   dateToApiString,
-  createWorkshopFromAssetWithRetry,
-  createWorkshopProvisionFromAsset,
-  patchMultiWorkshop,
   fetcher,
   apiPaths,
   silentFetcher,
@@ -295,7 +292,6 @@ const MultiWorkshopCreate: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Filter out empty assets and include key, name, namespace, displayName, and description fields
       const filteredAssets = createFormData.assets
         .filter((asset) => asset.key.trim() !== '' && asset.name.trim() !== '' && asset.namespace.trim() !== '')
         .map((asset) => ({
@@ -306,6 +302,11 @@ const MultiWorkshopCreate: React.FC = () => {
           ...(asset.description?.trim() && { description: asset.description.trim() }),
           type: asset.type || 'Workshop',
         }));
+
+      const readyByDate =
+        useDirectProvisioningDate && createFormData.startDate
+          ? new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)
+          : undefined;
 
       const payload = {
         name: createFormData.name,
@@ -320,148 +321,12 @@ const MultiWorkshopCreate: React.FC = () => {
         ...(createFormData.backgroundImage && { backgroundImage: createFormData.backgroundImage }),
         ...(createFormData.logoImage && { logoImage: createFormData.logoImage }),
         ...(filteredAssets.length > 0 && { assets: filteredAssets }),
+        ...(readyByDate && { readyByDate: dateToApiString(readyByDate) }),
+        requester: selectedNamespace?.requester || undefined,
       };
 
-      // Create the MultiWorkshop first
+      // Create the MultiWorkshop — the operator handles Workshop/WorkshopProvision creation
       const createdMultiWorkshop = await createMultiWorkshop(payload);
-
-      // If we have catalog assets, create workshops and provisions for them
-      const catalogAssets = filteredAssets.filter((asset) => !asset.type || asset.type === 'Workshop');
-      if (catalogAssets.length > 0) {
-        // Process catalog assets in parallel with proper error handling
-        const assetResults = await Promise.allSettled(
-          catalogAssets.map(async (asset, index) => {
-            try {
-              // Get catalog item to verify it exists and get metadata
-              let catalogItem: CatalogItem | undefined;
-              try {
-                catalogItem = await fetcher(
-                  apiPaths.CATALOG_ITEM({
-                    namespace: asset.namespace,
-                    name: asset.key,
-                  }),
-                );
-              } catch (error) {
-                console.warn(`Could not fetch catalog item ${asset.key} from namespace ${asset.namespace}:`, error);
-                throw new Error(`Catalog item ${asset.key} not found in namespace ${asset.namespace}`);
-              }
-
-              // Create workshop for this asset with retry logic
-              const workshop = await createWorkshopFromAssetWithRetry({
-                multiworkshopName: createdMultiWorkshop.metadata.name,
-                multiworkshopUid: createdMultiWorkshop.metadata.uid,
-                namespace: createdMultiWorkshop.metadata.namespace,
-                asset,
-                multiworkshopData: {
-                  ...createFormData,
-                  name: createFormData.name,
-                  startDate: payload.startDate,
-                  endDate: payload.endDate,
-                },
-                catalogItem,
-                retryCount: 3,
-                delay: index * 100, // Stagger creation to avoid naming conflicts
-                salesforceItems: createFormData.salesforceItems || [],
-                readyByDate:
-                  useDirectProvisioningDate && createFormData.startDate
-                    ? new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)
-                    : undefined,
-              });
-
-              // Create workshop provision for this asset
-              await createWorkshopProvisionFromAsset({
-                workshop,
-                asset,
-                multiworkshopName: createdMultiWorkshop.metadata.name,
-                multiworkshopUid: createdMultiWorkshop.metadata.uid,
-                multiworkshopData: {
-                  ...createFormData,
-                  numberSeats: createFormData.numberSeats,
-                  startDate: payload.startDate,
-                  endDate: payload.endDate,
-                },
-                catalogItem,
-              });
-
-              // Return updated asset with workshop name
-              return {
-                success: true,
-                asset: {
-                  ...asset,
-                  name: workshop.metadata.name, // Update name to the actual generated workshop name
-                },
-                error: null,
-              };
-            } catch (error: unknown) {
-              console.error(`Failed to create workshop for asset ${asset.key}:`, error);
-              return {
-                success: false,
-                asset: asset,
-                error:
-                  error && typeof error === 'object' && 'message' in error
-                    ? (error as { message: string }).message
-                    : String(error) || 'Unknown error',
-              };
-            }
-          }),
-        );
-
-        // Collect results and separate successful from failed
-        const updatedAssets = [];
-        const failedAssets = [];
-
-        assetResults.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            if (result.value.success) {
-              updatedAssets.push(result.value.asset);
-            } else {
-              failedAssets.push({
-                asset: result.value.asset,
-                error: result.value.error,
-              });
-              // Add asset without workshop name
-              updatedAssets.push(result.value.asset);
-            }
-          } else {
-            console.error(`Promise rejected for asset ${catalogAssets[index].key}:`, result.reason);
-            failedAssets.push({
-              asset: catalogAssets[index],
-              error: result.reason?.message || 'Promise rejected',
-            });
-            // Add asset without workshop name
-            updatedAssets.push(catalogAssets[index]);
-          }
-        });
-
-        // Include external assets unchanged
-        const externalAssets = filteredAssets.filter((asset) => asset.type === 'external');
-        updatedAssets.push(...externalAssets);
-
-        // Update the MultiWorkshop with workshop information
-        try {
-          await patchMultiWorkshop({
-            name: createdMultiWorkshop.metadata.name,
-            namespace: createdMultiWorkshop.metadata.namespace,
-            patch: {
-              spec: {
-                assets: updatedAssets,
-              },
-            },
-          });
-        } catch (error) {
-          console.error('Failed to update MultiWorkshop with workshop information:', error);
-        }
-
-        // Log summary of results
-        if (failedAssets.length > 0) {
-          console.warn(
-            `Failed to create workshops for ${failedAssets.length} assets:`,
-            failedAssets.map((f) => `${f.asset.key}: ${f.error}`).join(', '),
-          );
-        }
-      }
-
-      // Navigate to the created multiworkshop detail page
       navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error: unknown) {
       if ((error as Response).status === 403) {
