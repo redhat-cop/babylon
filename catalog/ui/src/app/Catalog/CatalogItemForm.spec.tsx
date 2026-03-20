@@ -11,6 +11,24 @@ jest.mock('@app/api', () => ({
   fetcher: () => Promise.resolve(catalogItemObj as CatalogItem),
 }));
 
+jest.mock('@app/components/ResourcePoolSelector', () => {
+  return function MockResourcePoolSelector({ selectedPool, onSelect }: { selectedPool?: string; onSelect: (pool: string | undefined) => void }) {
+    return (
+      <div data-testid="resource-pool-selector">
+        <select
+          data-testid="resource-pool-select"
+          value={selectedPool || ''}
+          onChange={(e) => onSelect(e.target.value || undefined)}
+        >
+          <option value="">Select a pool</option>
+          <option value="pool-one">pool-one</option>
+          <option value="pool-two">pool-two</option>
+        </select>
+      </div>
+    );
+  };
+});
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -30,6 +48,7 @@ jest.mock('@app/utils/useSession', () =>
         serviceNamespaces: [namespace as ServiceNamespace],
         userNamespace: namespace as UserNamespace,
         groups: ['rhpds-devs', 'rhpds-admins'],
+        isAdmin: true,
       }),
   })),
 );
@@ -262,6 +281,88 @@ describe('CatalogItemForm Component', () => {
       await waitFor(() => {
         expect(queryByText('Service Quota Exceeded')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Admin Settings Section', () => {
+    beforeEach(() => {
+      mockUseServiceQuota.mockReturnValue({
+        standaloneServicesCount: 0,
+        workshopsCount: 0,
+        currentServicesCount: 0,
+        isQuotaExceeded: false,
+        quotaLimit: 5,
+        isLoading: false,
+      });
+    });
+
+    test('Admin Settings section should be visible for admin users', async () => {
+      const { getByText } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(getByText('Admin Settings')).toBeInTheDocument();
+      });
+    });
+
+    test('White-Glove Support switch should be visible in admin section', async () => {
+      const { getByLabelText } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(getByLabelText('White-Glove Support')).toBeInTheDocument();
+      });
+    });
+
+    test('Resource Pool selector should be visible in admin section', async () => {
+      const { getByTestId } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(getByTestId('resource-pool-selector')).toBeInTheDocument();
+      });
+    });
+
+    test('Keep instance if provision fails switch should be visible in admin section', async () => {
+      const { getByLabelText } = render(<CatalogItemForm />);
+
+      await waitFor(() => {
+        expect(getByLabelText('Keep instance if provision fails')).toBeInTheDocument();
+      });
+    });
+
+    test('White-Glove Support switch should toggle correctly', async () => {
+      const { getByLabelText } = render(<CatalogItemForm />);
+
+      const whiteGloveSwitch = await waitFor(() => getByLabelText('White-Glove Support'));
+      expect(whiteGloveSwitch).not.toBeChecked();
+
+      await userEvent.click(whiteGloveSwitch);
+      expect(whiteGloveSwitch).toBeChecked();
+
+      await userEvent.click(whiteGloveSwitch);
+      expect(whiteGloveSwitch).not.toBeChecked();
+    });
+
+    test('Keep instance switch should toggle correctly', async () => {
+      const { getByLabelText } = render(<CatalogItemForm />);
+
+      const keepInstanceSwitch = await waitFor(() => getByLabelText('Keep instance if provision fails'));
+      // Default is useAutoDetach=true, so isChecked=!useAutoDetach=false
+      expect(keepInstanceSwitch).not.toBeChecked();
+
+      await userEvent.click(keepInstanceSwitch);
+      expect(keepInstanceSwitch).toBeChecked();
+
+      await userEvent.click(keepInstanceSwitch);
+      expect(keepInstanceSwitch).not.toBeChecked();
+    });
+
+    test('Resource Pool selector should allow pool selection', async () => {
+      const { getByTestId } = render(<CatalogItemForm />);
+
+      const selector = await waitFor(() => getByTestId('resource-pool-select'));
+      expect(selector).toBeInTheDocument();
+
+      fireEvent.change(selector, { target: { value: 'pool-one' } });
+      expect((selector as HTMLSelectElement).value).toBe('pool-one');
     });
   });
 });

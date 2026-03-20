@@ -2,9 +2,8 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
-  transform: {
-    '/.(js|jsx|tsx|ts)$/': 'ts-jest',
-  },
+  // A preset that is used as a base for Jest's configuration
+  preset: 'ts-jest/presets/js-with-ts',
 
   verbose: true,
 
@@ -29,9 +28,6 @@ module.exports = {
       '<rootDir>/__mocks__/fileMock.js',
     '@app/(.*)': '<rootDir>/src/app/$1',
   },
-
-  // A preset that is used as a base for Jest's configuration
-  preset: 'ts-jest/presets/js-with-ts',
 
   // The path to a module that runs some code to configure or set up the testing framework before each test
   setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
