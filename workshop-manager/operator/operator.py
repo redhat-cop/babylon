@@ -230,7 +230,11 @@ async def multiworkshop_daemon(logger, stopped, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
     try:
         while not stopped:
+            if multiworkshop.end_datetime and multiworkshop.end_datetime < datetime.now(timezone.utc):
+                logger.info(f"Deleting {multiworkshop} for endDate reached")
+                await multiworkshop.delete()
+                return
             await multiworkshop.manage(logger=logger)
-            await asyncio.sleep(30)  # Check every 30sec for workshop IDs
+            await asyncio.sleep(30)
     except asyncio.CancelledError:
         pass

@@ -473,6 +473,15 @@ class MultiWorkshop(CachedKopfObject):
         """Handle MultiWorkshop deletion."""
         logger.info(f"MultiWorkshop {self.name} deleted")
 
+    @property
+    def end_datetime(self):
+        if not self.end_date:
+            return None
+        try:
+            return datetime.strptime(self.end_date, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        except (ValueError, TypeError):
+            return None
+
     async def manage(self, logger):
         """Periodic management tasks for MultiWorkshop."""
         await self.update_workshop_ids(logger)
