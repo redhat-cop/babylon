@@ -1142,6 +1142,8 @@ export async function createMultiWorkshop(multiworkshopData: {
     type?: 'Workshop' | 'external';
   }>;
   namespace: string;
+  readyByDate?: string;
+  requester?: string;
 }): Promise<MultiWorkshop> {
   const session = await getApiSession();
 
@@ -1157,6 +1159,8 @@ export async function createMultiWorkshop(multiworkshopData: {
       namespace: multiworkshopData.namespace,
       annotations: {
         [`${BABYLON_DOMAIN}/created-by`]: session.user,
+        [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        [`${DEMO_DOMAIN}/requester`]: multiworkshopData.requester || session.user,
       },
     },
     spec: {
@@ -1191,6 +1195,9 @@ export async function createMultiWorkshop(multiworkshopData: {
   }
   if (multiworkshopData['purpose-activity']) {
     definition.spec['purpose-activity'] = multiworkshopData['purpose-activity'];
+  }
+  if (multiworkshopData.readyByDate) {
+    definition.spec.readyByDate = multiworkshopData.readyByDate;
   }
 
   return await createK8sObject(definition);

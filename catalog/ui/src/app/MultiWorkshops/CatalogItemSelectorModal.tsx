@@ -188,28 +188,15 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
 }
 
 // Filter catalog items for multi-asset workshop selection
-// Admins: only check parameter annotations
-// Non-admins: check parameter annotations AND multiAsset label
+// Non-admins: require multiAsset = true label
+// Admins: no filtering
 function filterCatalogItemsForMultiWorkshop(items: CatalogItem[], isAdmin: boolean): CatalogItem[] {
-  const allowedAnnotations = ['pfe.redhat.com/salesforce-id', 'demo.redhat.com/purpose'];
+  if (isAdmin) return items;
 
   return items.filter((item) => {
-    const parameters = item.spec?.parameters || [];
-
-    // Only allow items where ALL parameters have one of the allowed annotations
-    const allParametersHaveAllowedAnnotations = parameters.every((param) => {
-      const annotation = param.annotation;
-      return annotation && allowedAnnotations.includes(annotation);
-    });
-
-    // For non-admin users, also require multiAsset = true label
-    if (!isAdmin) {
-      const isMultiAsset =
-        item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
-      return allParametersHaveAllowedAnnotations && isMultiAsset === 'true';
-    }
-
-    return allParametersHaveAllowedAnnotations;
+    const isMultiAsset =
+      item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
+    return isMultiAsset === 'true';
   });
 }
 

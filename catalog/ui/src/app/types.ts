@@ -673,6 +673,7 @@ export interface MultiWorkshopSpec {
   logoImage?: string;
   startDate: string;
   endDate: string;
+  readyByDate?: string;
   numberSeats?: number;
   salesforceItems?: Array<{ id: string; type: SfdcType }>;
   purpose?: string;
