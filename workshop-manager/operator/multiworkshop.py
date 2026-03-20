@@ -207,6 +207,7 @@ class MultiWorkshop(CachedKopfObject):
             Babylon.catalog_item_name_label: ci_meta['name'],
             Babylon.catalog_item_namespace_label: ci_meta['namespace'],
             f'{Babylon.demo_domain}/white-glove': 'false',
+            f'{Babylon.demo_domain}/lock-enabled': 'true',
             f'{Babylon.babylon_domain}/multiworkshop': self.name,
             f'{Babylon.babylon_domain}/asset-key': asset_key,
         }
@@ -226,7 +227,6 @@ class MultiWorkshop(CachedKopfObject):
         workshop_annotations = {
             f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
             f'{Babylon.demo_domain}/scheduled': 'true' if is_scheduled else 'false',
-            f'{Babylon.demo_domain}/lock-enabled': 'true',
             f'{Babylon.babylon_domain}/created-by': self.created_by,
             f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
             f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
