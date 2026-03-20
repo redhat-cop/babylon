@@ -333,7 +333,18 @@ class MultiWorkshop(CachedKopfObject):
             f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
         }
 
+        # Collect catalog item parameter defaults (mirrors CatalogItemFormReducer init)
         provision_parameters = {}
+        for param in ci_spec.get('parameters', []):
+            param_name = param.get('name')
+            if not param_name or param_name in ('purpose', 'salesforce_id'):
+                continue
+            schema = param.get('openAPIV3Schema', {})
+            default_value = schema.get('default') if 'default' in schema else param.get('value')
+            if default_value is None:
+                continue
+            provision_parameters[param_name] = default_value
+
         if self.purpose:
             provision_parameters['purpose'] = self.purpose
         if self.purpose_activity:
