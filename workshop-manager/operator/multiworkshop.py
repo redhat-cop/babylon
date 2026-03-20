@@ -333,6 +333,7 @@ class MultiWorkshop(CachedKopfObject):
             f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
             f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
             f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
+            Babylon.resource_pool_annotation: 'disabled',
         }
 
         # Collect catalog item parameter defaults (mirrors CatalogItemFormReducer init)
