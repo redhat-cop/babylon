@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: ./catalog/ui/package-lock.json
       - name: Install packages
         working-directory: ./catalog/ui
-        run: npm ci --prefer-offline
+        run: npm cache clean --force && npm ci --prefer-offline
       - name: Run integration tests
         working-directory: ./catalog/ui
         run: npm run test
