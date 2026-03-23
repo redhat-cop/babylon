@@ -138,8 +138,8 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
 
 export function getPhaseState(__state: string) {
   let _phase: phaseProps = 'unknown';
-  const state = __state.toLowerCase();
-  let _state = state.replace('-', ' ');
+  const state = __state.toLowerCase().replace(/ /g, '-');
+  let _state = state.replace(/-/g, ' ');
   switch (true) {
     case state.endsWith('-queued'):
       _phase = 'queued';
