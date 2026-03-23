@@ -6,12 +6,13 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
+import HourglassHalfIcon from '@patternfly/react-icons/dist/js/icons/hourglass-half-icon';
 import { AnarchySubject, ResourceClaim } from '@app/types';
 import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './service-status.css';
 
-export type phaseProps = 'unknown' | 'scheduled' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped' | 'waiting';
+export type phaseProps = 'unknown' | 'scheduled' | 'available' | 'running' | 'in-progress' | 'failed' | 'stopped' | 'waiting' | 'queued';
 
 // Helper function to get scheduled start timestamp from resourceClaim
 function getScheduledStartTimestamp(resourceClaim: ResourceClaim): number | null {
@@ -80,7 +81,7 @@ export function getStatus(
   } else if (currentState === 'new') {
     return { statusName: 'New', phase: 'in-progress' };
   } else if (currentState === 'provision-queued') {
-    return { statusName: 'In Queue', phase: 'waiting' };
+    return { statusName: 'In Queue', phase: 'queued' };
   } else if (currentState === 'provision-pending') {
     return { statusName: 'Provision Pending', phase: 'in-progress' };
   } else if (currentState === 'provisioning') {
@@ -126,6 +127,8 @@ const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
       return <StopCircleIcon />;
     case 'failed':
       return <ExclamationCircleIcon />;
+    case 'queued':
+      return <HourglassHalfIcon />;
     case 'waiting':
       return <ClockIcon />;
     default:
@@ -138,11 +141,13 @@ export function getPhaseState(__state: string) {
   const state = __state.toLowerCase();
   let _state = state.replace('-', ' ');
   switch (true) {
+    case state.endsWith('-queued'):
+      _phase = 'queued';
+      _state = 'In Queue';
+      break;
     case state.startsWith('waiting'):
     case state.includes('waiting to provision'):
-    case state.endsWith('-queued'):
       _phase = 'waiting';
-      _state = 'In Queue';
       break;
     case state.endsWith('-pending'):
     case state.endsWith('-scheduled'):
