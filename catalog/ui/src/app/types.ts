@@ -214,11 +214,19 @@ export interface SandboxCloudSelector {
   kind: string;
 }
 
+export interface ClusterDryRunInfo {
+  name: string;
+  available_slots?: number;
+}
+
 export interface AvailabilityResourceResult {
   kind: string;
   available: boolean;
   message: string;
   error?: string;
+  cluster_details?: ClusterDryRunInfo[];
+  queued?: boolean;
+  queue_position?: number;
 }
 
 export interface AvailabilityCheckResponse {
