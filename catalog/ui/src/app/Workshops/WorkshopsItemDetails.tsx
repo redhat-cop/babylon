@@ -85,7 +85,7 @@ const WorkshopsItemDetails: React.FC<{
   highlightAutoDestroy,
   onHighlightAutoDestroyComplete,
 }) => {
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
@@ -106,10 +106,10 @@ const WorkshopsItemDetails: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    apiPaths.SERVICE_ACCESS_CONFIG({
+    !sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) ? apiPaths.SERVICE_ACCESS_CONFIG({
       namespace: workshop.metadata.namespace,
       name: workshop.metadata.name,
-    }),
+    }) : null,
     optionalFetcher,
   );
   const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
