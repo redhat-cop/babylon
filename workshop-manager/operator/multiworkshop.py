@@ -527,11 +527,11 @@ class MultiWorkshop(CachedKopfObject):
         """Handle MultiWorkshop creation — create workshops for each asset."""
         logger.info(f"MultiWorkshop {self.name} created")
         await self.create_workshops_for_assets(logger)
+        await self.update_workshop_ids(logger)
 
     async def handle_update(self, logger):
         """Handle MultiWorkshop updates."""
         logger.debug(f"MultiWorkshop {self.name} updated")
-        await self.update_workshop_ids(logger)
         await self.sync_workshops_schedule(logger)
 
     async def handle_delete(self, logger):
