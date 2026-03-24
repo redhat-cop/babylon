@@ -52,17 +52,17 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
       return Object.keys(errors).length === 0;
     };
 
-    const handleConfirm = () => {
-      if (validateForm()) {
-        onConfirm(formData);
-        // Reset form after successful submission
-        setFormData({
-          url: '',
-          displayName: '',
-          description: '',
-        });
-        setValidationErrors({});
+    const handleConfirm = async () => {
+      if (!validateForm()) {
+        throw new Error('Validation failed');
       }
+      await onConfirm(formData);
+      setFormData({
+        url: '',
+        displayName: '',
+        description: '',
+      });
+      setValidationErrors({});
     };
 
     const handleClose = () => {
