@@ -210,8 +210,7 @@ async def multiworkshop_delete(logger, **kwargs):
 )
 async def multiworkshop_resume(logger, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
-    # Check for missing workshop IDs on resume
-    await multiworkshop.update_workshop_ids(logger=logger)
+    await multiworkshop.handle_resume(logger=logger)
 
 @kopf.on.update(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
