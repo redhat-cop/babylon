@@ -1,3 +1,9 @@
+.multiworkshop-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .multiworkshop-detail__header {
   margin-top: 16px;
   align-items: flex-start;
@@ -42,4 +48,42 @@
 
 .multiworkshop-detail__defaults-section .pf-v6-c-description-list__description {
   pointer-events: none;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 80px 140px 140px 60px;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.asset-grid--header {
+  font-weight: var(--pf-t--global--font--weight--body--bold, 700);
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  padding: 8px 12px 8px 48px;
+}
+
+.asset-grid--row > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asset-draggable-row {
+  display: flex !important;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.asset-draggable-row:last-child {
+  border-bottom: none;
+}
+
+.asset-draggable-row > .pf-v6-c-button {
+  margin-right: 8px;
+  flex-shrink: 0;
 }

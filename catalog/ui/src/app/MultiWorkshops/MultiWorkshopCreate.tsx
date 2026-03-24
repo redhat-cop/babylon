@@ -79,15 +79,13 @@ const MultiWorkshopCreate: React.FC = () => {
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
-    // Default provisioning start date is current time
-    // Ready by date will be 8 hours after provisioning start
     const defaultProvisioningDate = now;
-    const endDateTime = new Date(now.getTime() + READY_BY_LEAD_TIME_MS + 24 * 60 * 60 * 1000); // 24h after ready by date
+    const endDateTime = new Date(now.getTime() + READY_BY_LEAD_TIME_MS + 24 * 60 * 60 * 1000);
 
     return {
       name: '',
       description: '',
-      startDate: defaultProvisioningDate, // This is actually the provisioning date
+      startDate: defaultProvisioningDate,
       endDate: endDateTime,
       numberSeats: 1,
       salesforceItems: [] as SalesforceItem[],
@@ -376,7 +374,6 @@ const MultiWorkshopCreate: React.FC = () => {
   }
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
-    // Handle multi-select (array of catalog items)
     if (Array.isArray(catalogItemOrItems)) {
       const newAssets = catalogItemOrItems.map((catalogItem) => ({
         key: catalogItem.metadata.name,
