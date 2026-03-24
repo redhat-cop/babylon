@@ -20,7 +20,6 @@ import {
   Tabs,
   Tab,
   TabTitleText,
-  TextInput,
   NumberInput,
   Checkbox,
   SearchInput,
@@ -46,6 +45,7 @@ import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
+import DateTimePicker from '@app/components/DateTimePicker';
 import LoadingIcon from '@app/components/LoadingIcon';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
@@ -122,22 +122,6 @@ const MultiWorkshopDetail: React.FC = () => {
 
   function getMultiWorkshopDisplayName(multiworkshop: MultiWorkshop): string {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
-  }
-
-  function apiDateToLocalDateTime(apiDate: string): string {
-    if (!apiDate) return '';
-    try {
-      const date = new Date(apiDate);
-      // Convert to local datetime-local format (YYYY-MM-DDTHH:MM)
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch {
-      return '';
-    }
   }
 
   async function updateEventTitle(newTitle: string): Promise<void> {
@@ -663,42 +647,36 @@ const MultiWorkshopDetail: React.FC = () => {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <div style={{ maxWidth: '300px' }}>
-                      <TextInput
-                        type="datetime-local"
-                        value={apiDateToLocalDateTime(multiworkshop.spec.startDate || '')}
-                        onChange={async (_, value) => {
-                          const apiDate = value ? dateToApiString(new Date(value)) : '';
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { startDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
+                    <DateTimePicker
+                      defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
+                      onSelect={async (date) => {
+                        const apiDate = dateToApiString(date);
+                        const updatedMultiWorkshop = await patchMultiWorkshop({
+                          name: multiworkshop.metadata.name,
+                          namespace: multiworkshop.metadata.namespace,
+                          patch: { spec: { startDate: apiDate } },
+                        });
+                        mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                      }}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>End Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <div style={{ maxWidth: '300px' }}>
-                      <TextInput
-                        type="datetime-local"
-                        value={apiDateToLocalDateTime(multiworkshop.spec.endDate || '')}
-                        onChange={async (_, value) => {
-                          const apiDate = value ? dateToApiString(new Date(value)) : '';
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { endDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
+                    <DateTimePicker
+                      defaultTimestamp={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate).getTime() : Date.now()}
+                      onSelect={async (date) => {
+                        const apiDate = dateToApiString(date);
+                        const updatedMultiWorkshop = await patchMultiWorkshop({
+                          name: multiworkshop.metadata.name,
+                          namespace: multiworkshop.metadata.namespace,
+                          patch: { spec: { endDate: apiDate } },
+                        });
+                        mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                      }}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
