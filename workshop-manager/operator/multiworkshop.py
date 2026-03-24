@@ -524,19 +524,21 @@ class MultiWorkshop(CachedKopfObject):
         return False
 
     async def handle_create(self, logger):
-        """Handle MultiWorkshop creation — create workshops for each asset."""
+        """Handle MultiWorkshop creation."""
         logger.info(f"MultiWorkshop {self.name} created")
         await self.create_workshops_for_assets(logger)
-        await self.update_workshop_ids(logger)
 
     async def handle_update(self, logger):
         """Handle MultiWorkshop updates."""
         logger.debug(f"MultiWorkshop {self.name} updated")
-        await self.sync_workshops_schedule(logger)
 
     async def handle_delete(self, logger):
         """Handle MultiWorkshop deletion."""
         logger.info(f"MultiWorkshop {self.name} deleted")
+
+    async def handle_resume(self, logger):
+        """Handle MultiWorkshop resume."""
+        logger.info(f"MultiWorkshop {self.name} resumed")
 
     @property
     def end_datetime(self):
