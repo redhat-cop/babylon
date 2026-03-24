@@ -402,6 +402,69 @@ class MultiWorkshop(CachedKopfObject):
 
         return workshop_name
 
+    async def sync_workshops_schedule(self, logger):
+        """Sync auto-stop and auto-destroy dates from this MultiWorkshop to child
+        workshops that have lock-enabled turned on.
+
+        When lock-enabled is true, the workshop's lifespan and action schedule
+        must stay in sync with the parent MultiWorkshop's startDate/endDate.
+        """
+        try:
+            workshop_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+                group=Babylon.babylon_domain,
+                version=Babylon.babylon_api_version,
+                namespace=self.namespace,
+                plural='workshops',
+                label_selector=f"{Babylon.babylon_domain}/multiworkshop={self.name}",
+            )
+        except Exception as e:
+            logger.warning(f"Failed to list workshops for schedule sync on {self}: {e}")
+            return
+
+        for item in workshop_list.get('items', []):
+            ws_labels = item.get('metadata', {}).get('labels', {})
+            lock_enabled = ws_labels.get(f'{Babylon.demo_domain}/lock-enabled', 'false')
+            if lock_enabled != 'true':
+                continue
+
+            ws_name = item['metadata']['name']
+            ws_spec = item.get('spec', {})
+            ws_lifespan = ws_spec.get('lifespan', {})
+            ws_action_schedule = ws_spec.get('actionSchedule', {})
+
+            patch_spec = {}
+
+            if self.start_date:
+                if ws_lifespan.get('start') != self.start_date:
+                    patch_spec.setdefault('lifespan', {})['start'] = self.start_date
+                if ws_action_schedule.get('start') != self.start_date:
+                    patch_spec.setdefault('actionSchedule', {})['start'] = self.start_date
+            if self.end_date:
+                if ws_lifespan.get('end') != self.end_date:
+                    patch_spec.setdefault('lifespan', {})['end'] = self.end_date
+                if ws_action_schedule.get('stop') != self.end_date:
+                    patch_spec.setdefault('actionSchedule', {})['stop'] = self.end_date
+
+            if not patch_spec:
+                continue
+
+            try:
+                await Babylon.custom_objects_api.patch_namespaced_custom_object(
+                    group=Babylon.babylon_domain,
+                    version=Babylon.babylon_api_version,
+                    namespace=self.namespace,
+                    plural='workshops',
+                    name=ws_name,
+                    body={'spec': patch_spec},
+                )
+                logger.info(
+                    f"Synced schedule from {self} to locked Workshop {ws_name}: {patch_spec}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to sync schedule to Workshop {ws_name} from {self}: {e}"
+                )
+
     async def update_workshop_ids(self, logger=None):
         """Check if any assets are missing workshop IDs and update them."""
         if not logger:
@@ -468,6 +531,7 @@ class MultiWorkshop(CachedKopfObject):
         """Handle MultiWorkshop updates."""
         logger.debug(f"MultiWorkshop {self.name} updated")
         await self.update_workshop_ids(logger)
+        await self.sync_workshops_schedule(logger)
 
     async def handle_delete(self, logger):
         """Handle MultiWorkshop deletion."""
@@ -485,3 +549,4 @@ class MultiWorkshop(CachedKopfObject):
     async def manage(self, logger):
         """Periodic management tasks for MultiWorkshop."""
         await self.update_workshop_ids(logger)
+        await self.sync_workshops_schedule(logger)

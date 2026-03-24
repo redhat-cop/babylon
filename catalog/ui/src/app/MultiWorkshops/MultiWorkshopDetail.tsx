@@ -659,6 +659,140 @@ const MultiWorkshopDetail: React.FC = () => {
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div style={{ maxWidth: '300px' }}>
+                      <TextInput
+                        type="datetime-local"
+                        value={apiDateToLocalDateTime(multiworkshop.spec.startDate || '')}
+                        onChange={async (_, value) => {
+                          const apiDate = value ? dateToApiString(new Date(value)) : '';
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { spec: { startDate: apiDate } },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+
+                <DescriptionListGroup>
+                  <DescriptionListTerm>End Date</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div style={{ maxWidth: '300px' }}>
+                      <TextInput
+                        type="datetime-local"
+                        value={apiDateToLocalDateTime(multiworkshop.spec.endDate || '')}
+                        onChange={async (_, value) => {
+                          const apiDate = value ? dateToApiString(new Date(value)) : '';
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { spec: { endDate: apiDate } },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Default Number of Seats</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div>
+                      <NumberInput
+                        value={multiworkshop.spec.numberSeats || 1}
+                        onMinus={async () => {
+                          const newValue = Math.max(1, (multiworkshop.spec.numberSeats || 1) - 1);
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { spec: { numberSeats: newValue } },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                        onPlus={async () => {
+                          const newValue = (multiworkshop.spec.numberSeats || 1) + 1;
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { spec: { numberSeats: newValue } },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                        onChange={async (event) => {
+                          const value = parseInt((event.target as HTMLInputElement).value) || 1;
+                          const newValue = Math.max(1, value);
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { spec: { numberSeats: newValue } },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                        min={1}
+                        widthChars={10}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Default Activity & Purpose</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div style={{ maxWidth: '400px' }}>
+                      <ActivityPurposeSelector
+                        value={{
+                          activity: multiworkshop.spec['purpose-activity'] || '',
+                          purpose: multiworkshop.spec.purpose || '',
+                        }}
+                        purposeOpts={purposeOptions}
+                        onChange={async (activity, purpose) => {
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: { 
+                              spec: { 
+                                'purpose-activity': activity,
+                                purpose: purpose,
+                              } 
+                            },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Default Salesforce IDs</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <div style={{ maxWidth: '400px' }}>
+                      <SalesforceItemsField
+                        label=""
+                        items={multiworkshop.spec.salesforceItems || []}
+                        onChange={async (items) => {
+                          const updatedMultiWorkshop = await patchMultiWorkshop({
+                            name: multiworkshop.metadata.name,
+                            namespace: multiworkshop.metadata.namespace,
+                            patch: {
+                              spec: {
+                                salesforceItems: items,
+                              },
+                            },
+                          });
+                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                        }}
+                      />
+                    </div>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
               </DescriptionList>
 
               </>
@@ -735,14 +869,14 @@ const MultiWorkshopDetail: React.FC = () => {
                           <Td>
                             <EditableText
                               value={asset.displayName || ''}
-                              onChange={(value) => updateAssetDisplayName(index, value)}
+                              onChange={(value: string) => updateAssetDisplayName(index, value)}
                               placeholder="Workshop display name"
                             />
                           </Td>
                           <Td>
                             <EditableText
                               value={asset.description || ''}
-                              onChange={(value) => updateAssetDescription(index, value)}
+                              onChange={(value: string) => updateAssetDescription(index, value)}
                               componentType="TextArea"
                             />
                           </Td>
@@ -786,148 +920,6 @@ const MultiWorkshopDetail: React.FC = () => {
               </>
             ) : null}
           </Tab>
-          {isAdmin && (
-            <Tab eventKey="provisioning" title={<TabTitleText>Default Provisioning Settings</TabTitleText>}>
-            {activeTab === 'provisioning' ? (
-              <DescriptionList isHorizontal className="multiworkshop-detail__provisioning">
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Number of Seats</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div>
-                      <NumberInput
-                        value={multiworkshop.spec.numberSeats || 1}
-                        onMinus={async () => {
-                          const newValue = Math.max(1, (multiworkshop.spec.numberSeats || 1) - 1);
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { numberSeats: newValue } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                        onPlus={async () => {
-                          const newValue = (multiworkshop.spec.numberSeats || 1) + 1;
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { numberSeats: newValue } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                        onChange={async (event) => {
-                          const value = parseInt((event.target as HTMLInputElement).value) || 1;
-                          const newValue = Math.max(1, value);
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { numberSeats: newValue } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                        min={1}
-                        widthChars={10}
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ maxWidth: '300px' }}>
-                      <TextInput
-                        type="datetime-local"
-                        value={apiDateToLocalDateTime(multiworkshop.spec.startDate || '')}
-                        onChange={async (_, value) => {
-                          const apiDate = value ? dateToApiString(new Date(value)) : '';
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { startDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-
-                <DescriptionListGroup>
-                  <DescriptionListTerm>End Date</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ maxWidth: '300px' }}>
-                      <TextInput
-                        type="datetime-local"
-                        value={apiDateToLocalDateTime(multiworkshop.spec.endDate || '')}
-                        onChange={async (_, value) => {
-                          const apiDate = value ? dateToApiString(new Date(value)) : '';
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { endDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Activity & Purpose</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ maxWidth: '400px' }}>
-                      <ActivityPurposeSelector
-                        value={{
-                          activity: multiworkshop.spec['purpose-activity'] || '',
-                          purpose: multiworkshop.spec.purpose || '',
-                        }}
-                        purposeOpts={purposeOptions}
-                        onChange={async (activity, purpose) => {
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { 
-                              spec: { 
-                                'purpose-activity': activity,
-                                purpose: purpose,
-                              } 
-                            },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <div style={{ maxWidth: '400px' }}>
-                      <SalesforceItemsField
-                        label=""
-                        items={multiworkshop.spec.salesforceItems || []}
-                        onChange={async (items) => {
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: {
-                              spec: {
-                                salesforceItems: items,
-                              },
-                            },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </div>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </DescriptionList>
-            ) : null}
-            </Tab>
-          )}
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             {activeTab === 'yaml' ? (
               <Editor
