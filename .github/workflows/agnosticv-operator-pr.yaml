@@ -1,0 +1,43 @@
+name: Agnosticv Operator - PR Workflow
+
+on:
+  push:
+    paths:
+      - agnosticv-operator/**
+    branches:
+      - main
+  pull_request:
+    paths:
+      - agnosticv-operator/**
+    branches:
+      - main
+jobs:
+  deploy:
+    name: "Publish image in quay"
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAGS: ${{ vars.BABYLON_IMAGE_REGISTRY }}/${{ vars.BABYLON_IMAGE_REPOSITORY }}/babylon-agnosticv-operator:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v1
+        if: env.IMAGE_TAGS
+      - name: Login to registry
+        uses: docker/login-action@v1
+        if: env.IMAGE_TAGS
+        with:
+          registry: ${{ vars.BABYLON_IMAGE_REGISTRY }}
+          username: ${{ secrets.BABYLON_IMAGE_REGISTRY_USERNAME }}
+          password: ${{ secrets.BABYLON_IMAGE_REGISTRY_PASSWORD }}
+      - name: Build and publish image
+        uses: docker/build-push-action@v2
+        if: env.IMAGE_TAGS
+        with:
+          context: agnosticv-operator
+          file: agnosticv-operator/Containerfile
+          push: true
+          tags: ${{ env.IMAGE_TAGS }}
+          # images from a PR expire after 14d
+          labels: |
+            quay.expires-after=14d

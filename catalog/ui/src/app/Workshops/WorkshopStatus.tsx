@@ -11,6 +11,7 @@ const codeLevels = [
   'stopped',
   'stop-error',
   'in-progress',
+  'provision-queued',
   'provisioning',
   'stop-scheduled',
   'start-scheduled',
