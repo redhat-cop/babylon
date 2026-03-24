@@ -11,6 +11,35 @@
   line-height: 1.5;
 }
 
-.multiworkshop-detail__provisioning .pf-v6-c-description-list__group {
-  grid-template-columns: 200px auto;
+.multiworkshop-detail__details.pf-v6-c-description-list[class*='pf-m-horizontal'] {
+  --pf-v6-c-description-list__term--width: 200px !important;
+  max-width: 900px;
+}
+
+.multiworkshop-detail__details .pf-v6-c-description-list__description {
+  max-width: 600px;
+  word-break: break-word;
+}
+
+.multiworkshop-detail__defaults-section {
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  margin-top: var(--pf-t--global--spacer--lg);
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+.multiworkshop-detail__defaults-heading {
+  font-size: var(--pf-t--global--font--size--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold, 700);
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+.multiworkshop-detail__defaults-section .pf-v6-c-description-list__group {
+  opacity: 0.7;
+}
+
+.multiworkshop-detail__defaults-section .pf-v6-c-description-list__description {
+  pointer-events: none;
 }

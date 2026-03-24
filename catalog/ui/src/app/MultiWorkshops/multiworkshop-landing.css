@@ -1,4 +1,4 @@
-/* Multi-Workshop Landing Page Styling */
+/* Multi-Workshop Landing Page */
 .multi-workshop-landing {
   height: 100vh;
   display: flex;
@@ -7,247 +7,150 @@
   overflow: hidden;
 }
 
-/* Header Styling */
-.multi-workshop-landing .header-container {
-  position: relative;
-  z-index: 1000;
-}
-
-.multi-workshop-landing .bg-gray-900 {
-  background-color: #111 !important;
-}
-
-.multi-workshop-landing .position-fixed {
-  position: fixed !important;
-}
-
-.multi-workshop-landing .top-0 {
-  top: 0 !important;
-}
-
-.multi-workshop-landing .w-100 {
-  width: 100% !important;
-}
-
-.multi-workshop-landing .z-1 {
-  z-index: 1 !important;
-}
-
-.multi-workshop-landing .d-flex {
-  display: flex !important;
-}
-
-.multi-workshop-landing .align-items-center {
-  align-items: center !important;
-}
-
-.multi-workshop-landing .justify-content-center {
-  justify-content: center !important;
-}
-
-.multi-workshop-landing .flex-wrap {
-  flex-wrap: wrap !important;
-}
-
-.multi-workshop-landing .flex-grow-1 {
-  flex-grow: 1 !important;
-}
-
-.multi-workshop-landing .flex-column {
-  flex-direction: column !important;
-}
-
-.multi-workshop-landing .w-100 {
-  width: 100% !important;
-}
-
-/* Assets container styling */
-.multi-workshop-landing .assets-container {
+/* ── Header ── */
+.mwl-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 72px;
+  background: #151515;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  flex-grow: 1;
-  overflow: auto;
-  padding: 20px 0;
 }
 
-.multi-workshop-landing .container {
+.mwl-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 15px;
-  width: 100%;
+  padding: 0 24px;
 }
 
-.multi-workshop-landing .navbar {
+.mwl-header__brand a {
+  display: flex;
+  align-items: center;
+}
+
+.mwl-header__logo img {
+  max-width: 180px;
+  max-height: 48px;
+  object-fit: contain;
+}
+
+/* ── Hero Banner ── */
+.mwl-hero {
   position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0;
-}
-
-.multi-workshop-landing .navbar-header {
+  flex-shrink: 0;
+  margin-top: 72px;
+  min-height: 260px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-.multi-workshop-landing .navbar-brand {
-  flex-shrink: 0;
+.mwl-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(21, 21, 21, 0.75) 0%,
+    rgba(21, 21, 21, 0.55) 100%
+  );
 }
 
-.multi-workshop-landing .navbar-logo-right {
-  margin-left: auto;
-  flex-shrink: 0;
+.mwl-hero__content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 720px;
+  padding: 48px 24px;
 }
 
-.multi-workshop-landing .navbar-collapse {
-  flex-basis: 100%;
-  flex-grow: 1;
-  align-items: center;
+.mwl-hero__title {
+  margin: 0;
+  font-family: 'Red Hat Display', 'Overpass', overpass, helvetica, arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
-.multi-workshop-landing .ml-auto {
-  margin-left: auto !important;
+.mwl-hero__description {
+  margin: 12px 0 0;
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.55;
 }
 
-.multi-workshop-landing .d-lg-inline-block {
-  display: inline-block !important;
-}
-
-.multi-workshop-landing .d-none {
-  display: none !important;
-}
-
-@media (min-width: 992px) {
-  .multi-workshop-landing .d-lg-inline-block {
-    display: inline-block !important;
-  }
-}
-
-/* Content Styling */
-.multi-workshop-landing .content-container {
+/* ── Cards Section ── */
+.mwl-cards-section {
   flex: 1;
-}
-
-.multi-workshop-landing .dms-band {
-  position: relative;
-}
-
-.multi-workshop-landing .py-0 {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-.multi-workshop-landing .py-3 {
-  padding-top: 1rem !important;
-  padding-bottom: 1rem !important;
-}
-
-.multi-workshop-landing .mt-n1 {
-  margin-top: -0.25rem !important;
-}
-
-.multi-workshop-landing .bg-gray-200 {
-  background-color: #f0f0f0 !important;
-}
-
-.multi-workshop-landing .mb-3 {
-  margin-bottom: 1rem !important;
-}
-
-.multi-workshop-landing .row {
+  overflow: auto;
+  background: #f0f0f0;
   display: flex;
-  flex-wrap: wrap;
-  margin-right: -15px;
-  margin-left: -15px;
+  justify-content: center;
+  padding: 40px 24px;
 }
 
-.multi-workshop-landing .col-12 {
-  flex: 0 0 100%;
-  max-width: 100%;
+.mwl-cards-section__empty {
+  max-width: 600px;
+  width: 100%;
 }
 
-.multi-workshop-landing .p-2 {
-  padding: 0.5rem !important;
-}
-
-.multi-workshop-landing .text-sm-center {
-  text-align: center !important;
-}
-
-.multi-workshop-landing .px-1 {
-  padding-left: 0.25rem !important;
-  padding-right: 0.25rem !important;
-}
-
-.multi-workshop-landing .my-1 {
-  margin-top: 0.25rem !important;
-  margin-bottom: 0.25rem !important;
-}
-
-/* Demo Card Grid */
+/* ── Card Grid ── */
 .multi-workshop-landing .demo-card-grid {
   display: grid;
-  gap: 16px;
-  grid-auto-flow: dense;
+  gap: 20px;
   grid-template-columns: repeat(auto-fill, 280px);
-  grid-template-rows: repeat(auto-fill, 260px);
-  max-width: 875px;
+  max-width: 920px;
   width: 100%;
-  padding-bottom: 42px;
   justify-content: center;
+  align-content: start;
 }
 
-@media (max-width: 900px) {
-  .multi-workshop-landing .demo-card-grid {
-    max-width: 100%;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  }
-}
-
-/* Demo Cards */
+/* ── Demo Cards ── */
 .multi-workshop-landing .demo-card {
-  background-color: #fff;
-  box-shadow: 0 0.0625rem 0.125rem 0 rgba(3, 3, 3, 0.12), 0 0 0.125rem 0 rgba(3, 3, 3, 0.06);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 2px rgba(0, 0, 0, 0.06);
   color: #151515;
   display: flex;
   flex-direction: column;
   height: 260px;
   overflow: hidden;
   padding: 24px;
-  width: 280px;
   text-decoration: none;
-  transition: all 0.3s ease;
-  border-radius: 4px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border-radius: 8px;
 }
 
 .multi-workshop-landing .demo-card:hover,
 .multi-workshop-landing .demo-card:focus {
-  box-shadow: 0 0.5rem 1rem 0 rgba(3, 3, 3, 0.16), 0 0 0.375rem 0 rgba(3, 3, 3, 0.08);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-3px);
 }
 
 .multi-workshop-landing .demo-card--unavailable {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed !important;
 }
 
 .multi-workshop-landing .demo-card--unavailable:hover {
   transform: none;
-  box-shadow: 0 0.0625rem 0.125rem 0 rgba(3, 3, 3, 0.12), 0 0 0.125rem 0 rgba(3, 3, 3, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 2px rgba(0, 0, 0, 0.06);
 }
 
 .multi-workshop-landing .demo-card__header {
   display: flex;
-  flex-direction: row;
-  position: relative;
-  margin-bottom: 12px;
-  justify-content: flex-start;
   align-items: flex-start;
+  margin-bottom: 12px;
 }
 
 .multi-workshop-landing .demo-card__icon {
@@ -258,11 +161,10 @@
 
 .multi-workshop-landing .demo-card__badges {
   margin-left: auto;
-  margin-right: 0;
 }
 
 .multi-workshop-landing .demo-card__body {
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   flex-grow: 1;
   flex-direction: column;
@@ -270,130 +172,87 @@
 
 .multi-workshop-landing .demo-card__title {
   font-size: 16px !important;
-  color: #111;
-  margin-bottom: 6px !important;
-  margin-top: 0 !important;
+  color: #151515;
+  margin: 0 0 6px !important;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .multi-workshop-landing .demo-card__description {
   font-size: 14px !important;
-  color: #666;
-  margin: 0 0 8px 0 !important;
-  line-height: 1.4;
+  color: #6a6e73;
+  margin: 0 0 8px !important;
+  line-height: 1.45;
   font-weight: 400;
-}
-
-.multi-workshop-landing .demo-card__scheduled {
-  color: #777;
-  font-size: 12px !important;
-  margin-bottom: 8px;
-  margin-top: 0;
 }
 
 .multi-workshop-landing .demo-card__subtitle {
   font-size: 14px !important;
-  font-weight: 400 !important;
-  color: rgb(0, 102, 204);
+  font-weight: 500 !important;
+  color: #0066cc;
   margin-top: auto !important;
   margin-bottom: 0;
-  position: relative;
   display: flex;
   align-items: center;
   white-space: nowrap;
-  font-family: 'Red Hat Display', Overpass, Helvetica, Arial, sans-serif !important;
+  font-family: 'Red Hat Display', 'Overpass', helvetica, arial, sans-serif !important;
   cursor: pointer;
 }
 
-.multi-workshop-landing .demo-card__subtitle svg {
-  fill: rgb(0, 102, 204);
-  transition: padding 0.3s cubic-bezier(0.465, 0.183, 0.153, 0.946);
-  margin-bottom: -1px;
+.multi-workshop-landing .demo-card__subtitle svg,
+.multi-workshop-landing .pfe-cta--arrow {
+  fill: #0066cc;
+  transition: transform 0.25s cubic-bezier(0.465, 0.183, 0.153, 0.946);
   height: 13px;
   width: 13px;
   margin-left: 6px;
+  margin-bottom: -1px;
 }
 
-.multi-workshop-landing .demo-card__subtitle:hover {
-  color: rgb(0, 64, 128);
+.multi-workshop-landing .demo-card:hover .demo-card__subtitle {
+  color: #004080;
 }
 
-.multi-workshop-landing .demo-card__subtitle:hover svg {
-  fill: rgb(0, 64, 128);
+.multi-workshop-landing .demo-card:hover .demo-card__subtitle svg,
+.multi-workshop-landing .demo-card:hover .pfe-cta--arrow {
+  fill: #004080;
   transform: translateX(3px);
 }
 
 .multi-workshop-landing .demo-card__subtitle--disabled {
-  color: #777 !important;
+  color: #6a6e73 !important;
   cursor: default !important;
 }
 
 .multi-workshop-landing .demo-card__subtitle--disabled:hover {
-  color: #777 !important;
+  color: #6a6e73 !important;
 }
 
-/* PFE Arrow styling */
-.multi-workshop-landing .pfe-cta--arrow {
-  fill: rgb(0, 102, 204);
-  transition: transform 0.3s cubic-bezier(0.465, 0.183, 0.153, 0.946);
-  margin-bottom: -1px;
-  height: 13px;
-  width: 13px;
-  margin-left: 6px;
-}
-
-.multi-workshop-landing .demo-card__subtitle:hover .pfe-cta--arrow {
-  fill: rgb(0, 64, 128);
-  transform: translateX(3px);
-}
-
-/* Responsive adjustments */
+/* ── Responsive ── */
 @media (max-width: 768px) {
+  .mwl-hero {
+    min-height: 200px;
+  }
+
+  .mwl-hero__title {
+    font-size: 1.75rem;
+  }
+
+  .mwl-hero__description {
+    font-size: 1rem;
+  }
+
+  .mwl-cards-section {
+    padding: 24px 16px;
+  }
+
   .multi-workshop-landing .demo-card-grid {
     grid-template-columns: 1fr;
     justify-items: center;
   }
-  
+
   .multi-workshop-landing .demo-card {
     width: 100%;
     max-width: 320px;
   }
-  
-  .multi-workshop-landing .container {
-    padding: 0 10px;
-  }
-}
-
-/* Additional utility classes */
-.multi-workshop-landing .img-fluid {
-  max-width: 100%;
-  height: auto;
-}
-
-@media (min-width: 768px) {
-  .multi-workshop-landing .d-md-block {
-    display: block !important;
-  }
-}
-
-/* Workshop details styling */
-.multi-workshop-landing h3.px-1.my-1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111;
-  margin: 0.5rem 0.25rem;
-}
-
-.multi-workshop-landing p.px-1 {
-  font-size: 1.1rem;
-  color: #555;
-  line-height: 1.5;
-  margin: 0.25rem;
-}
-
-/* Small text for dates and details */
-.multi-workshop-landing small {
-  font-size: 0.9rem;
-  color: #666;
 }
