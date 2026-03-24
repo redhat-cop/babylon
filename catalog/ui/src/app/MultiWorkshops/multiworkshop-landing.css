@@ -186,6 +186,16 @@
   font-weight: 400;
 }
 
+.multi-workshop-landing .demo-card__seats {
+  font-size: 13px !important;
+  font-weight: 500;
+  color: #3e8635;
+  margin: 0 0 8px !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .multi-workshop-landing .demo-card__subtitle {
   font-size: 14px !important;
   font-weight: 500 !important;
