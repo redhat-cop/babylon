@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
 import useSWR, { mutate } from 'swr';
+import { DragDropSort, DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
 import {
   PageSection,
   Title,
@@ -239,7 +240,29 @@ const MultiWorkshopDetail: React.FC = () => {
     openModalDeleteAsset();
   }
 
+  async function handleAssetDrop(_event: DragDropSortDragEndEvent, _items: unknown[], oldIndex: number, newIndex: number): Promise<void> {
+    if (oldIndex === newIndex || !multiworkshop?.spec.assets) return;
 
+    const reorderedAssets = [...multiworkshop.spec.assets];
+    const [moved] = reorderedAssets.splice(oldIndex, 1);
+    reorderedAssets.splice(newIndex, 0, moved);
+
+    const swrKey = apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name });
+
+    mutate(swrKey, { ...multiworkshop, spec: { ...multiworkshop.spec, assets: reorderedAssets } }, false);
+
+    try {
+      const updatedMultiWorkshop = await patchMultiWorkshop({
+        name: multiworkshop.metadata.name,
+        namespace: multiworkshop.metadata.namespace,
+        patch: { spec: { assets: reorderedAssets } },
+      });
+      mutate(swrKey, updatedMultiWorkshop, false);
+    } catch (error) {
+      mutate(swrKey, multiworkshop, false);
+      console.error('Failed to reorder assets:', error);
+    }
+  }
 
   async function onAddWorkshopsConfirm(): Promise<void> {
     if (!multiworkshop || !workshops || selectedWorkshops.length === 0) return;
@@ -760,96 +783,100 @@ const MultiWorkshopDetail: React.FC = () => {
                 </Split>
                 
                 {multiworkshop.spec.assets && multiworkshop.spec.assets.length > 0 ? (
-                  <Table aria-label="Workshop assets" variant="compact">
-                    <Thead>
-                      <Tr>
-                        <Th>Asset Name</Th>
-                        <Th>Display Name</Th>
-                        <Th>Description</Th>
-                        <Th>Status</Th>
-                        <Th>Auto-Destroy</Th>
-                        <Th>Workshop Status</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {multiworkshop.spec.assets.map((asset, index) => (
-                        <Tr key={index}>
-                          <Td>
-                            {asset.type === 'external' ? (
-                              <a 
-                                href={asset.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ textDecoration: 'none', color: 'var(--pf-t--color--link--default)' }}
-                              >
-                                {asset.displayName || asset.key}
-                              </a>
-                            ) : asset.name && asset.type === 'Workshop' ? (
-                              <Link 
-                                to={`/workshops/${multiworkshop.metadata.namespace}/${asset.name}`}
-                                style={{ textDecoration: 'none' }}
-                              >
-                                {asset.name}
-                              </Link>
-                            ) : (
-                              <span style={{ color: 'var(--pf-t--color--text--secondary)', fontStyle: 'italic' }}>
-                                Not created yet
-                              </span>
-                            )}
-                          </Td>
-                          <Td>
-                            <EditableText
-                              value={asset.displayName || ''}
-                              onChange={(value: string) => updateAssetDisplayName(index, value)}
-                              placeholder="Workshop display name"
-                            />
-                          </Td>
-                          <Td>
-                            <EditableText
-                              value={asset.description || ''}
-                              onChange={(value: string) => updateAssetDescription(index, value)}
-                              componentType="TextArea"
-                            />
-                          </Td>
-                          <Td>
-                            {asset.type === 'external' ? (
-                              <span>External</span>
-                            ) : asset.workshopId ? (
-                              <span>Created</span>
-                            ) : (
-                              <span>Pending</span>
-                            )}
-                          </Td>
-                          <Td>
-                            {(() => {
-                              if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
-                              const workshop = workshops?.find(w => w.metadata.name === asset.name);
-                              const lifespanEnd = workshop?.spec?.lifespan?.end;
-                              return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
-                            })()}
-                          </Td>
-                          <Td>
-                            {asset.type === 'Workshop' && asset.name ? (
-                              <AssetWorkshopStatus
-                                workshopName={asset.name}
-                                namespace={multiworkshop.metadata.namespace}
+                  <>
+                    <div className="asset-grid asset-grid--header">
+                      <div>Asset Name</div>
+                      <div>Display Name</div>
+                      <div>Description</div>
+                      <div>Status</div>
+                      <div>Auto-Destroy</div>
+                      <div>Workshop Status</div>
+                      <div>Actions</div>
+                    </div>
+                    <DragDropSort
+                      items={multiworkshop.spec.assets.map((asset, index) => ({
+                        id: asset.key || `asset-${index}`,
+                        props: { className: 'asset-draggable-row' },
+                        content: (
+                          <div className="asset-grid asset-grid--row">
+                            <div>
+                              {asset.type === 'external' ? (
+                                <a 
+                                  href={asset.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ textDecoration: 'none', color: 'var(--pf-t--color--link--default)' }}
+                                >
+                                  {asset.displayName || asset.key}
+                                </a>
+                              ) : asset.name && asset.type === 'Workshop' ? (
+                                <Link 
+                                  to={`/workshops/${multiworkshop.metadata.namespace}/${asset.name}`}
+                                  style={{ textDecoration: 'none' }}
+                                >
+                                  {asset.name}
+                                </Link>
+                              ) : (
+                                <span style={{ color: 'var(--pf-t--color--text--secondary)', fontStyle: 'italic' }}>
+                                  Not created yet
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <EditableText
+                                value={asset.displayName || ''}
+                                onChange={(value: string) => updateAssetDisplayName(index, value)}
+                                placeholder="Workshop display name"
                               />
-                            ) : (
-                              <span>-</span>
-                            )}
-                          </Td>
-                          <Td>
-                            <ButtonCircleIcon
-                              onClick={() => showDeleteAssetModal(index, asset)}
-                              description="Delete asset"
-                              icon={TrashIcon}
-                            />
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                            </div>
+                            <div>
+                              <EditableText
+                                value={asset.description || ''}
+                                onChange={(value: string) => updateAssetDescription(index, value)}
+                                componentType="TextArea"
+                              />
+                            </div>
+                            <div>
+                              {asset.type === 'external' ? (
+                                <span>External</span>
+                              ) : asset.workshopId ? (
+                                <span>Created</span>
+                              ) : (
+                                <span>Pending</span>
+                              )}
+                            </div>
+                            <div>
+                              {(() => {
+                                if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
+                                const workshop = workshops?.find(w => w.metadata.name === asset.name);
+                                const lifespanEnd = workshop?.spec?.lifespan?.end;
+                                return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
+                              })()}
+                            </div>
+                            <div>
+                              {asset.type === 'Workshop' && asset.name ? (
+                                <AssetWorkshopStatus
+                                  workshopName={asset.name}
+                                  namespace={multiworkshop.metadata.namespace}
+                                />
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </div>
+                            <div>
+                              <ButtonCircleIcon
+                                onClick={() => showDeleteAssetModal(index, asset)}
+                                description="Delete asset"
+                                icon={TrashIcon}
+                              />
+                            </div>
+                          </div>
+                        ),
+                      }))}
+                      onDrop={handleAssetDrop}
+                      variant="default"
+                    />
+                  </>
                 ) : (
                   <EmptyState variant="lg">
                     <EmptyStateBody>
