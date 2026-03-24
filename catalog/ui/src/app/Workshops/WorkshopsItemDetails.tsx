@@ -841,6 +841,15 @@ const WorkshopsItemDetails: React.FC<{
                 hasCheckIcon
                 onChange={handleLockedChange}
               />
+              {belongsToMultiWorkshop && (
+                <Tooltip position="right" content={<p>When enabled, the start, stop, and destroy dates will be determined by the Multi Asset Workshop parameters.</p>}>
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Multi Asset Workshop settings information"
+                    className="tooltip-icon-only"
+                    style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                  />
+                </Tooltip>
+              )}
             </div>
             <div
               className="workshops-item-details__admin-field"
