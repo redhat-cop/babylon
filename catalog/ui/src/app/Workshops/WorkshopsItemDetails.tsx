@@ -90,6 +90,7 @@ const WorkshopsItemDetails: React.FC<{
   const { cache } = useSWRConfig();
   const whiteGloved = getWhiteGloved(workshop);
   const isLocked = isWorkshopLocked(workshop);
+  const belongsToMultiWorkshop = !!workshop.metadata.labels?.[`${BABYLON_DOMAIN}/multiworkshop`];
   const debouncedPatchWorkshop = useDebounce(patchWorkshop, 1000) as (...args: unknown[]) => Promise<Workshop>;
   const userRegistrationValue = workshop.spec.openRegistration === false ? 'pre' : 'open';
   const workshopId = workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -834,8 +835,8 @@ const WorkshopsItemDetails: React.FC<{
             >
               <Switch
                 id="lock-switch"
-                aria-label="Locked"
-                label="Locked"
+                aria-label={belongsToMultiWorkshop ? 'Use Multi Asset Workshop settings' : 'Locked'}
+                label={belongsToMultiWorkshop ? 'Use Multi Asset Workshop settings' : 'Locked'}
                 isChecked={isWorkshopLocked(workshop)}
                 hasCheckIcon
                 onChange={handleLockedChange}
