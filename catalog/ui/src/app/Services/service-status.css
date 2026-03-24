@@ -14,3 +14,7 @@
 .service-status--waiting {
   color: var(--pf-t--global--icon--color--status--info--default);
 }
+
+.service-status--queued {
+  color: var(--pf-t--global--icon--color--status--purple--default, #6753ac);
+}

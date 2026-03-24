@@ -1278,17 +1278,31 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </AlertGroup>
           )}
 
-          {availabilityData && !availabilityLoading && (
-            <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Alert
-                variant={availabilityData.overallAvailable ? 'success' : 'danger'}
-                title={`Resource Availability: ${availabilityData.overallAvailable ? 'Available' : 'Not Available'}`}
-                isInline
-              >
-                <p>{availabilityData.overallMessage}</p>
-              </Alert>
-            </AlertGroup>
-          )}
+          {availabilityData && !availabilityLoading && (() => {
+            const queuedResult = availabilityData.results?.find((r) => r.queued);
+            const variant = !availabilityData.overallAvailable ? 'danger' : queuedResult ? 'warning' : 'success';
+            const title = !availabilityData.overallAvailable
+              ? 'Resource Availability: Not Available'
+              : queuedResult
+                ? 'Resource Availability: Available (will be queued)'
+                : 'Resource Availability: Available';
+            return (
+              <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                <Alert variant={variant} title={title} isInline>
+                  <p>{availabilityData.overallMessage}</p>
+                  {queuedResult && (
+                    <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                      All matching clusters are currently at their provisioning rate limit.
+                      Your request will be placed in a queue and processed automatically.
+                      {queuedResult.queue_position != null && queuedResult.queue_position > 0 && (
+                        <> Current queue position: <strong>{queuedResult.queue_position}</strong>.</>
+                      )}
+                    </p>
+                  )}
+                </Alert>
+              </AlertGroup>
+            );
+          })()}
         </div>
 
         <ActionList>

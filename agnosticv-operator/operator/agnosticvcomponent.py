@@ -744,6 +744,7 @@ class AgnosticVComponent(KopfObject):
                         "'stop-canceled' if has_resource_stop_canceled | bool else "
                         "'stop-error' if has_resource_stop_error | bool else "
                         "'stop-failed' if has_resource_stop_failed | bool else "
+                        "'provision-queued' if has_resource_provision_queued | bool else "
                         "'provisioning' if has_resource_provisioning | bool else "
                         "'provision-pending' if has_resource_provision_pending | bool else "
                         "'stopping' if has_resource_stopping | bool else "
@@ -771,6 +772,8 @@ class AgnosticVComponent(KopfObject):
                         "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-failed']\") | length > 0) | bool }}",
                     "has_resource_provision_pending":
                         "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-pending']\") | length > 0) | bool }}",
+                    "has_resource_provision_queued":
+                        "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provision-queued']\") | length > 0) | bool }}",
                     "has_resource_provisioning":
                         "{{ (resources | json_query(\"[?state.spec.vars.current_state=='provisioning']\") | length > 0) | bool }}",
                     "has_resource_start_error":

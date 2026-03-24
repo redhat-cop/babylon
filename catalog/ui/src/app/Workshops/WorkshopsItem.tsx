@@ -136,7 +136,7 @@ const WorkshopsItemComponent: React.FC<{
   
   // Check if user can manage collaborators (i.e., is the owner, not a collaborator)
   const { data: serviceAccessConfigResponse } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    workshop
+    workshop && !sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace)
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: workshop.metadata.namespace,
           name: workshop.metadata.name,
