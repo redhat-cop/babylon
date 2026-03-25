@@ -1668,6 +1668,7 @@ export async function addOwnerReferenceToWorkshop({
         labels: {
           ...workshop.metadata.labels,
           [`${BABYLON_DOMAIN}/multiworkshop`]: ownerReference.name,
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
         },
         annotations: {
           ...workshop.metadata.annotations,

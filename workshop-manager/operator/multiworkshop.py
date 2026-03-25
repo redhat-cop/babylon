@@ -532,6 +532,7 @@ class MultiWorkshop(CachedKopfObject):
     async def handle_update(self, logger):
         """Handle MultiWorkshop updates."""
         logger.debug(f"MultiWorkshop {self.name} updated")
+        await self.sync_workshops_schedule(logger)
 
     async def handle_delete(self, logger):
         """Handle MultiWorkshop deletion."""
