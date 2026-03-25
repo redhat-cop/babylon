@@ -189,6 +189,7 @@ class MultiWorkshop(CachedKopfObject):
                 workshop_name = await self._create_workshop_and_provision(asset, logger)
                 asset_copy = dict(asset)
                 asset_copy['name'] = workshop_name
+                asset_copy['namespace'] = self.namespace
                 updated_assets.append(asset_copy)
             except Exception as e:
                 logger.error(f"Failed to create workshop for asset {asset_key} in {self}: {e}")
