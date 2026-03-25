@@ -164,6 +164,11 @@ class MultiWorkshop(CachedKopfObject):
                 updated_assets.append(asset_copy)
                 continue
 
+            # Pre-existing workshop (e.g. shared or manually added) — preserve as-is
+            if asset.get('name', '').strip():
+                updated_assets.append(asset)
+                continue
+
             try:
                 workshop_name = await self._create_workshop_and_provision(asset, logger)
                 asset_copy = dict(asset)
@@ -486,10 +491,11 @@ class MultiWorkshop(CachedKopfObject):
                 continue
 
             try:
+                asset_namespace = asset.get('namespace', self.namespace)
                 workshop = await Babylon.custom_objects_api.get_namespaced_custom_object(
                     group=Babylon.babylon_domain,
                     version='v1',
-                    namespace=self.namespace,
+                    namespace=asset_namespace,
                     plural='workshops',
                     name=workshop_name
                 )

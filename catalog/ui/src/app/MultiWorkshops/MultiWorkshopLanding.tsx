@@ -8,7 +8,6 @@ import {
 
 import { apiPaths, publicFetcher } from '@app/api';
 import { MultiWorkshop } from '@app/types';
-import { compareK8sObjects } from '@app/util';
 import heroImg from './hero-img.jpeg';
 import LabIcon from './LabIcon';
 
@@ -127,8 +126,7 @@ const MultiWorkshopLandingComponent: React.FC<{
     }),
     publicFetcher,
     {
-      refreshInterval: 10000,
-      compare: compareK8sObjects,
+      refreshInterval: 8000,
     }
   );
 

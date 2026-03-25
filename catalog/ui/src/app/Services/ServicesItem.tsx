@@ -35,6 +35,7 @@ import {
   TextInput,
   Switch,
   NumberInput,
+  Alert,
   Popover,
 } from '@patternfly/react-core';
 import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFooter, ModalHeader as PFModalHeader } from '@patternfly/react-core';
@@ -175,11 +176,12 @@ const ComponentDetailsList: React.FC<{
       ) : null,
     [_provisionMessages],
   );
+  const [now] = useState(() => Date.now());
   return (
     <DescriptionList isHorizontal>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
-          {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > Date.now() ? (
+          {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
               <DescriptionListDescription>
@@ -189,7 +191,7 @@ const ComponentDetailsList: React.FC<{
                 </span>
               </DescriptionListDescription>
             </DescriptionListGroup>
-          ) : stopDate && Number(stopDate) > Date.now() ? null : currentState !== 'stopped' ? (
+          ) : stopDate && Number(stopDate) > now ? null : currentState !== 'stopped' ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
               <DescriptionListDescription>Now</DescriptionListDescription>
@@ -381,7 +383,7 @@ const ServicesItemComponent: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isPartOfWorkshop && !sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace)
+    !isPartOfWorkshop && sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace)
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
@@ -1447,6 +1449,7 @@ const ServicesItemComponent: React.FC<{
       >
         <PFModalHeader title="Share service" />
         <PFModalBody>
+          <Alert variant="info" isInline isPlain title="By adding a user's email, they will gain access to manage this service. Please use the email address associated with their account on the Demo platform." />
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput
               id="service-access-email"
