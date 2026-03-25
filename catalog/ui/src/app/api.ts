@@ -1643,7 +1643,21 @@ export async function patchWorkshop({
   });
 }
 
-export async function addOwnerReferenceToWorkshop({
+export async function lockWorkshop(workshop: Workshop): Promise<Workshop> {
+  return await patchWorkshop({
+    name: workshop.metadata.name,
+    namespace: workshop.metadata.namespace,
+    patch: {
+      metadata: {
+        labels: {
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
+        },
+      },
+    },
+  });
+}
+
+export async function addOwnerReferenceToWorkshopAndLock({
   workshop,
   ownerReference,
 }: {

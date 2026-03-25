@@ -37,7 +37,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshop } from '@app/api';
+import { apiPaths, fetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
 import { MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
@@ -93,7 +93,7 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string }>
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, name } = useParams();
-  const { userNamespace, isAdmin } = useSession().getSession();
+  const { userNamespace } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalDeleteAsset, openModalDeleteAsset] = useModal();
@@ -304,7 +304,7 @@ const MultiWorkshopDetail: React.FC = () => {
           name: workshop.metadata.name,
           namespace: workshop.metadata.namespace,
           displayName: workshop.spec?.displayName || workshop.metadata.name,
-          description: stripHtmlTags(workshop.spec?.description || ''),
+          description: stripHtmlTags(workshop.spec?.description || '') || undefined,
           type: 'Workshop',
         };
         const workshopId = workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
@@ -325,11 +325,13 @@ const MultiWorkshopDetail: React.FC = () => {
       };
 
       await Promise.all(
-        selectedEntries
-          .filter(({ isShared }) => !isShared)
-          .map(async ({ workshop }) => {
-            await addOwnerReferenceToWorkshop({ workshop, ownerReference });
-          }),
+        selectedEntries.map(async ({ workshop, isShared }) => {
+          if (isShared) {
+            await lockWorkshop(workshop);
+          } else {
+            await addOwnerReferenceToWorkshopAndLock({ workshop, ownerReference });
+          }
+        }),
       );
 
       const existingAssets = multiworkshop.spec.assets || [];
@@ -386,11 +388,6 @@ const MultiWorkshopDetail: React.FC = () => {
       console.error('Failed to add external workshop:', error);
       // You might want to show an error message here
     }
-  }
-
-  function revalidateWorkshopsAfterSync(): void {
-    setTimeout(() => mutate(`workshops-${namespace}`), 2000);
-    setTimeout(() => mutate(`workshops-${namespace}`), 5000);
   }
 
   // Combine local and shared workshops into a unified available list
@@ -693,7 +690,6 @@ const MultiWorkshopDetail: React.FC = () => {
                             patch: { spec: { startDate: apiDate } },
                           });
                           mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                          revalidateWorkshopsAfterSync();
                         }}
                       />
                     </DescriptionListDescription>
@@ -712,7 +708,6 @@ const MultiWorkshopDetail: React.FC = () => {
                             patch: { spec: { endDate: apiDate } },
                           });
                           mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                          revalidateWorkshopsAfterSync();
                         }}
                       />
                     </DescriptionListDescription>
@@ -830,15 +825,13 @@ const MultiWorkshopDetail: React.FC = () => {
                   </SplitItem>
                   <SplitItem>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      {isAdmin && (
-                        <Button 
-                          variant="primary" 
-                          onClick={openModalAddWorkshop}
-                          isDisabled={allAvailableWorkshops.length === 0}
-                        >
-                          Add preprovisioned asset
-                        </Button>
-                      )}
+                      <Button 
+                        variant="primary" 
+                        onClick={openModalAddWorkshop}
+                        isDisabled={allAvailableWorkshops.length === 0}
+                      >
+                        Add preprovisioned asset
+                      </Button>
                       <Button 
                         variant="secondary" 
                         onClick={openModalExternalWorkshop}
@@ -915,7 +908,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             <div>
                               {(() => {
                                 if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
-                                const workshop = workshops?.find(w => w.metadata.name === asset.name);
+                                const workshop = workshops?.find(w => w.metadata.name === asset.name) || sharedWorkshops?.find(w => w.metadata.name === asset.name);
                                 const lifespanEnd = workshop?.spec?.lifespan?.end;
                                 return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
                               })()}
@@ -924,7 +917,7 @@ const MultiWorkshopDetail: React.FC = () => {
                               {asset.type === 'Workshop' && asset.name ? (
                                 <AssetWorkshopStatus
                                   workshopName={asset.name}
-                                  namespace={multiworkshop.metadata.namespace}
+                                  namespace={asset.namespace}
                                 />
                               ) : (
                                 <span>-</span>

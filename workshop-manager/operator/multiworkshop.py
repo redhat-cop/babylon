@@ -431,26 +431,41 @@ class MultiWorkshop(CachedKopfObject):
 
         When lock-enabled is true, the workshop's lifespan and action schedule
         must stay in sync with the parent MultiWorkshop's startDate/endDate.
-        """
-        try:
-            workshop_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
-                group=Babylon.babylon_domain,
-                version=Babylon.babylon_api_version,
-                namespace=self.namespace,
-                plural='workshops',
-                label_selector=f"{Babylon.babylon_domain}/multiworkshop={self.name}",
-            )
-        except Exception as e:
-            logger.warning(f"Failed to list workshops for schedule sync on {self}: {e}")
-            return
 
-        for item in workshop_list.get('items', []):
+        Iterates over the MultiWorkshop's assets and queries each workshop
+        individually, since workshops may reside in different namespaces.
+        """
+        for asset in self.assets:
+            asset_type = asset.get('type', 'Workshop')
+            ws_name = asset.get('name', '').strip()
+            if asset_type == 'external' or not ws_name:
+                continue
+
+            ws_namespace = asset.get('namespace', self.namespace)
+
+            try:
+                item = await Babylon.custom_objects_api.get_namespaced_custom_object(
+                    group=Babylon.babylon_domain,
+                    version=Babylon.babylon_api_version,
+                    namespace=ws_namespace,
+                    plural='workshops',
+                    name=ws_name,
+                )
+            except k8sApiException as e:
+                if e.status == 404:
+                    logger.debug(f"Workshop {ws_name} in {ws_namespace} not found, skipping schedule sync")
+                else:
+                    logger.warning(f"Failed to get workshop {ws_name} in {ws_namespace} for schedule sync on {self}: {e}")
+                continue
+            except Exception as e:
+                logger.warning(f"Failed to get workshop {ws_name} in {ws_namespace} for schedule sync on {self}: {e}")
+                continue
+
             ws_labels = item.get('metadata', {}).get('labels', {})
             lock_enabled = ws_labels.get(f'{Babylon.demo_domain}/lock-enabled', 'false')
             if lock_enabled != 'true':
                 continue
 
-            ws_name = item['metadata']['name']
             ws_spec = item.get('spec', {})
             ws_lifespan = ws_spec.get('lifespan', {})
             ws_action_schedule = ws_spec.get('actionSchedule', {})
@@ -475,18 +490,18 @@ class MultiWorkshop(CachedKopfObject):
                 await Babylon.custom_objects_api.patch_namespaced_custom_object(
                     group=Babylon.babylon_domain,
                     version=Babylon.babylon_api_version,
-                    namespace=self.namespace,
+                    namespace=ws_namespace,
                     plural='workshops',
                     name=ws_name,
                     body={'spec': patch_spec},
                     _content_type='application/merge-patch+json',
                 )
                 logger.info(
-                    f"Synced schedule from {self} to locked Workshop {ws_name}: {patch_spec}"
+                    f"Synced schedule from {self} to locked Workshop {ws_name} in {ws_namespace}: {patch_spec}"
                 )
             except Exception as e:
                 logger.error(
-                    f"Failed to sync schedule to Workshop {ws_name} from {self}: {e}"
+                    f"Failed to sync schedule to Workshop {ws_name} in {ws_namespace} from {self}: {e}"
                 )
 
     async def update_workshop_ids(self, logger=None):

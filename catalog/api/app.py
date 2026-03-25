@@ -879,13 +879,14 @@ async def public_multiworkshop_get(request):
         for asset in assets:
             asset_type = asset.get('type', 'Workshop')
             workshop_name = asset.get('name')
-            if asset_type == 'external' or not workshop_name:
+            workshop_namespace = asset.get('namespace')
+            if asset_type == 'external' or not workshop_name or not workshop_namespace:
                 continue
             try:
                 workshop = await custom_objects_api.get_namespaced_custom_object(
                     group='babylon.gpte.redhat.com',
                     version='v1',
-                    namespace=namespace,
+                    namespace=workshop_namespace,
                     plural='workshops',
                     name=workshop_name
                 )
