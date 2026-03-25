@@ -1445,7 +1445,7 @@ const ServicesItemComponent: React.FC<{
         isAdmin={isAdmin}
       />
       <PFModal
-        variant="small"
+        variant="medium"
         isOpen={modalAddServiceAccess}
         onClose={() => {
           setModalAddServiceAccess(false);
@@ -1455,21 +1455,26 @@ const ServicesItemComponent: React.FC<{
       >
         <PFModalHeader title="Share service" />
         <PFModalBody>
-          <Alert variant="info" isInline isPlain title="By adding a user's email, they will gain access to manage this service. Please use the email address associated with their account on the Demo platform." />
-          <FormGroup label="Email address" isRequired fieldId="service-access-email">
-            <TextInput
-              id="service-access-email"
-              type="email"
-              value={newServiceAccessEmail}
-              onChange={(_event, value) => setNewServiceAccessEmail(value)}
-              placeholder="user@example.com"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
-                  handleAddServiceAccessUser();
-                }
-              }}
-            />
-          </FormGroup>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+            <Alert variant="info" isInline title="Collaborator access">
+              By adding a user&apos;s email, they will gain access to manage this service. Please use
+              the email address associated with their account on the Demo platform.
+            </Alert>
+            <FormGroup label="Email address" isRequired fieldId="service-access-email">
+              <TextInput
+                id="service-access-email"
+                type="email"
+                value={newServiceAccessEmail}
+                onChange={(_event, value) => setNewServiceAccessEmail(value)}
+                placeholder="user@example.com"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                    handleAddServiceAccessUser();
+                  }
+                }}
+              />
+            </FormGroup>
+          </div>
         </PFModalBody>
         <PFModalFooter>
           <Button
