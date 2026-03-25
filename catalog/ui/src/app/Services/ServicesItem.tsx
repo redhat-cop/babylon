@@ -383,7 +383,7 @@ const ServicesItemComponent: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isPartOfWorkshop && sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace)
+    !isPartOfWorkshop && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
@@ -1456,7 +1456,7 @@ const ServicesItemComponent: React.FC<{
         <PFModalHeader title="Share service" />
         <PFModalBody>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
-            <Alert variant="info" isInline title="Collaborator access">
+            <Alert variant="info" isInline title="Grant user access">
               By adding a user&apos;s email, they will gain access to manage this service. Please use
               the email address associated with their account on the Demo platform.
             </Alert>
