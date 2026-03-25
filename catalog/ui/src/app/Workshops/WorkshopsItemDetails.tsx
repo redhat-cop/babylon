@@ -108,7 +108,7 @@ const WorkshopsItemDetails: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) ? apiPaths.SERVICE_ACCESS_CONFIG({
+    (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace)) ? apiPaths.SERVICE_ACCESS_CONFIG({
       namespace: workshop.metadata.namespace,
       name: workshop.metadata.name,
     }) : null,
@@ -912,7 +912,7 @@ const WorkshopsItemDetails: React.FC<{
       )}
 
       <Modal
-        variant="small"
+        variant="medium"
         isOpen={modalAddServiceAccess}
         onClose={() => {
           setModalAddServiceAccess(false);
@@ -922,21 +922,26 @@ const WorkshopsItemDetails: React.FC<{
       >
         <ModalHeader title="Share service" />
         <ModalBody>
-          <Alert variant="info" isInline isPlain title="By adding a user's email, they will gain access to manage this workshop. Please use the email address associated with their account on the Demo platform." />
-          <FormGroup label="Email address" isRequired fieldId="service-access-email">
-            <TextInput
-              id="service-access-email"
-              type="email"
-              value={newServiceAccessEmail}
-              onChange={(_event, value) => setNewServiceAccessEmail(value)}
-              placeholder="user@example.com"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
-                  handleAddServiceAccessUser();
-                }
-              }}
-            />
-          </FormGroup>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+            <Alert variant="info" isInline title="Grant user access">
+              By adding a user&apos;s email, they will gain access to manage this workshop. Please use
+              the email address associated with their account on the Demo platform.
+            </Alert>
+            <FormGroup label="Email address" isRequired fieldId="service-access-email">
+              <TextInput
+                id="service-access-email"
+                type="email"
+                value={newServiceAccessEmail}
+                onChange={(_event, value) => setNewServiceAccessEmail(value)}
+                placeholder="user@example.com"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                    handleAddServiceAccessUser();
+                  }
+                }}
+              />
+            </FormGroup>
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button
