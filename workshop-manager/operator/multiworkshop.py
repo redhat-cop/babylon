@@ -164,10 +164,26 @@ class MultiWorkshop(CachedKopfObject):
                 updated_assets.append(asset_copy)
                 continue
 
-            # Pre-existing workshop (e.g. shared or manually added) — preserve as-is
-            if asset.get('name', '').strip():
-                updated_assets.append(asset)
-                continue
+            # Pre-existing workshop (e.g. shared or manually added) — verify it
+            # actually exists before skipping creation, since new catalog-item
+            # assets also carry a "name" field (set to the catalog-item name).
+            asset_name = asset.get('name', '').strip()
+            if asset_name:
+                try:
+                    asset_ns = asset.get('namespace', self.namespace)
+                    await Babylon.custom_objects_api.get_namespaced_custom_object(
+                        group=Babylon.babylon_domain,
+                        version=Babylon.babylon_api_version,
+                        namespace=asset_ns,
+                        plural='workshops',
+                        name=asset_name,
+                    )
+                    updated_assets.append(asset)
+                    continue
+                except k8sApiException as e:
+                    if e.status != 404:
+                        logger.warning(f"Failed to check workshop {asset_name} for {self}: {e}")
+                    # Workshop doesn't exist — fall through to creation
 
             try:
                 workshop_name = await self._create_workshop_and_provision(asset, logger)
