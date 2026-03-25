@@ -874,6 +874,27 @@ async def public_multiworkshop_get(request):
             name=name
         )
 
+        # Enrich each catalog asset with availableSeats from its Workshop status
+        assets = multiworkshop.get('spec', {}).get('assets', [])
+        for asset in assets:
+            asset_type = asset.get('type', 'Workshop')
+            workshop_name = asset.get('name')
+            if asset_type == 'external' or not workshop_name:
+                continue
+            try:
+                workshop = await custom_objects_api.get_namespaced_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    namespace=namespace,
+                    plural='workshops',
+                    name=workshop_name
+                )
+                available = workshop.get('status', {}).get('userCount', {}).get('available')
+                if available is not None:
+                    asset['availableSeats'] = available
+            except Exception:
+                pass
+
         return web.json_response(multiworkshop)
 
     except kubernetes_asyncio.client.exceptions.ApiException as e:
