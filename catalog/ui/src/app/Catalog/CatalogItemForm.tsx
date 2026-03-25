@@ -664,25 +664,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <Switch
                 id="workshop-switch"
                 aria-label="Enable workshop user interface"
-                label={
-                  <span style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                    Enable workshop user interface{' '}
-                    <span
-                      style={{
-                        backgroundColor: '#faeae8',
-                        borderRadius: '10px',
-                        color: '#7d1007',
-                        fontStyle: 'italic',
-                        fontWeight: 300,
-                        fontSize: '12px',
-                        padding: '0 8px',
-                        marginLeft: '8px',
-                      }}
-                    >
-                      Beta
-                    </span>
-                  </span>
-                }
+                label="Enable workshop user interface"
                 isChecked={!!formState.workshop}
                 hasCheckIcon
                 onChange={(_event, isChecked) => {

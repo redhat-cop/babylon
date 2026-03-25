@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -38,7 +38,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { apiPaths, fetcher, patchMultiWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshop } from '@app/api';
-import { MultiWorkshop, ResourceClaim, Workshop } from '@app/types';
+import { MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
@@ -119,8 +119,34 @@ const MultiWorkshopDetail: React.FC = () => {
       apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
     ),
     {
-      refreshInterval: 30000, // Refresh less frequently than multiworkshop
+      refreshInterval: 30000,
     }
+  );
+
+  // Fetch workshops shared with the user via ServiceAccess
+  const { data: sharedWorkshops } = useSWR<Workshop[]>(
+    namespace ? `shared-workshops-${namespace}` : null,
+    async () => {
+      const serviceAccesses = await fetcherItemsInAllPages((continueId) =>
+        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      ) as ServiceAccess[];
+
+      const result: Workshop[] = [];
+      for (const sa of serviceAccesses) {
+        if (sa.spec.kind === 'Workshop') {
+          try {
+            const workshop = await fetcher(
+              apiPaths.WORKSHOP({ namespace: sa.spec.namespace, workshopName: sa.spec.name })
+            ) as Workshop;
+            result.push(workshop);
+          } catch (e) {
+            console.warn(`Failed to fetch shared workshop ${sa.spec.namespace}/${sa.spec.name}:`, e);
+          }
+        }
+      }
+      return result;
+    },
+    { refreshInterval: 30000 }
   );
 
   function getMultiWorkshopDisplayName(multiworkshop: MultiWorkshop): string {
@@ -265,23 +291,31 @@ const MultiWorkshopDetail: React.FC = () => {
   }
 
   async function onAddWorkshopsConfirm(): Promise<void> {
-    if (!multiworkshop || !workshops || selectedWorkshops.length === 0) return;
-    
+    if (!multiworkshop || selectedWorkshops.length === 0) return;
+
     try {
-      // Create new assets from selected workshops
-      const newAssets = selectedWorkshops.map(workshopName => {
-        const workshop = workshops.find(w => w.metadata.name === workshopName);
-        return {
-          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshopName,
-          name: workshopName, // Same as workshopName for existing workshops
-          namespace: namespace!, // Same namespace as MultiWorkshop
-          displayName: workshop?.spec?.displayName || workshopName,
-          description: stripHtmlTags(workshop?.spec?.description || ''),
-          type: 'Workshop' as const,
+      const selectedEntries = allAvailableWorkshops.filter(
+        ({ workshop }) => selectedWorkshops.includes(workshop.metadata.uid),
+      );
+
+      const newAssets = selectedEntries.map(({ workshop }) => {
+        const asset: Record<string, string> = {
+          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshop.metadata.name,
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          displayName: workshop.spec?.displayName || workshop.metadata.name,
+          description: stripHtmlTags(workshop.spec?.description || ''),
+          type: 'Workshop',
         };
+        const workshopId = workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+        if (workshopId) {
+          asset.workshopId = workshopId;
+        }
+        return asset;
       });
 
-      // Add ownerReferences to each selected workshop
+      // Only add ownerReferences for local (same-namespace) workshops;
+      // cross-namespace ownerReferences are not supported by Kubernetes
       const ownerReference = {
         apiVersion: `${BABYLON_DOMAIN}/v1`,
         controller: true,
@@ -291,36 +325,30 @@ const MultiWorkshopDetail: React.FC = () => {
       };
 
       await Promise.all(
-        selectedWorkshops.map(async workshopName => {
-          const workshop = workshops.find(w => w.metadata.name === workshopName);
-          if (workshop) {
+        selectedEntries
+          .filter(({ isShared }) => !isShared)
+          .map(async ({ workshop }) => {
             await addOwnerReferenceToWorkshop({ workshop, ownerReference });
-          }
-        })
+          }),
       );
 
-      // Combine existing assets with new ones
       const existingAssets = multiworkshop.spec.assets || [];
       const combinedAssets = [...existingAssets, ...newAssets];
 
       const updatedMultiWorkshop = await patchMultiWorkshop({
         name: multiworkshop.metadata.name,
         namespace: multiworkshop.metadata.namespace,
-        patch: { 
-          spec: { 
-            assets: combinedAssets
-          } 
+        patch: {
+          spec: {
+            assets: combinedAssets,
+          },
         },
       });
-      
-      // Update local data via SWR mutate for immediate UI update
+
       mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-      
-      // Clear selection and close modal
       setSelectedWorkshops([]);
     } catch (error) {
       console.error('Failed to add workshops:', error);
-      // You might want to show an error message here
     }
   }
 
@@ -365,25 +393,45 @@ const MultiWorkshopDetail: React.FC = () => {
     setTimeout(() => mutate(`workshops-${namespace}`), 5000);
   }
 
-  // Get available workshops (exclude those being deleted and those with ownerReferences)
-  const availableWorkshops = workshops?.filter(workshop => {
-    // Filter out workshops that are being deleted
-    if (workshop.metadata.deletionTimestamp) {
-      return false;
-    }
-    
-    // Filter out workshops that already have ownerReferences (they belong to a MultiWorkshop or other owner)
-    return !workshop.metadata.ownerReferences || workshop.metadata.ownerReferences.length === 0;
-  }) || [];
+  // Combine local and shared workshops into a unified available list
+  const allAvailableWorkshops = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Array<{ workshop: Workshop; isShared: boolean }> = [];
 
-  // Filter workshops by search value
-  const filteredAvailableWorkshops = availableWorkshops.filter(workshop => {
+    const existingAssetKeys = new Set(
+      (multiworkshop?.spec.assets || [])
+        .filter(a => a.type === 'Workshop' && a.name)
+        .map(a => `${a.namespace || namespace}/${a.name}`),
+    );
+
+    for (const w of workshops || []) {
+      if (w.metadata.deletionTimestamp) continue;
+      if (w.metadata.ownerReferences?.length > 0) continue;
+      if (existingAssetKeys.has(`${w.metadata.namespace}/${w.metadata.name}`)) continue;
+      seen.add(w.metadata.uid);
+      result.push({ workshop: w, isShared: false });
+    }
+
+    for (const w of sharedWorkshops || []) {
+      if (w.metadata.deletionTimestamp) continue;
+      if (seen.has(w.metadata.uid)) continue;
+      if (existingAssetKeys.has(`${w.metadata.namespace}/${w.metadata.name}`)) continue;
+      seen.add(w.metadata.uid);
+      result.push({ workshop: w, isShared: true });
+    }
+
+    return result;
+  }, [workshops, sharedWorkshops, multiworkshop, namespace]);
+
+  // Filter combined list by search value
+  const filteredAvailableWorkshops = allAvailableWorkshops.filter(({ workshop }) => {
     if (!workshopSearchValue.trim()) return true;
     const searchLower = workshopSearchValue.toLowerCase();
     const displayName = workshop.spec?.displayName || workshop.metadata.name;
     return (
       displayName.toLowerCase().includes(searchLower) ||
       workshop.metadata.name.toLowerCase().includes(searchLower) ||
+      workshop.metadata.namespace.toLowerCase().includes(searchLower) ||
       (workshop.spec?.description && workshop.spec.description.toLowerCase().includes(searchLower))
     );
   });
@@ -452,7 +500,7 @@ const MultiWorkshopDetail: React.FC = () => {
       >
         <div>
           <p style={{ marginBottom: '16px' }}>
-            Select existing workshops from your namespace to add to this event.
+            Select workshops from your namespace or shared with you to add to this event.
           </p>
           
           <SearchInput
@@ -466,8 +514,8 @@ const MultiWorkshopDetail: React.FC = () => {
           {filteredAvailableWorkshops.length === 0 ? (
             <EmptyState variant="sm">
               <EmptyStateBody>
-                {availableWorkshops.length === 0 
-                  ? "No workshops available to add. All existing workshops in this namespace may already be included."
+                {allAvailableWorkshops.length === 0 
+                  ? "No workshops available. All existing workshops may already be included, or no workshops have been shared with you."
                   : "No workshops match your search criteria."
                 }
               </EmptyStateBody>
@@ -479,39 +527,51 @@ const MultiWorkshopDetail: React.FC = () => {
                   <Th width={10}></Th>
                   <Th>Display Name</Th>
                   <Th>Name</Th>
+                  <Th>Namespace</Th>
                   <Th width={15}>Created</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {filteredAvailableWorkshops.map((workshop) => {
+                {filteredAvailableWorkshops.map(({ workshop, isShared }) => {
+                  const uid = workshop.metadata.uid;
                   const handleSelectionToggle = () => {
-                    const isSelected = selectedWorkshops.includes(workshop.metadata.name);
+                    const isSelected = selectedWorkshops.includes(uid);
                     if (isSelected) {
-                      setSelectedWorkshops(prev => prev.filter(name => name !== workshop.metadata.name));
+                      setSelectedWorkshops(prev => prev.filter(id => id !== uid));
                     } else {
-                      setSelectedWorkshops(prev => [...prev, workshop.metadata.name]);
+                      setSelectedWorkshops(prev => [...prev, uid]);
                     }
                   };
 
                   return (
                     <Tr 
-                      key={workshop.metadata.name}
+                      key={uid}
                       isSelectable
-                      isRowSelected={selectedWorkshops.includes(workshop.metadata.name)}
+                      isRowSelected={selectedWorkshops.includes(uid)}
                     >
                       <Td>
                         <Checkbox
-                          id={`workshop-${workshop.metadata.name}`}
-                          isChecked={selectedWorkshops.includes(workshop.metadata.name)}
+                          id={`workshop-${uid}`}
+                          isChecked={selectedWorkshops.includes(uid)}
                           onChange={handleSelectionToggle}
                         />
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <strong>{workshop.spec?.displayName || workshop.metadata.name}</strong>
+                        {isShared ? (
+                          <Label key="shared-label" tooltipDescription={<div>This workshop has been shared with you</div>}>
+                            Shared
+                          </Label>
+                        ) : null}
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
                           {workshop.metadata.name}
+                        </span>
+                      </Td>
+                      <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
+                          {workshop.metadata.namespace}
                         </span>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
@@ -774,7 +834,7 @@ const MultiWorkshopDetail: React.FC = () => {
                         <Button 
                           variant="primary" 
                           onClick={openModalAddWorkshop}
-                          isDisabled={availableWorkshops.length === 0}
+                          isDisabled={allAvailableWorkshops.length === 0}
                         >
                           Add preprovisioned asset
                         </Button>
@@ -818,7 +878,7 @@ const MultiWorkshopDetail: React.FC = () => {
                                 </a>
                               ) : asset.name && asset.type === 'Workshop' ? (
                                 <Link 
-                                  to={`/workshops/${multiworkshop.metadata.namespace}/${asset.name}`}
+                                  to={`/workshops/${asset.namespace}/${asset.name}`}
                                   style={{ textDecoration: 'none' }}
                                 >
                                   {asset.name}

@@ -17,6 +17,7 @@ import {
   Popover,
   Label,
   LabelGroup,
+  Alert,
   TextInput,
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
@@ -921,6 +922,7 @@ const WorkshopsItemDetails: React.FC<{
       >
         <ModalHeader title="Share service" />
         <ModalBody>
+          <Alert variant="info" isInline isPlain title="By adding a user's email, they will gain access to manage this workshop. Please use the email address associated with their account on the Demo platform." />
           <FormGroup label="Email address" isRequired fieldId="service-access-email">
             <TextInput
               id="service-access-email"

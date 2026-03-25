@@ -295,7 +295,7 @@ const MultiWorkshopCreate: React.FC = () => {
         .map((asset) => ({
           key: asset.key.trim(),
           name: asset.name.trim(),
-          namespace: asset.namespace.trim(),
+          namespace: selectedNamespace?.name || userNamespace.name,
           ...(asset.displayName?.trim() && { displayName: asset.displayName.trim() }),
           ...(asset.description?.trim() && { description: asset.description.trim() }),
           type: asset.type || 'Workshop',
