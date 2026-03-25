@@ -108,10 +108,10 @@ const WorkshopsItemDetails: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) ? apiPaths.SERVICE_ACCESS_CONFIG({
+    apiPaths.SERVICE_ACCESS_CONFIG({
       namespace: workshop.metadata.namespace,
       name: workshop.metadata.name,
-    }) : null,
+    }),
     optionalFetcher,
   );
   const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;

@@ -383,7 +383,7 @@ const ServicesItemComponent: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isPartOfWorkshop && !sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace)
+    !isPartOfWorkshop && sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace)
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
