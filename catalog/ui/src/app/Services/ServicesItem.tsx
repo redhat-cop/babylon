@@ -391,7 +391,7 @@ const ServicesItemComponent: React.FC<{
       : null,
     optionalFetcher,
   );
-  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
   const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
 
   const serviceAccessUsers = useMemo(() => {
@@ -530,6 +530,7 @@ const ServicesItemComponent: React.FC<{
     name: serviceNamespaceName,
     displayName: serviceNamespaceName,
   };
+  const isCollaborator = !isAdmin && !sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName);
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const whiteGloved = getWhiteGloved(resourceClaim);
@@ -837,6 +838,11 @@ const ServicesItemComponent: React.FC<{
             )}
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(resourceClaim)}
+              {isCollaborator ? (
+                <Label key="service-item__collaborator" tooltipDescription={<div>You have been granted access to this service as a collaborator</div>}>
+                  Shared Service
+                </Label>
+              ) : null}
               {stage !== 'prod' ? <Label>{stage}</Label> : null}
               {workshopName ? (
                 <Label

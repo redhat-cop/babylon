@@ -114,7 +114,7 @@ const WorkshopsItemDetails: React.FC<{
     }) : null,
     optionalFetcher,
   );
-  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
   const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
 
   const serviceAccessUsers = useMemo(() => {

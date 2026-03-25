@@ -107,6 +107,7 @@ const WorkshopsItemComponent: React.FC<{
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const [highlightAutoDestroy, setHighlightAutoDestroy] = useState(false);
   const enableFetchUserNamespaces = isAdmin;
+  const isCollaborator = !isAdmin && !sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName);
   const enableManageWorkshopProvisions =
     isAdmin || sessionServiceNamespaces.find((ns) => ns.name == serviceNamespaceName) ? true : false;
   const { data: userNamespaceList } = useSWR<NamespaceList>(
@@ -144,7 +145,7 @@ const WorkshopsItemComponent: React.FC<{
       : null,
     optionalFetcher,
   );
-  const canManageCollaborators = serviceAccessConfigResponse !== FORBIDDEN_RESPONSE;
+  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
   
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     apiPaths.WORKSHOP_USER_ASSIGNMENTS({
@@ -525,6 +526,11 @@ const WorkshopsItemComponent: React.FC<{
             </Breadcrumb>
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(workshop)}
+              {isCollaborator ? (
+                <Label key="workshop-item__collaborator" tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}>
+                  Shared Service
+                </Label>
+              ) : null}
               {stage !== 'prod' ? <Label key="workshop-item__stage">{stage}</Label> : null}
               <Label key="workshop-item__ui" tooltipDescription={<div>Workshop user interface is enabled</div>}>
                 Workshop UI
