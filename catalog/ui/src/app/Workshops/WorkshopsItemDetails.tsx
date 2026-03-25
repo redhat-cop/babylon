@@ -124,7 +124,8 @@ const WorkshopsItemDetails: React.FC<{
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
   const resourcePoolAnnotation = workshop.metadata.annotations?.['poolboy.gpte.redhat.com/resource-pool-name'];
-  const [selectedResourcePool, setSelectedResourcePool] = useState<string | undefined>(resourcePoolAnnotation);
+  const resourcePoolFromProvision = workshopProvisions?.[0]?.spec?.resourcePool;
+  const selectedResourcePool = resourcePoolAnnotation ?? resourcePoolFromProvision;
 
   const { start: autoStartTime, end: autoDestroyTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
@@ -281,12 +282,7 @@ const WorkshopsItemDetails: React.FC<{
     onWorkshopUpdate,
   ]);
 
-  useEffect(() => {
-    setSelectedResourcePool(resourcePoolAnnotation);
-  }, [resourcePoolAnnotation]);
-
   async function handleResourcePoolChange(poolName: string | undefined) {
-    setSelectedResourcePool(poolName);
     const patchObj = {
       metadata: {
         annotations: {

@@ -363,6 +363,7 @@ class MultiWorkshop(CachedKopfObject):
             'concurrency': 10,
             'count': self.number_seats,
             'parameters': provision_parameters,
+            'resourcePool': 'disabled',
             'startDelay': 10,
             'workshopName': workshop_name,
         }
@@ -456,6 +457,7 @@ class MultiWorkshop(CachedKopfObject):
                     plural='workshops',
                     name=ws_name,
                     body={'spec': patch_spec},
+                    _content_type='application/merge-patch+json',
                 )
                 logger.info(
                     f"Synced schedule from {self} to locked Workshop {ws_name}: {patch_spec}"
