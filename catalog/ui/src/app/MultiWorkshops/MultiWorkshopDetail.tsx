@@ -360,6 +360,11 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
+  function revalidateWorkshopsAfterSync(): void {
+    setTimeout(() => mutate(`workshops-${namespace}`), 2000);
+    setTimeout(() => mutate(`workshops-${namespace}`), 5000);
+  }
+
   // Get available workshops (exclude those being deleted and those with ownerReferences)
   const availableWorkshops = workshops?.filter(workshop => {
     // Filter out workshops that are being deleted
@@ -628,6 +633,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             patch: { spec: { startDate: apiDate } },
                           });
                           mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          revalidateWorkshopsAfterSync();
                         }}
                       />
                     </DescriptionListDescription>
@@ -646,6 +652,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             patch: { spec: { endDate: apiDate } },
                           });
                           mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          revalidateWorkshopsAfterSync();
                         }}
                       />
                     </DescriptionListDescription>
