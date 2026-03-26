@@ -49,6 +49,7 @@ import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-ic
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
@@ -591,6 +592,73 @@ const Ops: React.FC = () => {
   const scaleNeedsConfirmText = isScaleZero || isScaleDown;
   const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
   const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
+
+  // ---------- CSV download ----------
+
+  const handleDownloadCSV = useCallback(() => {
+    const csvEsc = (v: string) => {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    };
+    const fmtDateCSV = (iso?: string) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const opts: Intl.DateTimeFormatOptions = {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      };
+      if (timezone !== 'local') opts.timeZone = timezone;
+      return d.toLocaleString(undefined, opts);
+    };
+
+    const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
+      'Instances', 'Concurrency', 'Seats Assigned', 'Seats Total',
+      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL'];
+
+    const rows: string[][] = [];
+    for (const group of workshopGroups) {
+      const isMultiAsset = !!group.multiWorkshop;
+      const groupLabel = isMultiAsset ? `[Multi-Asset] ${group.name}` : group.name;
+
+      for (const ws of group.items) {
+        const locked = isWorkshopLocked(ws);
+        const progress = getProvisionProgress(ws);
+        const seats = getSeats(ws);
+        const password = ws.spec?.accessPassword ?? '';
+        const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+        const wsUrl = workshopId ? `https://catalog.demo.redhat.com/workshop/${workshopId}` : '';
+        const stop = ws.spec?.actionSchedule?.stop;
+        const destroy = ws.spec?.lifespan?.end;
+        const stage = getStageFromK8sObject(ws) || '';
+        const reg = ws.spec?.openRegistration === false ? 'Closed' : 'Open';
+        const assetKey = isMultiAsset ? ws.metadata.annotations?.[`${BABYLON_DOMAIN}/asset-key`] || '' : '';
+        const nameLabel = isMultiAsset && assetKey ? `${displayName(ws)} (${assetKey})` : displayName(ws);
+
+        rows.push([
+          groupLabel, nameLabel, ws.metadata.name, ws.metadata.namespace, stage,
+          locked ? 'Yes' : 'No',
+          progress ? String(progress.desired) : '',
+          progress ? String(progress.concurrency) : '',
+          seats ? String(seats.assigned) : '',
+          seats ? String(seats.total) : '',
+          reg, password,
+          stop ? fmtDateCSV(stop) : 'No auto-stop',
+          destroy ? fmtDateCSV(destroy) : '',
+          wsUrl,
+        ]);
+      }
+    }
+
+    const csv = [header, ...rows].map(r => r.map(csvEsc).join(',')).join('\n');
+    const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    const ts = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `workshops-${namespace || 'multi'}-${ts}.csv`);
+    document.body.appendChild(link);
+    link.click();
+  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats]);
 
   // ---------- Handlers ----------
 
@@ -1218,6 +1286,12 @@ const Ops: React.FC = () => {
                     {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
                     <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
                   </Button>
+                </SplitItem>
+                <SplitItem>
+                  <Tooltip content="Export to CSV">
+                    <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
+                      aria-label="Export to CSV" isDisabled={workshopGroups.length === 0} />
+                  </Tooltip>
                 </SplitItem>
               </Split>
               <div className="ops-table-wrap">

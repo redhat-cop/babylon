@@ -587,6 +587,35 @@ describe('Ops Component', () => {
     });
   });
 
+  describe('CSV Export', () => {
+    test('renders Export to CSV button', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Export to CSV'));
+      expect(screen.getByLabelText('Export to CSV')).toBeInTheDocument();
+    });
+
+    test('CSV export triggers file download', async () => {
+      const clickSpy = jest.fn();
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = origCreateElement(tag);
+        if (tag === 'a') {
+          Object.defineProperty(el, 'click', { value: clickSpy });
+        }
+        return el;
+      });
+      window.URL.createObjectURL = jest.fn().mockReturnValue('blob:test');
+
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Export to CSV'));
+      await userEvent.click(screen.getByLabelText('Export to CSV'));
+      expect(clickSpy).toHaveBeenCalled();
+
+      (document.createElement as jest.Mock).mockRestore();
+      delete (window.URL as any).createObjectURL;
+    });
+  });
+
   describe('Dark mode', () => {
     beforeEach(() => {
       localStorage.clear();
