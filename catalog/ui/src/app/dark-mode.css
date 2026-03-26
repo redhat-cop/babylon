@@ -1,0 +1,174 @@
+/* ============================================================
+   Global dark mode overrides — applied via .pf-v6-theme-dark on <html>.
+   PF6 tokens auto-remap most colours; these handle hardcoded values
+   in custom CSS that bypass the token system.
+   ============================================================ */
+
+/* ---- Admin pages ---- */
+
+:root.pf-v6-theme-dark .admin-container {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+/* ---- Catalog item cards ---- */
+
+:root.pf-v6-theme-dark .catalog-item-card {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Catalog item details — pre blocks, admonitions, status dots ---- */
+
+:root.pf-v6-theme-dark .catalog-item-details pre {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details .admonitionblock td.content {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details .listingblock pre {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details table.tableblock {
+  background: var(--pf-t--global--background--color--primary--default);
+}
+
+/* ---- Incidents banner ---- */
+
+:root.pf-v6-theme-dark .incidents-banner-warning {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .incidents-banner-info {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .incidents-banner-danger {
+  background-color: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* ---- Ansible run log ---- */
+
+:root.pf-v6-theme-dark .ansible-run-log {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .ansible-run-log .task-header {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+/* ---- Button circle icon ---- */
+
+:root.pf-v6-theme-dark .button-circle-icon {
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+/* ---- Loading icon ---- */
+
+:root.pf-v6-theme-dark .loading-icon-bar {
+  background: var(--pf-t--global--color--brand--default);
+}
+
+/* ---- Catalog item admin — frosted overlay ---- */
+
+:root.pf-v6-theme-dark .catalog-item-admin__overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* ---- Footer ---- */
+
+:root.pf-v6-theme-dark .footer-container {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Editor ---- */
+
+:root.pf-v6-theme-dark .editor-wrapper {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .editor-wrapper .ProseMirror {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* ---- AsciiDoc content wrapper ---- */
+
+:root.pf-v6-theme-dark .adoc-wrapper__content {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content pre,
+:root.pf-v6-theme-dark .adoc-wrapper__content code {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .listingblock pre {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content table {
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content table td,
+:root.pf-v6-theme-dark .adoc-wrapper__content table th {
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .admonitionblock td.icon {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .admonitionblock td.content {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Workshop pages (login, content) — these have their own dark-ish theming ---- */
+
+:root.pf-v6-theme-dark .workshop-login-card,
+:root.pf-v6-theme-dark .workshop-content-card {
+  background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:root.pf-v6-theme-dark .workshop-login-strip,
+:root.pf-v6-theme-dark .workshop-content-strip {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- MultiWorkshop landing ---- */
+
+:root.pf-v6-theme-dark .multiworkshop-landing-card {
+  background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:root.pf-v6-theme-dark .multiworkshop-landing-strip {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Header masthead ---- */
+
+:root.pf-v6-theme-dark .header-component {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Services ---- */
+
+:root.pf-v6-theme-dark .services-item__details pre {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ---- Generic: form controls already fixed in app.css via token ---- */
+/* ---- Generic: PF6 cards, modals, tooltips auto-remap via tokens ---- */

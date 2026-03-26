@@ -19,6 +19,8 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
+import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
+import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import ImpersonateUserModal from '@app/components/ImpersonateUserModal';
@@ -27,6 +29,7 @@ import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 import useHelpLink from '@app/utils/useHelpLink';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import useDarkMode from '@app/utils/useDarkMode';
 import BarsIcon from '@patternfly/react-icons/dist/js/icons/bars-icon';
 import IncidentsNotificationDrawer from '@app/components/IncidentsNotificationDrawer';
 
@@ -43,6 +46,7 @@ const Header: React.FC<{
   const { clearImpersonation, userImpersonated } = useImpersonateUser();
   const [impersonateUserModalIsOpen, setImpersonateUserModalIsOpen] = useState(false);
   const { isAdmin, email, userInterface } = useSession().getSession();
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
   const helpLink = useHelpLink();
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -156,6 +160,14 @@ const Header: React.FC<{
           <IncidentsNotificationDrawer />
           <ToolbarGroup variant="action-group-plain">
             <ToolbarItem>
+              <MenuToggle
+                aria-label="Toggle dark mode"
+                variant="plain"
+                onClick={toggleDarkMode}
+                icon={darkMode ? <SunIcon /> : <MoonIcon />}
+              />
+            </ToolbarItem>
+            <ToolbarItem>
               <Dropdown
                 isOpen={isUserHelpDropdownOpen}
                 onOpenChange={(isOpen: boolean) => setIsUserHelpDropdownOpen(isOpen)}
@@ -190,7 +202,7 @@ const Header: React.FC<{
                     variant="plainText"
                     aria-label="Log in menu"
                     onClick={() => setIsUserControlDropdownOpen((isOpen) => !isOpen)}
-                    style={{ width: 'auto', color: userImpersonated ? '#FF0000' : '#151515', fill: '#151515' }}
+                    style={{ width: 'auto', color: userImpersonated ? '#FF0000' : 'var(--pf-t--global--text--color--regular)', fill: 'var(--pf-t--global--text--color--regular)' }}
                   >
                     {userImpersonated ? userImpersonated : email}
                   </MenuToggle>
@@ -225,7 +237,7 @@ const Header: React.FC<{
           </MastheadToggle>
           <MastheadBrand data-codemods>
             <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
-              <LogoImg theme="light200" />
+              <LogoImg theme={darkMode ? 'dark' : 'light200'} />
             </MastheadLogo>
           </MastheadBrand>
         </MastheadMain>
