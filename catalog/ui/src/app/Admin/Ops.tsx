@@ -35,7 +35,6 @@ import {
 } from '@patternfly/react-core';
 import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
-import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
 import GlobeIcon from '@patternfly/react-icons/dist/js/icons/globe-americas-icon';
 import EyeIcon from '@patternfly/react-icons/dist/js/icons/eye-icon';
 import EyeSlashIcon from '@patternfly/react-icons/dist/js/icons/eye-slash-icon';
@@ -676,7 +675,6 @@ const Ops: React.FC = () => {
                   <tbody>
                     {targets.map(ws => {
                       const locked = isWorkshopLocked(ws);
-                      const shared = ws.spec?.multiuserServices === true;
                       const currentCount = getCurrentCount(ws.metadata.name);
                       const seats = getSeats(ws.metadata.name);
                       const password = ws.spec?.accessPassword;
@@ -707,7 +705,6 @@ const Ops: React.FC = () => {
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
-                            {shared && <Label color="purple" isCompact icon={<UsersIcon />} style={{ marginTop: 2 }}>Shared</Label>}
                           </td>
                           <td>
                             <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
