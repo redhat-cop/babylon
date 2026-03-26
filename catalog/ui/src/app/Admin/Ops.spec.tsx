@@ -162,10 +162,10 @@ describe('Ops Component', () => {
   });
 
   describe('Page Layout', () => {
-    test('renders page header with "Operations" title and namespace', async () => {
+    test('renders page header with "Workshop Control" title and namespace', async () => {
       render(<Ops />);
       await waitFor(() => {
-        expect(screen.getByText('Operations')).toBeInTheDocument();
+        expect(screen.getByText('Workshop Control')).toBeInTheDocument();
         expect(screen.getByText(TEST_NAMESPACE)).toBeInTheDocument();
       });
     });

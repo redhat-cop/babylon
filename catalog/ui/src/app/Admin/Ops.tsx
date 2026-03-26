@@ -646,7 +646,7 @@ const Ops: React.FC = () => {
               />
             </SplitItem>
             <SplitItem isFilled>
-              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Ops</Title>
+              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Workshop Control</Title>
             </SplitItem>
             <SplitItem>
               <Tooltip content={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -739,7 +739,7 @@ const Ops: React.FC = () => {
           <SplitItem isFilled>
             <Title headingLevel="h4" className="ops-page-title">
               <CogIcon className="ops-page-title-icon" />
-              Operations
+              Workshop Control
               <code className="ops-page-ns">{namespace}</code>
               {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
             </Title>
