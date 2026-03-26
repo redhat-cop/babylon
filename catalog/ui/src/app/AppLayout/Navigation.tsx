@@ -179,7 +179,7 @@ const Navigation: React.FC = () => {
       </NavItem>
       <NavItem>
         <NavLink className={locationStartsWith('/admin/ops') ? 'pf-m-current' : ''} to="/admin/ops">
-          Bulk Actions
+          Workshop Control
         </NavLink>
       </NavItem>
       <NavItem>

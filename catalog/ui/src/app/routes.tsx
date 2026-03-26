@@ -175,13 +175,13 @@ const appRoutes: IAppRoute[] = [
   {
     component: Ops,
     path: '/admin/ops/:namespace',
-    title: 'Babylon | Bulk Actions',
+    title: 'Babylon | Workshop Control',
     accessControl: 'admin',
   },
   {
     component: Ops,
     path: '/admin/ops',
-    title: 'Babylon | Bulk Actions',
+    title: 'Babylon | Workshop Control',
     accessControl: 'admin',
   },
   {
