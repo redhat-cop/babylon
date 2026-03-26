@@ -173,9 +173,25 @@ const resourceClaimData: Record<string, ResourceClaim[]> = {
   ],
 };
 
+const mockMultiWorkshop = {
+  apiVersion: `${BABYLON_DOMAIN}/v1`,
+  kind: 'MultiWorkshop',
+  metadata: { name: 'parent-multi', namespace: TEST_NAMESPACE, uid: 'mw-uid-1' },
+  spec: {
+    displayName: 'Multi Asset Event',
+    numberSeats: 20,
+    assets: [
+      { key: 'asset-1', name: wsMulti.metadata.name, namespace: TEST_NAMESPACE, displayName: 'Multi Child' },
+    ],
+  },
+};
+
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn((url: string) => {
+    if (url.includes('/multiworkshops?')) {
+      return Promise.resolve({ items: [mockMultiWorkshop], metadata: {} });
+    }
     if (url.includes('/workshops?')) {
       return Promise.resolve({ items: allWorkshops, metadata: {} });
     }
@@ -338,10 +354,18 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows multi-asset label for child workshops', async () => {
+    test('shows multi-asset label for multi-asset workshop groups', async () => {
       render(<Ops />);
       await waitFor(() => {
-        expect(screen.getByText(/Multi-Asset: parent-multi/)).toBeInTheDocument();
+        expect(screen.getAllByText('Multi-Asset').length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    test('multi-asset group uses MultiWorkshop displayName and shows parent seats', async () => {
+      render(<Ops />);
+      await waitFor(() => {
+        expect(screen.getByText('Multi Asset Event')).toBeInTheDocument();
+        expect(screen.getByText('20')).toBeInTheDocument();
       });
     });
 
@@ -410,6 +434,17 @@ describe('Ops Component', () => {
       await waitFor(() => {
         expect(screen.getByText('Confirm Unlock')).toBeInTheDocument();
         expect(screen.getByText(/lock-enabled=false/)).toBeInTheDocument();
+      });
+    });
+
+    test('Unlock modal warns about multi-asset child workshops', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByText('Resource Lock'));
+      await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
+      await waitFor(() => {
+        expect(screen.getByText('Confirm Unlock')).toBeInTheDocument();
+        expect(screen.getByText(/belong to a multi-asset parent/)).toBeInTheDocument();
+        expect(screen.getByText(/stop date sync/)).toBeInTheDocument();
       });
     });
 
@@ -549,6 +584,60 @@ describe('Ops Component', () => {
       const tz = screen.getByLabelText('Timezone') as HTMLSelectElement;
       await userEvent.selectOptions(tz, 'UTC');
       expect(tz).toHaveValue('UTC');
+    });
+  });
+
+  describe('Bulk Select', () => {
+    test('renders select all checkbox in table header', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      expect(screen.getByLabelText('Select all workshops')).toBeInTheDocument();
+    });
+
+    test('selecting all shows selection badge and clear button', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      await userEvent.click(screen.getByLabelText('Select all workshops'));
+      expect(screen.getByText('Selected workshops')).toBeInTheDocument();
+      expect(screen.getByText('clear')).toBeInTheDocument();
+    });
+
+    test('clear button deselects all', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      await userEvent.click(screen.getByLabelText('Select all workshops'));
+      expect(screen.getByText('Selected workshops')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('clear'));
+      expect(screen.queryByText('Selected workshops')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('CSV Export', () => {
+    test('renders Export to CSV button', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Export to CSV'));
+      expect(screen.getByLabelText('Export to CSV')).toBeInTheDocument();
+    });
+
+    test('CSV export triggers file download', async () => {
+      const clickSpy = jest.fn();
+      const origCreateElement = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = origCreateElement(tag);
+        if (tag === 'a') {
+          Object.defineProperty(el, 'click', { value: clickSpy });
+        }
+        return el;
+      });
+      window.URL.createObjectURL = jest.fn().mockReturnValue('blob:test');
+
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Export to CSV'));
+      await userEvent.click(screen.getByLabelText('Export to CSV'));
+      expect(clickSpy).toHaveBeenCalled();
+
+      (document.createElement as jest.Mock).mockRestore();
+      delete (window.URL as any).createObjectURL;
     });
   });
 
