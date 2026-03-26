@@ -508,11 +508,14 @@ const Ops: React.FC = () => {
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    if (hasSelection) {
+      return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
+    }
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
     return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace]);
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -549,9 +552,16 @@ const Ops: React.FC = () => {
 
   // ---------- Summary stats ----------
 
+  const effectiveGroups = useMemo(() => {
+    if (!hasSelection) return workshopGroups;
+    return workshopGroups.filter(g => g.items.some(ws => selectedWs.has(wsKey(ws))));
+  }, [workshopGroups, hasSelection, selectedWs]);
+
   const multiAssetGroupCount = useMemo(() =>
-    workshopGroups.filter(g => g.multiWorkshop).length,
-  [workshopGroups]);
+    effectiveGroups.filter(g => g.multiWorkshop).length,
+  [effectiveGroups]);
+
+  const effectiveTargets = hasSelection ? operationTargets : targets;
 
   const summary = useMemo(() => {
     let totalInstances = 0;
@@ -562,7 +572,7 @@ const Ops: React.FC = () => {
     let failedCount = 0;
     let attentionCount = 0;
 
-    for (const ws of targets) {
+    for (const ws of effectiveTargets) {
       const count = getCurrentCount(ws);
       if (count !== null) totalInstances += count;
 
@@ -582,7 +592,7 @@ const Ops: React.FC = () => {
     }
 
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount };
-  }, [targets, getCurrentCount, getSeats, getFailedCount]);
+  }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   // ---------- Operation parameters ----------
 
@@ -1132,7 +1142,7 @@ const Ops: React.FC = () => {
                 </>
               )}
               <div className="ops-stat">
-                <span className="ops-stat-value">{targets.length}</span>
+                <span className="ops-stat-value">{effectiveTargets.length}</span>
                 <span className="ops-stat-label">Workshops</span>
               </div>
               {multiAssetGroupCount > 0 && (
@@ -1314,11 +1324,16 @@ const Ops: React.FC = () => {
               <Split hasGutter style={{ marginBottom: 12 }}>
                 <SplitItem isFilled>
                   <Title headingLevel="h5">
-                    Workshops in scope
-                    <Badge isRead style={{ marginLeft: 8 }}>{workshopGroups.length}</Badge>
-                    {workshopGroups.length !== targets.length && (
+                    {hasSelection ? 'Selected workshops' : 'Workshops in scope'}
+                    <Badge isRead style={{ marginLeft: 8 }}>{hasSelection ? selectedWs.size : workshopGroups.length}</Badge>
+                    {!hasSelection && workshopGroups.length !== targets.length && (
                       <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         ({targets.length} instances)
+                      </span>
+                    )}
+                    {hasSelection && selectedWs.size !== targets.length && (
+                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        of {targets.length} total
                       </span>
                     )}
                   </Title>

@@ -598,7 +598,7 @@ describe('Ops Component', () => {
       render(<Ops />);
       await waitFor(() => screen.getByLabelText('Select all workshops'));
       await userEvent.click(screen.getByLabelText('Select all workshops'));
-      expect(screen.getByText(/selected/)).toBeInTheDocument();
+      expect(screen.getByText('Selected workshops')).toBeInTheDocument();
       expect(screen.getByText('clear')).toBeInTheDocument();
     });
 
@@ -606,9 +606,9 @@ describe('Ops Component', () => {
       render(<Ops />);
       await waitFor(() => screen.getByLabelText('Select all workshops'));
       await userEvent.click(screen.getByLabelText('Select all workshops'));
-      expect(screen.getByText(/selected/)).toBeInTheDocument();
+      expect(screen.getByText('Selected workshops')).toBeInTheDocument();
       await userEvent.click(screen.getByText('clear'));
-      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Selected workshops')).not.toBeInTheDocument();
     });
   });
 
