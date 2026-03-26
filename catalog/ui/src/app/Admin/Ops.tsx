@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   Alert,
@@ -11,6 +11,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Checkbox,
   DatePicker,
   EmptyState,
   EmptyStateBody,
@@ -60,6 +61,7 @@ import FilterIcon from '@patternfly/react-icons/dist/js/icons/filter-icon';
 import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
@@ -76,10 +78,13 @@ import {
 import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
+  ResourceClaim, ResourceClaimList,
+  MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
 } from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
+import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
 import { OperationHistoryPanel } from './Ops/components/OperationHistoryPanel';
@@ -196,6 +201,14 @@ function wsKey(ws: Workshop): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
+function wsDetailPath(ws: Workshop): string {
+  const ownerRef = ws.metadata?.ownerReferences?.[0];
+  if (ownerRef && ownerRef.kind === 'ResourceClaim') {
+    return `/services/${ws.metadata.namespace}/${ownerRef.name}/workshop`;
+  }
+  return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
@@ -214,6 +227,15 @@ const Ops: React.FC = () => {
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
   }, []);
+
+  // ---------- Operation History Management ----------
+
+  const [showOperationHistory, setShowOperationHistory] = useState(false);
+
+  // ---------- CSV Export Management ----------
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState<ExportType>('workshops');
 
   // ---------- Multi-namespace mode ----------
 
@@ -311,6 +333,28 @@ const Ops: React.FC = () => {
     return allWsData.flatMap(d => d?.items ?? []);
   }, [allWsData]);
 
+  // Fetch MultiWorkshop resources for multi-asset parent info
+  const multiWorkshopUrls = useMemo(
+    () => activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    [activeNamespaces],
+  );
+  const { data: allMwData } = useSWR<MultiWorkshopList[]>(
+    multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<MultiWorkshopList>)),
+    { refreshInterval: 30000 },
+  );
+  const multiWorkshopsByName = useMemo(() => {
+    const map = new Map<string, MultiWorkshop>();
+    if (allMwData) {
+      for (const list of allMwData) {
+        for (const mw of list?.items ?? []) {
+          map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+        }
+      }
+    }
+    return map;
+  }, [allMwData]);
+
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -342,6 +386,24 @@ const Ops: React.FC = () => {
     return provs.reduce((sum, p) => sum + ((p.status as any)?.failedCount ?? 0), 0);
   }, [provisionsByWorkshop]);
 
+  interface ProvisionProgress {
+    desired: number;
+    claimed: number;
+    failed: number;
+    concurrency: number;
+  }
+
+  const getProvisionProgress = useCallback((ws: Workshop): ProvisionProgress | null => {
+    const provs = provisionsByWorkshop.get(wsKey(ws));
+    if (!provs || provs.length === 0) return null;
+    return {
+      desired: provs.reduce((s, p) => s + (p.spec?.count ?? 0), 0),
+      claimed: provs.reduce((s, p) => s + ((p.status as any)?.resourceClaimCount ?? 0), 0),
+      failed: provs.reduce((s, p) => s + ((p.status as any)?.failedCount ?? 0), 0),
+      concurrency: provs.reduce((s, p) => s + (p.spec?.concurrency ?? 1), 0),
+    };
+  }, [provisionsByWorkshop]);
+
   const assignmentKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -368,6 +430,30 @@ const Ops: React.FC = () => {
     return { assigned, total: assignments.length };
   }, [assignmentsByWorkshop]);
 
+  // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
+  const resourceClaimKeys = useMemo(
+    () => workshops.map(w => apiPaths.RESOURCE_CLAIMS({
+      namespace: w.metadata.namespace,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
+      limit: 500,
+    })),
+    [workshops],
+  );
+  const { data: allRcData } = useSWR<ResourceClaimList[]>(
+    resourceClaimKeys.length > 0 ? resourceClaimKeys : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
+    { refreshInterval: 30000 },
+  );
+  const resourceClaimsByWorkshop = useMemo(() => {
+    const map = new Map<string, ResourceClaim[]>();
+    if (allRcData) {
+      workshops.forEach((ws, i) => {
+        map.set(wsKey(ws), allRcData[i]?.items ?? []);
+      });
+    }
+    return map;
+  }, [workshops, allRcData]);
+
   const [showPasswords, setShowPasswords] = useState(false);
 
   const isRefreshing = wsValidating || provValidating || assignValidating;
@@ -386,739 +472,94 @@ const Ops: React.FC = () => {
     return Array.from(names).sort();
   }, [workshops]);
 
-  // Legacy simple filters (keep for compatibility)
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
 
-  // Enhanced filtering system
-  interface EnhancedFilters {
-    searchText: string;
-    stages: string[];
-    namespaces: string[];
-    statuses: string[];
-    workshopTypes: string[];
-    dateRange: {
-      start?: string;
-      end?: string;
-    };
-  }
-
-  const [enhancedFilters, setEnhancedFilters] = useState<EnhancedFilters>({
-    searchText: '',
-    stages: [],
-    namespaces: [],
-    statuses: [],
-    categories: [],
-    workshopTypes: [],
-    dateRange: {}
-  });
-
-  const [filterPanelExpanded, setFilterPanelExpanded] = useState(false);
-  const [savedFilterViews, setSavedFilterViews] = useState<{[key: string]: EnhancedFilters}>({});
-  const [currentFilterView, setCurrentFilterView] = useState<string>('');
-
-  // Multi-select dropdown states
-  const [stageSelectOpen, setStageSelectOpen] = useState(false);
-  const [namespaceSelectOpen, setNamespaceSelectOpen] = useState(false);
-  const [statusSelectOpen, setStatusSelectOpen] = useState(false);
-  const [workshopTypeSelectOpen, setWorkshopTypeSelectOpen] = useState(false);
-
-  // Extract filter options from workshops
-  const filterOptions = useMemo(() => {
-    const stages = new Set<string>();
-    const namespaces = new Set<string>();
-    const statuses = new Set<string>();
-    const workshopTypes = new Set<string>();
-
-    workshops.forEach(w => {
-      const stage = getStageFromK8sObject(w);
-      if (stage) stages.add(stage);
-
-      namespaces.add(w.metadata.namespace);
-
-      // Extract status from workshop status or annotations
-      const status = w.status?.phase || w.metadata.annotations?.['status'] || 'Unknown';
-      statuses.add(status);
-
-      // Extract workshop type from catalog item name or labels
-      const catalogItem = w.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || 'Unknown';
-      workshopTypes.add(catalogItem);
-    });
-
-    return {
-      stages: Array.from(stages).sort(),
-      namespaces: Array.from(namespaces).sort(),
-      statuses: Array.from(statuses).sort(),
-      workshopTypes: Array.from(workshopTypes).sort()
-    };
-  }, [workshops]);
-
-  // Enhanced filtering logic
-  const applyEnhancedFilters = useCallback((workshops: Workshop[], filters: EnhancedFilters) => {
-    return workshops.filter(w => {
-      // Search text filter (searches display name, namespace, and labels)
-      if (filters.searchText) {
-        const searchLower = filters.searchText.toLowerCase();
-        const displayNameMatch = displayName(w).toLowerCase().includes(searchLower);
-        const namespaceMatch = w.metadata.namespace.toLowerCase().includes(searchLower);
-        const labelMatch = Object.values(w.metadata.labels || {}).some(label =>
-          label.toLowerCase().includes(searchLower)
-        );
-
-        if (!displayNameMatch && !namespaceMatch && !labelMatch) {
-          return false;
-        }
-      }
-
-      // Stage filter
-      if (filters.stages.length > 0) {
-        const stage = getStageFromK8sObject(w);
-        if (!stage || !filters.stages.includes(stage)) {
-          return false;
-        }
-      }
-
-      // Namespace filter
-      if (filters.namespaces.length > 0 && !filters.namespaces.includes(w.metadata.namespace)) {
-        return false;
-      }
-
-      // Status filter
-      if (filters.statuses.length > 0) {
-        const status = w.status?.phase || w.metadata.annotations?.['status'] || 'Unknown';
-        if (!filters.statuses.includes(status)) {
-          return false;
-        }
-      }
-
-      // Workshop type filter
-      if (filters.workshopTypes.length > 0) {
-        const catalogItem = w.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || 'Unknown';
-        if (!filters.workshopTypes.includes(catalogItem)) {
-          return false;
-        }
-      }
-
-      // Date range filter
-      if (filters.dateRange.start || filters.dateRange.end) {
-        const createdDate = new Date(w.metadata.creationTimestamp || '');
-        if (filters.dateRange.start && createdDate < new Date(filters.dateRange.start)) {
-          return false;
-        }
-        if (filters.dateRange.end && createdDate > new Date(filters.dateRange.end)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, []);
-
-  // Combine legacy and enhanced filters
   const targets = useMemo(() => {
-    let list = workshops;
-
-    // Apply legacy filters first (for backwards compatibility)
-    if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
-    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
-
-    // Apply enhanced filters if any are active
-    const hasEnhancedFilters = enhancedFilters.searchText ||
-      enhancedFilters.stages.length > 0 ||
-      enhancedFilters.namespaces.length > 0 ||
-      enhancedFilters.statuses.length > 0 ||
-      enhancedFilters.workshopTypes.length > 0 ||
-      enhancedFilters.dateRange.start ||
-      enhancedFilters.dateRange.end;
-
-    if (hasEnhancedFilters) {
-      list = applyEnhancedFilters(list, enhancedFilters);
-    }
-
-    return list;
-  }, [workshops, workshopFilter, stageFilter, enhancedFilters, applyEnhancedFilters]);
-
-  // Enhanced filter management functions
-  const updateEnhancedFilter = useCallback(<K extends keyof EnhancedFilters>(
-    key: K,
-    value: EnhancedFilters[K]
-  ) => {
-    setEnhancedFilters(prev => ({ ...prev, [key]: value }));
-  }, []);
-
-  const clearAllEnhancedFilters = useCallback(() => {
-    setEnhancedFilters({
-      searchText: '',
-      stages: [],
-      namespaces: [],
-      statuses: [],
-      workshopTypes: [],
-      dateRange: {}
-    });
-    setWorkshopFilter('');
-    setStageFilter(null);
-  }, []);
-
-  const getActiveFilterCount = useCallback(() => {
-    let count = 0;
-    if (enhancedFilters.searchText) count++;
-    count += enhancedFilters.stages.length;
-    count += enhancedFilters.namespaces.length;
-    count += enhancedFilters.statuses.length;
-    count += enhancedFilters.workshopTypes.length;
-    if (enhancedFilters.dateRange.start || enhancedFilters.dateRange.end) count++;
-    if (workshopFilter) count++;
-    if (stageFilter) count++;
-    return count;
-  }, [enhancedFilters, workshopFilter, stageFilter]);
-
-  const saveFilterView = useCallback((name: string) => {
-    setSavedFilterViews(prev => ({
-      ...prev,
-      [name]: { ...enhancedFilters }
-    }));
-    setCurrentFilterView(name);
-  }, [enhancedFilters]);
-
-  const loadFilterView = useCallback((name: string) => {
-    const view = savedFilterViews[name];
-    if (view) {
-      setEnhancedFilters(view);
-      setCurrentFilterView(name);
-    }
-  }, [savedFilterViews]);
-
-  const deleteFilterView = useCallback((name: string) => {
-    setSavedFilterViews(prev => {
-      const next = { ...prev };
-      delete next[name];
-      return next;
-    });
-    if (currentFilterView === name) {
-      setCurrentFilterView('');
-    }
-  }, [currentFilterView]);
-
-  // ---------- Operation Template Management ----------
-
-  const [operationTemplates, setOperationTemplates] = useState<{[key: string]: OperationTemplate}>({});
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [templateToSave, setTemplateToSave] = useState<Partial<OperationTemplate> | null>(null);
-  const [showTemplateManagerModal, setShowTemplateManagerModal] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [templateSelectOpen, setTemplateSelectOpen] = useState(false);
-  const [extStopTemplateSelectOpen, setExtStopTemplateSelectOpen] = useState(false);
-  const [extDestroyTemplateSelectOpen, setExtDestroyTemplateSelectOpen] = useState(false);
-  const [scaleTemplateSelectOpen, setScaleTemplateSelectOpen] = useState(false);
-
-  // ---------- Operation History Management ----------
-
-  const [showOperationHistory, setShowOperationHistory] = useState(false);
-
-  // ---------- CSV Export Management ----------
-
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportType, setExportType] = useState<ExportType>('workshops');
-
-  // Default/example templates to help users understand functionality
-  const getDefaultTemplates = useCallback((): {[key: string]: OperationTemplate} => {
-    const currentDate = new Date().toISOString();
-    return {
-      'default-emergency-scale-down': {
-        id: 'default-emergency-scale-down',
-        name: 'Emergency Scale Down',
-        description: 'Scale all workshops to 1 instance for resource conservation during emergencies or high load',
-        operationType: 'scale',
-        parameters: {
-          scaleCount: 1,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-scale-to-zero': {
-        id: 'default-scale-to-zero',
-        name: 'Scale to Zero',
-        description: 'Scale all workshops to 0 instances for maintenance windows or complete shutdown',
-        operationType: 'scale',
-        parameters: {
-          scaleCount: 0,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-standard-scale-up': {
-        id: 'default-standard-scale-up',
-        name: 'Standard Scale Up',
-        description: 'Scale workshops to 5 instances for normal operations and expected load',
-        operationType: 'scale',
-        parameters: {
-          scaleCount: 5,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-maintenance-lock': {
-        id: 'default-maintenance-lock',
-        name: 'Maintenance Lock',
-        description: 'Lock all workshops during system maintenance to prevent user modifications',
-        operationType: 'lock',
-        parameters: {},
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-event-lock': {
-        id: 'default-event-lock',
-        name: 'Event Lock',
-        description: 'Lock workshops during large events to prevent changes and ensure stability',
-        operationType: 'lock',
-        parameters: {},
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: 'event',
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-post-maintenance-unlock': {
-        id: 'default-post-maintenance-unlock',
-        name: 'Post-Maintenance Unlock',
-        description: 'Unlock all workshops after maintenance window completion',
-        operationType: 'unlock',
-        parameters: {},
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-extend-2-hours': {
-        id: 'default-extend-2-hours',
-        name: 'Extend 2 Hours',
-        description: 'Common short-term extension for workshops that need more time to complete',
-        operationType: 'extend-stop',
-        parameters: {
-          extStopHours: 2,
-          extStopDays: 0,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-extend-1-day': {
-        id: 'default-extend-1-day',
-        name: 'Extend 1 Day',
-        description: 'Standard daily extension for workshops requiring additional time',
-        operationType: 'extend-stop',
-        parameters: {
-          extStopHours: 0,
-          extStopDays: 1,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-weekend-extension': {
-        id: 'default-weekend-extension',
-        name: 'Weekend Extension',
-        description: 'Extend workshops until Monday morning for weekend work',
-        operationType: 'extend-stop',
-        parameters: {
-          extStopHours: 0,
-          extStopDays: 3,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-extend-destroy-1-week': {
-        id: 'default-extend-destroy-1-week',
-        name: 'Extend Destroy 1 Week',
-        description: 'Extend workshop destruction by 1 week for longer-term projects',
-        operationType: 'extend-destroy',
-        parameters: {
-          extDestroyHours: 0,
-          extDestroyDays: 7,
-        },
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-long-running-workshop': {
-        id: 'default-long-running-workshop',
-        name: 'Long Running Workshop',
-        description: 'Disable auto-stop for workshops that need to run continuously for extended sessions',
-        operationType: 'disable-autostop',
-        parameters: {},
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-      'default-demo-preparation': {
-        id: 'default-demo-preparation',
-        name: 'Demo Preparation',
-        description: 'Keep workshops running continuously for demo setup and rehearsal',
-        operationType: 'disable-autostop',
-        parameters: {},
-        scope: {
-          enhancedFilters: {
-            searchText: '',
-            stages: [],
-            namespaces: [],
-            statuses: [],
-            categories: [],
-            workshopTypes: [],
-            userName: null,
-            labUserInterfaceUrls: null,
-            serviceName: null,
-            workshopName: null,
-            cloudProvider: null,
-            cloudRegion: null,
-            salesforceId: null,
-            dateRange: { start: undefined, end: undefined },
-          },
-          workshopFilter: null,
-          stageFilter: null,
-        },
-        metadata: {
-          created: currentDate,
-          isDefault: true,
-        },
-      },
-    };
-  }, []);
-
-  // Load templates from localStorage on component mount and merge with defaults
-  useEffect(() => {
-    const defaultTemplates = getDefaultTemplates();
-    const saved = localStorage.getItem('babylon-admin-operation-templates');
-
-    let userTemplates: {[key: string]: OperationTemplate} = {};
-    if (saved) {
-      try {
-        userTemplates = JSON.parse(saved);
-      } catch (e) {
-        console.warn('Failed to load operation templates from localStorage:', e);
-      }
-    }
-
-    // Merge defaults with user templates (user templates override defaults with same key)
-    setOperationTemplates({ ...defaultTemplates, ...userTemplates });
-  }, [getDefaultTemplates]);
-
-  // Save only user-created templates to localStorage (exclude defaults)
-  useEffect(() => {
-    const userTemplates = Object.fromEntries(
-      Object.entries(operationTemplates).filter(([_, template]) => !template.metadata.isDefault)
-    );
-    localStorage.setItem('babylon-admin-operation-templates', JSON.stringify(userTemplates));
-  }, [operationTemplates]);
-
-
-  const loadOperationTemplate = useCallback((templateId: string) => {
-    const template = operationTemplates[templateId];
-    if (!template) return;
-
-    // Apply scope (filters)
-    setEnhancedFilters(template.scope.enhancedFilters);
-    setWorkshopFilter(template.scope.workshopFilter || '');
-    setStageFilter(template.scope.stageFilter);
-
-    // Apply operation parameters
-    if (template.parameters.extStopDays !== undefined) setExtStopDays(template.parameters.extStopDays);
-    if (template.parameters.extStopHours !== undefined) setExtStopHours(template.parameters.extStopHours);
-    if (template.parameters.extDestroyDays !== undefined) setExtDestroyDays(template.parameters.extDestroyDays);
-    if (template.parameters.extDestroyHours !== undefined) setExtDestroyHours(template.parameters.extDestroyHours);
-    if (template.parameters.scaleCount !== undefined) setScaleCount(template.parameters.scaleCount);
-
-    // Update last used timestamp
-    setOperationTemplates(prev => ({
-      ...prev,
-      [templateId]: {
-        ...template,
-        metadata: {
-          ...template.metadata,
-          lastUsed: new Date().toISOString(),
-        },
-      },
-    }));
-
-    setSelectedTemplateId('');
-    addAlert(AlertVariant.info, `Template "${template.name}" applied`);
-  }, [operationTemplates]);
-
-  const deleteOperationTemplate = useCallback((templateId: string) => {
-    const template = operationTemplates[templateId];
-    if (!template) return;
-
-    // Prevent deletion of default templates
-    if (template.metadata.isDefault) {
-      addAlert(AlertVariant.danger, `Cannot delete default template "${template.name}"`);
-      return;
-    }
-
-    setOperationTemplates(prev => {
-      const next = { ...prev };
-      delete next[templateId];
-      return next;
-    });
-
-    addAlert(AlertVariant.warning, `Template "${template.name}" deleted`);
-  }, [operationTemplates, addAlert]);
-
-  const openSaveTemplateModal = useCallback((operationType: OperationTemplate['operationType']) => {
-    setTemplateToSave({ operationType });
-    setShowTemplateModal(true);
-  }, []);
-
-  const legacyTargets = useMemo(() => {
     let list = workshops;
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     return list;
   }, [workshops, workshopFilter, stageFilter]);
 
-  // Group workshops by display name for cleaner table
-  const workshopGroups = useMemo(() => {
-    const groups = new Map<string, Workshop[]>();
-    for (const ws of legacyTargets) {
-      const name = displayName(ws);
-      const list = groups.get(name) ?? [];
-      list.push(ws);
-      groups.set(name, list);
+  const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
+
+  // Clear selection when filters change
+  useEffect(() => { setSelectedWs(new Set()); }, [workshopFilter, stageFilter, namespace]);
+
+  const hasSelection = selectedWs.size > 0;
+  const operationTargets = useMemo(() => {
+    if (!hasSelection) return targets;
+    return targets.filter(ws => selectedWs.has(wsKey(ws)));
+  }, [targets, selectedWs, hasSelection]);
+
+  const allSelected = targets.length > 0 && targets.every(ws => selectedWs.has(wsKey(ws)));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedWs(new Set());
+    } else {
+      setSelectedWs(new Set(targets.map(ws => wsKey(ws))));
     }
-    return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
-  }, [legacyTargets]);
+  }, [allSelected, targets]);
+
+  const toggleSelectGroup = useCallback((group: { items: Workshop[] }) => {
+    setSelectedWs(prev => {
+      const next = new Set(prev);
+      const groupKeys = group.items.map(ws => wsKey(ws));
+      const allGroupSelected = groupKeys.every(k => next.has(k));
+      if (allGroupSelected) {
+        groupKeys.forEach(k => next.delete(k));
+      } else {
+        groupKeys.forEach(k => next.add(k));
+      }
+      return next;
+    });
+  }, []);
+
+  interface WorkshopGroup {
+    name: string;
+    items: Workshop[];
+    multiWorkshop?: MultiWorkshop;
+  }
+
+  const workshopGroups = useMemo(() => {
+    const mwGroups = new Map<string, Workshop[]>();
+    const standaloneGroups = new Map<string, Workshop[]>();
+
+    for (const ws of targets) {
+      const mwSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+      const mwNs = ws.metadata.namespace;
+      if (mwSource) {
+        const key = `${mwNs}/${mwSource}`;
+        const list = mwGroups.get(key) ?? [];
+        list.push(ws);
+        mwGroups.set(key, list);
+      } else {
+        const name = displayName(ws);
+        const list = standaloneGroups.get(name) ?? [];
+        list.push(ws);
+        standaloneGroups.set(name, list);
+      }
+    }
+
+    const result: WorkshopGroup[] = [];
+
+    // Multi-asset groups first, using the MultiWorkshop displayName as group name
+    for (const [key, items] of mwGroups) {
+      const mw = multiWorkshopsByName.get(key);
+      const name = mw?.spec?.displayName || items[0].metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] || displayName(items[0]);
+      result.push({ name, items, multiWorkshop: mw });
+    }
+
+    // Standalone groups
+    for (const [name, items] of standaloneGroups) {
+      result.push({ name, items });
+    }
+
+    return result;
+  }, [targets, multiWorkshopsByName]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -1133,29 +574,26 @@ const Ops: React.FC = () => {
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
-    const activeFilterCount = getActiveFilterCount();
-
-    if (activeFilterCount > 0) {
-      const filterText = activeFilterCount === 1 ? '1 filter' : `${activeFilterCount} filters`;
-      return <>{targets.length} workshop{targets.length !== 1 ? 's' : ''} with {filterText} in {nsLabel}</>;
+    if (hasSelection) {
+      return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
     }
-
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
-
     return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, getActiveFilterCount]);
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const ns = ws.metadata.namespace;
       counts.set(ns, (counts.get(ns) ?? 0) + 1);
     }
     return counts;
-  }, [targets]);
+  }, [operationTargets]);
+
+  const isUnfiltered = !workshopFilter && !stageFilter;
 
   const modalScopeDescription = useMemo(() => {
     if (!isMultiNs) {
@@ -1180,6 +618,17 @@ const Ops: React.FC = () => {
 
   // ---------- Summary stats ----------
 
+  const effectiveGroups = useMemo(() => {
+    if (!hasSelection) return workshopGroups;
+    return workshopGroups.filter(g => g.items.some(ws => selectedWs.has(wsKey(ws))));
+  }, [workshopGroups, hasSelection, selectedWs]);
+
+  const multiAssetGroupCount = useMemo(() =>
+    effectiveGroups.filter(g => g.multiWorkshop).length,
+  [effectiveGroups]);
+
+  const effectiveTargets = hasSelection ? operationTargets : targets;
+
   const summary = useMemo(() => {
     let totalInstances = 0;
     let seatsAssigned = 0;
@@ -1189,9 +638,9 @@ const Ops: React.FC = () => {
     let failedCount = 0;
     let attentionCount = 0;
 
-    for (const ws of targets) {
+    for (const ws of effectiveTargets) {
       const count = getCurrentCount(ws);
-      if (count !== null) totalInstances += count;
+      totalInstances += count ?? 1;
 
       const seats = getSeats(ws);
       if (seats) {
@@ -1209,7 +658,7 @@ const Ops: React.FC = () => {
     }
 
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount };
-  }, [targets, getCurrentCount, getSeats, getFailedCount]);
+  }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   // ---------- Operation parameters ----------
 
@@ -1238,47 +687,9 @@ const Ops: React.FC = () => {
 
   const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
 
-  // Template management functions
-  const saveOperationTemplate = useCallback((name: string, description: string, operationType: OperationTemplate['operationType']) => {
-    const id = Date.now().toString();
-    const template: OperationTemplate = {
-      id,
-      name,
-      description,
-      operationType,
-      parameters: {
-        extStopDays,
-        extStopHours,
-        extDestroyDays,
-        extDestroyHours,
-        scaleCount,
-      },
-      scope: {
-        enhancedFilters: {
-          ...enhancedFilters,
-          categories: enhancedFilters.categories || [],
-        },
-        workshopFilter,
-        stageFilter,
-      },
-      metadata: {
-        created: new Date().toISOString(),
-      },
-    };
-
-    setOperationTemplates(prev => ({
-      ...prev,
-      [id]: template
-    }));
-
-    setShowTemplateModal(false);
-    setTemplateToSave(null);
-    addAlert(AlertVariant.success, `Template "${name}" saved successfully`);
-  }, [enhancedFilters, workshopFilter, stageFilter, extStopDays, extStopHours, extDestroyDays, extDestroyHours, scaleCount]);
-
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
       if (cur === null) { unknown++; continue; }
       if (scaleCount > cur) up++;
@@ -1286,7 +697,7 @@ const Ops: React.FC = () => {
       else same++;
     }
     return { up, down, same, unknown };
-  }, [targets, getCurrentCount, scaleCount]);
+  }, [operationTargets, getCurrentCount, scaleCount]);
 
   const isScaleDown = scaleAnalysis.down > 0;
   const isScaleZero = scaleCount === 0;
@@ -1294,13 +705,80 @@ const Ops: React.FC = () => {
   const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
   const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
 
+  // ---------- CSV download ----------
+
+  const handleDownloadCSV = useCallback(() => {
+    const csvEsc = (v: string) => {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    };
+    const fmtDateCSV = (iso?: string) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const opts: Intl.DateTimeFormatOptions = {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      };
+      if (timezone !== 'local') opts.timeZone = timezone;
+      return d.toLocaleString(undefined, opts);
+    };
+
+    const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
+      'Instances', 'Concurrency', 'Seats Assigned', 'Seats Total',
+      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL'];
+
+    const rows: string[][] = [];
+    for (const group of workshopGroups) {
+      const isMultiAsset = !!group.multiWorkshop;
+      const groupLabel = isMultiAsset ? `[Multi-Asset] ${group.name}` : group.name;
+
+      for (const ws of group.items) {
+        const locked = isWorkshopLocked(ws);
+        const progress = getProvisionProgress(ws);
+        const seats = getSeats(ws);
+        const password = ws.spec?.accessPassword ?? '';
+        const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+        const wsUrl = workshopId ? `https://catalog.demo.redhat.com/workshop/${workshopId}` : '';
+        const stop = ws.spec?.actionSchedule?.stop;
+        const destroy = ws.spec?.lifespan?.end;
+        const stage = getStageFromK8sObject(ws) || '';
+        const reg = ws.spec?.openRegistration === false ? 'Closed' : 'Open';
+        const assetKey = isMultiAsset ? ws.metadata.annotations?.[`${BABYLON_DOMAIN}/asset-key`] || '' : '';
+        const nameLabel = isMultiAsset && assetKey ? `${displayName(ws)} (${assetKey})` : displayName(ws);
+
+        rows.push([
+          groupLabel, nameLabel, ws.metadata.name, ws.metadata.namespace, stage,
+          locked ? 'Yes' : 'No',
+          progress ? String(progress.desired) : '',
+          progress ? String(progress.concurrency) : '',
+          seats ? String(seats.assigned) : '',
+          seats ? String(seats.total) : '',
+          reg, password,
+          stop ? fmtDateCSV(stop) : 'No auto-stop',
+          destroy ? fmtDateCSV(destroy) : '',
+          wsUrl,
+        ]);
+      }
+    }
+
+    const csv = [header, ...rows].map(r => r.map(csvEsc).join(',')).join('\n');
+    const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    const ts = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `workshops-${namespace || 'multi'}-${ts}.csv`);
+    document.body.appendChild(link);
+    link.click();
+  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats]);
+
   // ---------- Handlers ----------
 
   const handleLock = async () => {
     setShowLockConfirm(false);
     setLockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try { await lockWorkshop(ws); ok++; } catch { fail++; }
     }
     setLockLoading(false);
@@ -1313,7 +791,7 @@ const Ops: React.FC = () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         await patchWorkshop({
           name: ws.metadata.name,
@@ -1335,12 +813,12 @@ const Ops: React.FC = () => {
     setShowExtStopConfirm(false);
     setExtStopLoading(true);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
-    let ok = 0, fail = 0;
-    for (const ws of targets) {
+    let ok = 0, fail = 0, skip = 0;
+    for (const ws of operationTargets) {
+      const currentStop = ws.spec?.actionSchedule?.stop;
+      if (!currentStop) { skip++; continue; }
       try {
-        const currentStop = ws.spec?.actionSchedule?.stop;
-        const base = currentStop ? new Date(currentStop) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentStop).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -1351,8 +829,9 @@ const Ops: React.FC = () => {
     }
     setExtStopLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h`);
-    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-stop set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleExtendDestroy = async () => {
@@ -1361,12 +840,12 @@ const Ops: React.FC = () => {
     setShowExtDestroyConfirm(false);
     setExtDestroyLoading(true);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
-    let ok = 0, fail = 0;
-    for (const ws of targets) {
+    let ok = 0, fail = 0, skip = 0;
+    for (const ws of operationTargets) {
+      const currentEnd = ws.spec?.lifespan?.end;
+      if (!currentEnd) { skip++; continue; }
       try {
-        const currentEnd = ws.spec?.lifespan?.end;
-        const base = currentEnd ? new Date(currentEnd) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentEnd).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -1377,8 +856,9 @@ const Ops: React.FC = () => {
     }
     setExtDestroyLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h`);
-    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-destroy set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleDisableAutostop = async () => {
@@ -1386,7 +866,7 @@ const Ops: React.FC = () => {
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
     let ok = 0, skip = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       if (!ws.spec?.actionSchedule?.stop) { skip++; ok++; continue; }
       try {
         await patchWorkshop({
@@ -1415,7 +895,7 @@ const Ops: React.FC = () => {
     setScaleConfirmText('');
     setScaleLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
           workshopName: ws.metadata.name,
@@ -1452,7 +932,7 @@ const Ops: React.FC = () => {
               />
             </SplitItem>
             <SplitItem isFilled>
-              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Ops</Title>
+              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Operations Workshop Control</Title>
             </SplitItem>
             <SplitItem>
               <Tooltip content={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -1545,7 +1025,7 @@ const Ops: React.FC = () => {
           <SplitItem isFilled>
             <Title headingLevel="h4" className="ops-page-title">
               <CogIcon className="ops-page-title-icon" />
-              Operations
+              Operations Workshop Control
               <code className="ops-page-ns">{namespace}</code>
               {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
             </Title>
@@ -1580,7 +1060,7 @@ const Ops: React.FC = () => {
         {/* Multi-namespace toggle */}
         {isAdmin && (
           <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
-            <Split hasGutter>
+            <Split hasGutter style={{ alignItems: 'center' }}>
               <SplitItem>
                 <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
                   <Switch
@@ -1656,265 +1136,65 @@ const Ops: React.FC = () => {
           </EmptyState>
         ) : (
           <>
-            {/* Enhanced Filtering Toolbar */}
-            <Toolbar
-              id="ops-filter-toolbar"
-              clearAllFilters={clearAllEnhancedFilters}
-              clearFiltersButtonText="Clear all filters"
-              collapseListedFiltersBreakpoint="xl"
-              isSticky
-            >
-              <ToolbarContent>
-                <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-                  {/* Search Input */}
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarFilter categoryName="">
-                      <SearchInput
-                        placeholder="Search workshops..."
-                        value={enhancedFilters.searchText}
-                        onChange={(_e, value) => updateEnhancedFilter('searchText', value)}
-                        onClear={() => updateEnhancedFilter('searchText', '')}
-                        aria-label="Workshop search input"
-                      />
-                    </ToolbarFilter>
-                  </ToolbarGroup>
-
-                  {/* Stage Filter */}
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarFilter
-                      labels={enhancedFilters.stages.map(stage => ({ key: stage, node: stage }))}
-                      deleteLabel={(category, chip) => updateEnhancedFilter('stages', enhancedFilters.stages.filter(s => s !== chip.key))}
-                      categoryName="Stage"
-                    >
-                      <Select
-                        isOpen={stageSelectOpen}
-                        selected={enhancedFilters.stages}
-                        onSelect={(_e, val) => {
-                          const value = val as string;
-                          const newStages = enhancedFilters.stages.includes(value)
-                            ? enhancedFilters.stages.filter(s => s !== value)
-                            : [...enhancedFilters.stages, value];
-                          updateEnhancedFilter('stages', newStages);
-                        }}
-                        onOpenChange={setStageSelectOpen}
-                        toggle={(toggleRef) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setStageSelectOpen(p => !p)} isExpanded={stageSelectOpen}>
-                            Stage {enhancedFilters.stages.length > 0 && (
-                              <Badge isRead>{enhancedFilters.stages.length}</Badge>
-                            )}
-                          </MenuToggle>
-                        )}
-                        shouldFocusToggleOnSelect={false}
-                      >
-                        <SelectList>
-                          {filterOptions.stages.map(stage => (
-                            <SelectOption
-                              key={stage}
-                              value={stage}
-                              hasCheckbox
-                              isSelected={enhancedFilters.stages.includes(stage)}
-                            >
-                              {stage}
-                            </SelectOption>
-                          ))}
-                        </SelectList>
-                      </Select>
-                    </ToolbarFilter>
-                  </ToolbarGroup>
-
-                  {/* Namespace Filter */}
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarFilter
-                      labels={enhancedFilters.namespaces.map(ns => ({ key: ns, node: ns }))}
-                      deleteLabel={(category, chip) => updateEnhancedFilter('namespaces', enhancedFilters.namespaces.filter(n => n !== chip.key))}
-                      categoryName="Namespace"
-                    >
-                      <Select
-                        isOpen={namespaceSelectOpen}
-                        selected={enhancedFilters.namespaces}
-                        onSelect={(_e, val) => {
-                          const value = val as string;
-                          const newNamespaces = enhancedFilters.namespaces.includes(value)
-                            ? enhancedFilters.namespaces.filter(n => n !== value)
-                            : [...enhancedFilters.namespaces, value];
-                          updateEnhancedFilter('namespaces', newNamespaces);
-                        }}
-                        onOpenChange={setNamespaceSelectOpen}
-                        toggle={(toggleRef) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setNamespaceSelectOpen(p => !p)} isExpanded={namespaceSelectOpen}>
-                            Namespace {enhancedFilters.namespaces.length > 0 && (
-                              <Badge isRead>{enhancedFilters.namespaces.length}</Badge>
-                            )}
-                          </MenuToggle>
-                        )}
-                        shouldFocusToggleOnSelect={false}
-                      >
-                        <SelectList>
-                          {filterOptions.namespaces.map(ns => (
-                            <SelectOption
-                              key={ns}
-                              value={ns}
-                              hasCheckbox
-                              isSelected={enhancedFilters.namespaces.includes(ns)}
-                            >
-                              {ns}
-                            </SelectOption>
-                          ))}
-                        </SelectList>
-                      </Select>
-                    </ToolbarFilter>
-                  </ToolbarGroup>
-
-                  {/* Status Filter */}
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarFilter
-                      labels={enhancedFilters.statuses.map(status => ({ key: status, node: status }))}
-                      deleteLabel={(category, chip) => updateEnhancedFilter('statuses', enhancedFilters.statuses.filter(s => s !== chip.key))}
-                      categoryName="Status"
-                    >
-                      <Select
-                        isOpen={statusSelectOpen}
-                        selected={enhancedFilters.statuses}
-                        onSelect={(_e, val) => {
-                          const value = val as string;
-                          const newStatuses = enhancedFilters.statuses.includes(value)
-                            ? enhancedFilters.statuses.filter(s => s !== value)
-                            : [...enhancedFilters.statuses, value];
-                          updateEnhancedFilter('statuses', newStatuses);
-                        }}
-                        onOpenChange={setStatusSelectOpen}
-                        toggle={(toggleRef) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setStatusSelectOpen(p => !p)} isExpanded={statusSelectOpen}>
-                            Status {enhancedFilters.statuses.length > 0 && (
-                              <Badge isRead>{enhancedFilters.statuses.length}</Badge>
-                            )}
-                          </MenuToggle>
-                        )}
-                        shouldFocusToggleOnSelect={false}
-                      >
-                        <SelectList>
-                          {filterOptions.statuses.map(status => (
-                            <SelectOption
-                              key={status}
-                              value={status}
-                              hasCheckbox
-                              isSelected={enhancedFilters.statuses.includes(status)}
-                            >
-                              {status}
-                            </SelectOption>
-                          ))}
-                        </SelectList>
-                      </Select>
-                    </ToolbarFilter>
-                  </ToolbarGroup>
-
-                  {/* Workshop Type Filter */}
-                  <ToolbarGroup variant="filter-group">
-                    <ToolbarFilter
-                      labels={enhancedFilters.workshopTypes.map(type => ({ key: type, node: type }))}
-                      deleteLabel={(category, chip) => updateEnhancedFilter('workshopTypes', enhancedFilters.workshopTypes.filter(t => t !== chip.key))}
-                      categoryName="Workshop Type"
-                    >
-                      <Select
-                        isOpen={workshopTypeSelectOpen}
-                        selected={enhancedFilters.workshopTypes}
-                        onSelect={(_e, val) => {
-                          const value = val as string;
-                          const newTypes = enhancedFilters.workshopTypes.includes(value)
-                            ? enhancedFilters.workshopTypes.filter(t => t !== value)
-                            : [...enhancedFilters.workshopTypes, value];
-                          updateEnhancedFilter('workshopTypes', newTypes);
-                        }}
-                        onOpenChange={setWorkshopTypeSelectOpen}
-                        toggle={(toggleRef) => (
-                          <MenuToggle ref={toggleRef} onClick={() => setWorkshopTypeSelectOpen(p => !p)} isExpanded={workshopTypeSelectOpen}>
-                            Type {enhancedFilters.workshopTypes.length > 0 && (
-                              <Badge isRead>{enhancedFilters.workshopTypes.length}</Badge>
-                            )}
-                          </MenuToggle>
-                        )}
-                        shouldFocusToggleOnSelect={false}
-                      >
-                        <SelectList>
-                          {filterOptions.workshopTypes.map(type => (
-                            <SelectOption
-                              key={type}
-                              value={type}
-                              hasCheckbox
-                              isSelected={enhancedFilters.workshopTypes.includes(type)}
-                            >
-                              {type}
-                            </SelectOption>
-                          ))}
-                        </SelectList>
-                      </Select>
-                    </ToolbarFilter>
-                  </ToolbarGroup>
-                </ToolbarToggleGroup>
-
-                {/* Right side items */}
-                <ToolbarItem>
-                  <span className="ops-scope-summary">
-                    {scopeLabel}
-                  </span>
-                </ToolbarItem>
-
-                <ToolbarItem>
-                  <Tooltip content="Manage saved operation templates">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowTemplateManagerModal(true)}
-                      style={{ marginRight: 12 }}
-                    >
-                      <CogIcon style={{ marginRight: 4 }} />
-                      Templates ({Object.keys(operationTemplates).length})
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="View operation history and audit logs">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowOperationHistory(true)}
-                      style={{ marginRight: 12 }}
-                    >
-                      <OutlinedClockIcon style={{ marginRight: 4 }} />
-                      History
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="Export workshop data and operation reports to CSV">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setExportType('workshops');
-                        setShowExportModal(true);
-                      }}
-                      style={{ marginRight: 12 }}
-                    >
-                      <ExternalLinkAltIcon style={{ marginRight: 4 }} />
-                      Export
-                    </Button>
-                  </Tooltip>
-                </ToolbarItem>
-
-                <ToolbarItem>
-                  <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
-                </ToolbarItem>
-
-                <ToolbarItem>
-                  <FormSelect
-                    aria-label="Timezone"
-                    value={timezone}
-                    onChange={(_e, val) => setTimezone(val)}
-                    className="ops-tz-select"
+            {/* Scope + timezone bar */}
+            <div className="ops-scope-bar">
+              <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Workshop
+              </label>
+              <Select
+                id="ops-scope"
+                isOpen={filterOpen}
+                selected={workshopFilter}
+                onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
+                onOpenChange={setFilterOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
+                    {workshopFilter || 'All Workshops'}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  <SelectOption value="">All Workshops</SelectOption>
+                  {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
+                </SelectList>
+              </Select>
+              <div className="ops-stage-filters">
+                {STAGE_FILTERS.map(f => (
+                  <Label
+                    key={f.value}
+                    color={stageFilter === f.value ? f.color : 'grey'}
+                    isCompact
+                    onClick={() => setStageFilter(stageFilter === f.value ? null : f.value)}
+                    className="ops-stage-chip"
                   >
-                    {COMMON_TIMEZONES.map(tz => (
-                      <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
-                    ))}
-                  </FormSelect>
-                </ToolbarItem>
-              </ToolbarContent>
-            </Toolbar>
+                    {f.label}
+                  </Label>
+                ))}
+              </div>
+              <span className="ops-scope-summary">
+                {scopeLabel}
+                {hasSelection && (
+                  <span style={{ marginLeft: 8 }}>
+                    <Badge isRead>{selectedWs.size} selected</Badge>
+                    <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
+                      onClick={() => setSelectedWs(new Set())}>clear</Button>
+                  </span>
+                )}
+              </span>
+              <span className="ops-scope-spacer" />
+              <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
+              <FormSelect
+                aria-label="Timezone"
+                value={timezone}
+                onChange={(_e, val) => setTimezone(val)}
+                className="ops-tz-select"
+              >
+                {COMMON_TIMEZONES.map(tz => (
+                  <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
+                ))}
+              </FormSelect>
+            </div>
 
             {/* Summary stats */}
             <div className="ops-summary-bar">
@@ -1928,9 +1208,18 @@ const Ops: React.FC = () => {
                 </>
               )}
               <div className="ops-stat">
-                <span className="ops-stat-value">{targets.length}</span>
+                <span className="ops-stat-value">{effectiveTargets.length}</span>
                 <span className="ops-stat-label">Workshops</span>
               </div>
+              {multiAssetGroupCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div className="ops-stat">
+                    <span className="ops-stat-value">{multiAssetGroupCount}</span>
+                    <span className="ops-stat-label">Multi-Asset</span>
+                  </div>
+                </>
+              )}
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.totalInstances}</span>
@@ -1980,60 +1269,10 @@ const Ops: React.FC = () => {
                     Toggle <code>lock-enabled</code> on workshops.
                     Locked resources cannot be modified by non-admin users.
                   </p>
-
-                  {/* Template Picker */}
-                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
-                    <Select
-                      isOpen={templateSelectOpen}
-                      selected={selectedTemplateId}
-                      onSelect={(_event, value) => {
-                        if (value && typeof value === 'string') {
-                          const template = operationTemplates[value];
-                          if (template && (template.operationType === 'lock' || template.operationType === 'unlock')) {
-                            loadOperationTemplate(value);
-                          }
-                        }
-                        setTemplateSelectOpen(false);
-                      }}
-                      onOpenChange={setTemplateSelectOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setTemplateSelectOpen(!templateSelectOpen)}
-                          isExpanded={templateSelectOpen}
-                          style={{ width: '200px' }}
-                        >
-                          Load Template
-                        </MenuToggle>
-                      )}
-                      shouldFocusToggleOnSelect
-                    >
-                      <SelectList>
-                        {Object.values(operationTemplates)
-                          .filter(t => t.operationType === 'lock' || t.operationType === 'unlock')
-                          .map(template => (
-                            <SelectOption key={template.id} value={template.id}>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{template.name}</div>
-                                {template.description && (
-                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                    {template.description}
-                                  </div>
-                                )}
-                              </div>
-                            </SelectOption>
-                          ))}
-                        {Object.values(operationTemplates).filter(t => t.operationType === 'lock' || t.operationType === 'unlock').length === 0 && (
-                          <SelectOption isDisabled>No lock/unlock templates saved</SelectOption>
-                        )}
-                      </SelectList>
-                    </Select>
-                  </div>
-
                   <div className="ops-button-row">
                     <Button variant="warning" onClick={() => setShowLockConfirm(true)}
                       isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="secondary" onClick={() => setShowUnlockConfirm(true)}
+                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
                       isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                   </div>
                 </CardBody>
@@ -2047,55 +1286,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  {/* Template Picker */}
-                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
-                    <Select
-                      isOpen={extStopTemplateSelectOpen}
-                      selected={selectedTemplateId}
-                      onSelect={(_event, value) => {
-                        if (value && typeof value === 'string') {
-                          const template = operationTemplates[value];
-                          if (template && template.operationType === 'extend-stop') {
-                            loadOperationTemplate(value);
-                          }
-                        }
-                        setExtStopTemplateSelectOpen(false);
-                      }}
-                      onOpenChange={setExtStopTemplateSelectOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setExtStopTemplateSelectOpen(!extStopTemplateSelectOpen)}
-                          isExpanded={extStopTemplateSelectOpen}
-                          style={{ width: '200px' }}
-                        >
-                          Load Template
-                        </MenuToggle>
-                      )}
-                      shouldFocusToggleOnSelect
-                    >
-                      <SelectList>
-                        {Object.values(operationTemplates)
-                          .filter(t => t.operationType === 'extend-stop')
-                          .map(template => (
-                            <SelectOption key={template.id} value={template.id}>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{template.name}</div>
-                                {template.description && (
-                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                    {template.description}
-                                  </div>
-                                )}
-                              </div>
-                            </SelectOption>
-                          ))}
-                        {Object.values(operationTemplates).filter(t => t.operationType === 'extend-stop').length === 0 && (
-                          <SelectOption isDisabled>No extend-stop templates saved</SelectOption>
-                        )}
-                      </SelectList>
-                    </Select>
-                  </div>
-
                   <div className="ops-number-row">
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
@@ -2125,55 +1315,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  {/* Template Picker */}
-                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
-                    <Select
-                      isOpen={extDestroyTemplateSelectOpen}
-                      selected={selectedTemplateId}
-                      onSelect={(_event, value) => {
-                        if (value && typeof value === 'string') {
-                          const template = operationTemplates[value];
-                          if (template && template.operationType === 'extend-destroy') {
-                            loadOperationTemplate(value);
-                          }
-                        }
-                        setExtDestroyTemplateSelectOpen(false);
-                      }}
-                      onOpenChange={setExtDestroyTemplateSelectOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setExtDestroyTemplateSelectOpen(!extDestroyTemplateSelectOpen)}
-                          isExpanded={extDestroyTemplateSelectOpen}
-                          style={{ width: '200px' }}
-                        >
-                          Load Template
-                        </MenuToggle>
-                      )}
-                      shouldFocusToggleOnSelect
-                    >
-                      <SelectList>
-                        {Object.values(operationTemplates)
-                          .filter(t => t.operationType === 'extend-destroy')
-                          .map(template => (
-                            <SelectOption key={template.id} value={template.id}>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{template.name}</div>
-                                {template.description && (
-                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                    {template.description}
-                                  </div>
-                                )}
-                              </div>
-                            </SelectOption>
-                          ))}
-                        {Object.values(operationTemplates).filter(t => t.operationType === 'extend-destroy').length === 0 && (
-                          <SelectOption isDisabled>No extend-destroy templates saved</SelectOption>
-                        )}
-                      </SelectList>
-                    </Select>
-                  </div>
-
                   <div className="ops-number-row">
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
@@ -2207,24 +1348,6 @@ const Ops: React.FC = () => {
                     Removes <code>actionSchedule.stop</code> so workshops remain running
                     until their destroy deadline or manual stop.
                   </p>
-
-                  {/* Template Picker */}
-                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
-                    <Button
-                      variant="tertiary"
-                      onClick={() => {
-                        const templates = Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop');
-                        if (templates.length === 0) return;
-                        // For disable-autostop, we'll just apply the first matching template since there are no parameters
-                        loadOperationTemplate(templates[0].id);
-                      }}
-                      style={{ width: '200px' }}
-                      isDisabled={Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop').length === 0}
-                    >
-                      Load Template ({Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop').length})
-                    </Button>
-                  </div>
-
                   <Button variant="warning" onClick={handleDisableAutostop}
                     isLoading={noAutostopLoading} isDisabled={anyLoading}>
                     Disable Auto-Stop
@@ -2240,56 +1363,6 @@ const Ops: React.FC = () => {
                     Sets <code>spec.count</code> to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
-
-                  {/* Template Picker */}
-                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
-                    <Select
-                      isOpen={scaleTemplateSelectOpen}
-                      selected={selectedTemplateId}
-                      onSelect={(_event, value) => {
-                        if (value && typeof value === 'string') {
-                          const template = operationTemplates[value];
-                          if (template && template.operationType === 'scale') {
-                            loadOperationTemplate(value);
-                          }
-                        }
-                        setScaleTemplateSelectOpen(false);
-                      }}
-                      onOpenChange={setScaleTemplateSelectOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setScaleTemplateSelectOpen(!scaleTemplateSelectOpen)}
-                          isExpanded={scaleTemplateSelectOpen}
-                          style={{ width: '200px' }}
-                        >
-                          Load Template
-                        </MenuToggle>
-                      )}
-                      shouldFocusToggleOnSelect
-                    >
-                      <SelectList>
-                        {Object.values(operationTemplates)
-                          .filter(t => t.operationType === 'scale')
-                          .map(template => (
-                            <SelectOption key={template.id} value={template.id}>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{template.name}</div>
-                                {template.description && (
-                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                    {template.description}
-                                  </div>
-                                )}
-                              </div>
-                            </SelectOption>
-                          ))}
-                        {Object.values(operationTemplates).filter(t => t.operationType === 'scale').length === 0 && (
-                          <SelectOption isDisabled>No scale templates saved</SelectOption>
-                        )}
-                      </SelectList>
-                    </Select>
-                  </div>
-
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
@@ -2317,11 +1390,16 @@ const Ops: React.FC = () => {
               <Split hasGutter style={{ marginBottom: 12 }}>
                 <SplitItem isFilled>
                   <Title headingLevel="h5">
-                    Workshops in scope
-                    <Badge isRead style={{ marginLeft: 8 }}>{workshopGroups.length}</Badge>
-                    {workshopGroups.length !== targets.length && (
+                    {hasSelection ? 'Selected workshops' : 'Workshops in scope'}
+                    <Badge isRead style={{ marginLeft: 8 }}>{hasSelection ? selectedWs.size : workshopGroups.length}</Badge>
+                    {!hasSelection && workshopGroups.length !== targets.length && (
                       <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         ({targets.length} instances)
+                      </span>
+                    )}
+                    {hasSelection && selectedWs.size !== targets.length && (
+                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        of {targets.length} total
                       </span>
                     )}
                   </Title>
@@ -2333,16 +1411,45 @@ const Ops: React.FC = () => {
                     <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
                   </Button>
                 </SplitItem>
+                <SplitItem>
+                  <Tooltip content="Export to CSV">
+                    <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
+                      aria-label="Export to CSV" isDisabled={workshopGroups.length === 0} />
+                  </Tooltip>
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowExportModal(true)}
+                    isDisabled={workshopGroups.length === 0}
+                  >
+                    Export
+                  </Button>
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowOperationHistory(true)}
+                  >
+                    History
+                  </Button>
+                </SplitItem>
               </Split>
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
+                      <th style={{ width: 32 }}>
+                        <Checkbox id="select-all-ws" isChecked={allSelected} onChange={toggleSelectAll}
+                          aria-label="Select all workshops" />
+                      </th>
                       <th></th>
                       <th>Name</th>
                       <th>Status</th>
                       <th>Lock</th>
+                      <th>Assets</th>
                       <th>Instances</th>
+                      <th>Concurrency</th>
                       <th>Seats</th>
                       <th>Registration</th>
                       <th>Password</th>
@@ -2354,10 +1461,13 @@ const Ops: React.FC = () => {
                   <tbody>
                     {workshopGroups.map(group => {
                       const expanded = expandedGroups.has(group.name);
-                      const isSingle = group.items.length === 1;
+                      const isSingle = group.items.length === 1 && !group.multiWorkshop;
+                      const isMultiAsset = !!group.multiWorkshop;
                       const firstWs = group.items[0];
                       const firstStage = getStageFromK8sObject(firstWs);
-                      const firstMultiWs = firstWs.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+                      const mw = group.multiWorkshop;
+                      const mwAssetCount = mw?.spec?.assets?.length ?? group.items.length;
+                      const mwNumberSeats = mw?.spec?.numberSeats;
 
                       // Aggregate stats for the group header
                       let grpInstances = 0;
@@ -2367,44 +1477,77 @@ const Ops: React.FC = () => {
                       let grpActive = 0;
                       let grpStopped = 0;
                       let grpFailed = 0;
+                      let grpDesired = 0;
+                      let grpClaimed = 0;
+                      let grpFailedCount = 0;
+                      let grpConcurrency = 0;
                       let grpAttention = false;
-                      const grpPasswords = new Set<string>();
+                      const grpPasswords = new Map<string, string>();
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
-                        if (c !== null) grpInstances += c;
+                        grpInstances += c ?? 1;
                         const s = getSeats(ws);
                         if (s) { grpSeatsAssigned += s.assigned; grpSeatsTotal += s.total; }
                         if (isWorkshopLocked(ws)) grpLocked++;
                         if (s && s.assigned > 0) grpActive++;
                         if (ws.spec?.provisionDisabled) grpStopped++;
-                        if (getFailedCount(ws) > 0) grpFailed++;
+                        const prog = getProvisionProgress(ws);
+                        if (prog) {
+                          if (prog.failed > 0) grpFailed++;
+                          grpDesired += prog.desired;
+                          grpClaimed += prog.claimed;
+                          grpFailedCount += prog.failed;
+                          grpConcurrency += prog.concurrency;
+                        }
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
-                        if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
+                        if (ws.spec?.accessPassword) {
+                          const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`] || displayName(ws);
+                          grpPasswords.set(assetKey, ws.spec.accessPassword);
+                        }
                         grpNamespaces.add(ws.metadata.namespace);
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
+                      const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
+
+                      const groupKeys = group.items.map(ws => wsKey(ws));
+                      const grpAllSelected = groupKeys.every(k => selectedWs.has(k));
+                      const grpSomeSelected = !grpAllSelected && groupKeys.some(k => selectedWs.has(k));
 
                       const headerRow = (
                         <tr key={`grp-${group.name}`}
-                          className={`ops-group-header ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
-                          onClick={!isSingle ? () => toggleGroup(group.name) : undefined}
-                          style={!isSingle ? { cursor: 'pointer' } : undefined}
+                          className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
+                          onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
+                          style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
                         >
+                          <td onClick={e => e.stopPropagation()}>
+                            <Checkbox id={`select-grp-${group.name}`}
+                              isChecked={grpAllSelected ? true : grpSomeSelected ? null : false}
+                              onChange={() => toggleSelectGroup(group)}
+                              aria-label={`Select ${group.name}`} />
+                          </td>
                           <td className="ops-expand-cell">
-                            {!isSingle && (
+                            {(group.items.length > 1 || isMultiAsset) && (
                               expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
                             )}
                           </td>
                           <td>
-                            <strong>{group.name}</strong>
-                            {!isSingle && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
-                            {isSingle && <span className="ops-ws-meta">{firstWs.metadata.name}</span>}
+                            {isMultiAsset && mwDetailPath ? (
+                              <Link to={mwDetailPath} className="ops-ws-name-link" onClick={e => e.stopPropagation()}>
+                                <strong>{group.name}</strong>
+                              </Link>
+                            ) : isSingle ? (
+                              <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link"><strong>{group.name}</strong></Link>
+                            ) : (
+                              <strong>{group.name}</strong>
+                            )}
+                            {!isSingle && !isMultiAsset && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
+                            {isSingle && <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">{firstWs.metadata.name}</Link>}
                             <span className="ops-ws-labels">
                               {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
                               {isMultiNs && Array.from(grpNamespaces).map(ns => (
@@ -2412,38 +1555,49 @@ const Ops: React.FC = () => {
                                   ns.includes('.prod') ? 'orange' : ns.includes('.event') ? 'purple' : ns.includes('.dev') ? 'green' : 'blue'
                                 }>{ns}</Label>
                               ))}
-                              {firstMultiWs && (
-                                <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
-                                  <Label isCompact color="teal">Multi-Asset: {firstMultiWs}</Label>
-                                </Tooltip>
+                              {isMultiAsset && (
+                                <Label isCompact color="teal">Multi-Asset</Label>
                               )}
                             </span>
                           </td>
-                          <td>
+                          <td className="ops-status-cell">
                             {grpStopped === group.items.length ? (
                               <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                            ) : grpFailed > 0 ? (
-                              <><Icon status="danger"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem', color: 'var(--pf-t--global--color--status--danger--default)' }}>Failed</span></>
-                            ) : grpActive > 0 ? (
-                              <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
-                            ) : grpStopped > 0 ? (
-                              <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                            ) : (
-                              <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning</span></>
-                            )}
+                            ) : (() => {
+                              const grpClaims = group.items.flatMap(ws => resourceClaimsByWorkshop.get(wsKey(ws)) ?? []);
+                              return grpClaims.length > 0
+                                ? <WorkshopStatus resourceClaims={grpClaims} />
+                                : grpDesired > 0
+                                  ? <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {grpClaimed}/{grpDesired}</span></>
+                                  : <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
+                            })()}
                           </td>
                           <td>
                             {grpLocked > 0 ? (
-                              <Tooltip content={`${grpLocked} of ${group.items.length} locked`}>
+                              <Tooltip content={isMultiAsset
+                                ? `${grpLocked}/${group.items.length} locked — dates sync with parent when locked`
+                                : `${grpLocked} of ${group.items.length} locked`}>
                                 <Icon status="warning"><LockIcon /></Icon>
                               </Tooltip>
                             ) : (
                               <Icon status="success"><LockOpenIcon /></Icon>
                             )}
                           </td>
-                          <td><strong>{grpInstances}</strong></td>
                           <td>
-                            {grpSeatsTotal > 0 ? (
+                            {isMultiAsset ? (
+                              <Tooltip content={`${mwAssetCount} assets, ${group.items.length} provisioned`}>
+                                <strong>{mwAssetCount}</strong>
+                              </Tooltip>
+                            ) : <span className="ops-muted">&mdash;</span>}
+                          </td>
+                          <td><strong>{grpInstances}</strong></td>
+                          <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
+                          <td>
+                            {isMultiAsset && mwNumberSeats ? (
+                              <Tooltip content="MultiWorkshop numberSeats">
+                                <strong>{mwNumberSeats}</strong>
+                              </Tooltip>
+                            ) : grpSeatsTotal > 0 ? (
                               <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
@@ -2455,16 +1609,28 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            {grpPasswords.size > 0 ? (
+                            {isMultiAsset && grpPasswords.size > 1 ? (
                               showPasswords
-                                ? <code className="ops-password">{Array.from(grpPasswords).join(', ')}</code>
+                                ? <span className="ops-password-multi">{Array.from(grpPasswords.entries()).map(([k, v]) =>
+                                    <span key={k}><code className="ops-password">{k}: {v}</code></span>
+                                  )}</span>
+                                : <span className="ops-password-hidden">••• ({grpPasswords.size} passwords)</span>
+                            ) : grpPasswords.size === 1 ? (
+                              showPasswords
+                                ? <code className="ops-password">{Array.from(grpPasswords.values())[0]}</code>
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
                           <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
                           <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
                           <td>
-                            {grpUrls.length > 0 ? (
+                            {isMultiAsset && mw ? (
+                              <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
+                                target="_blank" rel="noopener noreferrer" className="ops-ws-link"
+                                onClick={e => e.stopPropagation()}>
+                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page
+                              </a>
+                            ) : grpUrls.length > 0 ? (
                               <a href={grpUrls[0].url} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />
                                 {grpUrls[0].id}
@@ -2474,7 +1640,7 @@ const Ops: React.FC = () => {
                         </tr>
                       );
 
-                      if (isSingle || !expanded) return headerRow;
+                      if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
 
                       const childRows = group.items.map(ws => {
                         const locked = isWorkshopLocked(ws);
@@ -2483,35 +1649,31 @@ const Ops: React.FC = () => {
                         const password = ws.spec?.accessPassword;
                         const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
-                        const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
-                        const hasProvisions = provs.length > 0;
                         const provDisabled = ws.spec?.provisionDisabled === true;
-                        const failedCount = getFailedCount(ws);
-
-                        let statusIcon: React.ReactNode;
-                        let statusLabel: string;
-                        if (provDisabled) {
-                          statusLabel = 'Stopped';
-                          statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
-                        } else if (failedCount > 0) {
-                          statusLabel = `Failed (${failedCount})`;
-                          statusIcon = <Icon status="danger"><ExclamationCircleIcon /></Icon>;
-                        } else if (!hasProvisions) {
-                          statusLabel = 'No provisions';
-                          statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
-                        } else if (seats && seats.assigned > 0) {
-                          statusLabel = 'Active';
-                          statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
-                        } else {
-                          statusLabel = 'Provisioning';
-                          statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
-                        }
+                        const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
+                        const progress = getProvisionProgress(ws);
+                        const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
 
                         return (
-                          <tr key={wsKey(ws)} className="ops-child-row">
+                          <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
+                            <td>
+                              <Checkbox id={`select-ws-${ws.metadata.name}`}
+                                isChecked={selectedWs.has(wsKey(ws))}
+                                onChange={() => setSelectedWs(prev => {
+                                  const next = new Set(prev);
+                                  const k = wsKey(ws);
+                                  next.has(k) ? next.delete(k) : next.add(k);
+                                  return next;
+                                })}
+                                aria-label={`Select ${ws.metadata.name}`} />
+                            </td>
                             <td></td>
                             <td>
-                              <span className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</span>
+                              {isMultiAsset && assetKey && (
+                                <Label isCompact color="teal" style={{ marginRight: 6 }}>{assetKey}</Label>
+                              )}
+                              <Link to={wsDetailPath(ws)} className="ops-ws-meta">{displayName(ws)}</Link>
+                              <span className="ops-ws-meta" style={{ marginLeft: 4, opacity: 0.5, fontSize: '0.75rem' }}>{ws.metadata.name}</span>
                               {isMultiNs && (
                                 <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
                                   <Label isCompact color={
@@ -2522,14 +1684,31 @@ const Ops: React.FC = () => {
                                 </span>
                               )}
                             </td>
-                            <td>
-                              <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
-                              <span style={{ marginLeft: 6, fontSize: '0.85rem', ...(failedCount > 0 ? { color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 600 } : {}) }}>{statusLabel}</span>
+                            <td className="ops-status-cell">
+                              {provDisabled ? (
+                                <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
+                              ) : wsClaims.length > 0 ? (
+                                <WorkshopStatus resourceClaims={wsClaims} />
+                              ) : progress && progress.desired > 0 ? (
+                                <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {progress.claimed}/{progress.desired}</span></>
+                              ) : (
+                                <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
+                              )}
                             </td>
                             <td>
-                              {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
+                              {locked ? (
+                                <Tooltip content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}>
+                                  <Icon status="warning"><LockIcon /></Icon>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip content={isMultiAsset ? 'Unlocked — date sync with parent is OFF' : 'Unlocked'}>
+                                  <Icon status={isMultiAsset ? 'danger' : 'success'}>{isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}</Icon>
+                                </Tooltip>
+                              )}
                             </td>
+                            <td><span className="ops-muted">&mdash;</span></td>
                             <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
+                            <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
                               {seats ? (
                                 <span><strong>{seats.assigned}</strong> / {seats.total}</span>
@@ -2595,31 +1774,49 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set. Consider filtering or selecting specific workshops.
+            </Alert>
+          )}
           <p>
-            Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleLock}>Lock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('lock')}>Save as Template</Button>
+          <Button variant="warning" onClick={handleLock}>Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
       <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
-        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
+        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
-            Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}. Users will be able to modify these resources.
           </p>
+          {(() => {
+            const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
+            return multiAssetChildren.length > 0 ? (
+              <Alert variant="danger" isInline title={`${multiAssetChildren.length} workshop(s) belong to a multi-asset parent`} style={{ marginTop: 12 }}>
+                Unlocking will <strong>stop date sync</strong> with the parent &mdash; stop and destroy
+                times will no longer update when the parent schedule changes.
+                Re-lock to restore sync.
+              </Alert>
+            ) : null;
+          })()}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('unlock')}>Save as Template</Button>
+          <Button variant="primary" onClick={handleUnlock}>Unlock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2630,19 +1827,18 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.some(ws => !ws.spec?.actionSchedule?.stop) && (
+          {operationTargets.some(ws => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) currently have no auto-stop.
-              This will set a stop time relative to now.
+              {operationTargets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
+              Only workshops with an existing stop schedule will be extended.
             </Alert>
           )}
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('extend-stop')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2651,22 +1847,26 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
-          {targets.some(ws => !ws.spec?.lifespan?.end) && (
+          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.</p>
+          {operationTargets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) currently have no auto-destroy.
-              This will set a destroy time relative to now.
+              {operationTargets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
+              Only workshops with an existing destroy schedule will be extended.
             </Alert>
           )}
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('extend-destroy')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2675,16 +1875,23 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. May incur additional cloud costs.</p>
+          <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
+            Workshops will remain running until their destroy deadline or manual stop.
+            This may incur additional cloud costs for the duration.
+          </Alert>
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('disable-autostop')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowNoAutostopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2695,14 +1902,14 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.length > 0 && (
+          {operationTargets.length > 0 && (
             <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
               <thead><tr>{isMultiNs && <th>NS</th>}<th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
               <tbody>
-                {targets.map(ws => {
+                {operationTargets.map(ws => {
                   const cur = getCurrentCount(ws);
                   const isDown = cur !== null && scaleCount < cur;
                   const isUp = cur !== null && scaleCount > cur;
@@ -2735,7 +1942,6 @@ const Ops: React.FC = () => {
           <Button variant={isScaleDown ? 'warning' : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
             {isScaleDown ? 'Scale Down' : 'Scale'}
           </Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('scale')}>Save as Template</Button>
           <Button variant="link" onClick={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2744,10 +1950,15 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="danger" isInline title={`This will affect ALL ${operationTargets.length} workshops`} style={{ marginBottom: 12 }}>
+              No filter is set. Every workshop in scope will be scaled to zero.
+            </Alert>
+          )}
           <p>
             Scaling to <strong>0</strong> will remove all instances on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
@@ -2757,178 +1968,25 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
-          <Button variant="secondary" onClick={() => openSaveTemplateModal('scale')}>Save as Template</Button>
           <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
-      {/* Save Template Modal */}
-      <Modal variant="small" isOpen={showTemplateModal} onClose={() => {setShowTemplateModal(false); setTemplateToSave(null);}} aria-labelledby="save-template">
-        <ModalHeader title="Save Operation Template" labelId="save-template" />
-        <ModalBody>
-          {templateToSave && (
-            <>
-              <p style={{ marginBottom: 16 }}>
-                Save the current {templateToSave.operationType} operation setup with filters and parameters as a reusable template.
-              </p>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const name = formData.get('templateName') as string;
-                const description = formData.get('templateDescription') as string;
-                if (name.trim() && templateToSave.operationType) {
-                  saveOperationTemplate(name.trim(), description.trim(), templateToSave.operationType);
-                }
-              }}>
-                <div style={{ marginBottom: 16 }}>
-                  <label htmlFor="templateName" style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>
-                    Template Name *
-                  </label>
-                  <TextInput
-                    id="templateName"
-                    name="templateName"
-                    isRequired
-                    placeholder="e.g. Extend prod workshops 2 days"
-                    aria-label="Template name"
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label htmlFor="templateDescription" style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>
-                    Description (Optional)
-                  </label>
-                  <TextInput
-                    id="templateDescription"
-                    name="templateDescription"
-                    placeholder="Brief description of when to use this template"
-                    aria-label="Template description"
-                  />
-                </div>
-                <Alert variant="info" isInline title="Template will include:" style={{ fontSize: '0.875rem' }}>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    <li>Current filter settings and workshop selection</li>
-                    <li>Operation parameters (days, hours, scale count, etc.)</li>
-                    <li>Timestamp for organization</li>
-                  </ul>
-                </Alert>
-              </form>
-            </>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button type="submit" variant="primary" form="saveTemplateForm" onClick={(e) => {
-            const form = (e.currentTarget.closest('.pf-v6-c-modal') as HTMLElement)?.querySelector('form');
-            if (form) {
-              const formData = new FormData(form);
-              const name = formData.get('templateName') as string;
-              const description = formData.get('templateDescription') as string;
-              if (name.trim() && templateToSave?.operationType) {
-                saveOperationTemplate(name.trim(), description.trim(), templateToSave.operationType);
-              }
-            }
-          }}>Save Template</Button>
-          <Button variant="link" onClick={() => {setShowTemplateModal(false); setTemplateToSave(null);}}>Cancel</Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Template Manager Modal */}
-      <Modal variant="medium" isOpen={showTemplateManagerModal} onClose={() => setShowTemplateManagerModal(false)} aria-labelledby="template-manager">
-        <ModalHeader title="Manage Operation Templates" labelId="template-manager" />
-        <ModalBody>
-          <p style={{ marginBottom: 16 }}>
-            Manage your operation templates. Example templates are provided to demonstrate common use cases.
-            Click any template to apply its settings to the current operation.
-          </p>
-
-          {Object.keys(operationTemplates).length === 0 ? (
-            <EmptyState>
-              <EmptyStateBody>
-                No templates available. This should not happen as example templates are always provided.
-              </EmptyStateBody>
-            </EmptyState>
-          ) : (
-            <div style={{ display: 'grid', gap: 12 }}>
-              {Object.values(operationTemplates)
-                .sort((a, b) => {
-                  // Sort user templates first, then default templates
-                  if (a.metadata.isDefault && !b.metadata.isDefault) return 1;
-                  if (!a.metadata.isDefault && b.metadata.isDefault) return -1;
-                  // Within each group, sort by creation date (newest first)
-                  return new Date(b.metadata.created).getTime() - new Date(a.metadata.created).getTime();
-                })
-                .map(template => (
-                  <Card key={template.id} isSelectableRaised onClick={() => {
-                    loadOperationTemplate(template.id);
-                    setShowTemplateManagerModal(false);
-                  }}>
-                    <CardTitle>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <span style={{ fontWeight: 600 }}>{template.name}</span>
-                          <Badge style={{ marginLeft: 8 }}>{template.operationType}</Badge>
-                          {template.metadata.isDefault && (
-                            <Badge variant="outline" style={{ marginLeft: 4, color: 'var(--pf-t--global--color--blue--default)', borderColor: 'var(--pf-t--global--color--blue--default)' }}>
-                              Example
-                            </Badge>
-                          )}
-                        </div>
-                        {!template.metadata.isDefault && (
-                          <Button
-                            variant="plain"
-                            isDanger
-                            aria-label={`Delete template ${template.name}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteOperationTemplate(template.id);
-                            }}
-                          >
-                            <TimesIcon />
-                          </Button>
-                        )}
-                      </div>
-                    </CardTitle>
-                    <CardBody>
-                      {template.description && (
-                        <p style={{ margin: 0, marginBottom: 8, fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                          {template.description}
-                        </p>
-                      )}
-                      <div style={{ fontSize: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        Created: {new Date(template.metadata.created).toLocaleDateString()}
-                        {template.metadata.lastUsed && (
-                          <span style={{ marginLeft: 12 }}>
-                            Last used: {new Date(template.metadata.lastUsed).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    </CardBody>
-                  </Card>
-                ))}
-            </div>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="link" onClick={() => setShowTemplateManagerModal(false)}>Close</Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Operation History Panel */}
       <OperationHistoryPanel
-        isVisible={showOperationHistory}
+        isOpen={showOperationHistory}
         onClose={() => setShowOperationHistory(false)}
-        onExport={(operations) => {
+        onExport={() => {
           setExportType('operations');
           setShowExportModal(true);
         }}
       />
 
-      {/* Export Modal */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         exportType={exportType}
-        workshops={targets}
-        provisions={[]} // TODO: Connect to real provisions data when available
-        operations={[]} // This would come from the operation history hook
+        workshops={workshops}
+        provisions={workshops.flatMap(ws => provisionsByWorkshop.get(wsKey(ws)) || [])}
       />
     </div>
   );
