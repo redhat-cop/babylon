@@ -11,6 +11,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Checkbox,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -49,6 +50,7 @@ import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-ic
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
@@ -66,6 +68,7 @@ import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
+  MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
 } from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
@@ -264,6 +267,28 @@ const Ops: React.FC = () => {
     return allWsData.flatMap(d => d?.items ?? []);
   }, [allWsData]);
 
+  // Fetch MultiWorkshop resources for multi-asset parent info
+  const multiWorkshopUrls = useMemo(
+    () => activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    [activeNamespaces],
+  );
+  const { data: allMwData } = useSWR<MultiWorkshopList[]>(
+    multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<MultiWorkshopList>)),
+    { refreshInterval: 30000 },
+  );
+  const multiWorkshopsByName = useMemo(() => {
+    const map = new Map<string, MultiWorkshop>();
+    if (allMwData) {
+      for (const list of allMwData) {
+        for (const mw of list?.items ?? []) {
+          map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+        }
+      }
+    }
+    return map;
+  }, [allMwData]);
+
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -392,17 +417,83 @@ const Ops: React.FC = () => {
     return list;
   }, [workshops, workshopFilter, stageFilter]);
 
-  // Group workshops by display name for cleaner table
-  const workshopGroups = useMemo(() => {
-    const groups = new Map<string, Workshop[]>();
-    for (const ws of targets) {
-      const name = displayName(ws);
-      const list = groups.get(name) ?? [];
-      list.push(ws);
-      groups.set(name, list);
+  const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
+
+  // Clear selection when filters change
+  useEffect(() => { setSelectedWs(new Set()); }, [workshopFilter, stageFilter, namespace]);
+
+  const hasSelection = selectedWs.size > 0;
+  const operationTargets = useMemo(() => {
+    if (!hasSelection) return targets;
+    return targets.filter(ws => selectedWs.has(wsKey(ws)));
+  }, [targets, selectedWs, hasSelection]);
+
+  const allSelected = targets.length > 0 && targets.every(ws => selectedWs.has(wsKey(ws)));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedWs(new Set());
+    } else {
+      setSelectedWs(new Set(targets.map(ws => wsKey(ws))));
     }
-    return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
-  }, [targets]);
+  }, [allSelected, targets]);
+
+  const toggleSelectGroup = useCallback((group: { items: Workshop[] }) => {
+    setSelectedWs(prev => {
+      const next = new Set(prev);
+      const groupKeys = group.items.map(ws => wsKey(ws));
+      const allGroupSelected = groupKeys.every(k => next.has(k));
+      if (allGroupSelected) {
+        groupKeys.forEach(k => next.delete(k));
+      } else {
+        groupKeys.forEach(k => next.add(k));
+      }
+      return next;
+    });
+  }, []);
+
+  interface WorkshopGroup {
+    name: string;
+    items: Workshop[];
+    multiWorkshop?: MultiWorkshop;
+  }
+
+  const workshopGroups = useMemo(() => {
+    const mwGroups = new Map<string, Workshop[]>();
+    const standaloneGroups = new Map<string, Workshop[]>();
+
+    for (const ws of targets) {
+      const mwSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+      const mwNs = ws.metadata.namespace;
+      if (mwSource) {
+        const key = `${mwNs}/${mwSource}`;
+        const list = mwGroups.get(key) ?? [];
+        list.push(ws);
+        mwGroups.set(key, list);
+      } else {
+        const name = displayName(ws);
+        const list = standaloneGroups.get(name) ?? [];
+        list.push(ws);
+        standaloneGroups.set(name, list);
+      }
+    }
+
+    const result: WorkshopGroup[] = [];
+
+    // Multi-asset groups first, using the MultiWorkshop displayName as group name
+    for (const [key, items] of mwGroups) {
+      const mw = multiWorkshopsByName.get(key);
+      const name = mw?.spec?.displayName || items[0].metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] || displayName(items[0]);
+      result.push({ name, items, multiWorkshop: mw });
+    }
+
+    // Standalone groups
+    for (const [name, items] of standaloneGroups) {
+      result.push({ name, items });
+    }
+
+    return result;
+  }, [targets, multiWorkshopsByName]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -417,21 +508,26 @@ const Ops: React.FC = () => {
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    if (hasSelection) {
+      return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
+    }
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
     return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace]);
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const ns = ws.metadata.namespace;
       counts.set(ns, (counts.get(ns) ?? 0) + 1);
     }
     return counts;
-  }, [targets]);
+  }, [operationTargets]);
+
+  const isUnfiltered = !workshopFilter && !stageFilter;
 
   const modalScopeDescription = useMemo(() => {
     if (!isMultiNs) {
@@ -456,6 +552,17 @@ const Ops: React.FC = () => {
 
   // ---------- Summary stats ----------
 
+  const effectiveGroups = useMemo(() => {
+    if (!hasSelection) return workshopGroups;
+    return workshopGroups.filter(g => g.items.some(ws => selectedWs.has(wsKey(ws))));
+  }, [workshopGroups, hasSelection, selectedWs]);
+
+  const multiAssetGroupCount = useMemo(() =>
+    effectiveGroups.filter(g => g.multiWorkshop).length,
+  [effectiveGroups]);
+
+  const effectiveTargets = hasSelection ? operationTargets : targets;
+
   const summary = useMemo(() => {
     let totalInstances = 0;
     let seatsAssigned = 0;
@@ -465,9 +572,9 @@ const Ops: React.FC = () => {
     let failedCount = 0;
     let attentionCount = 0;
 
-    for (const ws of targets) {
+    for (const ws of effectiveTargets) {
       const count = getCurrentCount(ws);
-      if (count !== null) totalInstances += count;
+      totalInstances += count ?? 1;
 
       const seats = getSeats(ws);
       if (seats) {
@@ -485,7 +592,7 @@ const Ops: React.FC = () => {
     }
 
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount };
-  }, [targets, getCurrentCount, getSeats, getFailedCount]);
+  }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   // ---------- Operation parameters ----------
 
@@ -516,7 +623,7 @@ const Ops: React.FC = () => {
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
       if (cur === null) { unknown++; continue; }
       if (scaleCount > cur) up++;
@@ -524,7 +631,7 @@ const Ops: React.FC = () => {
       else same++;
     }
     return { up, down, same, unknown };
-  }, [targets, getCurrentCount, scaleCount]);
+  }, [operationTargets, getCurrentCount, scaleCount]);
 
   const isScaleDown = scaleAnalysis.down > 0;
   const isScaleZero = scaleCount === 0;
@@ -532,13 +639,80 @@ const Ops: React.FC = () => {
   const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
   const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
 
+  // ---------- CSV download ----------
+
+  const handleDownloadCSV = useCallback(() => {
+    const csvEsc = (v: string) => {
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v.replace(/"/g, '""')}"`;
+      return v;
+    };
+    const fmtDateCSV = (iso?: string) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const opts: Intl.DateTimeFormatOptions = {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      };
+      if (timezone !== 'local') opts.timeZone = timezone;
+      return d.toLocaleString(undefined, opts);
+    };
+
+    const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
+      'Instances', 'Concurrency', 'Seats Assigned', 'Seats Total',
+      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL'];
+
+    const rows: string[][] = [];
+    for (const group of workshopGroups) {
+      const isMultiAsset = !!group.multiWorkshop;
+      const groupLabel = isMultiAsset ? `[Multi-Asset] ${group.name}` : group.name;
+
+      for (const ws of group.items) {
+        const locked = isWorkshopLocked(ws);
+        const progress = getProvisionProgress(ws);
+        const seats = getSeats(ws);
+        const password = ws.spec?.accessPassword ?? '';
+        const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+        const wsUrl = workshopId ? `https://catalog.demo.redhat.com/workshop/${workshopId}` : '';
+        const stop = ws.spec?.actionSchedule?.stop;
+        const destroy = ws.spec?.lifespan?.end;
+        const stage = getStageFromK8sObject(ws) || '';
+        const reg = ws.spec?.openRegistration === false ? 'Closed' : 'Open';
+        const assetKey = isMultiAsset ? ws.metadata.annotations?.[`${BABYLON_DOMAIN}/asset-key`] || '' : '';
+        const nameLabel = isMultiAsset && assetKey ? `${displayName(ws)} (${assetKey})` : displayName(ws);
+
+        rows.push([
+          groupLabel, nameLabel, ws.metadata.name, ws.metadata.namespace, stage,
+          locked ? 'Yes' : 'No',
+          progress ? String(progress.desired) : '',
+          progress ? String(progress.concurrency) : '',
+          seats ? String(seats.assigned) : '',
+          seats ? String(seats.total) : '',
+          reg, password,
+          stop ? fmtDateCSV(stop) : 'No auto-stop',
+          destroy ? fmtDateCSV(destroy) : '',
+          wsUrl,
+        ]);
+      }
+    }
+
+    const csv = [header, ...rows].map(r => r.map(csvEsc).join(',')).join('\n');
+    const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    const ts = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `workshops-${namespace || 'multi'}-${ts}.csv`);
+    document.body.appendChild(link);
+    link.click();
+  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats]);
+
   // ---------- Handlers ----------
 
   const handleLock = async () => {
     setShowLockConfirm(false);
     setLockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try { await lockWorkshop(ws); ok++; } catch { fail++; }
     }
     setLockLoading(false);
@@ -551,7 +725,7 @@ const Ops: React.FC = () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         await patchWorkshop({
           name: ws.metadata.name,
@@ -573,12 +747,12 @@ const Ops: React.FC = () => {
     setShowExtStopConfirm(false);
     setExtStopLoading(true);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
-    let ok = 0, fail = 0;
-    for (const ws of targets) {
+    let ok = 0, fail = 0, skip = 0;
+    for (const ws of operationTargets) {
+      const currentStop = ws.spec?.actionSchedule?.stop;
+      if (!currentStop) { skip++; continue; }
       try {
-        const currentStop = ws.spec?.actionSchedule?.stop;
-        const base = currentStop ? new Date(currentStop) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentStop).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -589,8 +763,9 @@ const Ops: React.FC = () => {
     }
     setExtStopLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h`);
-    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-stop set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleExtendDestroy = async () => {
@@ -599,12 +774,12 @@ const Ops: React.FC = () => {
     setShowExtDestroyConfirm(false);
     setExtDestroyLoading(true);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
-    let ok = 0, fail = 0;
-    for (const ws of targets) {
+    let ok = 0, fail = 0, skip = 0;
+    for (const ws of operationTargets) {
+      const currentEnd = ws.spec?.lifespan?.end;
+      if (!currentEnd) { skip++; continue; }
       try {
-        const currentEnd = ws.spec?.lifespan?.end;
-        const base = currentEnd ? new Date(currentEnd) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentEnd).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -615,8 +790,9 @@ const Ops: React.FC = () => {
     }
     setExtDestroyLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h`);
-    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-destroy set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleDisableAutostop = async () => {
@@ -624,7 +800,7 @@ const Ops: React.FC = () => {
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
     let ok = 0, skip = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       if (!ws.spec?.actionSchedule?.stop) { skip++; ok++; continue; }
       try {
         await patchWorkshop({
@@ -653,7 +829,7 @@ const Ops: React.FC = () => {
     setScaleConfirmText('');
     setScaleLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
           workshopName: ws.metadata.name,
@@ -932,6 +1108,13 @@ const Ops: React.FC = () => {
               </div>
               <span className="ops-scope-summary">
                 {scopeLabel}
+                {hasSelection && (
+                  <span style={{ marginLeft: 8 }}>
+                    <Badge isRead>{selectedWs.size} selected</Badge>
+                    <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
+                      onClick={() => setSelectedWs(new Set())}>clear</Button>
+                  </span>
+                )}
               </span>
               <span className="ops-scope-spacer" />
               <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
@@ -959,9 +1142,18 @@ const Ops: React.FC = () => {
                 </>
               )}
               <div className="ops-stat">
-                <span className="ops-stat-value">{targets.length}</span>
+                <span className="ops-stat-value">{effectiveTargets.length}</span>
                 <span className="ops-stat-label">Workshops</span>
               </div>
+              {multiAssetGroupCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div className="ops-stat">
+                    <span className="ops-stat-value">{multiAssetGroupCount}</span>
+                    <span className="ops-stat-label">Multi-Asset</span>
+                  </div>
+                </>
+              )}
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.totalInstances}</span>
@@ -1014,7 +1206,7 @@ const Ops: React.FC = () => {
                   <div className="ops-button-row">
                     <Button variant="warning" onClick={() => setShowLockConfirm(true)}
                       isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="secondary" onClick={() => setShowUnlockConfirm(true)}
+                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
                       isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                   </div>
                 </CardBody>
@@ -1132,11 +1324,16 @@ const Ops: React.FC = () => {
               <Split hasGutter style={{ marginBottom: 12 }}>
                 <SplitItem isFilled>
                   <Title headingLevel="h5">
-                    Workshops in scope
-                    <Badge isRead style={{ marginLeft: 8 }}>{workshopGroups.length}</Badge>
-                    {workshopGroups.length !== targets.length && (
+                    {hasSelection ? 'Selected workshops' : 'Workshops in scope'}
+                    <Badge isRead style={{ marginLeft: 8 }}>{hasSelection ? selectedWs.size : workshopGroups.length}</Badge>
+                    {!hasSelection && workshopGroups.length !== targets.length && (
                       <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         ({targets.length} instances)
+                      </span>
+                    )}
+                    {hasSelection && selectedWs.size !== targets.length && (
+                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        of {targets.length} total
                       </span>
                     )}
                   </Title>
@@ -1148,15 +1345,26 @@ const Ops: React.FC = () => {
                     <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
                   </Button>
                 </SplitItem>
+                <SplitItem>
+                  <Tooltip content="Export to CSV">
+                    <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
+                      aria-label="Export to CSV" isDisabled={workshopGroups.length === 0} />
+                  </Tooltip>
+                </SplitItem>
               </Split>
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
+                      <th style={{ width: 32 }}>
+                        <Checkbox id="select-all-ws" isChecked={allSelected} onChange={toggleSelectAll}
+                          aria-label="Select all workshops" />
+                      </th>
                       <th></th>
                       <th>Name</th>
                       <th>Status</th>
                       <th>Lock</th>
+                      <th>Assets</th>
                       <th>Instances</th>
                       <th>Concurrency</th>
                       <th>Seats</th>
@@ -1170,10 +1378,13 @@ const Ops: React.FC = () => {
                   <tbody>
                     {workshopGroups.map(group => {
                       const expanded = expandedGroups.has(group.name);
-                      const isSingle = group.items.length === 1;
+                      const isSingle = group.items.length === 1 && !group.multiWorkshop;
+                      const isMultiAsset = !!group.multiWorkshop;
                       const firstWs = group.items[0];
                       const firstStage = getStageFromK8sObject(firstWs);
-                      const firstMultiWs = firstWs.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+                      const mw = group.multiWorkshop;
+                      const mwAssetCount = mw?.spec?.assets?.length ?? group.items.length;
+                      const mwNumberSeats = mw?.spec?.numberSeats;
 
                       // Aggregate stats for the group header
                       let grpInstances = 0;
@@ -1188,13 +1399,13 @@ const Ops: React.FC = () => {
                       let grpFailedCount = 0;
                       let grpConcurrency = 0;
                       let grpAttention = false;
-                      const grpPasswords = new Set<string>();
+                      const grpPasswords = new Map<string, string>();
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
-                        if (c !== null) grpInstances += c;
+                        grpInstances += c ?? 1;
                         const s = getSeats(ws);
                         if (s) { grpSeatsAssigned += s.assigned; grpSeatsTotal += s.total; }
                         if (isWorkshopLocked(ws)) grpLocked++;
@@ -1209,32 +1420,50 @@ const Ops: React.FC = () => {
                           grpConcurrency += prog.concurrency;
                         }
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
-                        if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
+                        if (ws.spec?.accessPassword) {
+                          const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`] || displayName(ws);
+                          grpPasswords.set(assetKey, ws.spec.accessPassword);
+                        }
                         grpNamespaces.add(ws.metadata.namespace);
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
+                      const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
+
+                      const groupKeys = group.items.map(ws => wsKey(ws));
+                      const grpAllSelected = groupKeys.every(k => selectedWs.has(k));
+                      const grpSomeSelected = !grpAllSelected && groupKeys.some(k => selectedWs.has(k));
 
                       const headerRow = (
                         <tr key={`grp-${group.name}`}
-                          className={`ops-group-header ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
-                          onClick={!isSingle ? () => toggleGroup(group.name) : undefined}
-                          style={!isSingle ? { cursor: 'pointer' } : undefined}
+                          className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
+                          onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
+                          style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
                         >
+                          <td onClick={e => e.stopPropagation()}>
+                            <Checkbox id={`select-grp-${group.name}`}
+                              isChecked={grpAllSelected ? true : grpSomeSelected ? null : false}
+                              onChange={() => toggleSelectGroup(group)}
+                              aria-label={`Select ${group.name}`} />
+                          </td>
                           <td className="ops-expand-cell">
-                            {!isSingle && (
+                            {(group.items.length > 1 || isMultiAsset) && (
                               expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
                             )}
                           </td>
                           <td>
-                            {isSingle ? (
+                            {isMultiAsset && mwDetailPath ? (
+                              <Link to={mwDetailPath} className="ops-ws-name-link" onClick={e => e.stopPropagation()}>
+                                <strong>{group.name}</strong>
+                              </Link>
+                            ) : isSingle ? (
                               <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link"><strong>{group.name}</strong></Link>
                             ) : (
                               <strong>{group.name}</strong>
                             )}
-                            {!isSingle && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
+                            {!isSingle && !isMultiAsset && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
                             {isSingle && <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">{firstWs.metadata.name}</Link>}
                             <span className="ops-ws-labels">
                               {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
@@ -1243,10 +1472,8 @@ const Ops: React.FC = () => {
                                   ns.includes('.prod') ? 'orange' : ns.includes('.event') ? 'purple' : ns.includes('.dev') ? 'green' : 'blue'
                                 }>{ns}</Label>
                               ))}
-                              {firstMultiWs && (
-                                <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
-                                  <Label isCompact color="teal">Multi-Asset: {firstMultiWs}</Label>
-                                </Tooltip>
+                              {isMultiAsset && (
+                                <Label isCompact color="teal">Multi-Asset</Label>
                               )}
                             </span>
                           </td>
@@ -1264,17 +1491,30 @@ const Ops: React.FC = () => {
                           </td>
                           <td>
                             {grpLocked > 0 ? (
-                              <Tooltip content={`${grpLocked} of ${group.items.length} locked`}>
+                              <Tooltip content={isMultiAsset
+                                ? `${grpLocked}/${group.items.length} locked — dates sync with parent when locked`
+                                : `${grpLocked} of ${group.items.length} locked`}>
                                 <Icon status="warning"><LockIcon /></Icon>
                               </Tooltip>
                             ) : (
                               <Icon status="success"><LockOpenIcon /></Icon>
                             )}
                           </td>
+                          <td>
+                            {isMultiAsset ? (
+                              <Tooltip content={`${mwAssetCount} assets, ${group.items.length} provisioned`}>
+                                <strong>{mwAssetCount}</strong>
+                              </Tooltip>
+                            ) : <span className="ops-muted">&mdash;</span>}
+                          </td>
                           <td><strong>{grpInstances}</strong></td>
                           <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
                           <td>
-                            {grpSeatsTotal > 0 ? (
+                            {isMultiAsset && mwNumberSeats ? (
+                              <Tooltip content="MultiWorkshop numberSeats">
+                                <strong>{mwNumberSeats}</strong>
+                              </Tooltip>
+                            ) : grpSeatsTotal > 0 ? (
                               <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
@@ -1286,16 +1526,28 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            {grpPasswords.size > 0 ? (
+                            {isMultiAsset && grpPasswords.size > 1 ? (
                               showPasswords
-                                ? <code className="ops-password">{Array.from(grpPasswords).join(', ')}</code>
+                                ? <span className="ops-password-multi">{Array.from(grpPasswords.entries()).map(([k, v]) =>
+                                    <span key={k}><code className="ops-password">{k}: {v}</code></span>
+                                  )}</span>
+                                : <span className="ops-password-hidden">••• ({grpPasswords.size} passwords)</span>
+                            ) : grpPasswords.size === 1 ? (
+                              showPasswords
+                                ? <code className="ops-password">{Array.from(grpPasswords.values())[0]}</code>
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
                           <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
                           <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
                           <td>
-                            {grpUrls.length > 0 ? (
+                            {isMultiAsset && mw ? (
+                              <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
+                                target="_blank" rel="noopener noreferrer" className="ops-ws-link"
+                                onClick={e => e.stopPropagation()}>
+                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page
+                              </a>
+                            ) : grpUrls.length > 0 ? (
                               <a href={grpUrls[0].url} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />
                                 {grpUrls[0].id}
@@ -1305,7 +1557,7 @@ const Ops: React.FC = () => {
                         </tr>
                       );
 
-                      if (isSingle || !expanded) return headerRow;
+                      if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
 
                       const childRows = group.items.map(ws => {
                         const locked = isWorkshopLocked(ws);
@@ -1317,12 +1569,28 @@ const Ops: React.FC = () => {
                         const provDisabled = ws.spec?.provisionDisabled === true;
                         const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
                         const progress = getProvisionProgress(ws);
+                        const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
 
                         return (
-                          <tr key={wsKey(ws)} className="ops-child-row">
+                          <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
+                            <td>
+                              <Checkbox id={`select-ws-${ws.metadata.name}`}
+                                isChecked={selectedWs.has(wsKey(ws))}
+                                onChange={() => setSelectedWs(prev => {
+                                  const next = new Set(prev);
+                                  const k = wsKey(ws);
+                                  next.has(k) ? next.delete(k) : next.add(k);
+                                  return next;
+                                })}
+                                aria-label={`Select ${ws.metadata.name}`} />
+                            </td>
                             <td></td>
                             <td>
-                              <Link to={wsDetailPath(ws)} className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</Link>
+                              {isMultiAsset && assetKey && (
+                                <Label isCompact color="teal" style={{ marginRight: 6 }}>{assetKey}</Label>
+                              )}
+                              <Link to={wsDetailPath(ws)} className="ops-ws-meta">{displayName(ws)}</Link>
+                              <span className="ops-ws-meta" style={{ marginLeft: 4, opacity: 0.5, fontSize: '0.75rem' }}>{ws.metadata.name}</span>
                               {isMultiNs && (
                                 <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
                                   <Label isCompact color={
@@ -1345,8 +1613,17 @@ const Ops: React.FC = () => {
                               )}
                             </td>
                             <td>
-                              {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
+                              {locked ? (
+                                <Tooltip content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}>
+                                  <Icon status="warning"><LockIcon /></Icon>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip content={isMultiAsset ? 'Unlocked — date sync with parent is OFF' : 'Unlocked'}>
+                                  <Icon status={isMultiAsset ? 'danger' : 'success'}>{isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}</Icon>
+                                </Tooltip>
+                              )}
                             </td>
+                            <td><span className="ops-muted">&mdash;</span></td>
                             <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
                             <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
@@ -1414,29 +1691,49 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set. Consider filtering or selecting specific workshops.
+            </Alert>
+          )}
           <p>
-            Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleLock}>Lock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="warning" onClick={handleLock}>Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
       <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
-        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
+        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
-            Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}. Users will be able to modify these resources.
           </p>
+          {(() => {
+            const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
+            return multiAssetChildren.length > 0 ? (
+              <Alert variant="danger" isInline title={`${multiAssetChildren.length} workshop(s) belong to a multi-asset parent`} style={{ marginTop: 12 }}>
+                Unlocking will <strong>stop date sync</strong> with the parent &mdash; stop and destroy
+                times will no longer update when the parent schedule changes.
+                Re-lock to restore sync.
+              </Alert>
+            ) : null;
+          })()}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="primary" onClick={handleUnlock}>Unlock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1447,13 +1744,13 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.some(ws => !ws.spec?.actionSchedule?.stop) && (
+          {operationTargets.some(ws => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) currently have no auto-stop.
-              This will set a stop time relative to now.
+              {operationTargets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
+              Only workshops with an existing stop schedule will be extended.
             </Alert>
           )}
         </ModalBody>
@@ -1467,16 +1764,21 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
-          {targets.some(ws => !ws.spec?.lifespan?.end) && (
+          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.</p>
+          {operationTargets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) currently have no auto-destroy.
-              This will set a destroy time relative to now.
+              {operationTargets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
+              Only workshops with an existing destroy schedule will be extended.
             </Alert>
           )}
         </ModalBody>
@@ -1490,12 +1792,20 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. May incur additional cloud costs.</p>
+          <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
+            Workshops will remain running until their destroy deadline or manual stop.
+            This may incur additional cloud costs for the duration.
+          </Alert>
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
@@ -1509,14 +1819,14 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.length > 0 && (
+          {operationTargets.length > 0 && (
             <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
               <thead><tr>{isMultiNs && <th>NS</th>}<th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
               <tbody>
-                {targets.map(ws => {
+                {operationTargets.map(ws => {
                   const cur = getCurrentCount(ws);
                   const isDown = cur !== null && scaleCount < cur;
                   const isUp = cur !== null && scaleCount > cur;
@@ -1557,10 +1867,15 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="danger" isInline title={`This will affect ALL ${operationTargets.length} workshops`} style={{ marginBottom: 12 }}>
+              No filter is set. Every workshop in scope will be scaled to zero.
+            </Alert>
+          )}
           <p>
             Scaling to <strong>0</strong> will remove all instances on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
