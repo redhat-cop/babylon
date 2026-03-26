@@ -277,10 +277,11 @@
   table-layout: auto;
 }
 
-/* Column width hints via colgroup-like approach on th */
-.ops-table-wrap th:first-child { width: 24px; }  /* expand */
-.ops-table-wrap th:nth-child(2) { min-width: 160px; }  /* Name */
-.ops-table-wrap th:nth-child(3) { min-width: 80px; }   /* Status */
+/* Column width hints */
+.ops-table-wrap th:first-child { width: 32px; padding: 4px; }  /* checkbox */
+.ops-table-wrap th:nth-child(2) { width: 24px; }  /* expand */
+.ops-table-wrap th:nth-child(3) { min-width: 160px; }  /* Name */
+.ops-table-wrap th:nth-child(4) { min-width: 80px; }   /* Status */
 
 .ops-table-wrap thead th {
   padding: 8px 8px;
@@ -298,15 +299,15 @@
   font-size: 0.85rem;
 }
 
-/* Compact numeric columns */
-.ops-table-wrap th:nth-child(5),
-.ops-table-wrap td:nth-child(5),
+/* Compact numeric columns (shifted +1 for checkbox col) */
 .ops-table-wrap th:nth-child(6),
 .ops-table-wrap td:nth-child(6),
 .ops-table-wrap th:nth-child(7),
 .ops-table-wrap td:nth-child(7),
 .ops-table-wrap th:nth-child(8),
-.ops-table-wrap td:nth-child(8) {
+.ops-table-wrap td:nth-child(8),
+.ops-table-wrap th:nth-child(9),
+.ops-table-wrap td:nth-child(9) {
   text-align: center;
   white-space: nowrap;
   width: 1%;
@@ -315,8 +316,8 @@
 }
 
 /* Lock column compact */
-.ops-table-wrap th:nth-child(4),
-.ops-table-wrap td:nth-child(4) {
+.ops-table-wrap th:nth-child(5),
+.ops-table-wrap td:nth-child(5) {
   text-align: center;
   width: 1%;
   padding-left: 4px;
@@ -506,6 +507,13 @@ a.ops-ws-meta:hover {
   width: 24px;
   padding-right: 0;
   padding-left: 4px;
+}
+
+/* Checkbox column in table rows */
+.ops-table-wrap td:first-child {
+  width: 32px;
+  padding: 4px;
+  text-align: center;
 }
 
 .ops-expand-cell {

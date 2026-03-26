@@ -587,6 +587,31 @@ describe('Ops Component', () => {
     });
   });
 
+  describe('Bulk Select', () => {
+    test('renders select all checkbox in table header', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      expect(screen.getByLabelText('Select all workshops')).toBeInTheDocument();
+    });
+
+    test('selecting all shows selection badge and clear button', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      await userEvent.click(screen.getByLabelText('Select all workshops'));
+      expect(screen.getByText(/selected/)).toBeInTheDocument();
+      expect(screen.getByText('clear')).toBeInTheDocument();
+    });
+
+    test('clear button deselects all', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Select all workshops'));
+      await userEvent.click(screen.getByLabelText('Select all workshops'));
+      expect(screen.getByText(/selected/)).toBeInTheDocument();
+      await userEvent.click(screen.getByText('clear'));
+      expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+    });
+  });
+
   describe('CSV Export', () => {
     test('renders Export to CSV button', async () => {
       render(<Ops />);

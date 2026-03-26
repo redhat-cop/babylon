@@ -11,6 +11,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Checkbox,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -416,6 +417,41 @@ const Ops: React.FC = () => {
     return list;
   }, [workshops, workshopFilter, stageFilter]);
 
+  const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
+
+  // Clear selection when filters change
+  useEffect(() => { setSelectedWs(new Set()); }, [workshopFilter, stageFilter, namespace]);
+
+  const hasSelection = selectedWs.size > 0;
+  const operationTargets = useMemo(() => {
+    if (!hasSelection) return targets;
+    return targets.filter(ws => selectedWs.has(wsKey(ws)));
+  }, [targets, selectedWs, hasSelection]);
+
+  const allSelected = targets.length > 0 && targets.every(ws => selectedWs.has(wsKey(ws)));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedWs(new Set());
+    } else {
+      setSelectedWs(new Set(targets.map(ws => wsKey(ws))));
+    }
+  }, [allSelected, targets]);
+
+  const toggleSelectGroup = useCallback((group: { items: Workshop[] }) => {
+    setSelectedWs(prev => {
+      const next = new Set(prev);
+      const groupKeys = group.items.map(ws => wsKey(ws));
+      const allGroupSelected = groupKeys.every(k => next.has(k));
+      if (allGroupSelected) {
+        groupKeys.forEach(k => next.delete(k));
+      } else {
+        groupKeys.forEach(k => next.add(k));
+      }
+      return next;
+    });
+  }, []);
+
   interface WorkshopGroup {
     name: string;
     items: Workshop[];
@@ -481,12 +517,12 @@ const Ops: React.FC = () => {
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const ns = ws.metadata.namespace;
       counts.set(ns, (counts.get(ns) ?? 0) + 1);
     }
     return counts;
-  }, [targets]);
+  }, [operationTargets]);
 
   const isUnfiltered = !workshopFilter && !stageFilter;
 
@@ -577,7 +613,7 @@ const Ops: React.FC = () => {
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
       if (cur === null) { unknown++; continue; }
       if (scaleCount > cur) up++;
@@ -585,7 +621,7 @@ const Ops: React.FC = () => {
       else same++;
     }
     return { up, down, same, unknown };
-  }, [targets, getCurrentCount, scaleCount]);
+  }, [operationTargets, getCurrentCount, scaleCount]);
 
   const isScaleDown = scaleAnalysis.down > 0;
   const isScaleZero = scaleCount === 0;
@@ -666,7 +702,7 @@ const Ops: React.FC = () => {
     setShowLockConfirm(false);
     setLockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try { await lockWorkshop(ws); ok++; } catch { fail++; }
     }
     setLockLoading(false);
@@ -679,7 +715,7 @@ const Ops: React.FC = () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         await patchWorkshop({
           name: ws.metadata.name,
@@ -702,7 +738,7 @@ const Ops: React.FC = () => {
     setExtStopLoading(true);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
     let ok = 0, fail = 0, skip = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const currentStop = ws.spec?.actionSchedule?.stop;
       if (!currentStop) { skip++; continue; }
       try {
@@ -729,7 +765,7 @@ const Ops: React.FC = () => {
     setExtDestroyLoading(true);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
     let ok = 0, fail = 0, skip = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       const currentEnd = ws.spec?.lifespan?.end;
       if (!currentEnd) { skip++; continue; }
       try {
@@ -754,7 +790,7 @@ const Ops: React.FC = () => {
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
     let ok = 0, skip = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       if (!ws.spec?.actionSchedule?.stop) { skip++; ok++; continue; }
       try {
         await patchWorkshop({
@@ -783,7 +819,7 @@ const Ops: React.FC = () => {
     setScaleConfirmText('');
     setScaleLoading(true);
     let ok = 0, fail = 0;
-    for (const ws of targets) {
+    for (const ws of operationTargets) {
       try {
         const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
           workshopName: ws.metadata.name,
@@ -1062,6 +1098,13 @@ const Ops: React.FC = () => {
               </div>
               <span className="ops-scope-summary">
                 {scopeLabel}
+                {hasSelection && (
+                  <span style={{ marginLeft: 8 }}>
+                    <Badge isRead>{selectedWs.size} selected</Badge>
+                    <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
+                      onClick={() => setSelectedWs(new Set())}>clear</Button>
+                  </span>
+                )}
               </span>
               <span className="ops-scope-spacer" />
               <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
@@ -1298,6 +1341,10 @@ const Ops: React.FC = () => {
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
+                      <th style={{ width: 32 }}>
+                        <Checkbox id="select-all-ws" isChecked={allSelected} onChange={toggleSelectAll}
+                          aria-label="Select all workshops" />
+                      </th>
                       <th></th>
                       <th>Name</th>
                       <th>Status</th>
@@ -1370,12 +1417,22 @@ const Ops: React.FC = () => {
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
                       const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
 
+                      const groupKeys = group.items.map(ws => wsKey(ws));
+                      const grpAllSelected = groupKeys.every(k => selectedWs.has(k));
+                      const grpSomeSelected = !grpAllSelected && groupKeys.some(k => selectedWs.has(k));
+
                       const headerRow = (
                         <tr key={`grp-${group.name}`}
                           className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
                           onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
                           style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
                         >
+                          <td onClick={e => e.stopPropagation()}>
+                            <Checkbox id={`select-grp-${group.name}`}
+                              isChecked={grpAllSelected ? true : grpSomeSelected ? null : false}
+                              onChange={() => toggleSelectGroup(group)}
+                              aria-label={`Select ${group.name}`} />
+                          </td>
                           <td className="ops-expand-cell">
                             {(group.items.length > 1 || isMultiAsset) && (
                               expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
@@ -1501,6 +1558,17 @@ const Ops: React.FC = () => {
 
                         return (
                           <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
+                            <td>
+                              <Checkbox id={`select-ws-${ws.metadata.name}`}
+                                isChecked={selectedWs.has(wsKey(ws))}
+                                onChange={() => setSelectedWs(prev => {
+                                  const next = new Set(prev);
+                                  const k = wsKey(ws);
+                                  next.has(k) ? next.delete(k) : next.add(k);
+                                  return next;
+                                })}
+                                aria-label={`Select ${ws.metadata.name}`} />
+                            </td>
                             <td></td>
                             <td>
                               {isMultiAsset && assetKey && (
@@ -1608,19 +1676,19 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          {isUnfiltered && targets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
-              No workshop or stage filter is set. Consider filtering to a specific workshop if you only need to lock some.
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set. Consider filtering or selecting specific workshops.
             </Alert>
           )}
           <p>
-            Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleLock}>Lock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="warning" onClick={handleLock}>Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1629,17 +1697,17 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          {isUnfiltered && targets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
               No workshop or stage filter is set.
             </Alert>
           )}
           <p>
-            Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}. Users will be able to modify these resources.
+            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}. Users will be able to modify these resources.
           </p>
           {(() => {
-            const multiAssetChildren = targets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
+            const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
             return multiAssetChildren.length > 0 ? (
               <Alert variant="danger" isInline title="Multi-asset workshop warning" style={{ marginTop: 12 }}>
                 <strong>{multiAssetChildren.length}</strong> of these workshop(s) are children of a multi-asset parent.
@@ -1651,7 +1719,7 @@ const Ops: React.FC = () => {
           })()}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="primary" onClick={handleUnlock}>Unlock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1662,12 +1730,12 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.some(ws => !ws.spec?.actionSchedule?.stop) && (
+          {operationTargets.some(ws => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
+              {operationTargets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
               Only workshops with an existing stop schedule will be extended.
             </Alert>
           )}
@@ -1682,20 +1750,20 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          {isUnfiltered && targets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
               No workshop or stage filter is set.
             </Alert>
           )}
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.</p>
-          {targets.some(ws => !ws.spec?.lifespan?.end) && (
+          {operationTargets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
+              {operationTargets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
               Only workshops with an existing destroy schedule will be extended.
             </Alert>
           )}
@@ -1710,15 +1778,15 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          {isUnfiltered && targets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
               No workshop or stage filter is set.
             </Alert>
           )}
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
             Workshops will remain running until their destroy deadline or manual stop.
@@ -1737,14 +1805,14 @@ const Ops: React.FC = () => {
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
-          {targets.length > 0 && (
+          {operationTargets.length > 0 && (
             <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
               <thead><tr>{isMultiNs && <th>NS</th>}<th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
               <tbody>
-                {targets.map(ws => {
+                {operationTargets.map(ws => {
                   const cur = getCurrentCount(ws);
                   const isDown = cur !== null && scaleCount < cur;
                   const isUp = cur !== null && scaleCount > cur;
@@ -1785,15 +1853,15 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
-          {isUnfiltered && targets.length > 5 && (
-            <Alert variant="danger" isInline title={`This will affect ALL ${targets.length} workshops`} style={{ marginBottom: 12 }}>
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="danger" isInline title={`This will affect ALL ${operationTargets.length} workshops`} style={{ marginBottom: 12 }}>
               No filter is set. Every workshop in scope will be scaled to zero.
             </Alert>
           )}
           <p>
             Scaling to <strong>0</strong> will remove all instances on{' '}
-            <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
