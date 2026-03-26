@@ -8,6 +8,7 @@ import {
 
 import { apiPaths, publicFetcher } from '@app/api';
 import { MultiWorkshop } from '@app/types';
+import Footer from '@app/components/Footer';
 import heroImg from './hero-img.jpeg';
 import LabIcon from './LabIcon';
 
@@ -187,46 +188,50 @@ const MultiWorkshopLandingComponent: React.FC<{
         </div>
       </header>
 
-      {/* Hero with title overlay */}
-      <div
-        className="mwl-hero"
-        style={{ backgroundImage: `url(${multiworkshop.spec.backgroundImage || heroImg})` }}
-      >
-        <div className="mwl-hero__overlay" />
-        <div className="mwl-hero__content">
-          <h1 className="mwl-hero__title">{displayName}</h1>
-          {multiworkshop.spec.description && (
-            <p className="mwl-hero__description">{multiworkshop.spec.description}</p>
-          )}
+      <main className="mwl-main">
+        {/* Hero with title overlay */}
+        <div
+          className="mwl-hero"
+          style={{ backgroundImage: `url(${multiworkshop.spec.backgroundImage || heroImg})` }}
+        >
+          <div className="mwl-hero__overlay" />
+          <div className="mwl-hero__content">
+            <h1 className="mwl-hero__title">{displayName}</h1>
+            {multiworkshop.spec.description && (
+              <p className="mwl-hero__description">{multiworkshop.spec.description}</p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Workshop Cards */}
-      <section className="mwl-cards-section">
-        {assets.length === 0 ? (
-          <div className="mwl-cards-section__empty">
-            <Alert variant="info" title="No Workshop Sessions">
-              This multi-workshop doesn&apos;t have any workshop sessions configured yet.
-            </Alert>
-          </div>
-        ) : (
-          <div className="demo-card-grid">
-            {assets.map((asset, index) => {
-              const isAvailable = asset.type === 'external'
-                ? !!asset.url
-                : !!asset.workshopId;
+        {/* Workshop Cards */}
+        <section className="mwl-cards-section">
+          {assets.length === 0 ? (
+            <div className="mwl-cards-section__empty">
+              <Alert variant="info" title="No Workshop Sessions">
+                This multi-workshop doesn&apos;t have any workshop sessions configured yet.
+              </Alert>
+            </div>
+          ) : (
+            <div className="demo-card-grid">
+              {assets.map((asset, index) => {
+                const isAvailable = asset.type === 'external'
+                  ? !!asset.url
+                  : !!asset.workshopId;
 
-              return (
-                <WorkshopCard
-                  key={asset.key || index}
-                  asset={asset}
-                  isAvailable={isAvailable}
-                />
-              );
-            })}
-          </div>
-        )}
-      </section>
+                return (
+                  <WorkshopCard
+                    key={asset.key || index}
+                    asset={asset}
+                    isAvailable={isAvailable}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <Footer />
+      </main>
     </div>
   );
 };

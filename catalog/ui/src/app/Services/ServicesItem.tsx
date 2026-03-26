@@ -1147,7 +1147,7 @@ const ServicesItemComponent: React.FC<{
                             variant="link"
                             icon={<PlusCircleIcon />}
                             onClick={() => setModalAddServiceAccess(true)}
-                            style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
+                            style={{ alignSelf: 'flex-start', paddingLeft: 0, paddingTop: 0, paddingBottom: 0, paddingRight: 0 }}
                           >
                             Share service
                           </Button>

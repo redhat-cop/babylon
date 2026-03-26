@@ -5,14 +5,13 @@ import {
   Form,
   FormGroup,
   HelperText,
-  PageSection,
+  HelperTextItem,
+  InputGroup,
+  InputGroupItem,
   Popover,
-  Content,
   TextInput,
-  Title,
 } from '@patternfly/react-core';
 import HelpIcon from '@patternfly/react-icons/dist/js/icons/help-icon';
-import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ArrowRightIcon from '@patternfly/react-icons/dist/js/icons/arrow-right-icon';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
@@ -52,96 +51,89 @@ const WorkshopLogin: React.FC<{
     setEmailValidated(errorType);
   };
 
+  const hasDescription = description && description.replace(/(<([^>]+)>)/gi, '') !== '';
+
   return (
-    <PageSection hasBodyWrapper={false}  padding={{ default: 'noPadding' }} className="workshop-login">
-      <Hero image={heroImg}>
-        <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
-          <b>{displayName}</b>
-        </Title>
+    <div className="workshop-login">
+      <Hero image={heroImg} overlay compact>
+        <h1 className="workshop-login__hero-title">{displayName}</h1>
       </Hero>
-      <Form className="workshop-login__form">
-        <Title
-          headingLevel="h3"
-          className="workshop-login__title"
-          style={{
-            justifyContent: description && description.replace(/(<([^>]+)>)/gi, '') !== '' ? 'flex-start' : 'center',
-          }}
-        >
-          Access to {displayName}
-        </Title>
-        <div
-          className="workshop-login__form-wrapper"
-          style={{
-            justifyContent: description && description.replace(/(<([^>]+)>)/gi, '') !== '' ? 'flex-start' : 'center',
-          }}
-        >
-          <div className="workshop-login__form-content">
-            <FormGroup
-              fieldId="email"
-              isRequired
-              label="Email"
-              labelHelp={
-                <Popover
-                  bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
-                  headerContent="Email Address"
-                >
-                  <Button icon={<HelpIcon />} variant="plain" />
-                </Popover>
-              }
-            >
-              <TextInput
-                type="email"
-                id="email"
-                placeholder="email@redhat.com"
-                isRequired
-                onChange={(_event, v: string) => handleEmail(v)}
-                value={email}
-              />
-              {emailValidated === 'error' ? (
-                <HelperText>
-                  <ExclamationCircleIcon /> Invalid email address
-                </HelperText>
-              ) : null}
-            </FormGroup>
-            {workshop.accessPasswordRequired ? (
-              <FormGroup
-                fieldId="accessPassword"
-                isRequired
-                label="Workshop Password"
-                labelHelp={
-                  <Popover bodyContent="Password will be provided by your workshop facilitator.">
-                    <Button icon={<HelpIcon />} variant="plain" />
-                  </Popover>
-                }
-              >
-                <TextInput
-                  id="accessPassword"
-                  isRequired
-                  onChange={(_event, val) => setAccessPassword(val)}
-                  type="password"
-                  value={accessPassword}
-                />
+      <section className="workshop-login__body">
+        <div className={`workshop-login__layout${hasDescription ? ' workshop-login__layout--with-desc' : ''}`}>
+          <div className="workshop-login__card">
+            <h2 className="workshop-login__card-title">Access this workshop</h2>
+            <Form className="workshop-login__form">
+              <FormGroup fieldId="email" isRequired label="Email">
+                <InputGroup>
+                  <InputGroupItem isFill>
+                    <TextInput
+                      type="email"
+                      id="email"
+                      placeholder="email@redhat.com"
+                      isRequired
+                      onChange={(_event, v: string) => handleEmail(v)}
+                      value={email}
+                    />
+                  </InputGroupItem>
+                  <InputGroupItem>
+                    <Popover
+                      bodyContent="Only used for identification purposes during this workshop. No email messages will be sent to this address."
+                      headerContent="Email Address"
+                    >
+                      <Button icon={<HelpIcon />} variant="control" className="workshop-login__help-btn" />
+                    </Popover>
+                  </InputGroupItem>
+                </InputGroup>
+                {emailValidated === 'error' ? (
+                  <HelperText>
+                    <HelperTextItem variant="error">
+                      Invalid email address
+                    </HelperTextItem>
+                  </HelperText>
+                ) : null}
               </FormGroup>
-            ) : null}
-            <ActionGroup>
-              <Button icon={<ArrowRightIcon />}
-                type="submit"
-                isDisabled={submitDisabled}
-                onClick={(ev: React.FormEvent<HTMLButtonElement>) => {
-                  ev.preventDefault();
-                  onLogin(email, accessPassword);
-                }}
-              >
-                Access this workshop 
-              </Button>
-            </ActionGroup>
-            <FormGroup>
-              {loginFailureMessage ? <Content component="p" className="workshop-login__failure">{loginFailureMessage}</Content> : null}
-            </FormGroup>
+              {workshop.accessPasswordRequired ? (
+                <FormGroup fieldId="accessPassword" isRequired label="Workshop Password">
+                  <InputGroup>
+                    <InputGroupItem isFill>
+                      <TextInput
+                        id="accessPassword"
+                        isRequired
+                        onChange={(_event, val) => setAccessPassword(val)}
+                        type="password"
+                        value={accessPassword}
+                      />
+                    </InputGroupItem>
+                    <InputGroupItem>
+                      <Popover bodyContent="Password will be provided by your workshop facilitator.">
+                        <Button icon={<HelpIcon />} variant="control" className="workshop-login__help-btn" />
+                      </Popover>
+                    </InputGroupItem>
+                  </InputGroup>
+                </FormGroup>
+              ) : null}
+              <ActionGroup>
+                <Button
+                  icon={<ArrowRightIcon />}
+                  type="submit"
+                  isDisabled={submitDisabled}
+                  isBlock
+                  onClick={(ev: React.FormEvent<HTMLButtonElement>) => {
+                    ev.preventDefault();
+                    onLogin(email, accessPassword);
+                  }}
+                >
+                  Access this workshop
+                </Button>
+              </ActionGroup>
+              {loginFailureMessage ? (
+                <p className="workshop-login__failure">{loginFailureMessage}</p>
+              ) : null}
+            </Form>
           </div>
-          {description ? (
+          {hasDescription ? (
             <aside className="workshop-login__description">
-              <div>
+              <div className="workshop-login__description-card">
                 {renderEditor ? (
                   <EditorViewer value={description} />
                 ) : (
@@ -151,8 +143,8 @@ const WorkshopLogin: React.FC<{
             </aside>
           ) : null}
         </div>
-      </Form>
-    </PageSection>
+      </section>
+    </div>
   );
 };
 

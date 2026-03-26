@@ -1,23 +1,20 @@
 import React from 'react';
 
-const Hero: React.FC<{ image: string; children: React.ReactNode }> = ({ image, children, ...rest }) => {
-  const style: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyItems: 'center',
-    color: '#fff',
-    textAlign: 'center',
-    backgroundImage: `url(${image})`,
-    backgroundSize: 'cover',
-    backgroundPositionY: 'center',
-    padding: '128px 24px',
-    margin: 0,
-    marginBottom: "var(--pf-t--global--spacer--md)",
-  };
+import './hero.css';
+
+const Hero: React.FC<{
+  image: string;
+  overlay?: boolean;
+  compact?: boolean;
+  children: React.ReactNode;
+}> = ({ image, overlay = false, compact = false, children }) => {
   return (
-    <div style={style} {...rest}>
-      {children}
+    <div
+      className={`hero${overlay ? ' hero--overlay' : ''}${compact ? ' hero--compact' : ''}`}
+      style={{ backgroundImage: `url(${image})` }}
+    >
+      {overlay && <div className="hero__overlay" />}
+      <div className="hero__content">{children}</div>
     </div>
   );
 };

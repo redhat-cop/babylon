@@ -6,6 +6,10 @@
   width: auto;
 }
 
+.editable-text-input--password.pf-v6-c-form-control {
+  max-width: 240px;
+}
+
 .editable-text-placeholder {
   color: var(--pf-v6-global--Color--400);
 }
