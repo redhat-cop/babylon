@@ -1,127 +1,422 @@
 /* ============================================================
    Global dark mode overrides — applied via .pf-v6-theme-dark on <html>.
-   PF6 tokens auto-remap most colours; these handle hardcoded values
-   in custom CSS that bypass the token system.
+   PF6 tokens auto-remap most native PF components; these handle
+   custom CSS that uses hardcoded hex colours or misused icon tokens.
    ============================================================ */
 
-/* ---- Admin pages ---- */
+/* ============================================================
+   1. CATALOG ITEM CARDS
+   The card CSS uses --pf-t--global--icon--color--100 for text,
+   which is an icon token that stays dark (#151515) in dark mode.
+   ============================================================ */
+
+:root.pf-v6-theme-dark .catalog-item-card {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-card__title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-card__description {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .catalog-item-card__subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ============================================================
+   2. CATALOG LIST ITEMS
+   ============================================================ */
+
+:root.pf-v6-theme-dark .catalog-item-list-item__title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-list-item__description {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .catalog-item-list-item__subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .catalog-item-list-item__header {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* ============================================================
+   3. CATALOG CONTENT AREA
+   ============================================================ */
+
+:root.pf-v6-theme-dark .catalog__content-box.pf-v6-c-page__main-section,
+:root.pf-v6-theme-dark .catalog__content-box--empty.pf-v6-c-page__main-section {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+/* ============================================================
+   4. CATALOG ITEM DETAILS PAGE
+   ============================================================ */
+
+:root.pf-v6-theme-dark .catalog-item-details__description-label {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description pre {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock {
+  background: var(--pf-t--global--background--color--primary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock caption,
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock thead th {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock thead {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock tbody tr:nth-child(even) {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock tbody tr:hover {
+  background: color-mix(in srgb, var(--pf-t--global--color--brand--default) 10%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock th,
+:root.pf-v6-theme-dark .catalog-item-details__description .tableblock td {
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+/* Admonition blocks */
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock.note {
+  background: color-mix(in srgb, #007bff 12%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock.tip {
+  background: color-mix(in srgb, #28a745 12%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock.important {
+  background: color-mix(in srgb, #dc3545 12%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock.warning {
+  background: color-mix(in srgb, #ffc107 12%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock.caution {
+  background: color-mix(in srgb, #ff9800 12%, var(--pf-t--global--background--color--primary--default));
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock td.content,
+:root.pf-v6-theme-dark .catalog-item-details__description .admonitionblock .content {
+  background: transparent;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* Status label colours — hardcoded light-mode palette */
+:root.pf-v6-theme-dark .catalog-item-details__status--degraded-performance .pf-v6-c-label__content,
+:root.pf-v6-theme-dark .catalog-item-details__status--partial-outage .pf-v6-c-label__content {
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__status--major-outage .pf-v6-c-label__content {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__status--under-maintenance .pf-v6-c-label__content {
+  color: var(--pf-t--global--color--status--info--default);
+}
+
+:root.pf-v6-theme-dark .catalog-item-details__access-deny-reason {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* ============================================================
+   5. CATALOG ITEM ADMIN
+   ============================================================ */
+
+:root.pf-v6-theme-dark .catalog-item-admin__loading {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+:root.pf-v6-theme-dark .catalog-item-admin__author {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .catalog-item-admin__subtitle {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ============================================================
+   6. ADMIN PAGES
+   ============================================================ */
 
 :root.pf-v6-theme-dark .admin-container {
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-/* ---- Catalog item cards ---- */
+/* ============================================================
+   7. INCIDENTS BANNER — hardcoded light backgrounds and text
+   ============================================================ */
 
-:root.pf-v6-theme-dark .catalog-item-card {
+:root.pf-v6-theme-dark .pf-v6-c-banner.pf-m-gold {
+  background-color: color-mix(in srgb, #f0ab00 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-banner.pf-m-blue {
+  background-color: color-mix(in srgb, #2b9af3 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-banner.pf-m-blue a,
+:root.pf-v6-theme-dark .pf-v6-c-banner.pf-m-blue .editor-link {
+  color: var(--pf-t--global--text--color--link--default) !important;
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-banner.pf-m-red {
+  background-color: color-mix(in srgb, #c9190b 15%, var(--pf-t--global--background--color--primary--default));
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .incidents-banner__close-btn svg {
+  fill: var(--pf-t--global--icon--color--subtle) !important;
+}
+
+/* ============================================================
+   8. HEADER — warning impersonate colour
+   ============================================================ */
+
+:root.pf-v6-theme-dark .header-component__user-controls--warning .pf-v6-c-dropdown__toggle-text {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+:root.pf-v6-theme-dark .header-component {
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
-/* ---- Catalog item details — pre blocks, admonitions, status dots ---- */
-
-:root.pf-v6-theme-dark .catalog-item-details pre {
-  background-color: var(--pf-t--global--background--color--secondary--default);
-  color: var(--pf-t--global--text--color--regular);
-}
-
-:root.pf-v6-theme-dark .catalog-item-details .admonitionblock td.content {
-  background: var(--pf-t--global--background--color--secondary--default);
-}
-
-:root.pf-v6-theme-dark .catalog-item-details .listingblock pre {
-  background: var(--pf-t--global--background--color--secondary--default);
-}
-
-:root.pf-v6-theme-dark .catalog-item-details table.tableblock {
-  background: var(--pf-t--global--background--color--primary--default);
-}
-
-/* ---- Incidents banner ---- */
-
-:root.pf-v6-theme-dark .incidents-banner-warning {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 15%, var(--pf-t--global--background--color--primary--default));
-  color: var(--pf-t--global--text--color--regular);
-}
-
-:root.pf-v6-theme-dark .incidents-banner-info {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 15%, var(--pf-t--global--background--color--primary--default));
-  color: var(--pf-t--global--text--color--regular);
-}
-
-:root.pf-v6-theme-dark .incidents-banner-danger {
-  background-color: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 15%, var(--pf-t--global--background--color--primary--default));
-  color: var(--pf-t--global--text--color--regular);
-}
-
-/* ---- Ansible run log ---- */
+/* ============================================================
+   9. ANSIBLE RUN LOG
+   ============================================================ */
 
 :root.pf-v6-theme-dark .ansible-run-log {
   background-color: var(--pf-t--global--background--color--secondary--default);
   border-color: var(--pf-t--global--border--color--default);
-}
-
-:root.pf-v6-theme-dark .ansible-run-log .task-header {
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
-/* ---- Button circle icon ---- */
-
-:root.pf-v6-theme-dark .button-circle-icon {
-  border-color: var(--pf-t--global--border--color--default);
-}
-
-/* ---- Loading icon ---- */
-
-:root.pf-v6-theme-dark .loading-icon-bar {
-  background: var(--pf-t--global--color--brand--default);
-}
-
-/* ---- Catalog item admin — frosted overlay ---- */
-
-:root.pf-v6-theme-dark .catalog-item-admin__overlay {
-  background: rgba(0, 0, 0, 0.65);
-}
-
-/* ---- Footer ---- */
-
-:root.pf-v6-theme-dark .footer-container {
-  background-color: var(--pf-t--global--background--color--secondary--default);
-}
-
-/* ---- Editor ---- */
-
-:root.pf-v6-theme-dark .editor-wrapper {
-  background-color: var(--pf-t--global--background--color--secondary--default);
   color: var(--pf-t--global--text--color--regular);
 }
 
-:root.pf-v6-theme-dark .editor-wrapper .ProseMirror {
+:root.pf-v6-theme-dark .ansible-run-log-play-start,
+:root.pf-v6-theme-dark .ansible-run-log-task-start {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .ansible-run-log-ok,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-ok,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-item-ok {
+  color: #4caf50;
+}
+
+:root.pf-v6-theme-dark .ansible-run-log-changed,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-changed,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-item-changed {
+  color: #ffb74d;
+}
+
+:root.pf-v6-theme-dark .ansible-run-log-skipped,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-skipped,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-item-skipped {
+  color: #4dd0e1;
+}
+
+:root.pf-v6-theme-dark .ansible-run-log-failed,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-failed,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-item-failed {
+  color: #ef5350;
+}
+
+:root.pf-v6-theme-dark .ansible-run-log-task-host-unknown,
+:root.pf-v6-theme-dark .ansible-run-log-task-host-item-unknown {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: #ef5350;
+}
+
+/* ============================================================
+   10. EDITOR (Lexical rich text)
+   ============================================================ */
+
+:root.pf-v6-theme-dark .editor__container {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .editor__input {
+  caret-color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .editor__placeholder {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .editor-text-code {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .editor-link {
+  color: var(--pf-t--global--text--color--link--default) !important;
+}
+
+:root.pf-v6-theme-dark .editor-code {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .editor-code:before {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border-right-color: var(--pf-t--global--border--color--default);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .editor-heading-h1 {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .editor-heading-h2 {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .editor-quote {
+  color: var(--pf-t--global--text--color--subtle);
+  border-left-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .toolbar {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .toolbar .toolbar-item:hover:not([disabled]) {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .toolbar .divider {
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .toolbar select.toolbar-item,
+:root.pf-v6-theme-dark .toolbar .toolbar-item .text {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .editor .dropdown,
+:root.pf-v6-theme-dark body > .dropdown {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.4), 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+:root.pf-v6-theme-dark .editor .dropdown .item,
+:root.pf-v6-theme-dark body > .dropdown .item {
+  color: var(--pf-t--global--text--color--regular);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .editor .dropdown .item:hover,
+:root.pf-v6-theme-dark body > .dropdown .item:hover {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .link-editor {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .link-editor .link-input {
   background-color: var(--pf-t--global--background--color--primary--default);
   color: var(--pf-t--global--text--color--regular);
 }
 
-/* ---- AsciiDoc content wrapper ---- */
+:root.pf-v6-theme-dark .link-editor .link-input a {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+:root.pf-v6-theme-dark .link-editor .button.hovered {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark #block-controls button:hover {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* Code syntax colours for dark mode */
+:root.pf-v6-theme-dark .editor-tokenComment { color: #8292a2; }
+:root.pf-v6-theme-dark .editor-tokenPunctuation { color: #a9b7c6; }
+:root.pf-v6-theme-dark .editor-tokenProperty { color: #cc7832; }
+:root.pf-v6-theme-dark .editor-tokenSelector { color: #a5c261; }
+:root.pf-v6-theme-dark .editor-tokenOperator { color: #e8bf6a; }
+:root.pf-v6-theme-dark .editor-tokenAttr { color: #6897bb; }
+:root.pf-v6-theme-dark .editor-tokenVariable { color: #ffc66d; }
+:root.pf-v6-theme-dark .editor-tokenFunction { color: #ff6b6b; }
+
+/* ============================================================
+   11. ASCIIDOC WRAPPER (adoc-wrapper.css)
+   The adoc stylesheet has ~2000 lines of hardcoded colours.
+   We override the main elements used for content display.
+   ============================================================ */
 
 :root.pf-v6-theme-dark .adoc-wrapper__content {
   color: var(--pf-t--global--text--color--regular);
 }
 
-:root.pf-v6-theme-dark .adoc-wrapper__content pre,
-:root.pf-v6-theme-dark .adoc-wrapper__content code {
-  background-color: var(--pf-t--global--background--color--secondary--default);
+:root.pf-v6-theme-dark .adoc-wrapper__content mark {
+  background: color-mix(in srgb, #ff0 30%, var(--pf-t--global--background--color--primary--default));
   color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content pre,
+:root.pf-v6-theme-dark .adoc-wrapper__content code,
+:root.pf-v6-theme-dark .adoc-wrapper__content kbd,
+:root.pf-v6-theme-dark .adoc-wrapper__content samp {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content pre {
+  background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
 :root.pf-v6-theme-dark .adoc-wrapper__content .listingblock pre {
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
+:root.pf-v6-theme-dark .adoc-wrapper__content abbr[title] {
+  border-bottom-color: var(--pf-t--global--border--color--default);
+}
+
 :root.pf-v6-theme-dark .adoc-wrapper__content table {
   border-color: var(--pf-t--global--border--color--default);
+  background: var(--pf-t--global--background--color--primary--default);
 }
 
 :root.pf-v6-theme-dark .adoc-wrapper__content table td,
 :root.pf-v6-theme-dark .adoc-wrapper__content table th {
   border-color: var(--pf-t--global--border--color--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .admonitionblock {
+  background: var(--pf-t--global--background--color--secondary--default);
 }
 
 :root.pf-v6-theme-dark .adoc-wrapper__content .admonitionblock td.icon {
@@ -129,46 +424,255 @@
 }
 
 :root.pf-v6-theme-dark .adoc-wrapper__content .admonitionblock td.content {
-  background: var(--pf-t--global--background--color--secondary--default);
+  background: transparent;
+  color: var(--pf-t--global--text--color--regular);
 }
 
-/* ---- Workshop pages (login, content) — these have their own dark-ish theming ---- */
+:root.pf-v6-theme-dark .adoc-wrapper__content .quoteblock blockquote {
+  color: var(--pf-t--global--text--color--subtle);
+}
 
-:root.pf-v6-theme-dark .workshop-login-card,
-:root.pf-v6-theme-dark .workshop-content-card {
+:root.pf-v6-theme-dark .adoc-wrapper__content .conum[data-value] {
+  color: var(--pf-t--global--text--color--on-brand--default) !important;
+  background: var(--pf-t--global--color--brand--default) !important;
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .literalblock pre,
+:root.pf-v6-theme-dark .adoc-wrapper__content .listingblock > .content > pre {
+  background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .sidebarblock {
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content .exampleblock > .content {
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content #toctitle,
+:root.pf-v6-theme-dark .adoc-wrapper__content .title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content a {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+:root.pf-v6-theme-dark .adoc-wrapper__content a:hover {
+  color: var(--pf-t--global--text--color--link--hover);
+}
+
+/* ============================================================
+   12. WORKSHOP PUBLIC PAGES (login, content)
+   These are standalone pages with their own hardcoded themes.
+   ============================================================ */
+
+:root.pf-v6-theme-dark .workshop-login__body {
+  background: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .workshop-login__card,
+:root.pf-v6-theme-dark .workshop-login__description-card {
+  background: var(--pf-t--global--background--color--secondary--default);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:root.pf-v6-theme-dark .workshop-login__card-title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .workshop-login__help-btn.pf-v6-c-button {
+  color: var(--pf-t--global--icon--color--subtle);
+}
+
+:root.pf-v6-theme-dark .workshop-login__failure {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+:root.pf-v6-theme-dark .workshop-content__body {
+  background: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .workshop-content__section-title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .workshop-content__card {
+  background: var(--pf-t--global--background--color--secondary--default);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:root.pf-v6-theme-dark .workshop-content__card-label {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .workshop-content__link {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+:root.pf-v6-theme-dark .workshop-content__link:hover {
+  color: var(--pf-t--global--text--color--link--hover);
+}
+
+:root.pf-v6-theme-dark .workshop-content__pre {
+  background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* ============================================================
+   13. MULTIWORKSHOP LANDING
+   ============================================================ */
+
+:root.pf-v6-theme-dark .mwl-cards-section {
+  background: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card {
   background: var(--pf-t--global--background--color--secondary--default);
   color: var(--pf-t--global--text--color--regular);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-:root.pf-v6-theme-dark .workshop-login-strip,
-:root.pf-v6-theme-dark .workshop-content-strip {
-  background: var(--pf-t--global--background--color--secondary--default);
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card:hover,
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card:focus {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 6px rgba(0, 0, 0, 0.15);
 }
 
-/* ---- MultiWorkshop landing ---- */
-
-:root.pf-v6-theme-dark .multiworkshop-landing-card {
-  background: var(--pf-t--global--background--color--secondary--default);
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__title {
   color: var(--pf-t--global--text--color--regular);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-:root.pf-v6-theme-dark .multiworkshop-landing-strip {
-  background: var(--pf-t--global--background--color--secondary--default);
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__description {
+  color: var(--pf-t--global--text--color--subtle);
 }
 
-/* ---- Header masthead ---- */
-
-:root.pf-v6-theme-dark .header-component {
-  background-color: var(--pf-t--global--background--color--secondary--default);
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__seats {
+  color: var(--pf-t--global--color--status--success--default);
 }
 
-/* ---- Services ---- */
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__subtitle {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__subtitle svg,
+:root.pf-v6-theme-dark .multi-workshop-landing .pfe-cta--arrow {
+  fill: var(--pf-t--global--text--color--link--default);
+}
+
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card:hover .demo-card__subtitle {
+  color: var(--pf-t--global--text--color--link--hover);
+}
+
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card:hover .demo-card__subtitle svg,
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card:hover .pfe-cta--arrow {
+  fill: var(--pf-t--global--text--color--link--hover);
+}
+
+:root.pf-v6-theme-dark .multi-workshop-landing .demo-card__subtitle--disabled {
+  color: var(--pf-t--global--text--color--subtle) !important;
+}
+
+/* ============================================================
+   14. SERVICES
+   ============================================================ */
+
+:root.pf-v6-theme-dark .services-item__estimated-cost-label {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .services-item__topbar.pf-v6-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .services-item__admin-description.pf-v6-c-description-list__description {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
 
 :root.pf-v6-theme-dark .services-item__details pre {
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
-/* ---- Generic: form controls already fixed in app.css via token ---- */
-/* ---- Generic: PF6 cards, modals, tooltips auto-remap via tokens ---- */
+:root.pf-v6-theme-dark .services-list__topbar.pf-v6-c-page__main-section .pf-c-dropdown__toggle {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* ============================================================
+   15. BUTTON CIRCLE ICON
+   ============================================================ */
+
+:root.pf-v6-theme-dark .button-circle-icon {
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+/* ============================================================
+   16. LOADING ICON
+   ============================================================ */
+
+:root.pf-v6-theme-dark .co-m-loader-dot__one,
+:root.pf-v6-theme-dark .co-m-loader-dot__two,
+:root.pf-v6-theme-dark .co-m-loader-dot__three {
+  background: var(--pf-t--global--color--brand--default);
+}
+
+/* ============================================================
+   17. FOOTER
+   ============================================================ */
+
+:root.pf-v6-theme-dark .footer-component {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .footer__legal {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .footer__legal a {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ============================================================
+   18. ORDER FORM — Terms of Service box + Admin Settings
+   ============================================================ */
+
+/* Terms-of-service — both request and form variants */
+:root.pf-v6-theme-dark .terms-of-service {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .terms-of-service div,
+:root.pf-v6-theme-dark .terms-of-service p,
+:root.pf-v6-theme-dark .terms-of-service li,
+:root.pf-v6-theme-dark .terms-of-service span {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .terms-of-service a {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+/* Admin section content — form and services detail */
+:root.pf-v6-theme-dark .catalog-item-form__admin-section-content {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+/* ============================================================
+   19. WORKSHOPS ITEM DETAILS — Admin section
+   ============================================================ */
+
+:root.pf-v6-theme-dark .workshops-item-details__admin-description.pf-v6-c-description-list__description {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+/* ============================================================
+   20. MULTIWORKSHOP CREATE — Asset card background
+   ============================================================ */
+
+:root.pf-v6-theme-dark .multiworkshop-create__asset-card {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border-color: var(--pf-t--global--border--color--default);
+}

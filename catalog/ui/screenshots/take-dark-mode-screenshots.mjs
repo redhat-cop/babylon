@@ -32,6 +32,12 @@ async function run() {
   await page.screenshot({ path: path.join(OUT, 'catalog-dark.png'), fullPage: false });
   console.log('✓ catalog-dark.png');
 
+  // --- Order form page (dark) — shows terms-of-service + admin section ---
+  await page.goto(`${BASE}/catalog/babylon-catalog-prod/order/enterprise.ocp4-acc-new-app-dev.prod`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: path.join(OUT, 'order-form-dark.png'), fullPage: true });
+  console.log('✓ order-form-dark.png');
+
   // --- Admin Ops page (dark — already in dark mode) ---
   await page.goto(`${BASE}/admin/ops/${NS}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(3000);
