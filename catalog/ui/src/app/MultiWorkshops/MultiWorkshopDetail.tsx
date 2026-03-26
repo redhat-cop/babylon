@@ -697,33 +697,39 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <DateTimePicker
-                          defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
-                          onSelect={async (date) => {
-                            const apiDate = dateToApiString(date);
-                            const updatedMultiWorkshop = await patchMultiWorkshop({
-                              name: multiworkshop.metadata.name,
-                              namespace: multiworkshop.metadata.namespace,
-                              patch: { spec: { startDate: apiDate } },
-                            });
-                            mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                          }}
-                        />
-                        <Button
-                          variant="link"
-                          isInline
-                          onClick={async () => {
-                            const apiDate = dateToApiString(new Date());
-                            const updatedMultiWorkshop = await patchMultiWorkshop({
-                              name: multiworkshop.metadata.name,
-                              namespace: multiworkshop.metadata.namespace,
-                              patch: { spec: { startDate: apiDate } },
-                            });
-                            mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                          }}
-                        >
-                          Start now
-                        </Button>
+                        <Split hasGutter style={{ alignItems: 'center' }}>
+                          <SplitItem>
+                            <DateTimePicker
+                              defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
+                              onSelect={async (date) => {
+                                const apiDate = dateToApiString(date);
+                                const updatedMultiWorkshop = await patchMultiWorkshop({
+                                  name: multiworkshop.metadata.name,
+                                  namespace: multiworkshop.metadata.namespace,
+                                  patch: { spec: { startDate: apiDate } },
+                                });
+                                mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                              }}
+                            />
+                          </SplitItem>
+                          <SplitItem>
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={async () => {
+                                const apiDate = dateToApiString(new Date());
+                                const updatedMultiWorkshop = await patchMultiWorkshop({
+                                  name: multiworkshop.metadata.name,
+                                  namespace: multiworkshop.metadata.namespace,
+                                  patch: { spec: { startDate: apiDate } },
+                                });
+                                mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                              }}
+                            >
+                              Start now
+                            </Button>
+                          </SplitItem>
+                        </Split>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   )}
