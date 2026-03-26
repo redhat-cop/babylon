@@ -1436,6 +1436,17 @@ const Ops: React.FC = () => {
             Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
             {modalScopeDescription}.
           </p>
+          {(() => {
+            const multiAssetChildren = targets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
+            return multiAssetChildren.length > 0 ? (
+              <Alert variant="danger" isInline title="Multi-asset workshop warning" style={{ marginTop: 12 }}>
+                <strong>{multiAssetChildren.length}</strong> of these workshop(s) are children of a multi-asset parent.
+                Unlocking them will <strong>break date synchronisation</strong> with the parent config &mdash;
+                their start, stop, and destroy dates will no longer follow the parent schedule.
+                They must be re-locked to restore sync.
+              </Alert>
+            ) : null;
+          })()}
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>

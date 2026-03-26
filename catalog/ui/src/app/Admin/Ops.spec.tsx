@@ -413,6 +413,17 @@ describe('Ops Component', () => {
       });
     });
 
+    test('Unlock modal warns about multi-asset child workshops', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByText('Resource Lock'));
+      await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
+      await waitFor(() => {
+        expect(screen.getByText('Confirm Unlock')).toBeInTheDocument();
+        expect(screen.getByText('Multi-asset workshop warning')).toBeInTheDocument();
+        expect(screen.getByText(/break date synchronisation/)).toBeInTheDocument();
+      });
+    });
+
     test('Lock confirmation shows workshop count', async () => {
       render(<Ops />);
       await waitFor(() => screen.getByText('Resource Lock'));
