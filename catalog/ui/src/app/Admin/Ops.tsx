@@ -574,7 +574,7 @@ const Ops: React.FC = () => {
 
     for (const ws of effectiveTargets) {
       const count = getCurrentCount(ws);
-      if (count !== null) totalInstances += count;
+      totalInstances += count ?? 1;
 
       const seats = getSeats(ws);
       if (seats) {
@@ -1405,7 +1405,7 @@ const Ops: React.FC = () => {
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
-                        if (c !== null) grpInstances += c;
+                        grpInstances += c ?? 1;
                         const s = getSeats(ws);
                         if (s) { grpSeatsAssigned += s.assigned; grpSeatsTotal += s.total; }
                         if (isWorkshopLocked(ws)) grpLocked++;
