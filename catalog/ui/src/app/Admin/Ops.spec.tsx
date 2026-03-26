@@ -76,7 +76,7 @@ function makeWorkshop(overrides: Partial<{
   };
 }
 
-function makeProvision(workshopName: string, count: number, namespace = TEST_NAMESPACE): WorkshopProvision {
+function makeProvision(workshopName: string, count: number, namespace = TEST_NAMESPACE, failedCount = 0): WorkshopProvision {
   return {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -88,6 +88,7 @@ function makeProvision(workshopName: string, count: number, namespace = TEST_NAM
       parameters: {},
       workshopName,
     },
+    ...(failedCount > 0 ? { status: { failedCount, resourceClaimCount: failedCount, retryCount: failedCount } } : {}),
   };
 }
 
@@ -108,8 +109,9 @@ const ws2 = makeWorkshop({ name: 'ws-openshift', displayName: 'OpenShift AI', st
 const ws3 = makeWorkshop({ name: 'ws-stopped', displayName: 'Stopped Workshop', provisionDisabled: true });
 const ws4 = makeWorkshop({ name: 'ws-ansible-2', displayName: 'Ansible Lab', workshopId: 'abc456' });
 const wsMulti = makeWorkshop({ name: 'ws-multi-child', displayName: 'Multi Child', multiworkshopSource: 'parent-multi' });
+const wsFailed = makeWorkshop({ name: 'ws-failed-prov', displayName: 'Failed Provision Workshop' });
 
-const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti];
+const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti, wsFailed];
 
 const provisionData: Record<string, WorkshopProvision[]> = {
   [ws1.metadata.name]: [makeProvision(ws1.metadata.name, 5)],
@@ -117,6 +119,7 @@ const provisionData: Record<string, WorkshopProvision[]> = {
   [ws3.metadata.name]: [],
   [ws4.metadata.name]: [makeProvision(ws4.metadata.name, 3)],
   [wsMulti.metadata.name]: [makeProvision(wsMulti.metadata.name, 2)],
+  [wsFailed.metadata.name]: [makeProvision(wsFailed.metadata.name, 5, TEST_NAMESPACE, 5)],
 };
 
 const assignmentData: Record<string, WorkshopUserAssignment[]> = {
@@ -129,6 +132,7 @@ const assignmentData: Record<string, WorkshopUserAssignment[]> = {
   [ws3.metadata.name]: [],
   [ws4.metadata.name]: [makeAssignment(ws4.metadata.name, 'user3@test.com')],
   [wsMulti.metadata.name]: [],
+  [wsFailed.metadata.name]: [],
 };
 
 jest.mock('@app/api', () => ({
@@ -305,6 +309,21 @@ describe('Ops Component', () => {
       await waitFor(() => {
         expect(screen.getByText('Workshops in scope')).toBeInTheDocument();
       });
+    });
+
+    test('shows Failed status for workshops with failed provisions', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByText('Failed Provision Workshop'));
+      const failedElements = screen.getAllByText('Failed');
+      expect(failedElements.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test('shows Failed count in summary stats bar', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByText('Failed Provision Workshop'));
+      const statLabel = document.querySelector('.ops-stat-label');
+      const failedStats = Array.from(document.querySelectorAll('.ops-stat-label')).filter(el => el.textContent === 'Failed');
+      expect(failedStats.length).toBe(1);
     });
 
     test('shows instance count note when groups differ from total', async () => {

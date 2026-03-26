@@ -279,6 +279,12 @@ const Ops: React.FC = () => {
     return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
   }, [provisionsByWorkshop]);
 
+  const getFailedCount = useCallback((ws: Workshop): number => {
+    const provs = provisionsByWorkshop.get(wsKey(ws));
+    if (!provs || provs.length === 0) return 0;
+    return provs.reduce((sum, p) => sum + ((p.status as any)?.failedCount ?? 0), 0);
+  }, [provisionsByWorkshop]);
+
   const assignmentKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -403,6 +409,7 @@ const Ops: React.FC = () => {
     let seatsTotal = 0;
     let lockedCount = 0;
     let activeCount = 0;
+    let failedCount = 0;
     let attentionCount = 0;
 
     for (const ws of targets) {
@@ -417,14 +424,15 @@ const Ops: React.FC = () => {
 
       if (isWorkshopLocked(ws)) lockedCount++;
       if (seats && seats.assigned > 0) activeCount++;
+      if (getFailedCount(ws) > 0) failedCount++;
 
       const stopUrg = dateUrgency(ws.spec?.actionSchedule?.stop);
       const destroyUrg = dateUrgency(ws.spec?.lifespan?.end);
       if (stopUrg === 'critical' || destroyUrg === 'critical') attentionCount++;
     }
 
-    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, attentionCount };
-  }, [targets, getCurrentCount, getSeats]);
+    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount };
+  }, [targets, getCurrentCount, getSeats, getFailedCount]);
 
   // ---------- Operation parameters ----------
 
@@ -915,6 +923,15 @@ const Ops: React.FC = () => {
                 <span className="ops-stat-value">{summary.activeCount}</span>
                 <span className="ops-stat-label">Active</span>
               </div>
+              {summary.failedCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div className="ops-stat ops-stat-attention">
+                    <span className="ops-stat-value">{summary.failedCount}</span>
+                    <span className="ops-stat-label">Failed</span>
+                  </div>
+                </>
+              )}
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.lockedCount}</span>
@@ -1110,6 +1127,7 @@ const Ops: React.FC = () => {
                       let grpLocked = 0;
                       let grpActive = 0;
                       let grpStopped = 0;
+                      let grpFailed = 0;
                       let grpAttention = false;
                       const grpPasswords = new Set<string>();
                       const grpNamespaces = new Set<string>();
@@ -1123,6 +1141,7 @@ const Ops: React.FC = () => {
                         if (isWorkshopLocked(ws)) grpLocked++;
                         if (s && s.assigned > 0) grpActive++;
                         if (ws.spec?.provisionDisabled) grpStopped++;
+                        if (getFailedCount(ws) > 0) grpFailed++;
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
                         if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
                         grpNamespaces.add(ws.metadata.namespace);
@@ -1162,7 +1181,9 @@ const Ops: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            {grpActive > 0 ? (
+                            {grpFailed > 0 ? (
+                              <><Icon status="danger"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem', color: 'var(--pf-t--global--color--status--danger--default)' }}>Failed</span></>
+                            ) : grpActive > 0 ? (
                               <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
                             ) : grpStopped > 0 ? (
                               <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
@@ -1224,12 +1245,16 @@ const Ops: React.FC = () => {
                         const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
                         const hasProvisions = provs.length > 0;
                         const provDisabled = ws.spec?.provisionDisabled === true;
+                        const failedCount = getFailedCount(ws);
 
                         let statusIcon: React.ReactNode;
                         let statusLabel: string;
                         if (provDisabled) {
                           statusLabel = 'Stopped';
                           statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
+                        } else if (failedCount > 0) {
+                          statusLabel = `Failed (${failedCount})`;
+                          statusIcon = <Icon status="danger"><ExclamationCircleIcon /></Icon>;
                         } else if (!hasProvisions) {
                           statusLabel = 'No provisions';
                           statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
@@ -1258,7 +1283,7 @@ const Ops: React.FC = () => {
                             </td>
                             <td>
                               <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
-                              <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
+                              <span style={{ marginLeft: 6, fontSize: '0.85rem', ...(failedCount > 0 ? { color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 600 } : {}) }}>{statusLabel}</span>
                             </td>
                             <td>
                               {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
