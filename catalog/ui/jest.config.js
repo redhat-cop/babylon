@@ -29,10 +29,21 @@ module.exports = {
     '@app/(.*)': '<rootDir>/src/app/$1',
   },
 
+  // Exclude Playwright tests from Jest
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/e2e/'
+  ],
+
   // The path to a module that runs some code to configure or set up the testing framework before each test
   setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
   testEnvironment: 'jsdom',
+
+  // Handle ESM modules like parse-duration
+  transformIgnorePatterns: [
+    'node_modules/(?!(parse-duration)/)'
+  ],
 
   watchman: false,
 };

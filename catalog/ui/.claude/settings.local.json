@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(oc whoami:*)",
+      "Bash(oc get:*)",
+      "mcp__memory__search_nodes",
+      "mcp__memory__read_graph",
+      "mcp__git__git_status",
+      "mcp__memory__create_entities",
+      "mcp__patternfly__componentSchemas",
+      "mcp__patternfly__usePatternFlyDocs",
+      "mcp__memory__add_observations",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm audit:*)",
+      "Bash(git add:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
+}

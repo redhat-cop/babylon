@@ -11,8 +11,6 @@ import {
   Card,
   CardBody,
   CardTitle,
-  Chip,
-  ChipGroup,
   DatePicker,
   EmptyState,
   EmptyStateBody,
@@ -84,6 +82,8 @@ import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namesp
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
+import { OperationHistoryPanel } from './Ops/components/OperationHistoryPanel';
+import { ExportModal, ExportType } from './Ops/components/ExportModal';
 
 import './admin.css';
 import './ops.css';
@@ -93,6 +93,26 @@ interface OpsAlert {
   title: string;
   variant: AlertVariant;
   description?: string;
+}
+
+interface EnhancedFilters {
+  searchText: string;
+  stages: string[];
+  namespaces: string[];
+  statuses: string[];
+  categories: string[];
+  workshopTypes: string[];
+  userName?: string;
+  workshopName?: any;
+  labUserInterfaceUrls?: any;
+  cloudProvider?: any;
+  cloudRegion?: any;
+  salesforceId?: any;
+  serviceName?: any;
+  dateRange: {
+    start?: string;
+    end?: string;
+  };
 }
 
 interface OperationTemplate {
@@ -389,6 +409,7 @@ const Ops: React.FC = () => {
     stages: [],
     namespaces: [],
     statuses: [],
+    categories: [],
     workshopTypes: [],
     dateRange: {}
   });
@@ -591,6 +612,15 @@ const Ops: React.FC = () => {
   const [extDestroyTemplateSelectOpen, setExtDestroyTemplateSelectOpen] = useState(false);
   const [scaleTemplateSelectOpen, setScaleTemplateSelectOpen] = useState(false);
 
+  // ---------- Operation History Management ----------
+
+  const [showOperationHistory, setShowOperationHistory] = useState(false);
+
+  // ---------- CSV Export Management ----------
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState<ExportType>('workshops');
+
   // Default/example templates to help users understand functionality
   const getDefaultTemplates = useCallback((): {[key: string]: OperationTemplate} => {
     const currentDate = new Date().toISOString();
@@ -605,6 +635,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -612,7 +648,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -632,6 +668,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -639,7 +681,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -659,6 +701,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -666,7 +714,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -684,6 +732,12 @@ const Ops: React.FC = () => {
         parameters: {},
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -691,7 +745,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -709,6 +763,12 @@ const Ops: React.FC = () => {
         parameters: {},
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -716,7 +776,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: 'event',
@@ -734,6 +794,12 @@ const Ops: React.FC = () => {
         parameters: {},
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -741,7 +807,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -762,6 +828,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -769,7 +841,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -790,6 +862,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -797,7 +875,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -818,6 +896,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -825,7 +909,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -846,6 +930,12 @@ const Ops: React.FC = () => {
         },
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -853,7 +943,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -871,6 +961,12 @@ const Ops: React.FC = () => {
         parameters: {},
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -878,7 +974,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -896,6 +992,12 @@ const Ops: React.FC = () => {
         parameters: {},
         scope: {
           enhancedFilters: {
+            searchText: '',
+            stages: [],
+            namespaces: [],
+            statuses: [],
+            categories: [],
+            workshopTypes: [],
             userName: null,
             labUserInterfaceUrls: null,
             serviceName: null,
@@ -903,7 +1005,7 @@ const Ops: React.FC = () => {
             cloudProvider: null,
             cloudRegion: null,
             salesforceId: null,
-            dateRange: { startDate: null, endDate: null },
+            dateRange: { start: undefined, end: undefined },
           },
           workshopFilter: null,
           stageFilter: null,
@@ -942,39 +1044,6 @@ const Ops: React.FC = () => {
     localStorage.setItem('babylon-admin-operation-templates', JSON.stringify(userTemplates));
   }, [operationTemplates]);
 
-  const saveOperationTemplate = useCallback((name: string, description: string, operationType: OperationTemplate['operationType']) => {
-    const id = Date.now().toString();
-    const template: OperationTemplate = {
-      id,
-      name,
-      description,
-      operationType,
-      parameters: {
-        extStopDays,
-        extStopHours,
-        extDestroyDays,
-        extDestroyHours,
-        scaleCount,
-      },
-      scope: {
-        enhancedFilters: { ...enhancedFilters },
-        workshopFilter,
-        stageFilter,
-      },
-      metadata: {
-        created: new Date().toISOString(),
-      },
-    };
-
-    setOperationTemplates(prev => ({
-      ...prev,
-      [id]: template
-    }));
-
-    setShowTemplateModal(false);
-    setTemplateToSave(null);
-    addAlert(AlertVariant.success, `Template "${name}" saved successfully`);
-  }, [enhancedFilters, workshopFilter, stageFilter, extStopDays, extStopHours, extDestroyDays, extDestroyHours, scaleCount]);
 
   const loadOperationTemplate = useCallback((templateId: string) => {
     const template = operationTemplates[templateId];
@@ -1168,6 +1237,44 @@ const Ops: React.FC = () => {
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
   const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+
+  // Template management functions
+  const saveOperationTemplate = useCallback((name: string, description: string, operationType: OperationTemplate['operationType']) => {
+    const id = Date.now().toString();
+    const template: OperationTemplate = {
+      id,
+      name,
+      description,
+      operationType,
+      parameters: {
+        extStopDays,
+        extStopHours,
+        extDestroyDays,
+        extDestroyHours,
+        scaleCount,
+      },
+      scope: {
+        enhancedFilters: {
+          ...enhancedFilters,
+          categories: enhancedFilters.categories || [],
+        },
+        workshopFilter,
+        stageFilter,
+      },
+      metadata: {
+        created: new Date().toISOString(),
+      },
+    };
+
+    setOperationTemplates(prev => ({
+      ...prev,
+      [id]: template
+    }));
+
+    setShowTemplateModal(false);
+    setTemplateToSave(null);
+    addAlert(AlertVariant.success, `Template "${name}" saved successfully`);
+  }, [enhancedFilters, workshopFilter, stageFilter, extStopDays, extStopHours, extDestroyDays, extDestroyHours, scaleCount]);
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -1761,6 +1868,31 @@ const Ops: React.FC = () => {
                     >
                       <CogIcon style={{ marginRight: 4 }} />
                       Templates ({Object.keys(operationTemplates).length})
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip content="View operation history and audit logs">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowOperationHistory(true)}
+                      style={{ marginRight: 12 }}
+                    >
+                      <OutlinedClockIcon style={{ marginRight: 4 }} />
+                      History
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip content="Export workshop data and operation reports to CSV">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setExportType('workshops');
+                        setShowExportModal(true);
+                      }}
+                      style={{ marginRight: 12 }}
+                    >
+                      <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                      Export
                     </Button>
                   </Tooltip>
                 </ToolbarItem>
@@ -2778,6 +2910,26 @@ const Ops: React.FC = () => {
           <Button variant="link" onClick={() => setShowTemplateManagerModal(false)}>Close</Button>
         </ModalFooter>
       </Modal>
+
+      {/* Operation History Panel */}
+      <OperationHistoryPanel
+        isVisible={showOperationHistory}
+        onClose={() => setShowOperationHistory(false)}
+        onExport={(operations) => {
+          setExportType('operations');
+          setShowExportModal(true);
+        }}
+      />
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        exportType={exportType}
+        workshops={targets}
+        provisions={[]} // TODO: Connect to real provisions data when available
+        operations={[]} // This would come from the operation history hook
+      />
     </div>
   );
 };

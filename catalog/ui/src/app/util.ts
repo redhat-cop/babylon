@@ -1,5 +1,5 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
-import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
+import DOMPurify from 'DOMPurify'; // Use DOMPurify to make asciidoctor output safe
 import {
   AccessControl,
   AnarchySubject,
@@ -24,7 +24,7 @@ export const CATALOG_MANAGER_DOMAIN = `catalog-manager.${DEMO_DOMAIN}`;
 export const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;
 
 // Force all links to target new window and not pass unsafe attributes
-dompurify.addHook('afterSanitizeAttributes', function (node) {
+DOMPurify.addHook('afterSanitizeAttributes', function (node) {
   if (node.tagName == 'A' && node.getAttribute('href')) {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
@@ -136,10 +136,10 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
     sanitize_opt.ADD_ATTR.push('allowfullscreen', 'frameborder');
   }
   if (options.format === 'html') {
-    return dompurify.sanitize(content, sanitize_opt);
+    return DOMPurify.sanitize(content, sanitize_opt);
   } else {
     const asciidoctor = AsciiDoctor();
-    return dompurify.sanitize(
+    return DOMPurify.sanitize(
       asciidoctor
         .convert(content, { attributes: options.vars })
         .toString()
@@ -420,7 +420,7 @@ export function escapeRegex(string: string) {
 export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
-    dompurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    DOMPurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
     'text/html',
   );
   return parseHTML.body.textContent || '';
