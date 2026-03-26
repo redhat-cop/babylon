@@ -45,7 +45,7 @@ import InProgressIcon from '@patternfly/react-icons/dist/js/icons/in-progress-ic
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import PauseCircleIcon from '@patternfly/react-icons/dist/js/icons/pause-circle-icon';
 import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
-import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
+
 import {
   apiPaths,
   dateToApiString,
@@ -345,8 +345,6 @@ const Ops: React.FC = () => {
       if (seats) {
         seatsAssigned += seats.assigned;
         seatsTotal += seats.total;
-      } else if (count !== null) {
-        seatsTotal += count;
       }
 
       if (isWorkshopLocked(ws)) lockedCount++;
@@ -1042,17 +1040,12 @@ const Ops: React.FC = () => {
                             </span>
                           </Tooltip>
                         );
-                      } else if (currentCount !== null && currentCount > 0) {
+                      } else {
                         seatsDisplay = (
-                          <Tooltip content={`${currentCount} seats projected from instance count (no user assignments yet)`}>
-                            <span className="ops-seats-projected">
-                              <ClockIcon style={{ marginRight: 4 }} />
-                              ~{currentCount} projected
-                            </span>
+                          <Tooltip content="No user assignments created yet">
+                            <span className="ops-muted">&mdash;</span>
                           </Tooltip>
                         );
-                      } else {
-                        seatsDisplay = <span className="ops-muted">&mdash;</span>;
                       }
 
                       return (
