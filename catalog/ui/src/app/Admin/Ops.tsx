@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -29,6 +29,7 @@ import {
   ModalFooter,
   Split,
   SplitItem,
+  Switch,
   TextInput,
   Tooltip,
   Title,
@@ -45,7 +46,6 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import PauseCircleIcon from '@patternfly/react-icons/dist/js/icons/pause-circle-icon';
 import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
-
 import {
   apiPaths,
   dateToApiString,
@@ -57,10 +57,12 @@ import {
 import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
+  ServiceNamespace,
 } from '@app/types';
-import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
+import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, namespaceToServiceNamespaceMapper } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import ProjectSelector from '@app/components/ProjectSelector';
+import useSession from '@app/utils/useSession';
 
 import './admin.css';
 import './ops.css';
@@ -88,6 +90,12 @@ const COMMON_TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
 ];
 
+const NS_QUICK_FILTERS: { label: string; pattern: string; color: 'blue' | 'orange' | 'green' | 'purple' }[] = [
+  { label: 'prod', pattern: '.prod', color: 'orange' },
+  { label: 'event', pattern: '.event', color: 'purple' },
+  { label: 'dev', pattern: '.dev', color: 'green' },
+];
+
 const FETCH_LIMIT = 500;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -103,9 +111,14 @@ function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   return 'ok';
 }
 
+function wsKey(ws: Workshop): string {
+  return `${ws.metadata.namespace}/${ws.metadata.name}`;
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
+  const { isAdmin } = useSession().getSession();
 
   // ---------- Alerts ----------
 
@@ -119,6 +132,54 @@ const Ops: React.FC = () => {
 
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
+  }, []);
+
+  // ---------- Multi-namespace mode ----------
+
+  const [multiNsMode, setMultiNsMode] = useState(false);
+  const [multiNsAck, setMultiNsAck] = useState(false);
+  const [showMultiNsConfirm, setShowMultiNsConfirm] = useState(false);
+  const [extraNamespaces, setExtraNamespaces] = useState<string[]>([]);
+  const [nsSearchOpen, setNsSearchOpen] = useState(false);
+  const [nsQuickFilter, setNsQuickFilter] = useState<string | null>(null);
+
+  // Fetch all user namespaces for multi-ns picker
+  const { data: allNsData } = useSWR<{ items: any[] }>(
+    multiNsMode ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : null,
+    fetcher,
+  );
+  const allNamespaces = useMemo<ServiceNamespace[]>(() => {
+    if (!allNsData?.items) return [];
+    return allNsData.items.map(namespaceToServiceNamespaceMapper);
+  }, [allNsData]);
+
+  const filteredNsOptions = useMemo(() => {
+    let list = allNamespaces;
+    if (nsQuickFilter) {
+      list = list.filter(ns => ns.name.includes(nsQuickFilter));
+    }
+    return list.filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name)).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allNamespaces, namespace, extraNamespaces, nsQuickFilter]);
+
+  const activeNamespaces = useMemo(() => {
+    const nsList = namespace ? [namespace] : [];
+    if (multiNsMode) nsList.push(...extraNamespaces);
+    return nsList;
+  }, [namespace, multiNsMode, extraNamespaces]);
+
+  const isMultiNs = activeNamespaces.length > 1;
+
+  const enableMultiNs = useCallback(() => {
+    setMultiNsMode(true);
+    setMultiNsAck(true);
+    setShowMultiNsConfirm(false);
+  }, []);
+
+  const disableMultiNs = useCallback(() => {
+    setMultiNsMode(false);
+    setMultiNsAck(false);
+    setExtraNamespaces([]);
+    setNsQuickFilter(null);
   }, []);
 
   // ---------- Timezone ----------
@@ -135,14 +196,21 @@ const Ops: React.FC = () => {
     return d.toLocaleString(undefined, opts);
   }, [timezone]);
 
-  // ---------- Data fetching ----------
+  // ---------- Data fetching (multi-namespace aware) ----------
 
-  const { data: workshopsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList>(
-    namespace ? apiPaths.WORKSHOPS({ namespace, limit: FETCH_LIMIT }) : null,
-    fetcher,
+  const workshopUrls = useMemo(
+    () => activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
+    [activeNamespaces],
+  );
+  const { data: allWsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList[]>(
+    workshopUrls.length > 0 ? workshopUrls : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopList>)),
     { refreshInterval: 30000 },
   );
-  const workshops = workshopsData?.items ?? [];
+  const workshops = useMemo(() => {
+    if (!allWsData) return [];
+    return allWsData.flatMap(d => d?.items ?? []);
+  }, [allWsData]);
 
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
@@ -157,14 +225,14 @@ const Ops: React.FC = () => {
     const map = new Map<string, WorkshopProvision[]>();
     if (allProvData) {
       workshops.forEach((ws, i) => {
-        map.set(ws.metadata.name, allProvData[i]?.items ?? []);
+        map.set(wsKey(ws), allProvData[i]?.items ?? []);
       });
     }
     return map;
   }, [workshops, allProvData]);
 
-  const getCurrentCount = useCallback((wsName: string): number | null => {
-    const provs = provisionsByWorkshop.get(wsName);
+  const getCurrentCount = useCallback((ws: Workshop): number | null => {
+    const provs = provisionsByWorkshop.get(wsKey(ws));
     if (!provs || provs.length === 0) return null;
     return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
   }, [provisionsByWorkshop]);
@@ -182,14 +250,14 @@ const Ops: React.FC = () => {
     const map = new Map<string, WorkshopUserAssignment[]>();
     if (allAssignData) {
       workshops.forEach((ws, i) => {
-        map.set(ws.metadata.name, allAssignData[i]?.items ?? []);
+        map.set(wsKey(ws), allAssignData[i]?.items ?? []);
       });
     }
     return map;
   }, [workshops, allAssignData]);
 
-  const getSeats = useCallback((wsName: string): { assigned: number; total: number } | null => {
-    const assignments = assignmentsByWorkshop.get(wsName);
+  const getSeats = useCallback((ws: Workshop): { assigned: number; total: number } | null => {
+    const assignments = assignmentsByWorkshop.get(wsKey(ws));
     if (!assignments || assignments.length === 0) return null;
     const assigned = assignments.filter(a => a.spec?.assignment).length;
     return { assigned, total: assignments.length };
@@ -197,7 +265,6 @@ const Ops: React.FC = () => {
 
   const [showPasswords, setShowPasswords] = useState(false);
 
-  // Manual refresh
   const isRefreshing = wsValidating || provValidating || assignValidating;
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const handleRefresh = useCallback(() => {
@@ -206,7 +273,7 @@ const Ops: React.FC = () => {
     setLastRefresh(new Date());
   }, [mutateWorkshops, mutateProvisions]);
 
-  // ---------- Single global workshop filter ----------
+  // ---------- Workshop filter ----------
 
   const workshopOptions = useMemo(() => {
     const names = new Set(workshops.map(w => displayName(w)));
@@ -221,9 +288,44 @@ const Ops: React.FC = () => {
     [workshops, workshopFilter],
   );
 
-  const scopeLabel = workshopFilter
-    ? <>&ldquo;{workshopFilter}&rdquo; ({targets.length})</>
-    : <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''}</>;
+  const scopeLabel = useMemo(() => {
+    const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    if (workshopFilter) {
+      return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
+    }
+    return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace]);
+
+  // Namespace breakdown for modals
+  const namespaceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ws of targets) {
+      const ns = ws.metadata.namespace;
+      counts.set(ns, (counts.get(ns) ?? 0) + 1);
+    }
+    return counts;
+  }, [targets]);
+
+  const modalScopeDescription = useMemo(() => {
+    if (!isMultiNs) {
+      return workshopFilter
+        ? <> matching &ldquo;{workshopFilter}&rdquo; in <code>{namespace}</code></>
+        : <> in <code>{namespace}</code></>;
+    }
+    return (
+      <>
+        {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : null}
+        {' across '}
+        <strong>{namespaceCounts.size} namespace{namespaceCounts.size !== 1 ? 's' : ''}</strong>
+        :
+        <ul className="ops-ns-breakdown">
+          {Array.from(namespaceCounts.entries()).map(([ns, count]) => (
+            <li key={ns}><code>{ns}</code> &mdash; {count} workshop{count !== 1 ? 's' : ''}</li>
+          ))}
+        </ul>
+      </>
+    );
+  }, [isMultiNs, workshopFilter, namespace, namespaceCounts]);
 
   // ---------- Summary stats ----------
 
@@ -236,10 +338,10 @@ const Ops: React.FC = () => {
     let attentionCount = 0;
 
     for (const ws of targets) {
-      const count = getCurrentCount(ws.metadata.name);
+      const count = getCurrentCount(ws);
       if (count !== null) totalInstances += count;
 
-      const seats = getSeats(ws.metadata.name);
+      const seats = getSeats(ws);
       if (seats) {
         seatsAssigned += seats.assigned;
         seatsTotal += seats.total;
@@ -288,7 +390,7 @@ const Ops: React.FC = () => {
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
     for (const ws of targets) {
-      const cur = getCurrentCount(ws.metadata.name);
+      const cur = getCurrentCount(ws);
       if (cur === null) { unknown++; continue; }
       if (scaleCount > cur) up++;
       else if (scaleCount < cur) down++;
@@ -493,6 +595,13 @@ const Ops: React.FC = () => {
     return <span>{formatted}</span>;
   };
 
+  const multiNsBanner = isMultiNs ? (
+    <Alert variant="warning" isInline title="Multi-namespace mode active" className="ops-multi-ns-banner">
+      Operations will affect workshops across <strong>{activeNamespaces.length}</strong> namespaces.
+      Double-check the scope before executing any operation.
+    </Alert>
+  ) : null;
+
   return (
     <div className="admin-container">
       <AlertGroup isToast isLiveRegion className="ops-toast-group">
@@ -519,6 +628,7 @@ const Ops: React.FC = () => {
           <SplitItem isFilled>
             <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>
               Ops &mdash; <code>{namespace}</code>
+              {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
             </Title>
           </SplitItem>
           <SplitItem>
@@ -532,7 +642,8 @@ const Ops: React.FC = () => {
           <SplitItem>
             {workshops.length > 0 && (
               <Label isCompact color="blue" style={{ lineHeight: '36px' }}>
-                {workshops.length} workshop{workshops.length !== 1 ? 's' : ''} in namespace
+                {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
+                {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ' in namespace'}
               </Label>
             )}
           </SplitItem>
@@ -540,10 +651,95 @@ const Ops: React.FC = () => {
       </PageSection>
 
       <PageSection key="body" className="admin-body" variant="light">
+        {/* Multi-namespace toggle */}
+        {isAdmin && (
+          <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
+            <Split hasGutter>
+              <SplitItem>
+                <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
+                  <Switch
+                    id="multi-ns-toggle"
+                    label="Multi-namespace mode"
+                    isChecked={multiNsMode}
+                    onChange={(_e, checked) => {
+                      if (checked && !multiNsAck) {
+                        setShowMultiNsConfirm(true);
+                      } else if (!checked) {
+                        disableMultiNs();
+                      }
+                    }}
+                  />
+                </Tooltip>
+              </SplitItem>
+              {multiNsMode && (
+                <>
+                  <SplitItem>
+                    <div className="ops-ns-quick-filters">
+                      {NS_QUICK_FILTERS.map(f => (
+                        <Label
+                          key={f.pattern}
+                          color={nsQuickFilter === f.pattern ? f.color : 'grey'}
+                          isCompact
+                          onClick={() => setNsQuickFilter(nsQuickFilter === f.pattern ? null : f.pattern)}
+                          className="ops-ns-filter-chip"
+                        >
+                          {f.label}
+                        </Label>
+                      ))}
+                    </div>
+                  </SplitItem>
+                  <SplitItem isFilled>
+                    <Select
+                      isOpen={nsSearchOpen}
+                      onSelect={(_e, val) => {
+                        const ns = val as string;
+                        if (ns && !extraNamespaces.includes(ns)) {
+                          setExtraNamespaces(prev => [...prev, ns]);
+                        }
+                        setNsSearchOpen(false);
+                      }}
+                      onOpenChange={setNsSearchOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle ref={toggleRef} onClick={() => setNsSearchOpen(p => !p)} isExpanded={nsSearchOpen} style={{ minWidth: 320 }}>
+                          Add namespace...
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {filteredNsOptions.length === 0 ? (
+                          <SelectOption isDisabled value="">No matching namespaces</SelectOption>
+                        ) : filteredNsOptions.slice(0, 50).map(ns => (
+                          <SelectOption key={ns.name} value={ns.name}>
+                            {ns.displayName !== ns.name ? `${ns.displayName} (${ns.name})` : ns.name}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                  </SplitItem>
+                </>
+              )}
+            </Split>
+            {multiNsMode && extraNamespaces.length > 0 && (
+              <div className="ops-ns-chips">
+                <span className="ops-ns-chips-label">Selected:</span>
+                <Label isCompact color="blue" style={{ marginRight: 4 }}>{namespace} (primary)</Label>
+                {extraNamespaces.map(ns => (
+                  <Label key={ns} isCompact color="orange" onClose={() => setExtraNamespaces(prev => prev.filter(n => n !== ns))} style={{ marginRight: 4 }}>
+                    {ns}
+                  </Label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {multiNsBanner}
+
         {workshops.length === 0 ? (
           <EmptyState titleText="No workshops found" headingLevel="h4">
             <EmptyStateBody>
-              No workshops exist in namespace <strong>{namespace}</strong>.
+              No workshops exist in {isMultiNs ? 'the selected namespaces' : <><strong>{namespace}</strong></>}.
               Deploy workshops first, then return here for bulk operations.
             </EmptyStateBody>
           </EmptyState>
@@ -552,7 +748,7 @@ const Ops: React.FC = () => {
             {/* Scope + timezone bar */}
             <div className="ops-scope-bar">
               <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                Scope
+                Workshop
               </label>
               <Select
                 id="ops-scope"
@@ -573,7 +769,7 @@ const Ops: React.FC = () => {
                 </SelectList>
               </Select>
               <span className="ops-scope-summary">
-                All operations below apply to {scopeLabel}
+                Scope: {scopeLabel}
               </span>
               <span className="ops-scope-spacer" />
               <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
@@ -591,6 +787,20 @@ const Ops: React.FC = () => {
 
             {/* Summary stats */}
             <div className="ops-summary-bar">
+              {isMultiNs && (
+                <>
+                  <div className="ops-stat">
+                    <span className="ops-stat-value">{activeNamespaces.length}</span>
+                    <span className="ops-stat-label">Namespaces</span>
+                  </div>
+                  <div className="ops-stat-divider" />
+                </>
+              )}
+              <div className="ops-stat">
+                <span className="ops-stat-value">{targets.length}</span>
+                <span className="ops-stat-label">Workshops</span>
+              </div>
+              <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.totalInstances}</span>
                 <span className="ops-stat-label">Instances</span>
@@ -768,6 +978,7 @@ const Ops: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Name</th>
+                      {isMultiNs && <th>Namespace</th>}
                       <th>Status</th>
                       <th>Lock</th>
                       <th>Instances</th>
@@ -782,12 +993,12 @@ const Ops: React.FC = () => {
                   <tbody>
                     {targets.map(ws => {
                       const locked = isWorkshopLocked(ws);
-                      const currentCount = getCurrentCount(ws.metadata.name);
-                      const seats = getSeats(ws.metadata.name);
+                      const currentCount = getCurrentCount(ws);
+                      const seats = getSeats(ws);
                       const password = ws.spec?.accessPassword;
                       const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                       const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
-                      const provs = provisionsByWorkshop.get(ws.metadata.name) ?? [];
+                      const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
                       const hasProvisions = provs.length > 0;
                       const provDisabled = ws.spec?.provisionDisabled === true;
                       const isOpen = ws.spec?.openRegistration !== false;
@@ -845,11 +1056,22 @@ const Ops: React.FC = () => {
                       }
 
                       return (
-                        <tr key={ws.metadata.uid || ws.metadata.name} className={rowClass}>
+                        <tr key={ws.metadata.uid || wsKey(ws)} className={rowClass}>
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
                           </td>
+                          {isMultiNs && (
+                            <td>
+                              <Label isCompact color={
+                                ws.metadata.namespace.includes('.prod') ? 'orange' :
+                                ws.metadata.namespace.includes('.event') ? 'purple' :
+                                ws.metadata.namespace.includes('.dev') ? 'green' : 'blue'
+                              }>
+                                {ws.metadata.namespace}
+                              </Label>
+                            </td>
+                          )}
                           <td>
                             <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
                             <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
@@ -906,19 +1128,42 @@ const Ops: React.FC = () => {
         )}
       </PageSection>
 
+      {/* ---------- Multi-namespace acknowledgement ---------- */}
+
+      <Modal variant="small" isOpen={showMultiNsConfirm} onClose={() => setShowMultiNsConfirm(false)} aria-labelledby="multi-ns-confirm">
+        <ModalHeader title="Enable Multi-Namespace Mode" labelId="multi-ns-confirm" titleIconVariant="warning" />
+        <ModalBody>
+          <Alert variant="warning" isInline title="Cross-namespace operations" style={{ marginBottom: 12 }}>
+            <p>This mode allows you to select <strong>multiple namespaces</strong> and run operations across all of them simultaneously.</p>
+          </Alert>
+          <p>This is intended for large-scale events (e.g., Summit) where workshops span multiple projects. Mistakes in this mode can affect production workshops across many namespaces.</p>
+          <p style={{ marginTop: 12, fontWeight: 600 }}>Please confirm you understand the risks:</p>
+          <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+            <li>All operations (lock, extend, scale, etc.) apply across <strong>every</strong> selected namespace</li>
+            <li>Confirmation modals will show namespace breakdowns before execution</li>
+            <li>You can disable this mode at any time to return to single-namespace</li>
+          </ul>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="warning" onClick={enableMultiNs}>I understand, enable multi-namespace</Button>
+          <Button variant="link" onClick={() => setShowMultiNsConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
       {/* ---------- Confirmation modals ---------- */}
 
       <Modal variant="small" isOpen={showLockConfirm} onClose={() => setShowLockConfirm(false)} aria-labelledby="lock-confirm">
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> (all in {namespace})</>}.
+            {modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleLock}>Lock</Button>
+          <Button variant="warning" onClick={handleLock}>Lock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -926,13 +1171,14 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
         <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> (all in {namespace})</>}.
+            {modalScopeDescription}.
           </p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleUnlock}>Unlock</Button>
+          <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
           <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -940,10 +1186,11 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showExtStopConfirm} onClose={() => setShowExtStopConfirm(false)} aria-labelledby="ext-stop-confirm">
         <ModalHeader title="Confirm Extend Stop Time" labelId="ext-stop-confirm" />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
             <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
+            {modalScopeDescription}.
           </p>
         </ModalBody>
         <ModalFooter>
@@ -955,10 +1202,11 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showExtDestroyConfirm} onClose={() => setShowExtDestroyConfirm(false)} aria-labelledby="ext-destroy-confirm">
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
             <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
+            {modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
         </ModalBody>
@@ -971,10 +1219,11 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showNoAutostopConfirm} onClose={() => setShowNoAutostopConfirm(false)} aria-labelledby="no-autostop-confirm">
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
             <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
+            {modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. May incur additional cloud costs.</p>
         </ModalBody>
@@ -987,23 +1236,25 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showScaleConfirm} onClose={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-confirm">
         <ModalHeader title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'} labelId="scale-confirm" titleIconVariant={isScaleDown ? 'warning' : undefined} />
         <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
             <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
+            {modalScopeDescription}.
           </p>
           {targets.length > 0 && (
             <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
-              <thead><tr><th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
+              <thead><tr>{isMultiNs && <th>NS</th>}<th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
               <tbody>
                 {targets.map(ws => {
-                  const cur = getCurrentCount(ws.metadata.name);
+                  const cur = getCurrentCount(ws);
                   const isDown = cur !== null && scaleCount < cur;
                   const isUp = cur !== null && scaleCount > cur;
                   const label = cur === null ? '' : isUp ? 'scale up' : isDown ? 'scale down' : 'no change';
                   const color = isDown ? 'var(--pf-t--global--color--status--danger--default)' : isUp ? 'var(--pf-t--global--color--status--info--default)' : 'var(--pf-t--global--text--color--subtle)';
                   return (
-                    <tr key={ws.metadata.name}>
+                    <tr key={wsKey(ws)}>
+                      {isMultiNs && <td><code style={{ fontSize: '0.78rem' }}>{ws.metadata.namespace}</code></td>}
                       <td>{displayName(ws)}</td>
                       <td><strong>{cur ?? '?'}</strong></td>
                       <td>&rarr;</td>
@@ -1035,10 +1286,11 @@ const Ops: React.FC = () => {
       <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-zero-confirm">
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
+          {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
           <p>
             Scaling to <strong>0</strong> will remove all instances on{' '}
             <strong>{targets.length} workshop(s)</strong>
-            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
+            {modalScopeDescription}.
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
