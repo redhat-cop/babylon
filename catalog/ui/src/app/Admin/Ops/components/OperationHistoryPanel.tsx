@@ -59,6 +59,9 @@ const operationLabels = {
   'extend-destroy': { text: 'Extend Destroy', color: 'purple' as const },
   'disable-autostop': { text: 'Disable Auto-stop', color: 'orange' as const },
   scale: { text: 'Scale', color: 'teal' as const },
+  restart: { text: 'Restart', color: 'yellow' as const },
+  clone: { text: 'Clone', color: 'grey' as const },
+  'health-check': { text: 'Health Check', color: 'blue' as const },
 };
 
 interface OperationHistoryPanelProps {
