@@ -774,7 +774,7 @@ const Ops: React.FC = () => {
         {/* Multi-namespace toggle */}
         {isAdmin && (
           <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
-            <Split hasGutter>
+            <Split hasGutter style={{ alignItems: 'center' }}>
               <SplitItem>
                 <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
                   <Switch
