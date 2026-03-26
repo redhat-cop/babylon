@@ -1348,16 +1348,16 @@ const Ops: React.FC = () => {
                       <th></th>
                       <th>Name</th>
                       <th>Status</th>
-                      <th><Tooltip content="Lock status"><span>Lock</span></Tooltip></th>
-                      <th><Tooltip content="Multi-asset count"><span>Ast</span></Tooltip></th>
-                      <th><Tooltip content="Instance count"><span>Inst</span></Tooltip></th>
-                      <th><Tooltip content="Concurrency"><span>Conc</span></Tooltip></th>
+                      <th>Lock</th>
+                      <th>Assets</th>
+                      <th>Instances</th>
+                      <th>Concurrency</th>
                       <th>Seats</th>
-                      <th><Tooltip content="Registration type"><span>Reg</span></Tooltip></th>
-                      <th>Pass</th>
-                      <th>Stop</th>
-                      <th>Destroy</th>
-                      <th>URL</th>
+                      <th>Registration</th>
+                      <th>Password</th>
+                      <th>Auto-Stop</th>
+                      <th>Auto-Destroy</th>
+                      <th>Workshop URL</th>
                     </tr>
                   </thead>
                   <tbody>

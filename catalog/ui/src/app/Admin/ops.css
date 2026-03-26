@@ -275,36 +275,34 @@
 .ops-table-wrap table {
   width: 100%;
   table-layout: auto;
-}
-
-/* Column width hints */
-.ops-table-wrap th:first-child { width: 28px; padding: 2px 4px; }  /* checkbox */
-.ops-table-wrap th:nth-child(2) { width: 20px; }  /* expand */
-.ops-table-wrap th:nth-child(3) { min-width: 140px; }  /* Name — gets the remaining space */
-
-/* All other columns shrink to content */
-.ops-table-wrap th:nth-child(n+4) {
-  width: 1%;
-  white-space: nowrap;
+  border-collapse: collapse;
 }
 
 .ops-table-wrap thead th {
-  padding: 6px 4px;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--pf-t--global--text--color--subtle);
   border-bottom: 2px solid var(--pf-t--global--border--color--default);
   white-space: nowrap;
 }
 
 .ops-table-wrap td {
-  padding: 4px 4px;
+  padding: 6px 10px;
   vertical-align: middle;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
 }
 
-/* Compact numeric columns: Lock, Assets, Instances, Concurrency, Seats */
+/* Checkbox & expand columns — fixed narrow */
+.ops-table-wrap th:first-child,
+.ops-table-wrap td:first-child { width: 32px; padding: 4px 6px; text-align: center; }
+.ops-table-wrap th:nth-child(2),
+.ops-table-wrap td:nth-child(2) { width: 28px; padding: 4px 2px; }
+
+/* Name column gets remaining space */
+.ops-table-wrap th:nth-child(3) { min-width: 180px; }
+
+/* Numeric columns — center and shrink to content */
 .ops-table-wrap th:nth-child(5),
 .ops-table-wrap td:nth-child(5),
 .ops-table-wrap th:nth-child(6),
@@ -317,17 +315,18 @@
 .ops-table-wrap td:nth-child(9) {
   text-align: center;
   white-space: nowrap;
-  padding-left: 3px;
-  padding-right: 3px;
+  width: 1%;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 .ops-ws-meta {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: var(--pf-t--global--text--color--subtle);
   font-family: var(--pf-t--global--font--family--mono);
-  line-height: 1.2;
-  max-width: 280px;
+  line-height: 1.3;
+  max-width: 320px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -347,21 +346,21 @@
 }
 
 .ops-password {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   word-break: break-all;
   background: var(--pf-t--global--background--color--secondary--default);
-  padding: 1px 3px;
+  padding: 1px 4px;
   border-radius: 3px;
 }
 
 .ops-password-hidden {
   color: var(--pf-t--global--text--color--subtle);
-  letter-spacing: 1px;
-  font-size: 0.72rem;
+  letter-spacing: 2px;
+  font-size: 0.78rem;
 }
 
 .ops-ws-link {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   white-space: nowrap;
 }
 
@@ -428,10 +427,10 @@ a.ops-ws-meta:hover {
 .ops-date-critical {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   color: var(--pf-t--global--color--status--danger--default);
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   animation: ops-pulse 2s ease-in-out infinite;
   white-space: nowrap;
 }
@@ -439,15 +438,15 @@ a.ops-ws-meta:hover {
 .ops-date-warning {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   color: var(--pf-t--global--color--status--warning--default);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   white-space: nowrap;
 }
 
 .ops-date-ok {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--pf-t--global--text--color--regular);
   white-space: nowrap;
 }
@@ -500,17 +499,10 @@ a.ops-ws-meta:hover {
   background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular));
 }
 
-.ops-group-header td:first-child {
-  width: 24px;
-  padding-right: 0;
-  padding-left: 4px;
-}
-
-/* Checkbox column in table rows */
-.ops-table-wrap td:first-child {
+.ops-group-header td:nth-child(2) {
   width: 28px;
-  padding: 2px 4px;
-  text-align: center;
+  padding-right: 0;
+  padding-left: 2px;
 }
 
 .ops-expand-cell {
@@ -528,10 +520,8 @@ a.ops-ws-meta:hover {
   font-size: 0.9rem;
 }
 
-.ops-child-row td:first-child {
-  width: 24px;
+.ops-child-row {
   border-left: 2px solid var(--pf-t--global--color--status--info--default);
-  padding-left: 4px;
 }
 
 /* ---- Refresh spinner ---- */
