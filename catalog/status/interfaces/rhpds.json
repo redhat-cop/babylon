@@ -3,9 +3,7 @@
     "ratings_enabled": true,
     "status_page_url": "https://rhdp.statuspage.io/",
     "help_text": "Open Support Case",
-    "help_link": "https://red.ht/open-support",
-    "internal_help_link": "https://red.ht/demo-help",
+    "help_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69",
+    "internal_help_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69",
     "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
-    "onboarding_support_text": "Onboarding Support",
-    "onboarding_support_link": "https://red.ht/demo-onboarding"
 }
