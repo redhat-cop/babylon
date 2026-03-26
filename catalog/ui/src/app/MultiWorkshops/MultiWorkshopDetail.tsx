@@ -45,7 +45,9 @@ import Label from '@app/components/Label';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
+import { getWorkshopLifespan } from '@app/Workshops/workshops-utils';
 import DateTimePicker from '@app/components/DateTimePicker';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -61,7 +63,7 @@ function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
 
-const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string }> = ({ workshopName, namespace }) => {
+const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; workshop: Workshop }> = ({ workshopName, namespace, workshop }) => {
   const { data: resourceClaims, isLoading } = useSWR<ResourceClaim[]>(
     workshopName && namespace
       ? apiPaths.RESOURCE_CLAIMS({
@@ -86,6 +88,21 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string }>
   );
 
   if (isLoading) return <LoadingIcon />;
+
+  const autoStartTime = workshop ? getWorkshopLifespan(workshop).start : null;
+  const isScheduled = autoStartTime && autoStartTime > Date.now();
+
+  if (isScheduled) {
+    return (
+      <>
+        <span className="services-item__status--scheduled" key="scheduled">
+          <CheckCircleIcon key="scheduled-icon" /> Scheduled
+        </span>
+        {resourceClaims && resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} /> : null}
+      </>
+    );
+  }
+
   if (!resourceClaims || resourceClaims.length === 0) return <span>-</span>;
   return <WorkshopStatus resourceClaims={resourceClaims} />;
 };
@@ -676,24 +693,40 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <DateTimePicker
-                        defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
-                        isDisabled={!!multiworkshop.spec.startDate && new Date(multiworkshop.spec.startDate).getTime() < Date.now()}
-                        onSelect={async (date) => {
-                          const apiDate = dateToApiString(date);
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { startDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
-                      />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                  {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <DateTimePicker
+                          defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
+                          onSelect={async (date) => {
+                            const apiDate = dateToApiString(date);
+                            const updatedMultiWorkshop = await patchMultiWorkshop({
+                              name: multiworkshop.metadata.name,
+                              namespace: multiworkshop.metadata.namespace,
+                              patch: { spec: { startDate: apiDate } },
+                            });
+                            mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          }}
+                        />
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={async () => {
+                            const apiDate = dateToApiString(new Date());
+                            const updatedMultiWorkshop = await patchMultiWorkshop({
+                              name: multiworkshop.metadata.name,
+                              namespace: multiworkshop.metadata.namespace,
+                              patch: { spec: { startDate: apiDate } },
+                            });
+                            mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          }}
+                        >
+                          Start now
+                        </Button>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  )}
 
                   <DescriptionListGroup>
                     <DescriptionListTerm>End Date</DescriptionListTerm>
@@ -914,14 +947,16 @@ const MultiWorkshopDetail: React.FC = () => {
                               })()}
                             </div>
                             <div>
-                              {asset.type === 'Workshop' && asset.name ? (
-                                <AssetWorkshopStatus
+                            {(() => {
+                                if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
+                                const workshop = workshops?.find(w => w.metadata.name === asset.name) || sharedWorkshops?.find(w => w.metadata.name === asset.name);
+                                if (!workshop) return <span>-</span>;
+                                return <AssetWorkshopStatus
+                                  workshop={workshop}
                                   workshopName={asset.name}
                                   namespace={asset.namespace}
                                 />
-                              ) : (
-                                <span>-</span>
-                              )}
+                            })()}
                             </div>
                             <div>
                               <ButtonCircleIcon
