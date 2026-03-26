@@ -3,12 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   Alert,
+  AlertGroup,
+  AlertActionCloseButton,
+  AlertVariant,
+  Badge,
   Button,
   Card,
   CardBody,
   CardTitle,
   EmptyState,
   EmptyStateBody,
+  Icon,
   Label,
   NumberInput,
   PageSection,
@@ -25,6 +30,11 @@ import {
   Tooltip,
   Title,
 } from '@patternfly/react-core';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
+import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
+import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
 
 import {
   apiPaths,
@@ -36,10 +46,18 @@ import {
 } from '@app/api';
 import { Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList } from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
+import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import ProjectSelector from '@app/components/ProjectSelector';
 
 import './admin.css';
 import './ops.css';
+
+interface OpsAlert {
+  key: number;
+  title: string;
+  variant: AlertVariant;
+  description?: string;
+}
 
 const CIFilter: React.FC<{
   options: string[];
@@ -76,12 +94,24 @@ const CIFilter: React.FC<{
 };
 
 const FETCH_LIMIT = 500;
+let alertKeyCounter = 0;
 
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
 
-  // Fetch workshops for this namespace
+  const [alerts, setAlerts] = useState<OpsAlert[]>([]);
+
+  const addAlert = useCallback((variant: AlertVariant, title: string, description?: string) => {
+    const key = ++alertKeyCounter;
+    setAlerts(prev => [{ key, variant, title, description }, ...prev]);
+    setTimeout(() => setAlerts(prev => prev.filter(a => a.key !== key)), 8000);
+  }, []);
+
+  const removeAlert = useCallback((key: number) => {
+    setAlerts(prev => prev.filter(a => a.key !== key));
+  }, []);
+
   const { data: workshopsData, mutate: mutateWorkshops } = useSWR<WorkshopList>(
     namespace ? apiPaths.WORKSHOPS({ namespace, limit: FETCH_LIMIT }) : null,
     fetcher,
@@ -89,13 +119,11 @@ const Ops: React.FC = () => {
   );
   const workshops = workshopsData?.items ?? [];
 
-  // Build CI filter options from workshop display names
   const workshopOptions = useMemo(() => {
     const names = new Set(workshops.map(w => displayName(w)));
     return Array.from(names).sort();
   }, [workshops]);
 
-  // Helper: filter workshops by display name
   const filterWorkshops = useCallback(
     (filter: string): Workshop[] =>
       filter ? workshops.filter(w => displayName(w) === filter) : workshops,
@@ -131,45 +159,43 @@ const Ops: React.FC = () => {
   const [showScaleZeroConfirm, setShowScaleZeroConfirm] = useState(false);
   const [showScaleConfirm, setShowScaleConfirm] = useState(false);
 
-  // Lock: set demo.redhat.com/lock-enabled = true
+  // ---------- Handlers ----------
+
   const handleLock = async () => {
     setShowLockConfirm(false);
     setLockLoading(true);
     const targets = filterWorkshops(lockFilter);
-    try {
-      for (const ws of targets) {
-        await lockWorkshop(ws);
-      }
-    } catch (e) {
-      console.error('Lock failed', e);
-    } finally {
-      setLockLoading(false);
-      mutateWorkshops();
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try { await lockWorkshop(ws); ok++; } catch { fail++; }
     }
+    setLockLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Locked ${ok} workshop(s)`);
+    else addAlert(AlertVariant.danger, `Lock: ${ok} succeeded, ${fail} failed`);
   };
 
-  // Unlock: set demo.redhat.com/lock-enabled = false
   const handleUnlock = async () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
     const targets = filterWorkshops(lockFilter);
-    try {
-      for (const ws of targets) {
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try {
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
           patch: { metadata: { labels: { [`${DEMO_DOMAIN}/lock-enabled`]: 'false' } } },
         });
-      }
-    } catch (e) {
-      console.error('Unlock failed', e);
-    } finally {
-      setUnlockLoading(false);
-      mutateWorkshops();
+        ok++;
+      } catch { fail++; }
     }
+    setUnlockLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Unlocked ${ok} workshop(s)`);
+    else addAlert(AlertVariant.danger, `Unlock: ${ok} succeeded, ${fail} failed`);
   };
 
-  // Extend Stop: push actionSchedule.stop forward by days/hours
   const handleExtendStop = async () => {
     if (extStopDays === 0 && extStopHours === 0) return;
     if (!showExtStopConfirm) { setShowExtStopConfirm(true); return; }
@@ -177,8 +203,9 @@ const Ops: React.FC = () => {
     setExtStopLoading(true);
     const targets = filterWorkshops(extStopFilter);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
-    try {
-      for (const ws of targets) {
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try {
         const currentStop = ws.spec?.actionSchedule?.stop;
         const base = currentStop ? new Date(currentStop) : new Date();
         const newDate = new Date(base.getTime() + addMs);
@@ -187,16 +214,15 @@ const Ops: React.FC = () => {
           namespace: ws.metadata.namespace,
           patch: { spec: { actionSchedule: { stop: dateToApiString(newDate) } } },
         });
-      }
-    } catch (e) {
-      console.error('Extend stop failed', e);
-    } finally {
-      setExtStopLoading(false);
-      mutateWorkshops();
+        ok++;
+      } catch { fail++; }
     }
+    setExtStopLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h`);
+    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed`);
   };
 
-  // Extend Destroy: push lifespan.end forward by days/hours
   const handleExtendDestroy = async () => {
     if (extDestroyDays === 0 && extDestroyHours === 0) return;
     if (!showExtDestroyConfirm) { setShowExtDestroyConfirm(true); return; }
@@ -204,8 +230,9 @@ const Ops: React.FC = () => {
     setExtDestroyLoading(true);
     const targets = filterWorkshops(extDestroyFilter);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
-    try {
-      for (const ws of targets) {
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try {
         const currentEnd = ws.spec?.lifespan?.end;
         const base = currentEnd ? new Date(currentEnd) : new Date();
         const newDate = new Date(base.getTime() + addMs);
@@ -214,38 +241,37 @@ const Ops: React.FC = () => {
           namespace: ws.metadata.namespace,
           patch: { spec: { lifespan: { end: dateToApiString(newDate) } } },
         });
-      }
-    } catch (e) {
-      console.error('Extend destroy failed', e);
-    } finally {
-      setExtDestroyLoading(false);
-      mutateWorkshops();
+        ok++;
+      } catch { fail++; }
     }
+    setExtDestroyLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h`);
+    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed`);
   };
 
-  // Disable Auto-Stop: remove actionSchedule.stop
   const handleDisableAutostop = async () => {
     if (!showNoAutostopConfirm) { setShowNoAutostopConfirm(true); return; }
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
     const targets = filterWorkshops(noAutostopFilter);
-    try {
-      for (const ws of targets) {
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try {
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
           jsonPatch: [{ op: 'remove', path: '/spec/actionSchedule/stop' }],
         });
-      }
-    } catch (e) {
-      console.error('Disable auto-stop failed', e);
-    } finally {
-      setNoAutostopLoading(false);
-      mutateWorkshops();
+        ok++;
+      } catch { fail++; }
     }
+    setNoAutostopLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s)`);
+    else addAlert(AlertVariant.danger, `Disable auto-stop: ${ok} succeeded, ${fail} failed`);
   };
 
-  // Scale: patch WorkshopProvision spec.count
   const handleScale = async () => {
     if (scaleCount === 0 && !showScaleZeroConfirm) { setShowScaleZeroConfirm(true); return; }
     if (scaleCount > 0 && !showScaleConfirm) { setShowScaleConfirm(true); return; }
@@ -253,8 +279,9 @@ const Ops: React.FC = () => {
     setShowScaleConfirm(false);
     setScaleLoading(true);
     const targets = filterWorkshops(scaleFilter);
-    try {
-      for (const ws of targets) {
+    let ok = 0, fail = 0;
+    for (const ws of targets) {
+      try {
         const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
           workshopName: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -266,13 +293,16 @@ const Ops: React.FC = () => {
             patch: { spec: { count: scaleCount } },
           });
         }
-      }
-    } catch (e) {
-      console.error('Scale failed', e);
-    } finally {
-      setScaleLoading(false);
+        ok++;
+      } catch { fail++; }
     }
+    setScaleLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
+    else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
+
+  // ---------- Computed ----------
 
   const lockAffectedCount = useMemo(() => filterWorkshops(lockFilter).length, [filterWorkshops, lockFilter]);
   const extStopAffectedCount = useMemo(() => filterWorkshops(extStopFilter).length, [filterWorkshops, extStopFilter]);
@@ -280,26 +310,47 @@ const Ops: React.FC = () => {
   const noAutostopAffectedCount = useMemo(() => filterWorkshops(noAutostopFilter).length, [filterWorkshops, noAutostopFilter]);
   const scaleAffectedCount = useMemo(() => filterWorkshops(scaleFilter).length, [filterWorkshops, scaleFilter]);
 
+  const scaleTargets = useMemo(() => filterWorkshops(scaleFilter), [filterWorkshops, scaleFilter]);
+  const sharedScaleTargets = useMemo(
+    () => scaleTargets.filter(ws => ws.spec?.multiuserServices === true),
+    [scaleTargets],
+  );
+
+  // Workshops visible in the detail table (union of all active filters, or all if none set)
+  const activeFilters = new Set([lockFilter, extStopFilter, extDestroyFilter, noAutostopFilter, scaleFilter].filter(Boolean));
+  const visibleWorkshops = useMemo(() => {
+    if (activeFilters.size === 0) return workshops;
+    return workshops.filter(w => activeFilters.has(displayName(w)));
+  }, [workshops, ...activeFilters]);
+
+  const fmtDate = (iso?: string) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  };
+
+  // ---------- No namespace selected ----------
+
   if (!namespace) {
     return (
       <div className="admin-container">
         <PageSection key="header" className="admin-header" variant="light">
           <Split hasGutter>
-            <SplitItem isFilled>
-              <Title headingLevel="h4" style={{ display: 'inline-block' }}>Ops</Title>
-            </SplitItem>
             <SplitItem>
               <ProjectSelector
                 currentNamespaceName={namespace}
                 onSelect={(n) => navigate(`/admin/ops/${n.name}`)}
               />
             </SplitItem>
+            <SplitItem isFilled>
+              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Ops</Title>
+            </SplitItem>
           </Split>
         </PageSection>
         <PageSection key="body" className="admin-body" variant="light">
           <EmptyState titleText="Select a namespace" headingLevel="h4">
             <EmptyStateBody>
-              Use the namespace selector above to choose a project, then perform bulk operations
+              Choose a project from the selector above, then perform bulk operations
               on all workshops in that namespace.
             </EmptyStateBody>
           </EmptyState>
@@ -308,21 +359,43 @@ const Ops: React.FC = () => {
     );
   }
 
+  // ---------- Namespace selected — full UI ----------
+
   return (
     <div className="admin-container">
+      {/* Toast alerts */}
+      <AlertGroup isToast isLiveRegion className="ops-toast-group">
+        {alerts.map(a => (
+          <Alert
+            key={a.key}
+            variant={a.variant}
+            title={a.title}
+            actionClose={<AlertActionCloseButton onClose={() => removeAlert(a.key)} />}
+          >
+            {a.description && <p>{a.description}</p>}
+          </Alert>
+        ))}
+      </AlertGroup>
+
       <PageSection key="header" className="admin-header" variant="light">
         <Split hasGutter>
-          <SplitItem isFilled>
-            <Title headingLevel="h4" style={{ display: 'inline-block' }}>
-              Ops — <code>{namespace}</code>
-              {workshops.length > 0 && <Label isCompact color="blue" style={{ marginLeft: 8 }}>{workshops.length} workshops</Label>}
-            </Title>
-          </SplitItem>
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
               onSelect={(n) => navigate(`/admin/ops/${n.name}`)}
             />
+          </SplitItem>
+          <SplitItem isFilled>
+            <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>
+              Ops &mdash; <code>{namespace}</code>
+            </Title>
+          </SplitItem>
+          <SplitItem>
+            {workshops.length > 0 && (
+              <Label isCompact color="blue" style={{ lineHeight: '36px' }}>
+                {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
+              </Label>
+            )}
           </SplitItem>
         </Split>
       </PageSection>
@@ -450,6 +523,14 @@ const Ops: React.FC = () => {
                 </CardTitle>
                 <CardBody>
                   <CIFilter options={workshopOptions} value={scaleFilter} onChange={setScaleFilter} id="scale-filter" />
+                  {sharedScaleTargets.length > 0 && (
+                    <Alert variant="warning" isInline isPlain title="Shared cluster detected" style={{ marginBottom: 8 }}>
+                      {sharedScaleTargets.length === scaleTargets.length
+                        ? 'All targeted workshops are shared (multiuserServices). '
+                        : `${sharedScaleTargets.length} of ${scaleTargets.length} targeted workshops are shared. `}
+                      Scaling changes the number of user seats on a shared cluster &mdash; not standalone instances.
+                    </Alert>
+                  )}
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
@@ -466,11 +547,66 @@ const Ops: React.FC = () => {
               </Card>
             </div>
 
+            {/* Workshop detail table */}
+            <div className="ops-workshops-section">
+              <Title headingLevel="h5" style={{ marginBottom: 12 }}>
+                Workshops in scope
+                <Badge isRead style={{ marginLeft: 8 }}>{visibleWorkshops.length}</Badge>
+              </Title>
+              <div className="ops-table-wrap">
+                <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Lock</th>
+                      <th>Type</th>
+                      <th>Auto-Stop</th>
+                      <th>Auto-Destroy</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleWorkshops.map(ws => {
+                      const locked = isWorkshopLocked(ws);
+                      const shared = ws.spec?.multiuserServices === true;
+                      return (
+                        <tr key={ws.metadata.uid || ws.metadata.name}>
+                          <td>
+                            <strong>{displayName(ws)}</strong>
+                            <span className="ops-ws-meta">{ws.metadata.name}</span>
+                          </td>
+                          <td>
+                            {locked ? (
+                              <Tooltip content="Locked — non-admin users cannot modify">
+                                <Icon status="warning"><LockIcon /></Icon>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip content="Unlocked">
+                                <Icon status="success"><LockOpenIcon /></Icon>
+                              </Tooltip>
+                            )}
+                          </td>
+                          <td>
+                            {shared ? (
+                              <Label color="purple" isCompact icon={<UsersIcon />}>Shared</Label>
+                            ) : (
+                              <Label color="blue" isCompact>Standard</Label>
+                            )}
+                          </td>
+                          <td>{fmtDate(ws.spec?.actionSchedule?.stop)}</td>
+                          <td>{fmtDate(ws.spec?.lifespan?.end)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         )}
       </PageSection>
 
-      {/* Lock confirmation */}
+      {/* ---------- Confirmation modals ---------- */}
+
       <Modal variant="small" isOpen={showLockConfirm} onClose={() => setShowLockConfirm(false)} aria-labelledby="lock-confirm">
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
@@ -487,7 +623,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Unlock confirmation */}
       <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
         <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
         <ModalBody>
@@ -503,7 +638,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Extend stop confirmation */}
       <Modal variant="small" isOpen={showExtStopConfirm} onClose={() => setShowExtStopConfirm(false)} aria-labelledby="ext-stop-confirm">
         <ModalHeader title="Confirm Extend Stop Time" labelId="ext-stop-confirm" />
         <ModalBody>
@@ -519,7 +653,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Extend destroy confirmation */}
       <Modal variant="small" isOpen={showExtDestroyConfirm} onClose={() => setShowExtDestroyConfirm(false)} aria-labelledby="ext-destroy-confirm">
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
@@ -536,7 +669,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Disable auto-stop confirmation */}
       <Modal variant="small" isOpen={showNoAutostopConfirm} onClose={() => setShowNoAutostopConfirm(false)} aria-labelledby="no-autostop-confirm">
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
@@ -553,15 +685,20 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Scale confirmation */}
       <Modal variant="small" isOpen={showScaleConfirm} onClose={() => setShowScaleConfirm(false)} aria-labelledby="scale-confirm">
-        <ModalHeader title="Confirm Scale" labelId="scale-confirm" />
+        <ModalHeader title="Confirm Scale" labelId="scale-confirm" titleIconVariant={sharedScaleTargets.length > 0 ? 'warning' : undefined} />
         <ModalBody>
           <p>
             Scale to <strong>{scaleCount}</strong> seat instances on{' '}
             <strong>{scaleAffectedCount} workshop(s)</strong>
             {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
+          {sharedScaleTargets.length > 0 && (
+            <Alert variant="warning" isInline isPlain title="Shared cluster warning" style={{ marginTop: 8 }}>
+              {sharedScaleTargets.length} of {scaleTargets.length} workshop(s) are shared (multiuserServices).
+              You are scaling user seats on a shared cluster, not standalone instances.
+            </Alert>
+          )}
           <p style={{ marginTop: 8 }}>This will modify the WorkshopProvision <code>spec.count</code> for each affected workshop.</p>
         </ModalBody>
         <ModalFooter>
@@ -570,7 +707,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Scale-to-zero confirmation */}
       <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => setShowScaleZeroConfirm(false)} aria-labelledby="scale-zero-confirm">
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>

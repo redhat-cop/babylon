@@ -29,3 +29,34 @@
 .ops-status-fail {
   color: var(--pf-t--global--color--status--danger--default);
 }
+
+/* Workshop detail table */
+.ops-workshops-section {
+  margin-top: 8px;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  padding-top: 16px;
+}
+
+.ops-table-wrap {
+  overflow-x: auto;
+}
+
+.ops-table-wrap table {
+  width: 100%;
+}
+
+.ops-ws-meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+  font-family: var(--pf-t--global--font--family--mono);
+}
+
+/* Toast group */
+.ops-toast-group {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 9999;
+  max-width: 440px;
+}
