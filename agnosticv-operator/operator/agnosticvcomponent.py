@@ -237,6 +237,14 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_workshop_user_mode != 'none'
 
     @property
+    def catalog_num_users_parameter(self) -> str|None:
+        """Which catalog parameter controls number of workshop user seats provisioned
+        when workshop_user_mode is 'multi'."""
+        if self.catalog_workshop_user_mode != "multi":
+            return None
+        return self.catalog_meta.get('num_users_parameter', 'num_users')
+
+    @property
     def catalog_owners(self):
         return self.__meta__.get('owners', {})
 
@@ -575,6 +583,9 @@ class AgnosticVComponent(KopfObject):
             definition['spec']['icon'] = self.catalog_icon
         else:
             definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = ''
+
+        if self.catalog_num_users_parameter is not None:
+            definition['spec']['numUsersParameter'] = self.catalog_num_users_parameter
 
         if self.access_control:
             definition['spec']['accessControl'] = self.access_control
