@@ -123,11 +123,6 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
-  userHelpDropdownItems.push(
-    <DropdownItem key="request-catalog-item" value="https://red.ht/demo-onboarding">
-      Request new catalog item
-    </DropdownItem>,
-  );
   const UserControlDropdownItems = [
     <DropdownItem
       key="logout"
