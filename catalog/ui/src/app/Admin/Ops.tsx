@@ -119,6 +119,32 @@ const Ops: React.FC = () => {
   );
   const workshops = workshopsData?.items ?? [];
 
+  // Fetch provisions for every workshop so we can show current spec.count
+  const provisionKeys = useMemo(
+    () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
+    [workshops],
+  );
+  const { data: allProvData, mutate: mutateProvisions } = useSWR<WorkshopProvisionList[]>(
+    provisionKeys.length > 0 ? provisionKeys : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopProvisionList>)),
+    { refreshInterval: 30000 },
+  );
+  const provisionsByWorkshop = useMemo(() => {
+    const map = new Map<string, WorkshopProvision[]>();
+    if (allProvData) {
+      workshops.forEach((ws, i) => {
+        map.set(ws.metadata.name, allProvData[i]?.items ?? []);
+      });
+    }
+    return map;
+  }, [workshops, allProvData]);
+
+  const getCurrentCount = useCallback((wsName: string): number | null => {
+    const provs = provisionsByWorkshop.get(wsName);
+    if (!provs || provs.length === 0) return null;
+    return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
+  }, [provisionsByWorkshop]);
+
   const workshopOptions = useMemo(() => {
     const names = new Set(workshops.map(w => displayName(w)));
     return Array.from(names).sort();
@@ -140,7 +166,7 @@ const Ops: React.FC = () => {
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [noAutostopFilter, setNoAutostopFilter] = useState('');
   const [scaleFilter, setScaleFilter] = useState('');
-  const [scaleCount, setScaleCount] = useState(20);
+  const [scaleCount, setScaleCount] = useState(5);
 
   // Loading states
   const [lockLoading, setLockLoading] = useState(false);
@@ -298,6 +324,7 @@ const Ops: React.FC = () => {
     }
     setScaleLoading(false);
     mutateWorkshops();
+    mutateProvisions();
     if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
@@ -523,17 +550,17 @@ const Ops: React.FC = () => {
                 </CardTitle>
                 <CardBody>
                   <CIFilter options={workshopOptions} value={scaleFilter} onChange={setScaleFilter} id="scale-filter" />
-                  <Alert variant="info" isInline isPlain title="Instance count" style={{ marginBottom: 8 }}>
-                    This scales the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
-                    If a workshop is configured for 20 users per instance, scaling to {scaleCount} means {scaleCount} instances &times; 20 users = {scaleCount * 20} total users.
-                  </Alert>
+                  <p className="ops-desc">
+                    Sets the WorkshopProvision <code>spec.count</code> to a new value.
+                    This <strong>replaces</strong> the current instance count &mdash; lower than existing scales down, higher scales up.
+                  </p>
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
                       onPlus={() => setScaleCount(scaleCount + 1)}
                       onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={4} aria-label="Target count" />
-                    <Tooltip content="WorkshopProvision spec.count — the number of provisioned instances"><span>instance count</span></Tooltip>
+                      widthChars={4} aria-label="New instance count" />
+                    <span>new instance count</span>
                   </div>
                   <Button variant="primary" onClick={handleScale}
                     isLoading={scaleLoading} isDisabled={scaleLoading}>
@@ -556,6 +583,7 @@ const Ops: React.FC = () => {
                       <th>Name</th>
                       <th>Lock</th>
                       <th>Type</th>
+                      <th>Instances</th>
                       <th>Auto-Stop</th>
                       <th>Auto-Destroy</th>
                     </tr>
@@ -564,6 +592,7 @@ const Ops: React.FC = () => {
                     {visibleWorkshops.map(ws => {
                       const locked = isWorkshopLocked(ws);
                       const shared = ws.spec?.multiuserServices === true;
+                      const currentCount = getCurrentCount(ws.metadata.name);
                       return (
                         <tr key={ws.metadata.uid || ws.metadata.name}>
                           <td>
@@ -586,6 +615,13 @@ const Ops: React.FC = () => {
                               <Label color="purple" isCompact icon={<UsersIcon />}>Shared</Label>
                             ) : (
                               <Label color="blue" isCompact>Standard</Label>
+                            )}
+                          </td>
+                          <td>
+                            {currentCount !== null ? (
+                              <strong>{currentCount}</strong>
+                            ) : (
+                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>
                             )}
                           </td>
                           <td>{fmtDate(ws.spec?.actionSchedule?.stop)}</td>
@@ -685,13 +721,31 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale" labelId="scale-confirm" />
         <ModalBody>
           <p>
-            Scale to <strong>{scaleCount}</strong> instances on{' '}
+            Set instance count to <strong>{scaleCount}</strong> on{' '}
             <strong>{scaleAffectedCount} workshop(s)</strong>
             {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>
-            This sets the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
-            Each instance serves the workshop&rsquo;s configured user count.
+          {scaleTargets.length > 0 && (
+            <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
+              <thead><tr><th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
+              <tbody>
+                {scaleTargets.map(ws => {
+                  const cur = getCurrentCount(ws.metadata.name);
+                  const direction = cur === null ? '' : scaleCount > cur ? '(scale up)' : scaleCount < cur ? '(scale down)' : '(no change)';
+                  return (
+                    <tr key={ws.metadata.name}>
+                      <td>{displayName(ws)}</td>
+                      <td><strong>{cur ?? '?'}</strong></td>
+                      <td>&rarr;</td>
+                      <td><strong>{scaleCount}</strong> <span style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>{direction}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          <p style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+            This replaces the current WorkshopProvision <code>spec.count</code>. Each instance serves the workshop&rsquo;s configured number of users.
           </p>
         </ModalBody>
         <ModalFooter>
