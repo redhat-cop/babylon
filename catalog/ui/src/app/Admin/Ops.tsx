@@ -30,8 +30,6 @@ import {
   Tooltip,
   Title,
 } from '@patternfly/react-core';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
-import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
 import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
@@ -59,46 +57,14 @@ interface OpsAlert {
   description?: string;
 }
 
-const CIFilter: React.FC<{
-  options: string[];
-  value: string;
-  onChange: (val: string) => void;
-  id: string;
-}> = ({ options, value, onChange, id }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <label htmlFor={id} style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', fontWeight: 600 }}>
-        Target Workshop
-      </label>
-      <Select
-        id={id}
-        isOpen={isOpen}
-        selected={value}
-        onSelect={(_e, val) => { onChange(val as string); setIsOpen(false); }}
-        onOpenChange={setIsOpen}
-        toggle={(toggleRef) => (
-          <MenuToggle ref={toggleRef} onClick={() => setIsOpen(p => !p)} isExpanded={isOpen} isFullWidth>
-            {value || 'All Workshops'}
-          </MenuToggle>
-        )}
-        shouldFocusToggleOnSelect
-      >
-        <SelectList>
-          <SelectOption value="">All Workshops</SelectOption>
-          {options.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-        </SelectList>
-      </Select>
-    </div>
-  );
-};
-
 const FETCH_LIMIT = 500;
 let alertKeyCounter = 0;
 
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
+
+  // ---------- Alerts ----------
 
   const [alerts, setAlerts] = useState<OpsAlert[]>([]);
 
@@ -112,6 +78,8 @@ const Ops: React.FC = () => {
     setAlerts(prev => prev.filter(a => a.key !== key));
   }, []);
 
+  // ---------- Data fetching ----------
+
   const { data: workshopsData, mutate: mutateWorkshops } = useSWR<WorkshopList>(
     namespace ? apiPaths.WORKSHOPS({ namespace, limit: FETCH_LIMIT }) : null,
     fetcher,
@@ -119,7 +87,6 @@ const Ops: React.FC = () => {
   );
   const workshops = workshopsData?.items ?? [];
 
-  // Fetch provisions for every workshop so we can show current spec.count
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -145,27 +112,31 @@ const Ops: React.FC = () => {
     return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
   }, [provisionsByWorkshop]);
 
+  // ---------- Single global workshop filter ----------
+
   const workshopOptions = useMemo(() => {
     const names = new Set(workshops.map(w => displayName(w)));
     return Array.from(names).sort();
   }, [workshops]);
 
-  const filterWorkshops = useCallback(
-    (filter: string): Workshop[] =>
-      filter ? workshops.filter(w => displayName(w) === filter) : workshops,
-    [workshops],
+  const [workshopFilter, setWorkshopFilter] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const targets = useMemo(
+    () => workshopFilter ? workshops.filter(w => displayName(w) === workshopFilter) : workshops,
+    [workshops, workshopFilter],
   );
 
-  // Operation state
-  const [lockFilter, setLockFilter] = useState('');
-  const [extStopFilter, setExtStopFilter] = useState('');
+  const scopeLabel = workshopFilter
+    ? <>&ldquo;{workshopFilter}&rdquo; ({targets.length})</>
+    : <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''}</>;
+
+  // ---------- Operation parameters ----------
+
   const [extStopDays, setExtStopDays] = useState(0);
   const [extStopHours, setExtStopHours] = useState(0);
-  const [extDestroyFilter, setExtDestroyFilter] = useState('');
   const [extDestroyDays, setExtDestroyDays] = useState(0);
   const [extDestroyHours, setExtDestroyHours] = useState(0);
-  const [noAutostopFilter, setNoAutostopFilter] = useState('');
-  const [scaleFilter, setScaleFilter] = useState('');
   const [scaleCount, setScaleCount] = useState(5);
 
   // Loading states
@@ -185,12 +156,13 @@ const Ops: React.FC = () => {
   const [showScaleZeroConfirm, setShowScaleZeroConfirm] = useState(false);
   const [showScaleConfirm, setShowScaleConfirm] = useState(false);
 
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+
   // ---------- Handlers ----------
 
   const handleLock = async () => {
     setShowLockConfirm(false);
     setLockLoading(true);
-    const targets = filterWorkshops(lockFilter);
     let ok = 0, fail = 0;
     for (const ws of targets) {
       try { await lockWorkshop(ws); ok++; } catch { fail++; }
@@ -204,7 +176,6 @@ const Ops: React.FC = () => {
   const handleUnlock = async () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
-    const targets = filterWorkshops(lockFilter);
     let ok = 0, fail = 0;
     for (const ws of targets) {
       try {
@@ -227,7 +198,6 @@ const Ops: React.FC = () => {
     if (!showExtStopConfirm) { setShowExtStopConfirm(true); return; }
     setShowExtStopConfirm(false);
     setExtStopLoading(true);
-    const targets = filterWorkshops(extStopFilter);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
     let ok = 0, fail = 0;
     for (const ws of targets) {
@@ -254,7 +224,6 @@ const Ops: React.FC = () => {
     if (!showExtDestroyConfirm) { setShowExtDestroyConfirm(true); return; }
     setShowExtDestroyConfirm(false);
     setExtDestroyLoading(true);
-    const targets = filterWorkshops(extDestroyFilter);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
     let ok = 0, fail = 0;
     for (const ws of targets) {
@@ -280,7 +249,6 @@ const Ops: React.FC = () => {
     if (!showNoAutostopConfirm) { setShowNoAutostopConfirm(true); return; }
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
-    const targets = filterWorkshops(noAutostopFilter);
     let ok = 0, fail = 0;
     for (const ws of targets) {
       try {
@@ -304,7 +272,6 @@ const Ops: React.FC = () => {
     setShowScaleZeroConfirm(false);
     setShowScaleConfirm(false);
     setScaleLoading(true);
-    const targets = filterWorkshops(scaleFilter);
     let ok = 0, fail = 0;
     for (const ws of targets) {
       try {
@@ -329,26 +296,7 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
-  // ---------- Computed ----------
-
-  const lockAffectedCount = useMemo(() => filterWorkshops(lockFilter).length, [filterWorkshops, lockFilter]);
-  const extStopAffectedCount = useMemo(() => filterWorkshops(extStopFilter).length, [filterWorkshops, extStopFilter]);
-  const extDestroyAffectedCount = useMemo(() => filterWorkshops(extDestroyFilter).length, [filterWorkshops, extDestroyFilter]);
-  const noAutostopAffectedCount = useMemo(() => filterWorkshops(noAutostopFilter).length, [filterWorkshops, noAutostopFilter]);
-  const scaleAffectedCount = useMemo(() => filterWorkshops(scaleFilter).length, [filterWorkshops, scaleFilter]);
-
-  const scaleTargets = useMemo(() => filterWorkshops(scaleFilter), [filterWorkshops, scaleFilter]);
-  const sharedScaleTargets = useMemo(
-    () => scaleTargets.filter(ws => ws.spec?.multiuserServices === true),
-    [scaleTargets],
-  );
-
-  // Workshops visible in the detail table (union of all active filters, or all if none set)
-  const activeFilters = new Set([lockFilter, extStopFilter, extDestroyFilter, noAutostopFilter, scaleFilter].filter(Boolean));
-  const visibleWorkshops = useMemo(() => {
-    if (activeFilters.size === 0) return workshops;
-    return workshops.filter(w => activeFilters.has(displayName(w)));
-  }, [workshops, ...activeFilters]);
+  // ---------- Helpers ----------
 
   const fmtDate = (iso?: string) => {
     if (!iso) return '—';
@@ -409,7 +357,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => navigate(`/admin/ops/${n.name}`)}
+              onSelect={(n) => { setWorkshopFilter(''); navigate(`/admin/ops/${n.name}`); }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -420,7 +368,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             {workshops.length > 0 && (
               <Label isCompact color="blue" style={{ lineHeight: '36px' }}>
-                {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
+                {workshops.length} workshop{workshops.length !== 1 ? 's' : ''} in namespace
               </Label>
             )}
           </SplitItem>
@@ -437,26 +385,48 @@ const Ops: React.FC = () => {
           </EmptyState>
         ) : (
           <>
-            <Alert variant="info" isInline isPlain title="Bulk Operations" style={{ marginBottom: 16 }}>
-              Operations apply to all workshops in <strong>{namespace}</strong>.
-              Use the &ldquo;Target Workshop&rdquo; dropdown on each card to limit scope to a specific workshop.
-            </Alert>
+            {/* Global workshop scope selector */}
+            <div className="ops-scope-bar">
+              <label htmlFor="ops-scope" style={{ fontWeight: 600, marginRight: 8, whiteSpace: 'nowrap' }}>
+                Scope
+              </label>
+              <Select
+                id="ops-scope"
+                isOpen={filterOpen}
+                selected={workshopFilter}
+                onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
+                onOpenChange={setFilterOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
+                    {workshopFilter || 'All Workshops'}
+                  </MenuToggle>
+                )}
+                shouldFocusToggleOnSelect
+              >
+                <SelectList>
+                  <SelectOption value="">All Workshops</SelectOption>
+                  {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
+                </SelectList>
+              </Select>
+              <span className="ops-scope-summary">
+                All operations below apply to {scopeLabel}
+              </span>
+            </div>
 
             <div className="ops-grid">
               {/* Resource Lock */}
               <Card isFullHeight>
                 <CardTitle>Resource Lock</CardTitle>
                 <CardBody>
-                  <CIFilter options={workshopOptions} value={lockFilter} onChange={setLockFilter} id="lock-filter" />
                   <p className="ops-desc">
                     Toggle <code>demo.redhat.com/lock-enabled</code> on workshops.
                     Locked resources cannot be modified by non-admin users.
                   </p>
                   <div className="ops-button-row">
                     <Button variant="warning" onClick={() => setShowLockConfirm(true)}
-                      isLoading={lockLoading} isDisabled={lockLoading || unlockLoading}>Lock</Button>
+                      isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
                     <Button variant="secondary" onClick={() => setShowUnlockConfirm(true)}
-                      isLoading={unlockLoading} isDisabled={lockLoading || unlockLoading}>Unlock</Button>
+                      isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                   </div>
                 </CardBody>
               </Card>
@@ -469,7 +439,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <CIFilter options={workshopOptions} value={extStopFilter} onChange={setExtStopFilter} id="ext-stop-filter" />
                   <div className="ops-number-row">
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
@@ -485,7 +454,7 @@ const Ops: React.FC = () => {
                     <span>hours</span>
                   </div>
                   <Button variant="primary" onClick={handleExtendStop}
-                    isLoading={extStopLoading} isDisabled={extStopLoading || (extStopDays === 0 && extStopHours === 0)}>
+                    isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
                     Extend Stop
                   </Button>
                 </CardBody>
@@ -499,7 +468,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <CIFilter options={workshopOptions} value={extDestroyFilter} onChange={setExtDestroyFilter} id="ext-destroy-filter" />
                   <div className="ops-number-row">
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
@@ -515,7 +483,7 @@ const Ops: React.FC = () => {
                     <span>hours</span>
                   </div>
                   <Button variant="primary" onClick={handleExtendDestroy}
-                    isLoading={extDestroyLoading} isDisabled={extDestroyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
+                    isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
                     Extend Destroy
                   </Button>
                 </CardBody>
@@ -529,13 +497,12 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <CIFilter options={workshopOptions} value={noAutostopFilter} onChange={setNoAutostopFilter} id="no-autostop-filter" />
                   <p className="ops-desc">
                     Removes <code>actionSchedule.stop</code> so workshops remain running
                     until their destroy deadline or manual stop.
                   </p>
                   <Button variant="warning" onClick={handleDisableAutostop}
-                    isLoading={noAutostopLoading} isDisabled={noAutostopLoading}>
+                    isLoading={noAutostopLoading} isDisabled={anyLoading}>
                     Disable Auto-Stop
                   </Button>
                 </CardBody>
@@ -544,15 +511,14 @@ const Ops: React.FC = () => {
               {/* Scale */}
               <Card isFullHeight>
                 <CardTitle>
-                  <Tooltip content="Change the WorkshopProvision spec.count (instance count) for workshops.">
+                  <Tooltip content="Sets the WorkshopProvision spec.count — replaces the current instance count.">
                     <span>Scale Workshops</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <CIFilter options={workshopOptions} value={scaleFilter} onChange={setScaleFilter} id="scale-filter" />
                   <p className="ops-desc">
-                    Sets the WorkshopProvision <code>spec.count</code> to a new value.
-                    This <strong>replaces</strong> the current instance count &mdash; lower than existing scales down, higher scales up.
+                    Sets <code>spec.count</code> to a new value.
+                    This <strong>replaces</strong> the current instance count &mdash; lower = scale down, higher = scale up.
                   </p>
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
@@ -563,7 +529,7 @@ const Ops: React.FC = () => {
                     <span>new instance count</span>
                   </div>
                   <Button variant="primary" onClick={handleScale}
-                    isLoading={scaleLoading} isDisabled={scaleLoading}>
+                    isLoading={scaleLoading} isDisabled={anyLoading}>
                     Scale
                   </Button>
                 </CardBody>
@@ -574,7 +540,7 @@ const Ops: React.FC = () => {
             <div className="ops-workshops-section">
               <Title headingLevel="h5" style={{ marginBottom: 12 }}>
                 Workshops in scope
-                <Badge isRead style={{ marginLeft: 8 }}>{visibleWorkshops.length}</Badge>
+                <Badge isRead style={{ marginLeft: 8 }}>{targets.length}</Badge>
               </Title>
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
@@ -589,7 +555,7 @@ const Ops: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleWorkshops.map(ws => {
+                    {targets.map(ws => {
                       const locked = isWorkshopLocked(ws);
                       const shared = ws.spec?.multiuserServices === true;
                       const currentCount = getCurrentCount(ws.metadata.name);
@@ -643,9 +609,8 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
           <p>
-            Set <code>demo.redhat.com/lock-enabled=true</code> on{' '}
-            <strong>{lockAffectedCount} workshop(s)</strong>
-            {lockFilter ? <> matching &ldquo;{lockFilter}&rdquo;</> : <> (all in {namespace})</>}.
+            Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> (all in {namespace})</>}.
           </p>
           <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
         </ModalBody>
@@ -659,9 +624,8 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
         <ModalBody>
           <p>
-            Set <code>demo.redhat.com/lock-enabled=false</code> on{' '}
-            <strong>{lockAffectedCount} workshop(s)</strong>
-            {lockFilter ? <> matching &ldquo;{lockFilter}&rdquo;</> : <> (all in {namespace})</>}.
+            Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> (all in {namespace})</>}.
           </p>
         </ModalBody>
         <ModalFooter>
@@ -675,8 +639,8 @@ const Ops: React.FC = () => {
         <ModalBody>
           <p>
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{extStopAffectedCount} workshop(s)</strong>
-            {extStopFilter ? <> matching &ldquo;{extStopFilter}&rdquo;</> : <> in {namespace}</>}.
+            <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
         </ModalBody>
         <ModalFooter>
@@ -690,10 +654,10 @@ const Ops: React.FC = () => {
         <ModalBody>
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{extDestroyAffectedCount} workshop(s)</strong>
-            {extDestroyFilter ? <> matching &ldquo;{extDestroyFilter}&rdquo;</> : <> in {namespace}</>}.
+            <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline for these resources.</p>
+          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
@@ -706,10 +670,10 @@ const Ops: React.FC = () => {
         <ModalBody>
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{noAutostopAffectedCount} workshop(s)</strong>
-            {noAutostopFilter ? <> matching &ldquo;{noAutostopFilter}&rdquo;</> : <> in {namespace}</>}.
+            <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. This may incur additional cloud costs.</p>
+          <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. May incur additional cloud costs.</p>
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
@@ -722,14 +686,14 @@ const Ops: React.FC = () => {
         <ModalBody>
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{scaleAffectedCount} workshop(s)</strong>
-            {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
+            <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          {scaleTargets.length > 0 && (
+          {targets.length > 0 && (
             <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
               <thead><tr><th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
               <tbody>
-                {scaleTargets.map(ws => {
+                {targets.map(ws => {
                   const cur = getCurrentCount(ws.metadata.name);
                   const direction = cur === null ? '' : scaleCount > cur ? '(scale up)' : scaleCount < cur ? '(scale down)' : '(no change)';
                   return (
@@ -745,7 +709,7 @@ const Ops: React.FC = () => {
             </table>
           )}
           <p style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-            This replaces the current WorkshopProvision <code>spec.count</code>. Each instance serves the workshop&rsquo;s configured number of users.
+            This replaces the current <code>spec.count</code>. Each instance serves the workshop&rsquo;s configured number of users.
           </p>
         </ModalBody>
         <ModalFooter>
@@ -758,11 +722,11 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           <p>
-            Scaling to <strong>0</strong> will remove all workshop instances on{' '}
-            <strong>{scaleAffectedCount} workshop(s)</strong>
-            {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
+            Scaling to <strong>0</strong> will remove all instances on{' '}
+            <strong>{targets.length} workshop(s)</strong>
+            {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>This will destroy all running resources. Students will lose access immediately.</p>
+          <p style={{ marginTop: 8 }}>All running resources will be destroyed. Students will lose access immediately.</p>
         </ModalBody>
         <ModalFooter>
           <Button variant="danger" onClick={handleScale}>Scale to Zero</Button>

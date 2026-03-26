@@ -1,3 +1,21 @@
+/* Scope bar */
+.ops-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  flex-wrap: wrap;
+}
+
+.ops-scope-summary {
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Operation cards grid */
 .ops-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -27,14 +45,6 @@
 .ops-button-row {
   display: flex;
   gap: 8px;
-}
-
-.ops-status-ok {
-  color: var(--pf-t--global--color--status--success--default);
-}
-
-.ops-status-fail {
-  color: var(--pf-t--global--color--status--danger--default);
 }
 
 /* Workshop detail table */
