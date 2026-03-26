@@ -65,10 +65,12 @@ import {
 import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
+  ResourceClaim, ResourceClaimList,
   ServiceNamespace,
 } from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
+import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
 
@@ -293,6 +295,24 @@ const Ops: React.FC = () => {
     return provs.reduce((sum, p) => sum + ((p.status as any)?.failedCount ?? 0), 0);
   }, [provisionsByWorkshop]);
 
+  interface ProvisionProgress {
+    desired: number;
+    claimed: number;
+    failed: number;
+    concurrency: number;
+  }
+
+  const getProvisionProgress = useCallback((ws: Workshop): ProvisionProgress | null => {
+    const provs = provisionsByWorkshop.get(wsKey(ws));
+    if (!provs || provs.length === 0) return null;
+    return {
+      desired: provs.reduce((s, p) => s + (p.spec?.count ?? 0), 0),
+      claimed: provs.reduce((s, p) => s + ((p.status as any)?.resourceClaimCount ?? 0), 0),
+      failed: provs.reduce((s, p) => s + ((p.status as any)?.failedCount ?? 0), 0),
+      concurrency: provs.reduce((s, p) => s + (p.spec?.concurrency ?? 1), 0),
+    };
+  }, [provisionsByWorkshop]);
+
   const assignmentKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -318,6 +338,30 @@ const Ops: React.FC = () => {
     const assigned = assignments.filter(a => a.spec?.assignment).length;
     return { assigned, total: assignments.length };
   }, [assignmentsByWorkshop]);
+
+  // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
+  const resourceClaimKeys = useMemo(
+    () => workshops.map(w => apiPaths.RESOURCE_CLAIMS({
+      namespace: w.metadata.namespace,
+      labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
+      limit: 500,
+    })),
+    [workshops],
+  );
+  const { data: allRcData } = useSWR<ResourceClaimList[]>(
+    resourceClaimKeys.length > 0 ? resourceClaimKeys : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
+    { refreshInterval: 30000 },
+  );
+  const resourceClaimsByWorkshop = useMemo(() => {
+    const map = new Map<string, ResourceClaim[]>();
+    if (allRcData) {
+      workshops.forEach((ws, i) => {
+        map.set(wsKey(ws), allRcData[i]?.items ?? []);
+      });
+    }
+    return map;
+  }, [workshops, allRcData]);
 
   const [showPasswords, setShowPasswords] = useState(false);
 
@@ -1114,6 +1158,7 @@ const Ops: React.FC = () => {
                       <th>Status</th>
                       <th>Lock</th>
                       <th>Instances</th>
+                      <th>Concurrency</th>
                       <th>Seats</th>
                       <th>Registration</th>
                       <th>Password</th>
@@ -1138,6 +1183,10 @@ const Ops: React.FC = () => {
                       let grpActive = 0;
                       let grpStopped = 0;
                       let grpFailed = 0;
+                      let grpDesired = 0;
+                      let grpClaimed = 0;
+                      let grpFailedCount = 0;
+                      let grpConcurrency = 0;
                       let grpAttention = false;
                       const grpPasswords = new Set<string>();
                       const grpNamespaces = new Set<string>();
@@ -1151,7 +1200,14 @@ const Ops: React.FC = () => {
                         if (isWorkshopLocked(ws)) grpLocked++;
                         if (s && s.assigned > 0) grpActive++;
                         if (ws.spec?.provisionDisabled) grpStopped++;
-                        if (getFailedCount(ws) > 0) grpFailed++;
+                        const prog = getProvisionProgress(ws);
+                        if (prog) {
+                          if (prog.failed > 0) grpFailed++;
+                          grpDesired += prog.desired;
+                          grpClaimed += prog.claimed;
+                          grpFailedCount += prog.failed;
+                          grpConcurrency += prog.concurrency;
+                        }
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
                         if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
                         grpNamespaces.add(ws.metadata.namespace);
@@ -1194,18 +1250,17 @@ const Ops: React.FC = () => {
                               )}
                             </span>
                           </td>
-                          <td>
+                          <td className="ops-status-cell">
                             {grpStopped === group.items.length ? (
                               <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                            ) : grpFailed > 0 ? (
-                              <><Icon status="danger"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem', color: 'var(--pf-t--global--color--status--danger--default)' }}>Failed</span></>
-                            ) : grpActive > 0 ? (
-                              <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
-                            ) : grpStopped > 0 ? (
-                              <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                            ) : (
-                              <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning</span></>
-                            )}
+                            ) : (() => {
+                              const grpClaims = group.items.flatMap(ws => resourceClaimsByWorkshop.get(wsKey(ws)) ?? []);
+                              return grpClaims.length > 0
+                                ? <WorkshopStatus resourceClaims={grpClaims} />
+                                : grpDesired > 0
+                                  ? <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {grpClaimed}/{grpDesired}</span></>
+                                  : <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
+                            })()}
                           </td>
                           <td>
                             {grpLocked > 0 ? (
@@ -1217,6 +1272,7 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td><strong>{grpInstances}</strong></td>
+                          <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
                           <td>
                             {grpSeatsTotal > 0 ? (
                               <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
@@ -1258,29 +1314,9 @@ const Ops: React.FC = () => {
                         const password = ws.spec?.accessPassword;
                         const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
-                        const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
-                        const hasProvisions = provs.length > 0;
                         const provDisabled = ws.spec?.provisionDisabled === true;
-                        const failedCount = getFailedCount(ws);
-
-                        let statusIcon: React.ReactNode;
-                        let statusLabel: string;
-                        if (provDisabled) {
-                          statusLabel = 'Stopped';
-                          statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
-                        } else if (failedCount > 0) {
-                          statusLabel = `Failed (${failedCount})`;
-                          statusIcon = <Icon status="danger"><ExclamationCircleIcon /></Icon>;
-                        } else if (!hasProvisions) {
-                          statusLabel = 'No provisions';
-                          statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
-                        } else if (seats && seats.assigned > 0) {
-                          statusLabel = 'Active';
-                          statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
-                        } else {
-                          statusLabel = 'Provisioning';
-                          statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
-                        }
+                        const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
+                        const progress = getProvisionProgress(ws);
 
                         return (
                           <tr key={wsKey(ws)} className="ops-child-row">
@@ -1297,14 +1333,22 @@ const Ops: React.FC = () => {
                                 </span>
                               )}
                             </td>
-                            <td>
-                              <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
-                              <span style={{ marginLeft: 6, fontSize: '0.85rem', ...(failedCount > 0 ? { color: 'var(--pf-t--global--color--status--danger--default)', fontWeight: 600 } : {}) }}>{statusLabel}</span>
+                            <td className="ops-status-cell">
+                              {provDisabled ? (
+                                <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
+                              ) : wsClaims.length > 0 ? (
+                                <WorkshopStatus resourceClaims={wsClaims} />
+                              ) : progress && progress.desired > 0 ? (
+                                <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {progress.claimed}/{progress.desired}</span></>
+                              ) : (
+                                <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
+                              )}
                             </td>
                             <td>
                               {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
                             </td>
                             <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
+                            <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
                               {seats ? (
                                 <span><strong>{seats.assigned}</strong> / {seats.total}</span>

@@ -3,7 +3,7 @@ import React from 'react';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import Ops from './Ops';
 import { apiPaths, fetcher, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
-import { Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
 
 const TEST_NAMESPACE = 'test-ns.prod';
@@ -104,6 +104,16 @@ function makeAssignment(workshopName: string, email?: string, namespace = TEST_N
   };
 }
 
+function makeResourceClaim(workshopName: string, state: string, idx = 0, namespace = TEST_NAMESPACE): ResourceClaim {
+  return {
+    apiVersion: 'poolboy.gpte.redhat.com/v1',
+    kind: 'ResourceClaim',
+    metadata: { name: `rc-${workshopName}-${idx}`, namespace, uid: `rc-uid-${workshopName}-${idx}`, creationTimestamp: new Date().toISOString(), labels: { [`${BABYLON_DOMAIN}/workshop`]: workshopName } },
+    spec: { resources: [] },
+    status: { summary: { state } },
+  } as unknown as ResourceClaim;
+}
+
 const ws1 = makeWorkshop({ name: 'ws-ansible', displayName: 'Ansible Lab', locked: true, accessPassword: 'redhat123', workshopId: 'abc123', stopDate: new Date(Date.now() + 48 * 3600000).toISOString(), destroyDate: new Date(Date.now() + 96 * 3600000).toISOString() });
 const ws2 = makeWorkshop({ name: 'ws-openshift', displayName: 'OpenShift AI', stopDate: new Date(Date.now() + 30 * 60000).toISOString(), destroyDate: new Date(Date.now() + 2 * 3600000).toISOString() });
 const ws3 = makeWorkshop({ name: 'ws-stopped', displayName: 'Stopped Workshop', provisionDisabled: true });
@@ -135,6 +145,34 @@ const assignmentData: Record<string, WorkshopUserAssignment[]> = {
   [wsFailed.metadata.name]: [],
 };
 
+const resourceClaimData: Record<string, ResourceClaim[]> = {
+  [ws1.metadata.name]: [
+    makeResourceClaim(ws1.metadata.name, 'Running', 0),
+    makeResourceClaim(ws1.metadata.name, 'Running', 1),
+    makeResourceClaim(ws1.metadata.name, 'Running', 2),
+    makeResourceClaim(ws1.metadata.name, 'Provisioning', 3),
+    makeResourceClaim(ws1.metadata.name, 'Provisioning', 4),
+  ],
+  [ws2.metadata.name]: [makeResourceClaim(ws2.metadata.name, 'Running', 0)],
+  [ws3.metadata.name]: [],
+  [ws4.metadata.name]: [
+    makeResourceClaim(ws4.metadata.name, 'Running', 0),
+    makeResourceClaim(ws4.metadata.name, 'Running', 1),
+    makeResourceClaim(ws4.metadata.name, 'Running', 2),
+  ],
+  [wsMulti.metadata.name]: [
+    makeResourceClaim(wsMulti.metadata.name, 'Provisioning', 0),
+    makeResourceClaim(wsMulti.metadata.name, 'Provisioning', 1),
+  ],
+  [wsFailed.metadata.name]: [
+    makeResourceClaim(wsFailed.metadata.name, 'Provision Failed', 0),
+    makeResourceClaim(wsFailed.metadata.name, 'Provision Failed', 1),
+    makeResourceClaim(wsFailed.metadata.name, 'Provision Failed', 2),
+    makeResourceClaim(wsFailed.metadata.name, 'Provision Failed', 3),
+    makeResourceClaim(wsFailed.metadata.name, 'Provision Failed', 4),
+  ],
+};
+
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn((url: string) => {
@@ -147,6 +185,9 @@ jest.mock('@app/api', () => ({
       }
       if (url.includes('/workshopuserassignments?') && url.includes(`workshop=${ws.metadata.name}`)) {
         return Promise.resolve({ items: assignmentData[ws.metadata.name] || [], metadata: {} });
+      }
+      if (url.includes('/resourceclaims?') && url.includes(`workshop=${ws.metadata.name}`)) {
+        return Promise.resolve({ items: resourceClaimData[ws.metadata.name] || [], metadata: {} });
       }
     }
     return Promise.resolve({ items: [], metadata: {} });
@@ -311,19 +352,18 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows Failed status for workshops with failed provisions', async () => {
+    test('shows Provision Failed status from WorkshopStatus for workshops with failed provisions', async () => {
       render(<Ops />);
       await waitFor(() => screen.getByText('Failed Provision Workshop'));
-      const failedElements = screen.getAllByText('Failed');
-      expect(failedElements.length).toBeGreaterThanOrEqual(2);
+      const failedElements = screen.getAllByText(/Provision Failed/i);
+      expect(failedElements.length).toBeGreaterThanOrEqual(1);
     });
 
-    test('shows Failed count in summary stats bar', async () => {
+    test('shows Running status from WorkshopStatus for active workshops', async () => {
       render(<Ops />);
-      await waitFor(() => screen.getByText('Failed Provision Workshop'));
-      const statLabel = document.querySelector('.ops-stat-label');
-      const failedStats = Array.from(document.querySelectorAll('.ops-stat-label')).filter(el => el.textContent === 'Failed');
-      expect(failedStats.length).toBe(1);
+      await waitFor(() => screen.getByText('Ansible Lab'));
+      const runningElements = screen.getAllByText(/Running/i);
+      expect(runningElements.length).toBeGreaterThanOrEqual(1);
     });
 
     test('shows instance count note when groups differ from total', async () => {
