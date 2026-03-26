@@ -47,6 +47,10 @@ import PauseCircleIcon from '@patternfly/react-icons/dist/js/icons/pause-circle-
 import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
+import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+
+import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 
 import {
   apiPaths,
@@ -100,7 +104,7 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
 ];
 
 const FETCH_LIMIT = 500;
-const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 let alertKeyCounter = 0;
@@ -109,9 +113,24 @@ function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
   if (remaining < 0) return 'critical';
-  if (remaining < TWO_HOURS_MS) return 'critical';
+  if (remaining < ONE_HOUR_MS) return 'critical';
   if (remaining < TWENTY_FOUR_HOURS_MS) return 'warning';
   return 'ok';
+}
+
+function relativeTime(iso: string): string {
+  const diff = new Date(iso).getTime() - Date.now();
+  if (diff < 0) {
+    const ago = Math.abs(diff);
+    if (ago < 60000) return 'just passed';
+    if (ago < ONE_HOUR_MS) return `${Math.round(ago / 60000)}m ago`;
+    if (ago < TWENTY_FOUR_HOURS_MS) return `${Math.round(ago / ONE_HOUR_MS)}h ago`;
+    return `${Math.round(ago / TWENTY_FOUR_HOURS_MS)}d ago`;
+  }
+  if (diff < 60000) return 'under 1 min';
+  if (diff < ONE_HOUR_MS) return `in ${Math.round(diff / 60000)}m`;
+  if (diff < TWENTY_FOUR_HOURS_MS) return `in ${Math.round(diff / ONE_HOUR_MS)}h`;
+  return `in ${Math.round(diff / TWENTY_FOUR_HOURS_MS)}d`;
 }
 
 function wsKey(ws: Workshop): string {
@@ -601,19 +620,39 @@ const Ops: React.FC = () => {
 
   // ---------- Namespace selected — full UI ----------
 
-  const renderDateCell = (iso?: string, label?: string) => {
+  const renderDateCell = (iso?: string, offLabel?: string) => {
     if (!iso) {
-      return <Label color="grey" isCompact>{label || 'Not set'}</Label>;
+      return <Label color="gold" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'Not set'}</Label>;
     }
     const urgency = dateUrgency(iso);
     const formatted = fmtDate(iso);
+    const relative = relativeTime(iso);
+
     if (urgency === 'critical') {
-      return <span className="ops-date-critical">{formatted}</span>;
+      return (
+        <Tooltip content={`${formatted} — ${relative}`}>
+          <span className="ops-date-critical">
+            <ExclamationTriangleIcon className="ops-date-icon" />
+            {relative}
+          </span>
+        </Tooltip>
+      );
     }
     if (urgency === 'warning') {
-      return <span className="ops-date-warning">{formatted}</span>;
+      return (
+        <Tooltip content={formatted!}>
+          <span className="ops-date-warning">
+            <OutlinedClockIcon className="ops-date-icon" />
+            {relative}
+          </span>
+        </Tooltip>
+      );
     }
-    return <span>{formatted}</span>;
+    return (
+      <Tooltip content={`${formatted} — ${relative}`}>
+        <span className="ops-date-ok">{formatted}</span>
+      </Tooltip>
+    );
   };
 
   const multiNsBanner = isMultiNs ? (
@@ -647,8 +686,10 @@ const Ops: React.FC = () => {
             />
           </SplitItem>
           <SplitItem isFilled>
-            <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>
-              Ops &mdash; <code>{namespace}</code>
+            <Title headingLevel="h4" className="ops-page-title">
+              <CogIcon className="ops-page-title-icon" />
+              Operations
+              <code className="ops-page-ns">{namespace}</code>
               {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
             </Title>
           </SplitItem>
@@ -664,7 +705,7 @@ const Ops: React.FC = () => {
             {workshops.length > 0 && (
               <Label isCompact color="blue" style={{ lineHeight: '36px' }}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ' in namespace'}
+                {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
           </SplitItem>
@@ -743,10 +784,10 @@ const Ops: React.FC = () => {
         {multiNsBanner}
 
         {workshops.length === 0 ? (
-          <EmptyState titleText="No workshops found" headingLevel="h4">
+          <EmptyState titleText="No workshops found" headingLevel="h4" status="info">
             <EmptyStateBody>
-              No workshops exist in {isMultiNs ? 'the selected namespaces' : <><strong>{namespace}</strong></>}.
-              Deploy workshops first, then return here for bulk operations.
+              No workshops exist in {isMultiNs ? 'the selected namespaces' : <><code>{namespace}</code></>}.
+              <br />Deploy workshops first, then return here for bulk operations.
             </EmptyStateBody>
           </EmptyState>
         ) : (
@@ -853,7 +894,7 @@ const Ops: React.FC = () => {
             <div className="ops-grid">
               {/* Resource Lock */}
               <Card isFullHeight>
-                <CardTitle>Resource Lock</CardTitle>
+                <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
                     Toggle <code>lock-enabled</code> on workshops.
@@ -872,7 +913,7 @@ const Ops: React.FC = () => {
               <Card isFullHeight>
                 <CardTitle>
                   <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
-                    <span>Extend Stop Time</span>
+                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop Time</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
@@ -901,7 +942,7 @@ const Ops: React.FC = () => {
               <Card isFullHeight>
                 <CardTitle>
                   <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
-                    <span>Extend Destroy Time</span>
+                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy Time</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
@@ -930,7 +971,7 @@ const Ops: React.FC = () => {
               <Card isFullHeight>
                 <CardTitle>
                   <Tooltip content="Remove the auto-stop schedule so workshops keep running until destroy or manual intervention.">
-                    <span>Disable Auto-Stop</span>
+                    <span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
@@ -947,7 +988,7 @@ const Ops: React.FC = () => {
 
               {/* Scale */}
               <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
-                <CardTitle>Scale Workshops</CardTitle>
+                <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
                     Sets <code>spec.count</code> to the value below.

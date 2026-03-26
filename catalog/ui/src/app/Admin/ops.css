@@ -1,27 +1,41 @@
-/* Multi-namespace bar */
+/* ============================================================
+   Ops page — Babylon Admin
+   ============================================================ */
+
+/* Page title */
+.ops-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 36px;
+}
+
+.ops-page-title-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: 1.1em;
+}
+
+.ops-page-ns {
+  font-size: 0.85em;
+  padding: 2px 8px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+/* ---- Multi-namespace bar ---- */
+
 .ops-multi-ns-bar {
   padding: 12px 16px;
   margin-bottom: 16px;
   border-radius: var(--pf-t--global--border--radius--small);
   background: var(--pf-t--global--background--color--secondary--default);
   border: 1px solid var(--pf-t--global--border--color--default);
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .ops-multi-ns-bar--active {
   border-color: var(--pf-t--global--color--status--warning--default);
   background: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 5%, var(--pf-t--global--background--color--secondary--default));
-}
-
-/* Stage filter chips in scope bar */
-.ops-stage-filters {
-  display: flex;
-  gap: 6px;
-}
-
-.ops-stage-chip {
-  cursor: pointer;
-  user-select: none;
 }
 
 .ops-ns-chips {
@@ -54,7 +68,8 @@
   margin-bottom: 2px;
 }
 
-/* Scope bar */
+/* ---- Scope bar ---- */
+
 .ops-scope-bar {
   display: flex;
   align-items: center;
@@ -63,6 +78,7 @@
   padding: 12px 16px;
   background: var(--pf-t--global--background--color--secondary--default);
   border-radius: var(--pf-t--global--border--radius--small);
+  border: 1px solid var(--pf-t--global--border--color--default);
   flex-wrap: wrap;
 }
 
@@ -79,13 +95,29 @@
   max-width: 200px;
 }
 
-/* Summary stats bar */
+.ops-stage-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.ops-stage-chip {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+
+.ops-stage-chip:hover {
+  opacity: 0.85;
+}
+
+/* ---- Summary stats bar ---- */
+
 .ops-summary-bar {
   display: flex;
   align-items: center;
   gap: 0;
-  margin-bottom: 16px;
-  padding: 14px 20px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background: var(--pf-t--global--background--color--secondary--default);
   border-radius: var(--pf-t--global--border--radius--small);
   border: 1px solid var(--pf-t--global--border--color--default);
@@ -134,12 +166,8 @@
   color: var(--pf-t--global--color--status--danger--default);
 }
 
-/* Scale card danger highlight */
-.ops-scale-danger {
-  border: 2px solid var(--pf-t--global--color--status--warning--default);
-}
+/* ---- Operation cards grid ---- */
 
-/* Operation cards grid */
 .ops-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -154,6 +182,12 @@
   }
 }
 
+.ops-card-icon {
+  margin-right: 6px;
+  color: var(--pf-t--global--text--color--subtle);
+  vertical-align: -0.1em;
+}
+
 .ops-number-row {
   display: flex;
   align-items: center;
@@ -164,6 +198,8 @@
 .ops-desc {
   margin-bottom: 12px;
   font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--subtle);
+  line-height: 1.5;
 }
 
 .ops-button-row {
@@ -171,7 +207,12 @@
   gap: 8px;
 }
 
-/* Workshop detail table */
+.ops-scale-danger {
+  border: 2px solid var(--pf-t--global--color--status--warning--default);
+}
+
+/* ---- Workshop detail table ---- */
+
 .ops-workshops-section {
   margin-top: 8px;
   border-top: 1px solid var(--pf-t--global--border--color--default);
@@ -186,7 +227,16 @@
   width: 100%;
 }
 
-.ops-table-wrap th,
+.ops-table-wrap thead th {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--pf-t--global--text--color--subtle);
+  border-bottom: 2px solid var(--pf-t--global--border--color--default);
+  white-space: nowrap;
+}
+
 .ops-table-wrap td {
   padding: 8px 12px;
   vertical-align: middle;
@@ -197,9 +247,13 @@
   font-size: 0.78rem;
   color: var(--pf-t--global--text--color--subtle);
   font-family: var(--pf-t--global--font--family--mono);
+  line-height: 1.3;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Workshop name labels (stage, multi-asset) */
 .ops-ws-labels {
   display: flex;
   flex-wrap: wrap;
@@ -207,15 +261,18 @@
   margin-top: 3px;
 }
 
-/* Muted placeholder text */
+/* ---- Text & data styling ---- */
+
 .ops-muted {
   color: var(--pf-t--global--text--color--subtle);
 }
 
-/* Password display */
 .ops-password {
   font-size: 0.85rem;
   word-break: break-all;
+  background: var(--pf-t--global--background--color--secondary--default);
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 .ops-password-hidden {
@@ -223,24 +280,49 @@
   letter-spacing: 2px;
 }
 
-/* Workshop URL link */
 .ops-ws-link {
   font-size: 0.85rem;
   white-space: nowrap;
 }
 
-/* Date urgency */
+/* ---- Date urgency ---- */
+
 .ops-date-critical {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--pf-t--global--color--status--danger--default);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.9rem;
+  animation: ops-pulse 2s ease-in-out infinite;
 }
 
 .ops-date-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--pf-t--global--color--status--warning--default);
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
-/* Seat percentage badge */
+.ops-date-ok {
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ops-date-icon {
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+
+@keyframes ops-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+/* ---- Seat percentage ---- */
+
 .ops-seat-pct {
   font-size: 0.78rem;
   color: var(--pf-t--global--text--color--subtle);
@@ -255,39 +337,26 @@
   color: var(--pf-t--global--color--status--info--default);
 }
 
-/* Projected seats */
-.ops-seats-projected {
-  font-size: 0.85rem;
-  color: var(--pf-t--global--text--color--subtle);
-  font-style: italic;
-}
+/* ---- Row highlights ---- */
 
-/* Row highlights */
 .ops-row-attention {
   border-left: 3px solid var(--pf-t--global--color--status--danger--default);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 4%, transparent) !important;
 }
 
 .ops-row-stopped {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* Refresh spinner */
-.ops-spin {
-  animation: ops-spin-anim 1s linear infinite;
-}
+/* ---- Group header rows ---- */
 
-@keyframes ops-spin-anim {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Group header rows */
 .ops-group-header {
   background: var(--pf-t--global--background--color--secondary--default);
+  transition: background 0.1s;
 }
 
 .ops-group-header:hover {
-  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 90%, var(--pf-t--global--text--color--regular));
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular));
 }
 
 .ops-group-header td:first-child {
@@ -312,10 +381,22 @@
 
 .ops-child-row td:first-child {
   width: 32px;
-  border-left: 2px solid var(--pf-t--global--border--color--default);
+  border-left: 2px solid var(--pf-t--global--color--status--info--default);
 }
 
-/* Toast group */
+/* ---- Refresh spinner ---- */
+
+.ops-spin {
+  animation: ops-spin-anim 1s linear infinite;
+}
+
+@keyframes ops-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Toast group ---- */
+
 .ops-toast-group {
   position: fixed;
   top: 60px;
