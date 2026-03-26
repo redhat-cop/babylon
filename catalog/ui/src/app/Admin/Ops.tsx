@@ -573,12 +573,12 @@ const Ops: React.FC = () => {
     setShowExtStopConfirm(false);
     setExtStopLoading(true);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, skip = 0;
     for (const ws of targets) {
+      const currentStop = ws.spec?.actionSchedule?.stop;
+      if (!currentStop) { skip++; continue; }
       try {
-        const currentStop = ws.spec?.actionSchedule?.stop;
-        const base = currentStop ? new Date(currentStop) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentStop).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -589,8 +589,9 @@ const Ops: React.FC = () => {
     }
     setExtStopLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h`);
-    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-stop set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleExtendDestroy = async () => {
@@ -599,12 +600,12 @@ const Ops: React.FC = () => {
     setShowExtDestroyConfirm(false);
     setExtDestroyLoading(true);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, skip = 0;
     for (const ws of targets) {
+      const currentEnd = ws.spec?.lifespan?.end;
+      if (!currentEnd) { skip++; continue; }
       try {
-        const currentEnd = ws.spec?.lifespan?.end;
-        const base = currentEnd ? new Date(currentEnd) : new Date();
-        const newDate = new Date(base.getTime() + addMs);
+        const newDate = new Date(new Date(currentEnd).getTime() + addMs);
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
@@ -615,8 +616,9 @@ const Ops: React.FC = () => {
     }
     setExtDestroyLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h`);
-    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed`);
+    const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-destroy set)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleDisableAutostop = async () => {
@@ -1452,8 +1454,8 @@ const Ops: React.FC = () => {
           </p>
           {targets.some(ws => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) currently have no auto-stop.
-              This will set a stop time relative to now.
+              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
+              Only workshops with an existing stop schedule will be extended.
             </Alert>
           )}
         </ModalBody>
@@ -1475,8 +1477,8 @@ const Ops: React.FC = () => {
           <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
           {targets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) currently have no auto-destroy.
-              This will set a destroy time relative to now.
+              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
+              Only workshops with an existing destroy schedule will be extended.
             </Alert>
           )}
         </ModalBody>
