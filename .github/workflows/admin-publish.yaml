@@ -3,7 +3,7 @@ name: admin-publish
 on:
   push:
     branches-ignore:
-      - "*"
+      - "**"
     tags:
       - "admin-v[0-9]*"
   workflow_dispatch:

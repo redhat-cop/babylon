@@ -3,7 +3,7 @@ name: publish-helm-charts
 on:
   push:
     branches-ignore:
-    - '*'
+    - '**'
     tags:
     - 'v[0-9]*'
 jobs:
