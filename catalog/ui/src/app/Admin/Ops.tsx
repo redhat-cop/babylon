@@ -115,6 +115,7 @@ interface OperationTemplate {
   metadata: {
     created: string;
     lastUsed?: string;
+    isDefault?: boolean;
   };
 }
 
@@ -590,21 +591,355 @@ const Ops: React.FC = () => {
   const [extDestroyTemplateSelectOpen, setExtDestroyTemplateSelectOpen] = useState(false);
   const [scaleTemplateSelectOpen, setScaleTemplateSelectOpen] = useState(false);
 
-  // Load templates from localStorage on component mount
+  // Default/example templates to help users understand functionality
+  const getDefaultTemplates = useCallback((): {[key: string]: OperationTemplate} => {
+    const currentDate = new Date().toISOString();
+    return {
+      'default-emergency-scale-down': {
+        id: 'default-emergency-scale-down',
+        name: 'Emergency Scale Down',
+        description: 'Scale all workshops to 1 instance for resource conservation during emergencies or high load',
+        operationType: 'scale',
+        parameters: {
+          scaleCount: 1,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-scale-to-zero': {
+        id: 'default-scale-to-zero',
+        name: 'Scale to Zero',
+        description: 'Scale all workshops to 0 instances for maintenance windows or complete shutdown',
+        operationType: 'scale',
+        parameters: {
+          scaleCount: 0,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-standard-scale-up': {
+        id: 'default-standard-scale-up',
+        name: 'Standard Scale Up',
+        description: 'Scale workshops to 5 instances for normal operations and expected load',
+        operationType: 'scale',
+        parameters: {
+          scaleCount: 5,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-maintenance-lock': {
+        id: 'default-maintenance-lock',
+        name: 'Maintenance Lock',
+        description: 'Lock all workshops during system maintenance to prevent user modifications',
+        operationType: 'lock',
+        parameters: {},
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-event-lock': {
+        id: 'default-event-lock',
+        name: 'Event Lock',
+        description: 'Lock workshops during large events to prevent changes and ensure stability',
+        operationType: 'lock',
+        parameters: {},
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: 'event',
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-post-maintenance-unlock': {
+        id: 'default-post-maintenance-unlock',
+        name: 'Post-Maintenance Unlock',
+        description: 'Unlock all workshops after maintenance window completion',
+        operationType: 'unlock',
+        parameters: {},
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-extend-2-hours': {
+        id: 'default-extend-2-hours',
+        name: 'Extend 2 Hours',
+        description: 'Common short-term extension for workshops that need more time to complete',
+        operationType: 'extend-stop',
+        parameters: {
+          extStopHours: 2,
+          extStopDays: 0,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-extend-1-day': {
+        id: 'default-extend-1-day',
+        name: 'Extend 1 Day',
+        description: 'Standard daily extension for workshops requiring additional time',
+        operationType: 'extend-stop',
+        parameters: {
+          extStopHours: 0,
+          extStopDays: 1,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-weekend-extension': {
+        id: 'default-weekend-extension',
+        name: 'Weekend Extension',
+        description: 'Extend workshops until Monday morning for weekend work',
+        operationType: 'extend-stop',
+        parameters: {
+          extStopHours: 0,
+          extStopDays: 3,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-extend-destroy-1-week': {
+        id: 'default-extend-destroy-1-week',
+        name: 'Extend Destroy 1 Week',
+        description: 'Extend workshop destruction by 1 week for longer-term projects',
+        operationType: 'extend-destroy',
+        parameters: {
+          extDestroyHours: 0,
+          extDestroyDays: 7,
+        },
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-long-running-workshop': {
+        id: 'default-long-running-workshop',
+        name: 'Long Running Workshop',
+        description: 'Disable auto-stop for workshops that need to run continuously for extended sessions',
+        operationType: 'disable-autostop',
+        parameters: {},
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+      'default-demo-preparation': {
+        id: 'default-demo-preparation',
+        name: 'Demo Preparation',
+        description: 'Keep workshops running continuously for demo setup and rehearsal',
+        operationType: 'disable-autostop',
+        parameters: {},
+        scope: {
+          enhancedFilters: {
+            userName: null,
+            labUserInterfaceUrls: null,
+            serviceName: null,
+            workshopName: null,
+            cloudProvider: null,
+            cloudRegion: null,
+            salesforceId: null,
+            dateRange: { startDate: null, endDate: null },
+          },
+          workshopFilter: null,
+          stageFilter: null,
+        },
+        metadata: {
+          created: currentDate,
+          isDefault: true,
+        },
+      },
+    };
+  }, []);
+
+  // Load templates from localStorage on component mount and merge with defaults
   useEffect(() => {
+    const defaultTemplates = getDefaultTemplates();
     const saved = localStorage.getItem('babylon-admin-operation-templates');
+
+    let userTemplates: {[key: string]: OperationTemplate} = {};
     if (saved) {
       try {
-        setOperationTemplates(JSON.parse(saved));
+        userTemplates = JSON.parse(saved);
       } catch (e) {
         console.warn('Failed to load operation templates from localStorage:', e);
       }
     }
-  }, []);
 
-  // Save templates to localStorage whenever they change
+    // Merge defaults with user templates (user templates override defaults with same key)
+    setOperationTemplates({ ...defaultTemplates, ...userTemplates });
+  }, [getDefaultTemplates]);
+
+  // Save only user-created templates to localStorage (exclude defaults)
   useEffect(() => {
-    localStorage.setItem('babylon-admin-operation-templates', JSON.stringify(operationTemplates));
+    const userTemplates = Object.fromEntries(
+      Object.entries(operationTemplates).filter(([_, template]) => !template.metadata.isDefault)
+    );
+    localStorage.setItem('babylon-admin-operation-templates', JSON.stringify(userTemplates));
   }, [operationTemplates]);
 
   const saveOperationTemplate = useCallback((name: string, description: string, operationType: OperationTemplate['operationType']) => {
@@ -677,6 +1012,12 @@ const Ops: React.FC = () => {
     const template = operationTemplates[templateId];
     if (!template) return;
 
+    // Prevent deletion of default templates
+    if (template.metadata.isDefault) {
+      addAlert(AlertVariant.danger, `Cannot delete default template "${template.name}"`);
+      return;
+    }
+
     setOperationTemplates(prev => {
       const next = { ...prev };
       delete next[templateId];
@@ -684,7 +1025,7 @@ const Ops: React.FC = () => {
     });
 
     addAlert(AlertVariant.warning, `Template "${template.name}" deleted`);
-  }, [operationTemplates]);
+  }, [operationTemplates, addAlert]);
 
   const openSaveTemplateModal = useCallback((operationType: OperationTemplate['operationType']) => {
     setTemplateToSave({ operationType });
@@ -2361,18 +2702,27 @@ const Ops: React.FC = () => {
       <Modal variant="medium" isOpen={showTemplateManagerModal} onClose={() => setShowTemplateManagerModal(false)} aria-labelledby="template-manager">
         <ModalHeader title="Manage Operation Templates" labelId="template-manager" />
         <ModalBody>
-          <p style={{ marginBottom: 16 }}>Manage your saved operation templates. Click a template to apply its settings.</p>
+          <p style={{ marginBottom: 16 }}>
+            Manage your operation templates. Example templates are provided to demonstrate common use cases.
+            Click any template to apply its settings to the current operation.
+          </p>
 
           {Object.keys(operationTemplates).length === 0 ? (
             <EmptyState>
               <EmptyStateBody>
-                No templates saved yet. Save templates from operation confirmation dialogs to reuse configurations.
+                No templates available. This should not happen as example templates are always provided.
               </EmptyStateBody>
             </EmptyState>
           ) : (
             <div style={{ display: 'grid', gap: 12 }}>
               {Object.values(operationTemplates)
-                .sort((a, b) => new Date(b.metadata.created).getTime() - new Date(a.metadata.created).getTime())
+                .sort((a, b) => {
+                  // Sort user templates first, then default templates
+                  if (a.metadata.isDefault && !b.metadata.isDefault) return 1;
+                  if (!a.metadata.isDefault && b.metadata.isDefault) return -1;
+                  // Within each group, sort by creation date (newest first)
+                  return new Date(b.metadata.created).getTime() - new Date(a.metadata.created).getTime();
+                })
                 .map(template => (
                   <Card key={template.id} isSelectableRaised onClick={() => {
                     loadOperationTemplate(template.id);
@@ -2383,18 +2733,25 @@ const Ops: React.FC = () => {
                         <div>
                           <span style={{ fontWeight: 600 }}>{template.name}</span>
                           <Badge style={{ marginLeft: 8 }}>{template.operationType}</Badge>
+                          {template.metadata.isDefault && (
+                            <Badge variant="outline" style={{ marginLeft: 4, color: 'var(--pf-t--global--color--blue--default)', borderColor: 'var(--pf-t--global--color--blue--default)' }}>
+                              Example
+                            </Badge>
+                          )}
                         </div>
-                        <Button
-                          variant="plain"
-                          isDanger
-                          aria-label={`Delete template ${template.name}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteOperationTemplate(template.id);
-                          }}
-                        >
-                          <TimesIcon />
-                        </Button>
+                        {!template.metadata.isDefault && (
+                          <Button
+                            variant="plain"
+                            isDanger
+                            aria-label={`Delete template ${template.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteOperationTemplate(template.id);
+                            }}
+                          >
+                            <TimesIcon />
+                          </Button>
+                        )}
                       </div>
                     </CardTitle>
                     <CardBody>
