@@ -517,18 +517,18 @@ const Ops: React.FC = () => {
               {/* Scale */}
               <Card isFullHeight>
                 <CardTitle>
-                  <Tooltip content="Change the number of workshop seat instances via WorkshopProvision spec.count.">
+                  <Tooltip content="Change the WorkshopProvision spec.count (instance count) for workshops.">
                     <span>Scale Workshops</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
                   <CIFilter options={workshopOptions} value={scaleFilter} onChange={setScaleFilter} id="scale-filter" />
                   {sharedScaleTargets.length > 0 && (
-                    <Alert variant="warning" isInline isPlain title="Shared cluster detected" style={{ marginBottom: 8 }}>
+                    <Alert variant="info" isInline isPlain title="Shared workshop" style={{ marginBottom: 8 }}>
                       {sharedScaleTargets.length === scaleTargets.length
-                        ? 'All targeted workshops are shared (multiuserServices). '
-                        : `${sharedScaleTargets.length} of ${scaleTargets.length} targeted workshops are shared. `}
-                      Scaling changes the number of user seats on a shared cluster &mdash; not standalone instances.
+                        ? 'All targeted workshops use multiuserServices (shared cluster). '
+                        : `${sharedScaleTargets.length} of ${scaleTargets.length} targeted workshop(s) use multiuserServices. `}
+                      Scaling sets the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
                     </Alert>
                   )}
                   <div className="ops-number-row">
@@ -537,7 +537,7 @@ const Ops: React.FC = () => {
                       onPlus={() => setScaleCount(scaleCount + 1)}
                       onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={4} aria-label="Target count" />
-                    <Tooltip content="Number of workshop seat instances to provision"><span>target count</span></Tooltip>
+                    <Tooltip content="WorkshopProvision spec.count — the number of provisioned instances"><span>instance count</span></Tooltip>
                   </div>
                   <Button variant="primary" onClick={handleScale}
                     isLoading={scaleLoading} isDisabled={scaleLoading}>
@@ -689,17 +689,17 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale" labelId="scale-confirm" titleIconVariant={sharedScaleTargets.length > 0 ? 'warning' : undefined} />
         <ModalBody>
           <p>
-            Scale to <strong>{scaleCount}</strong> seat instances on{' '}
+            Scale to <strong>{scaleCount}</strong> instances on{' '}
             <strong>{scaleAffectedCount} workshop(s)</strong>
             {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
+          <p style={{ marginTop: 8 }}>This will modify the WorkshopProvision <code>spec.count</code> (instance count) for each affected workshop.</p>
           {sharedScaleTargets.length > 0 && (
-            <Alert variant="warning" isInline isPlain title="Shared cluster warning" style={{ marginTop: 8 }}>
-              {sharedScaleTargets.length} of {scaleTargets.length} workshop(s) are shared (multiuserServices).
-              You are scaling user seats on a shared cluster, not standalone instances.
+            <Alert variant="info" isInline isPlain title="Shared workshop note" style={{ marginTop: 8 }}>
+              {sharedScaleTargets.length} of {scaleTargets.length} workshop(s) use multiuserServices.
+              This changes the provisioned instance count, not the number of end-users.
             </Alert>
           )}
-          <p style={{ marginTop: 8 }}>This will modify the WorkshopProvision <code>spec.count</code> for each affected workshop.</p>
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleScale}>Scale</Button>
