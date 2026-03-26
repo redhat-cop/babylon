@@ -274,11 +274,17 @@
 
 .ops-table-wrap table {
   width: 100%;
+  table-layout: auto;
 }
 
+/* Column width hints via colgroup-like approach on th */
+.ops-table-wrap th:first-child { width: 24px; }  /* expand */
+.ops-table-wrap th:nth-child(2) { min-width: 160px; }  /* Name */
+.ops-table-wrap th:nth-child(3) { min-width: 80px; }   /* Status */
+
 .ops-table-wrap thead th {
-  padding: 10px 12px;
-  font-size: 0.82rem;
+  padding: 8px 8px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   color: var(--pf-t--global--text--color--subtle);
@@ -287,8 +293,34 @@
 }
 
 .ops-table-wrap td {
-  padding: 8px 12px;
+  padding: 6px 8px;
   vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+/* Compact numeric columns */
+.ops-table-wrap th:nth-child(5),
+.ops-table-wrap td:nth-child(5),
+.ops-table-wrap th:nth-child(6),
+.ops-table-wrap td:nth-child(6),
+.ops-table-wrap th:nth-child(7),
+.ops-table-wrap td:nth-child(7),
+.ops-table-wrap th:nth-child(8),
+.ops-table-wrap td:nth-child(8) {
+  text-align: center;
+  white-space: nowrap;
+  width: 1%;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* Lock column compact */
+.ops-table-wrap th:nth-child(4),
+.ops-table-wrap td:nth-child(4) {
+  text-align: center;
+  width: 1%;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .ops-ws-meta {
@@ -317,7 +349,7 @@
 }
 
 .ops-password {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   word-break: break-all;
   background: var(--pf-t--global--background--color--secondary--default);
   padding: 1px 4px;
@@ -327,10 +359,11 @@
 .ops-password-hidden {
   color: var(--pf-t--global--text--color--subtle);
   letter-spacing: 2px;
+  font-size: 0.78rem;
 }
 
 .ops-ws-link {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   white-space: nowrap;
 }
 
@@ -353,8 +386,25 @@
 }
 
 .ops-status-cell {
-  font-size: 0.85rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.ops-status-cell > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.ops-status-cell .pf-v6-c-icon {
+  font-size: 0.85em;
 }
 
 a.ops-ws-name-link {
@@ -380,25 +430,28 @@ a.ops-ws-meta:hover {
 .ops-date-critical {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--pf-t--global--color--status--danger--default);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   animation: ops-pulse 2s ease-in-out infinite;
+  white-space: nowrap;
 }
 
 .ops-date-warning {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--pf-t--global--color--status--warning--default);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
 .ops-date-ok {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--pf-t--global--text--color--regular);
+  white-space: nowrap;
 }
 
 .ops-date-icon {
@@ -450,8 +503,9 @@ a.ops-ws-meta:hover {
 }
 
 .ops-group-header td:first-child {
-  width: 32px;
+  width: 24px;
   padding-right: 0;
+  padding-left: 4px;
 }
 
 .ops-expand-cell {
@@ -470,8 +524,9 @@ a.ops-ws-meta:hover {
 }
 
 .ops-child-row td:first-child {
-  width: 32px;
+  width: 24px;
   border-left: 2px solid var(--pf-t--global--color--status--info--default);
+  padding-left: 4px;
 }
 
 /* ---- Refresh spinner ---- */
@@ -527,8 +582,8 @@ a.ops-ws-meta:hover {
 
   .ops-table-wrap td,
   .ops-table-wrap thead th {
-    padding: 6px 8px;
-    font-size: 0.82rem;
+    padding: 4px 6px;
+    font-size: 0.75rem;
   }
 
   .ops-ws-meta {
