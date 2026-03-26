@@ -198,6 +198,12 @@
   font-family: var(--pf-t--global--font--family--mono);
 }
 
+/* Multi-asset workshop label */
+.ops-multi-ws-label {
+  display: inline-block;
+  margin-top: 3px;
+}
+
 /* Muted placeholder text */
 .ops-muted {
   color: var(--pf-t--global--text--color--subtle);

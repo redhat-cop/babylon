@@ -1000,6 +1000,7 @@ const Ops: React.FC = () => {
                       const hasProvisions = provs.length > 0;
                       const provDisabled = ws.spec?.provisionDisabled === true;
                       const isOpen = ws.spec?.openRegistration !== false;
+                      const multiWsSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
 
                       let statusIcon: React.ReactNode;
                       let statusLabel: string;
@@ -1053,6 +1054,11 @@ const Ops: React.FC = () => {
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
+                            {multiWsSource && (
+                              <Tooltip content={`Part of Multi-Asset Workshop: ${multiWsSource}`}>
+                                <Label isCompact color="cyan" className="ops-multi-ws-label">Multi-Asset: {multiWsSource}</Label>
+                              </Tooltip>
+                            )}
                           </td>
                           {isMultiNs && (
                             <td>
@@ -1096,7 +1102,9 @@ const Ops: React.FC = () => {
                           <td>
                             {password ? (
                               showPasswords
-                                ? <code className="ops-password">{password}</code>
+                                ? <Tooltip content={multiWsSource ? `Password for this asset within ${multiWsSource}` : 'Workshop access password'}>
+                                    <code className="ops-password">{password}</code>
+                                  </Tooltip>
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
