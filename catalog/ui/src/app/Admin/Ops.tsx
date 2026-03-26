@@ -523,14 +523,10 @@ const Ops: React.FC = () => {
                 </CardTitle>
                 <CardBody>
                   <CIFilter options={workshopOptions} value={scaleFilter} onChange={setScaleFilter} id="scale-filter" />
-                  {sharedScaleTargets.length > 0 && (
-                    <Alert variant="info" isInline isPlain title="Shared workshop" style={{ marginBottom: 8 }}>
-                      {sharedScaleTargets.length === scaleTargets.length
-                        ? 'All targeted workshops use multiuserServices (shared cluster). '
-                        : `${sharedScaleTargets.length} of ${scaleTargets.length} targeted workshop(s) use multiuserServices. `}
-                      Scaling sets the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
-                    </Alert>
-                  )}
+                  <Alert variant="info" isInline isPlain title="Instance count" style={{ marginBottom: 8 }}>
+                    This scales the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
+                    If a workshop is configured for 20 users per instance, scaling to {scaleCount} means {scaleCount} instances &times; 20 users = {scaleCount * 20} total users.
+                  </Alert>
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
@@ -686,20 +682,17 @@ const Ops: React.FC = () => {
       </Modal>
 
       <Modal variant="small" isOpen={showScaleConfirm} onClose={() => setShowScaleConfirm(false)} aria-labelledby="scale-confirm">
-        <ModalHeader title="Confirm Scale" labelId="scale-confirm" titleIconVariant={sharedScaleTargets.length > 0 ? 'warning' : undefined} />
+        <ModalHeader title="Confirm Scale" labelId="scale-confirm" />
         <ModalBody>
           <p>
             Scale to <strong>{scaleCount}</strong> instances on{' '}
             <strong>{scaleAffectedCount} workshop(s)</strong>
             {scaleFilter ? <> matching &ldquo;{scaleFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>This will modify the WorkshopProvision <code>spec.count</code> (instance count) for each affected workshop.</p>
-          {sharedScaleTargets.length > 0 && (
-            <Alert variant="info" isInline isPlain title="Shared workshop note" style={{ marginTop: 8 }}>
-              {sharedScaleTargets.length} of {scaleTargets.length} workshop(s) use multiuserServices.
-              This changes the provisioned instance count, not the number of end-users.
-            </Alert>
-          )}
+          <p style={{ marginTop: 8 }}>
+            This sets the WorkshopProvision <code>spec.count</code> (instance count), not the number of end-users.
+            Each instance serves the workshop&rsquo;s configured user count.
+          </p>
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleScale}>Scale</Button>
