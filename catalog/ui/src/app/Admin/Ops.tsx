@@ -90,10 +90,11 @@ const COMMON_TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
 ];
 
-const NS_QUICK_FILTERS: { label: string; pattern: string; color: 'blue' | 'orange' | 'green' | 'purple' }[] = [
-  { label: 'prod', pattern: '.prod', color: 'orange' },
-  { label: 'event', pattern: '.event', color: 'purple' },
-  { label: 'dev', pattern: '.dev', color: 'green' },
+const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 'green' | 'purple' }[] = [
+  { label: 'prod', value: 'prod', color: 'orange' },
+  { label: 'event', value: 'event', color: 'purple' },
+  { label: 'dev', value: 'dev', color: 'green' },
+  { label: 'test', value: 'test', color: 'blue' },
 ];
 
 const FETCH_LIMIT = 500;
@@ -141,7 +142,6 @@ const Ops: React.FC = () => {
   const [showMultiNsConfirm, setShowMultiNsConfirm] = useState(false);
   const [extraNamespaces, setExtraNamespaces] = useState<string[]>([]);
   const [nsSearchOpen, setNsSearchOpen] = useState(false);
-  const [nsQuickFilter, setNsQuickFilter] = useState<string | null>(null);
 
   // Fetch all user namespaces for multi-ns picker
   const { data: allNsData } = useSWR<{ items: any[] }>(
@@ -154,12 +154,8 @@ const Ops: React.FC = () => {
   }, [allNsData]);
 
   const filteredNsOptions = useMemo(() => {
-    let list = allNamespaces;
-    if (nsQuickFilter) {
-      list = list.filter(ns => ns.name.includes(nsQuickFilter));
-    }
-    return list.filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name)).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allNamespaces, namespace, extraNamespaces, nsQuickFilter]);
+    return allNamespaces.filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name)).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allNamespaces, namespace, extraNamespaces]);
 
   const activeNamespaces = useMemo(() => {
     const nsList = namespace ? [namespace] : [];
@@ -179,7 +175,6 @@ const Ops: React.FC = () => {
     setMultiNsMode(false);
     setMultiNsAck(false);
     setExtraNamespaces([]);
-    setNsQuickFilter(null);
   }, []);
 
   // ---------- Timezone ----------
@@ -282,11 +277,14 @@ const Ops: React.FC = () => {
 
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [stageFilter, setStageFilter] = useState<string | null>(null);
 
-  const targets = useMemo(
-    () => workshopFilter ? workshops.filter(w => displayName(w) === workshopFilter) : workshops,
-    [workshops, workshopFilter],
-  );
+  const targets = useMemo(() => {
+    let list = workshops;
+    if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
+    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+    return list;
+  }, [workshops, workshopFilter, stageFilter]);
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
@@ -671,21 +669,6 @@ const Ops: React.FC = () => {
               </SplitItem>
               {multiNsMode && (
                 <>
-                  <SplitItem>
-                    <div className="ops-ns-quick-filters">
-                      {NS_QUICK_FILTERS.map(f => (
-                        <Label
-                          key={f.pattern}
-                          color={nsQuickFilter === f.pattern ? f.color : 'grey'}
-                          isCompact
-                          onClick={() => setNsQuickFilter(nsQuickFilter === f.pattern ? null : f.pattern)}
-                          className="ops-ns-filter-chip"
-                        >
-                          {f.label}
-                        </Label>
-                      ))}
-                    </div>
-                  </SplitItem>
                   <SplitItem isFilled>
                     <Select
                       isOpen={nsSearchOpen}
@@ -766,8 +749,21 @@ const Ops: React.FC = () => {
                   {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
                 </SelectList>
               </Select>
+              <div className="ops-stage-filters">
+                {STAGE_FILTERS.map(f => (
+                  <Label
+                    key={f.value}
+                    color={stageFilter === f.value ? f.color : 'grey'}
+                    isCompact
+                    onClick={() => setStageFilter(stageFilter === f.value ? null : f.value)}
+                    className="ops-stage-chip"
+                  >
+                    {f.label}
+                  </Label>
+                ))}
+              </div>
               <span className="ops-scope-summary">
-                Scope: {scopeLabel}
+                {scopeLabel}
               </span>
               <span className="ops-scope-spacer" />
               <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />

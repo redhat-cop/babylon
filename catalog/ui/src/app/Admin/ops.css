@@ -13,12 +13,13 @@
   background: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 5%, var(--pf-t--global--background--color--secondary--default));
 }
 
-.ops-ns-quick-filters {
+/* Stage filter chips in scope bar */
+.ops-stage-filters {
   display: flex;
   gap: 6px;
 }
 
-.ops-ns-filter-chip {
+.ops-stage-chip {
   cursor: pointer;
   user-select: none;
 }
