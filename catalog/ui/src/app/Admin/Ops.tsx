@@ -45,6 +45,8 @@ import InProgressIcon from '@patternfly/react-icons/dist/js/icons/in-progress-ic
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import PauseCircleIcon from '@patternfly/react-icons/dist/js/icons/pause-circle-icon';
 import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
+import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
+import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 
 import {
   apiPaths,
@@ -285,6 +287,29 @@ const Ops: React.FC = () => {
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     return list;
   }, [workshops, workshopFilter, stageFilter]);
+
+  // Group workshops by display name for cleaner table
+  const workshopGroups = useMemo(() => {
+    const groups = new Map<string, Workshop[]>();
+    for (const ws of targets) {
+      const name = displayName(ws);
+      const list = groups.get(name) ?? [];
+      list.push(ws);
+      groups.set(name, list);
+    }
+    return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
+  }, [targets]);
+
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = useCallback((name: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
@@ -956,7 +981,12 @@ const Ops: React.FC = () => {
                 <SplitItem isFilled>
                   <Title headingLevel="h5">
                     Workshops in scope
-                    <Badge isRead style={{ marginLeft: 8 }}>{targets.length}</Badge>
+                    <Badge isRead style={{ marginLeft: 8 }}>{workshopGroups.length}</Badge>
+                    {workshopGroups.length !== targets.length && (
+                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        ({targets.length} instances)
+                      </span>
+                    )}
                   </Title>
                 </SplitItem>
                 <SplitItem>
@@ -971,6 +1001,7 @@ const Ops: React.FC = () => {
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
+                      <th></th>
                       <th>Name</th>
                       {isMultiNs && <th>Namespace</th>}
                       <th>Status</th>
@@ -985,146 +1016,189 @@ const Ops: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {targets.map(ws => {
-                      const locked = isWorkshopLocked(ws);
-                      const currentCount = getCurrentCount(ws);
-                      const seats = getSeats(ws);
-                      const password = ws.spec?.accessPassword;
-                      const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-                      const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
-                      const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
-                      const hasProvisions = provs.length > 0;
-                      const provDisabled = ws.spec?.provisionDisabled === true;
-                      const isOpen = ws.spec?.openRegistration !== false;
-                      const multiWsSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
-                      const stage = getStageFromK8sObject(ws);
+                    {workshopGroups.map(group => {
+                      const expanded = expandedGroups.has(group.name);
+                      const isSingle = group.items.length === 1;
+                      const firstWs = group.items[0];
+                      const firstStage = getStageFromK8sObject(firstWs);
+                      const firstMultiWs = firstWs.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
 
-                      let statusIcon: React.ReactNode;
-                      let statusLabel: string;
-                      let statusClass = '';
-                      if (provDisabled) {
-                        statusLabel = 'Stopped';
-                        statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
-                        statusClass = 'ops-row-stopped';
-                      } else if (!hasProvisions) {
-                        statusLabel = 'No provisions';
-                        statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
-                        statusClass = 'ops-row-attention';
-                      } else if (seats && seats.assigned > 0) {
-                        statusLabel = 'Active';
-                        statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
-                      } else {
-                        statusLabel = 'Provisioning';
-                        statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
+                      // Aggregate stats for the group header
+                      let grpInstances = 0;
+                      let grpSeatsAssigned = 0;
+                      let grpSeatsTotal = 0;
+                      let grpLocked = 0;
+                      let grpActive = 0;
+                      let grpStopped = 0;
+                      let grpAttention = false;
+                      const grpPasswords = new Set<string>();
+                      const grpUrls: { id: string; url: string }[] = [];
+
+                      for (const ws of group.items) {
+                        const c = getCurrentCount(ws);
+                        if (c !== null) grpInstances += c;
+                        const s = getSeats(ws);
+                        if (s) { grpSeatsAssigned += s.assigned; grpSeatsTotal += s.total; }
+                        if (isWorkshopLocked(ws)) grpLocked++;
+                        if (s && s.assigned > 0) grpActive++;
+                        if (ws.spec?.provisionDisabled) grpStopped++;
+                        if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
+                        if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
+                        const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+                        if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                       }
 
-                      const stopUrgency = dateUrgency(ws.spec?.actionSchedule?.stop);
-                      const destroyUrgency = dateUrgency(ws.spec?.lifespan?.end);
-                      const needsAttention = stopUrgency === 'critical' || destroyUrgency === 'critical';
-                      const rowClass = needsAttention ? 'ops-row-attention' : statusClass;
+                      const colSpan = 10 + (isMultiNs ? 1 : 0);
+                      const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
 
-                      let seatsDisplay: React.ReactNode;
-                      if (seats) {
-                        const pct = seats.total > 0 ? Math.round((seats.assigned / seats.total) * 100) : 0;
-                        seatsDisplay = (
-                          <Tooltip content={`${seats.assigned} assigned of ${seats.total} total (${pct}%)`}>
-                            <span>
-                              <strong>{seats.assigned}</strong> / {seats.total}
-                              {seats.total > 0 && (
-                                <span className={`ops-seat-pct ${pct >= 90 ? 'ops-seat-full' : pct >= 50 ? 'ops-seat-half' : ''}`}>
-                                  {' '}{pct}%
-                                </span>
-                              )}
-                            </span>
-                          </Tooltip>
-                        );
-                      } else {
-                        seatsDisplay = (
-                          <Tooltip content="No user assignments created yet">
-                            <span className="ops-muted">&mdash;</span>
-                          </Tooltip>
-                        );
-                      }
-
-                      return (
-                        <tr key={ws.metadata.uid || wsKey(ws)} className={rowClass}>
+                      const headerRow = (
+                        <tr key={`grp-${group.name}`}
+                          className={`ops-group-header ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
+                          onClick={!isSingle ? () => toggleGroup(group.name) : undefined}
+                          style={!isSingle ? { cursor: 'pointer' } : undefined}
+                        >
+                          <td className="ops-expand-cell">
+                            {!isSingle && (
+                              expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
+                            )}
+                          </td>
                           <td>
-                            <strong>{displayName(ws)}</strong>
-                            <span className="ops-ws-meta">{ws.metadata.name}</span>
+                            <strong>{group.name}</strong>
+                            {!isSingle && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
+                            {isSingle && <span className="ops-ws-meta">{firstWs.metadata.name}</span>}
                             <span className="ops-ws-labels">
-                              {stage && stage !== 'prod' && (
-                                <Label isCompact color={
-                                  stage === 'dev' ? 'green' : stage === 'event' ? 'purple' : stage === 'test' ? 'blue' : 'grey'
-                                }>{stage}</Label>
-                              )}
-                              {stage === 'prod' && <Label isCompact color="orange">prod</Label>}
-                              {multiWsSource && (
-                                <Tooltip content={`Part of Multi-Asset Workshop: ${multiWsSource}`}>
-                                  <Label isCompact color="cyan">Multi-Asset: {multiWsSource}</Label>
+                              {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
+                              {firstMultiWs && (
+                                <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
+                                  <Label isCompact color="cyan">Multi-Asset: {firstMultiWs}</Label>
                                 </Tooltip>
                               )}
                             </span>
                           </td>
-                          {isMultiNs && (
-                            <td>
-                              <Label isCompact color={
-                                ws.metadata.namespace.includes('.prod') ? 'orange' :
-                                ws.metadata.namespace.includes('.event') ? 'purple' :
-                                ws.metadata.namespace.includes('.dev') ? 'green' : 'blue'
-                              }>
-                                {ws.metadata.namespace}
-                              </Label>
-                            </td>
-                          )}
+                          {isMultiNs && <td><Label isCompact color="blue">{firstWs.metadata.namespace}</Label></td>}
                           <td>
-                            <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
-                            <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
-                          </td>
-                          <td>
-                            {locked ? (
-                              <Tooltip content="Locked — non-admin users cannot modify">
-                                <Icon status="warning"><LockIcon /></Icon>
-                              </Tooltip>
+                            {grpActive > 0 ? (
+                              <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
+                            ) : grpStopped > 0 ? (
+                              <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
                             ) : (
-                              <Tooltip content="Unlocked">
-                                <Icon status="success"><LockOpenIcon /></Icon>
-                              </Tooltip>
+                              <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning</span></>
                             )}
                           </td>
                           <td>
-                            {currentCount !== null ? (
-                              <strong>{currentCount}</strong>
+                            {grpLocked > 0 ? (
+                              <Tooltip content={`${grpLocked} of ${group.items.length} locked`}>
+                                <Icon status="warning"><LockIcon /></Icon>
+                              </Tooltip>
+                            ) : (
+                              <Icon status="success"><LockOpenIcon /></Icon>
+                            )}
+                          </td>
+                          <td><strong>{grpInstances}</strong></td>
+                          <td>
+                            {grpSeatsTotal > 0 ? (
+                              <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
-                          <td>{seatsDisplay}</td>
                           <td>
-                            {isOpen ? (
+                            {firstWs.spec?.openRegistration !== false ? (
                               <Label color="green" isCompact>Open</Label>
                             ) : (
                               <Label color="blue" isCompact>Pre-registration</Label>
                             )}
                           </td>
                           <td>
-                            {password ? (
+                            {grpPasswords.size > 0 ? (
                               showPasswords
-                                ? <Tooltip content={multiWsSource ? `Password for this asset within ${multiWsSource}` : 'Workshop access password'}>
-                                    <code className="ops-password">{password}</code>
-                                  </Tooltip>
+                                ? <code className="ops-password">{Array.from(grpPasswords).join(', ')}</code>
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
-                          <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
-                          <td>{renderDateCell(ws.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                          <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
+                          <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
                           <td>
-                            {workshopUrl ? (
-                              <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
+                            {grpUrls.length > 0 ? (
+                              <a href={grpUrls[0].url} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />
-                                {workshopId}
+                                {grpUrls[0].id}
                               </a>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                         </tr>
                       );
+
+                      if (isSingle || !expanded) return headerRow;
+
+                      const childRows = group.items.map(ws => {
+                        const locked = isWorkshopLocked(ws);
+                        const currentCount = getCurrentCount(ws);
+                        const seats = getSeats(ws);
+                        const password = ws.spec?.accessPassword;
+                        const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+                        const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
+                        const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
+                        const hasProvisions = provs.length > 0;
+                        const provDisabled = ws.spec?.provisionDisabled === true;
+
+                        let statusIcon: React.ReactNode;
+                        let statusLabel: string;
+                        if (provDisabled) {
+                          statusLabel = 'Stopped';
+                          statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
+                        } else if (!hasProvisions) {
+                          statusLabel = 'No provisions';
+                          statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
+                        } else if (seats && seats.assigned > 0) {
+                          statusLabel = 'Active';
+                          statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
+                        } else {
+                          statusLabel = 'Provisioning';
+                          statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
+                        }
+
+                        return (
+                          <tr key={wsKey(ws)} className="ops-child-row">
+                            <td></td>
+                            <td>
+                              <span className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</span>
+                            </td>
+                            {isMultiNs && <td><span className="ops-ws-meta">{ws.metadata.namespace}</span></td>}
+                            <td>
+                              <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
+                              <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
+                            </td>
+                            <td>
+                              {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
+                            </td>
+                            <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
+                            <td>
+                              {seats ? (
+                                <span><strong>{seats.assigned}</strong> / {seats.total}</span>
+                              ) : <span className="ops-muted">&mdash;</span>}
+                            </td>
+                            <td></td>
+                            <td>
+                              {password ? (
+                                showPasswords
+                                  ? <code className="ops-password">{password}</code>
+                                  : <span className="ops-password-hidden">••••••••</span>
+                              ) : <span className="ops-muted">None</span>}
+                            </td>
+                            <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
+                            <td>{renderDateCell(ws.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                            <td>
+                              {workshopUrl ? (
+                                <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
+                                  <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                                  {workshopId}
+                                </a>
+                              ) : <span className="ops-muted">&mdash;</span>}
+                            </td>
+                          </tr>
+                        );
+                      });
+
+                      return <React.Fragment key={`grp-f-${group.name}`}>{headerRow}{childRows}</React.Fragment>;
                     })}
                   </tbody>
                 </table>
