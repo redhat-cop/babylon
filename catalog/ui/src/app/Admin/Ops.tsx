@@ -593,7 +593,7 @@ const Ops: React.FC = () => {
   if (!namespace) {
     return (
       <div className="admin-container">
-        <PageSection key="header" className="admin-header" variant="light">
+        <PageSection key="header" className="admin-header" variant="default">
           <Split hasGutter>
             <SplitItem>
               <ProjectSelector
@@ -606,7 +606,7 @@ const Ops: React.FC = () => {
             </SplitItem>
           </Split>
         </PageSection>
-        <PageSection key="body" className="admin-body" variant="light">
+        <PageSection key="body" className="admin-body" variant="default">
           <EmptyState titleText="Select a namespace" headingLevel="h4">
             <EmptyStateBody>
               Choose a project from the selector above, then perform bulk operations
@@ -622,7 +622,7 @@ const Ops: React.FC = () => {
 
   const renderDateCell = (iso?: string, offLabel?: string) => {
     if (!iso) {
-      return <Label color="gold" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'Not set'}</Label>;
+      return <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'Not set'}</Label>;
     }
     const urgency = dateUrgency(iso);
     const formatted = fmtDate(iso);
@@ -677,7 +677,7 @@ const Ops: React.FC = () => {
         ))}
       </AlertGroup>
 
-      <PageSection key="header" className="admin-header" variant="light">
+      <PageSection key="header" className="admin-header" variant="default">
         <Split hasGutter>
           <SplitItem>
             <ProjectSelector
@@ -712,7 +712,7 @@ const Ops: React.FC = () => {
         </Split>
       </PageSection>
 
-      <PageSection key="body" className="admin-body" variant="light">
+      <PageSection key="body" className="admin-body" variant="default">
         {/* Multi-namespace toggle */}
         {isAdmin && (
           <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
@@ -1116,7 +1116,7 @@ const Ops: React.FC = () => {
                               ))}
                               {firstMultiWs && (
                                 <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
-                                  <Label isCompact color="cyan">Multi-Asset: {firstMultiWs}</Label>
+                                  <Label isCompact color="teal">Multi-Asset: {firstMultiWs}</Label>
                                 </Tooltip>
                               )}
                             </span>
