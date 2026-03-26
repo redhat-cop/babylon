@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   Alert,
@@ -137,6 +137,14 @@ function relativeTime(iso: string): string {
 
 function wsKey(ws: Workshop): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
+}
+
+function wsDetailPath(ws: Workshop): string {
+  const ownerRef = ws.metadata?.ownerReferences?.[0];
+  if (ownerRef && ownerRef.kind === 'ResourceClaim') {
+    return `/services/${ws.metadata.namespace}/${ownerRef.name}/workshop`;
+  }
+  return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
 const Ops: React.FC = () => {
@@ -1165,9 +1173,13 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            <strong>{group.name}</strong>
+                            {isSingle ? (
+                              <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link"><strong>{group.name}</strong></Link>
+                            ) : (
+                              <strong>{group.name}</strong>
+                            )}
                             {!isSingle && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
-                            {isSingle && <span className="ops-ws-meta">{firstWs.metadata.name}</span>}
+                            {isSingle && <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">{firstWs.metadata.name}</Link>}
                             <span className="ops-ws-labels">
                               {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
                               {isMultiNs && Array.from(grpNamespaces).map(ns => (
@@ -1274,7 +1286,7 @@ const Ops: React.FC = () => {
                           <tr key={wsKey(ws)} className="ops-child-row">
                             <td></td>
                             <td>
-                              <span className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</span>
+                              <Link to={wsDetailPath(ws)} className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</Link>
                               {isMultiNs && (
                                 <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
                                   <Label isCompact color={
