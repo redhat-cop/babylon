@@ -334,6 +334,24 @@
   white-space: nowrap;
 }
 
+.ops-multi-asset-header {
+  border-left: 3px solid var(--pf-t--global--color--status--info--default, #06c);
+}
+
+.ops-asset-row {
+  border-left: 3px solid var(--pf-t--global--color--status--info--default, #06c);
+}
+
+.ops-password-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ops-password-multi code {
+  font-size: 0.78rem;
+}
+
 .ops-status-cell {
   font-size: 0.85rem;
   line-height: 1.6;

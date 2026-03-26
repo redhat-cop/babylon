@@ -173,9 +173,25 @@ const resourceClaimData: Record<string, ResourceClaim[]> = {
   ],
 };
 
+const mockMultiWorkshop = {
+  apiVersion: `${BABYLON_DOMAIN}/v1`,
+  kind: 'MultiWorkshop',
+  metadata: { name: 'parent-multi', namespace: TEST_NAMESPACE, uid: 'mw-uid-1' },
+  spec: {
+    displayName: 'Multi Asset Event',
+    numberSeats: 20,
+    assets: [
+      { key: 'asset-1', name: wsMulti.metadata.name, namespace: TEST_NAMESPACE, displayName: 'Multi Child' },
+    ],
+  },
+};
+
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   fetcher: jest.fn((url: string) => {
+    if (url.includes('/multiworkshops?')) {
+      return Promise.resolve({ items: [mockMultiWorkshop], metadata: {} });
+    }
     if (url.includes('/workshops?')) {
       return Promise.resolve({ items: allWorkshops, metadata: {} });
     }
@@ -338,10 +354,18 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows multi-asset label for child workshops', async () => {
+    test('shows multi-asset label for multi-asset workshop groups', async () => {
       render(<Ops />);
       await waitFor(() => {
-        expect(screen.getByText(/Multi-Asset: parent-multi/)).toBeInTheDocument();
+        expect(screen.getAllByText('Multi-Asset').length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    test('multi-asset group uses MultiWorkshop displayName and shows parent seats', async () => {
+      render(<Ops />);
+      await waitFor(() => {
+        expect(screen.getByText('Multi Asset Event')).toBeInTheDocument();
+        expect(screen.getByText('20')).toBeInTheDocument();
       });
     });
 

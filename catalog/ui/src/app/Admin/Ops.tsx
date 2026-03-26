@@ -66,6 +66,7 @@ import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
+  MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
 } from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
@@ -264,6 +265,28 @@ const Ops: React.FC = () => {
     return allWsData.flatMap(d => d?.items ?? []);
   }, [allWsData]);
 
+  // Fetch MultiWorkshop resources for multi-asset parent info
+  const multiWorkshopUrls = useMemo(
+    () => activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    [activeNamespaces],
+  );
+  const { data: allMwData } = useSWR<MultiWorkshopList[]>(
+    multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<MultiWorkshopList>)),
+    { refreshInterval: 30000 },
+  );
+  const multiWorkshopsByName = useMemo(() => {
+    const map = new Map<string, MultiWorkshop>();
+    if (allMwData) {
+      for (const list of allMwData) {
+        for (const mw of list?.items ?? []) {
+          map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+        }
+      }
+    }
+    return map;
+  }, [allMwData]);
+
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -392,17 +415,48 @@ const Ops: React.FC = () => {
     return list;
   }, [workshops, workshopFilter, stageFilter]);
 
-  // Group workshops by display name for cleaner table
+  interface WorkshopGroup {
+    name: string;
+    items: Workshop[];
+    multiWorkshop?: MultiWorkshop;
+  }
+
   const workshopGroups = useMemo(() => {
-    const groups = new Map<string, Workshop[]>();
+    const mwGroups = new Map<string, Workshop[]>();
+    const standaloneGroups = new Map<string, Workshop[]>();
+
     for (const ws of targets) {
-      const name = displayName(ws);
-      const list = groups.get(name) ?? [];
-      list.push(ws);
-      groups.set(name, list);
+      const mwSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+      const mwNs = ws.metadata.namespace;
+      if (mwSource) {
+        const key = `${mwNs}/${mwSource}`;
+        const list = mwGroups.get(key) ?? [];
+        list.push(ws);
+        mwGroups.set(key, list);
+      } else {
+        const name = displayName(ws);
+        const list = standaloneGroups.get(name) ?? [];
+        list.push(ws);
+        standaloneGroups.set(name, list);
+      }
     }
-    return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
-  }, [targets]);
+
+    const result: WorkshopGroup[] = [];
+
+    // Multi-asset groups first, using the MultiWorkshop displayName as group name
+    for (const [key, items] of mwGroups) {
+      const mw = multiWorkshopsByName.get(key);
+      const name = mw?.spec?.displayName || items[0].metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] || displayName(items[0]);
+      result.push({ name, items, multiWorkshop: mw });
+    }
+
+    // Standalone groups
+    for (const [name, items] of standaloneGroups) {
+      result.push({ name, items });
+    }
+
+    return result;
+  }, [targets, multiWorkshopsByName]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -455,6 +509,10 @@ const Ops: React.FC = () => {
   }, [isMultiNs, workshopFilter, namespace, namespaceCounts]);
 
   // ---------- Summary stats ----------
+
+  const multiAssetGroupCount = useMemo(() =>
+    workshopGroups.filter(g => g.multiWorkshop).length,
+  [workshopGroups]);
 
   const summary = useMemo(() => {
     let totalInstances = 0;
@@ -964,6 +1022,15 @@ const Ops: React.FC = () => {
                 <span className="ops-stat-value">{targets.length}</span>
                 <span className="ops-stat-label">Workshops</span>
               </div>
+              {multiAssetGroupCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div className="ops-stat">
+                    <span className="ops-stat-value">{multiAssetGroupCount}</span>
+                    <span className="ops-stat-label">Multi-Asset</span>
+                  </div>
+                </>
+              )}
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.totalInstances}</span>
@@ -1159,6 +1226,7 @@ const Ops: React.FC = () => {
                       <th>Name</th>
                       <th>Status</th>
                       <th>Lock</th>
+                      <th>Assets</th>
                       <th>Instances</th>
                       <th>Concurrency</th>
                       <th>Seats</th>
@@ -1172,10 +1240,13 @@ const Ops: React.FC = () => {
                   <tbody>
                     {workshopGroups.map(group => {
                       const expanded = expandedGroups.has(group.name);
-                      const isSingle = group.items.length === 1;
+                      const isSingle = group.items.length === 1 && !group.multiWorkshop;
+                      const isMultiAsset = !!group.multiWorkshop;
                       const firstWs = group.items[0];
                       const firstStage = getStageFromK8sObject(firstWs);
-                      const firstMultiWs = firstWs.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+                      const mw = group.multiWorkshop;
+                      const mwAssetCount = mw?.spec?.assets?.length ?? group.items.length;
+                      const mwNumberSeats = mw?.spec?.numberSeats;
 
                       // Aggregate stats for the group header
                       let grpInstances = 0;
@@ -1190,7 +1261,7 @@ const Ops: React.FC = () => {
                       let grpFailedCount = 0;
                       let grpConcurrency = 0;
                       let grpAttention = false;
-                      const grpPasswords = new Set<string>();
+                      const grpPasswords = new Map<string, string>();
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
 
@@ -1211,32 +1282,40 @@ const Ops: React.FC = () => {
                           grpConcurrency += prog.concurrency;
                         }
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
-                        if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
+                        if (ws.spec?.accessPassword) {
+                          const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`] || displayName(ws);
+                          grpPasswords.set(assetKey, ws.spec.accessPassword);
+                        }
                         grpNamespaces.add(ws.metadata.namespace);
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
+                      const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
 
                       const headerRow = (
                         <tr key={`grp-${group.name}`}
-                          className={`ops-group-header ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
-                          onClick={!isSingle ? () => toggleGroup(group.name) : undefined}
-                          style={!isSingle ? { cursor: 'pointer' } : undefined}
+                          className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
+                          onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
+                          style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
                         >
                           <td className="ops-expand-cell">
-                            {!isSingle && (
+                            {(group.items.length > 1 || isMultiAsset) && (
                               expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
                             )}
                           </td>
                           <td>
-                            {isSingle ? (
+                            {isMultiAsset && mwDetailPath ? (
+                              <Link to={mwDetailPath} className="ops-ws-name-link" onClick={e => e.stopPropagation()}>
+                                <strong>{group.name}</strong>
+                              </Link>
+                            ) : isSingle ? (
                               <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link"><strong>{group.name}</strong></Link>
                             ) : (
                               <strong>{group.name}</strong>
                             )}
-                            {!isSingle && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
+                            {!isSingle && !isMultiAsset && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
                             {isSingle && <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">{firstWs.metadata.name}</Link>}
                             <span className="ops-ws-labels">
                               {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
@@ -1245,10 +1324,8 @@ const Ops: React.FC = () => {
                                   ns.includes('.prod') ? 'orange' : ns.includes('.event') ? 'purple' : ns.includes('.dev') ? 'green' : 'blue'
                                 }>{ns}</Label>
                               ))}
-                              {firstMultiWs && (
-                                <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
-                                  <Label isCompact color="teal">Multi-Asset: {firstMultiWs}</Label>
-                                </Tooltip>
+                              {isMultiAsset && (
+                                <Label isCompact color="teal">Multi-Asset</Label>
                               )}
                             </span>
                           </td>
@@ -1266,17 +1343,30 @@ const Ops: React.FC = () => {
                           </td>
                           <td>
                             {grpLocked > 0 ? (
-                              <Tooltip content={`${grpLocked} of ${group.items.length} locked`}>
+                              <Tooltip content={isMultiAsset
+                                ? `${grpLocked}/${group.items.length} assets locked — locked assets sync dates with parent`
+                                : `${grpLocked} of ${group.items.length} locked`}>
                                 <Icon status="warning"><LockIcon /></Icon>
                               </Tooltip>
                             ) : (
                               <Icon status="success"><LockOpenIcon /></Icon>
                             )}
                           </td>
+                          <td>
+                            {isMultiAsset ? (
+                              <Tooltip content={`${mwAssetCount} assets, ${group.items.length} provisioned`}>
+                                <strong>{mwAssetCount}</strong>
+                              </Tooltip>
+                            ) : <span className="ops-muted">&mdash;</span>}
+                          </td>
                           <td><strong>{grpInstances}</strong></td>
                           <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
                           <td>
-                            {grpSeatsTotal > 0 ? (
+                            {isMultiAsset && mwNumberSeats ? (
+                              <Tooltip content="MultiWorkshop numberSeats">
+                                <strong>{mwNumberSeats}</strong>
+                              </Tooltip>
+                            ) : grpSeatsTotal > 0 ? (
                               <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
@@ -1288,16 +1378,28 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            {grpPasswords.size > 0 ? (
+                            {isMultiAsset && grpPasswords.size > 1 ? (
                               showPasswords
-                                ? <code className="ops-password">{Array.from(grpPasswords).join(', ')}</code>
+                                ? <span className="ops-password-multi">{Array.from(grpPasswords.entries()).map(([k, v]) =>
+                                    <span key={k}><code className="ops-password">{k}: {v}</code></span>
+                                  )}</span>
+                                : <span className="ops-password-hidden">••• ({grpPasswords.size} passwords)</span>
+                            ) : grpPasswords.size === 1 ? (
+                              showPasswords
+                                ? <code className="ops-password">{Array.from(grpPasswords.values())[0]}</code>
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
                           <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
                           <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
                           <td>
-                            {grpUrls.length > 0 ? (
+                            {isMultiAsset && mw ? (
+                              <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
+                                target="_blank" rel="noopener noreferrer" className="ops-ws-link"
+                                onClick={e => e.stopPropagation()}>
+                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page
+                              </a>
+                            ) : grpUrls.length > 0 ? (
                               <a href={grpUrls[0].url} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />
                                 {grpUrls[0].id}
@@ -1307,7 +1409,7 @@ const Ops: React.FC = () => {
                         </tr>
                       );
 
-                      if (isSingle || !expanded) return headerRow;
+                      if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
 
                       const childRows = group.items.map(ws => {
                         const locked = isWorkshopLocked(ws);
@@ -1319,12 +1421,17 @@ const Ops: React.FC = () => {
                         const provDisabled = ws.spec?.provisionDisabled === true;
                         const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
                         const progress = getProvisionProgress(ws);
+                        const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
 
                         return (
-                          <tr key={wsKey(ws)} className="ops-child-row">
+                          <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
                             <td></td>
                             <td>
-                              <Link to={wsDetailPath(ws)} className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</Link>
+                              {isMultiAsset && assetKey && (
+                                <Label isCompact color="teal" style={{ marginRight: 6 }}>{assetKey}</Label>
+                              )}
+                              <Link to={wsDetailPath(ws)} className="ops-ws-meta">{displayName(ws)}</Link>
+                              <span className="ops-ws-meta" style={{ marginLeft: 4, opacity: 0.5, fontSize: '0.75rem' }}>{ws.metadata.name}</span>
                               {isMultiNs && (
                                 <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
                                   <Label isCompact color={
@@ -1347,8 +1454,17 @@ const Ops: React.FC = () => {
                               )}
                             </td>
                             <td>
-                              {locked ? <Icon status="warning"><LockIcon /></Icon> : <Icon status="success"><LockOpenIcon /></Icon>}
+                              {locked ? (
+                                <Tooltip content={isMultiAsset ? 'Locked — syncs dates with parent' : 'Locked'}>
+                                  <Icon status="warning"><LockIcon /></Icon>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip content={isMultiAsset ? 'Unlocked — NOT syncing dates with parent' : 'Unlocked'}>
+                                  <Icon status={isMultiAsset ? 'danger' : 'success'}>{isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}</Icon>
+                                </Tooltip>
+                              )}
                             </td>
+                            <td><span className="ops-muted">&mdash;</span></td>
                             <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
                             <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
