@@ -487,6 +487,8 @@ const Ops: React.FC = () => {
     return counts;
   }, [targets]);
 
+  const isUnfiltered = !workshopFilter && !stageFilter;
+
   const modalScopeDescription = useMemo(() => {
     if (!isMultiNs) {
       return workshopFilter
@@ -1083,7 +1085,7 @@ const Ops: React.FC = () => {
                   <div className="ops-button-row">
                     <Button variant="warning" onClick={() => setShowLockConfirm(true)}
                       isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="secondary" onClick={() => setShowUnlockConfirm(true)}
+                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
                       isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                   </div>
                 </CardBody>
@@ -1532,6 +1534,11 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isUnfiltered && targets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set. Consider filtering to a specific workshop if you only need to lock some.
+            </Alert>
+          )}
           <p>
             Set <code>lock-enabled=true</code> on <strong>{targets.length} workshop(s)</strong>
             {modalScopeDescription}.
@@ -1545,12 +1552,17 @@ const Ops: React.FC = () => {
       </Modal>
 
       <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
-        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" />
+        <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isUnfiltered && targets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Set <code>lock-enabled=false</code> on <strong>{targets.length} workshop(s)</strong>
-            {modalScopeDescription}.
+            {modalScopeDescription}. Users will be able to modify these resources.
           </p>
           {(() => {
             const multiAssetChildren = targets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
@@ -1596,12 +1608,17 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isUnfiltered && targets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
             <strong>{targets.length} workshop(s)</strong>
             {modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
+          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.</p>
           {targets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
               {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
@@ -1619,12 +1636,20 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isUnfiltered && targets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${targets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
           <p>
             Remove <code>actionSchedule.stop</code> from{' '}
             <strong>{targets.length} workshop(s)</strong>
             {modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>Workshops will remain running until their destroy deadline or manual stop. May incur additional cloud costs.</p>
+          <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
+            Workshops will remain running until their destroy deadline or manual stop.
+            This may incur additional cloud costs for the duration.
+          </Alert>
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
@@ -1686,6 +1711,11 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
+          {isUnfiltered && targets.length > 5 && (
+            <Alert variant="danger" isInline title={`This will affect ALL ${targets.length} workshops`} style={{ marginBottom: 12 }}>
+              No filter is set. Every workshop in scope will be scaled to zero.
+            </Alert>
+          )}
           <p>
             Scaling to <strong>0</strong> will remove all instances on{' '}
             <strong>{targets.length} workshop(s)</strong>
