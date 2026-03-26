@@ -620,7 +620,7 @@ const Ops: React.FC = () => {
     return (
       <div className="admin-container">
         <PageSection key="header" className="admin-header" variant="default">
-          <Split hasGutter>
+          <Split hasGutter style={{ alignItems: 'center' }}>
             <SplitItem>
               <ProjectSelector
                 currentNamespaceName={namespace}
@@ -711,7 +711,7 @@ const Ops: React.FC = () => {
       </AlertGroup>
 
       <PageSection key="header" className="admin-header" variant="default">
-        <Split hasGutter>
+        <Split hasGutter style={{ alignItems: 'center' }}>
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
@@ -743,7 +743,7 @@ const Ops: React.FC = () => {
           </SplitItem>
           <SplitItem>
             {workshops.length > 0 && (
-              <Label isCompact color="blue" style={{ lineHeight: '36px' }}>
+              <Label isCompact color="blue">
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
                 {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
