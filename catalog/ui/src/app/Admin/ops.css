@@ -88,6 +88,23 @@
   font-family: var(--pf-t--global--font--family--mono);
 }
 
+/* Password display */
+.ops-password {
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.ops-password-hidden {
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 2px;
+}
+
+/* Workshop URL link */
+.ops-ws-link {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 /* Toast group */
 .ops-toast-group {
   position: fixed;

@@ -37,6 +37,12 @@ import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
 import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
 import GlobeIcon from '@patternfly/react-icons/dist/js/icons/globe-americas-icon';
+import EyeIcon from '@patternfly/react-icons/dist/js/icons/eye-icon';
+import EyeSlashIcon from '@patternfly/react-icons/dist/js/icons/eye-slash-icon';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import InProgressIcon from '@patternfly/react-icons/dist/js/icons/in-progress-icon';
+import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 
 import {
   apiPaths,
@@ -46,7 +52,10 @@ import {
   patchWorkshop,
   patchWorkshopProvision,
 } from '@app/api';
-import { Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList } from '@app/types';
+import {
+  Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
+  WorkshopUserAssignment, WorkshopUserAssignmentList,
+} from '@app/types';
 import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import ProjectSelector from '@app/components/ProjectSelector';
@@ -145,6 +154,36 @@ const Ops: React.FC = () => {
     if (!provs || provs.length === 0) return null;
     return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
   }, [provisionsByWorkshop]);
+
+  // Fetch user assignments per workshop for seats display
+  const assignmentKeys = useMemo(
+    () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
+    [workshops],
+  );
+  const { data: allAssignData } = useSWR<WorkshopUserAssignmentList[]>(
+    assignmentKeys.length > 0 ? assignmentKeys : null,
+    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
+    { refreshInterval: 30000 },
+  );
+  const assignmentsByWorkshop = useMemo(() => {
+    const map = new Map<string, WorkshopUserAssignment[]>();
+    if (allAssignData) {
+      workshops.forEach((ws, i) => {
+        map.set(ws.metadata.name, allAssignData[i]?.items ?? []);
+      });
+    }
+    return map;
+  }, [workshops, allAssignData]);
+
+  const getSeats = useCallback((wsName: string): { assigned: number; total: number } | null => {
+    const assignments = assignmentsByWorkshop.get(wsName);
+    if (!assignments || assignments.length === 0) return null;
+    const assigned = assignments.filter(a => a.spec?.assignment).length;
+    return { assigned, total: assignments.length };
+  }, [assignmentsByWorkshop]);
+
+  // Password visibility toggle
+  const [showPasswords, setShowPasswords] = useState(false);
 
   // ---------- Single global workshop filter ----------
 
@@ -604,20 +643,34 @@ const Ops: React.FC = () => {
 
             {/* Workshop detail table */}
             <div className="ops-workshops-section">
-              <Title headingLevel="h5" style={{ marginBottom: 12 }}>
-                Workshops in scope
-                <Badge isRead style={{ marginLeft: 8 }}>{targets.length}</Badge>
-              </Title>
+              <Split hasGutter style={{ marginBottom: 12 }}>
+                <SplitItem isFilled>
+                  <Title headingLevel="h5">
+                    Workshops in scope
+                    <Badge isRead style={{ marginLeft: 8 }}>{targets.length}</Badge>
+                  </Title>
+                </SplitItem>
+                <SplitItem>
+                  <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
+                    aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
+                    {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
+                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                  </Button>
+                </SplitItem>
+              </Split>
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
                       <th>Name</th>
+                      <th>Status</th>
                       <th>Lock</th>
-                      <th>Type</th>
                       <th>Instances</th>
+                      <th>Seats</th>
+                      <th>Password</th>
                       <th>Auto-Stop</th>
                       <th>Auto-Destroy</th>
+                      <th>Workshop URL</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -625,11 +678,40 @@ const Ops: React.FC = () => {
                       const locked = isWorkshopLocked(ws);
                       const shared = ws.spec?.multiuserServices === true;
                       const currentCount = getCurrentCount(ws.metadata.name);
+                      const seats = getSeats(ws.metadata.name);
+                      const password = ws.spec?.accessPassword;
+                      const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+                      const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
+                      const provs = provisionsByWorkshop.get(ws.metadata.name) ?? [];
+                      const hasProvisions = provs.length > 0;
+                      const provDisabled = ws.spec?.provisionDisabled === true;
+
+                      let statusIcon: React.ReactNode;
+                      let statusLabel: string;
+                      if (provDisabled) {
+                        statusLabel = 'Stopped';
+                        statusIcon = <Icon status="danger"><ExclamationCircleIcon /></Icon>;
+                      } else if (!hasProvisions) {
+                        statusLabel = 'No provisions';
+                        statusIcon = <Icon status="warning"><InProgressIcon /></Icon>;
+                      } else if (seats && seats.assigned > 0) {
+                        statusLabel = 'Active';
+                        statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
+                      } else {
+                        statusLabel = 'Provisioning';
+                        statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
+                      }
+
                       return (
                         <tr key={ws.metadata.uid || ws.metadata.name}>
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
+                            {shared && <Label color="purple" isCompact icon={<UsersIcon />} style={{ marginTop: 2 }}>Shared</Label>}
+                          </td>
+                          <td>
+                            <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
+                            <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
                           </td>
                           <td>
                             {locked ? (
@@ -643,21 +725,34 @@ const Ops: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            {shared ? (
-                              <Label color="purple" isCompact icon={<UsersIcon />}>Shared</Label>
-                            ) : (
-                              <Label color="blue" isCompact>Standard</Label>
-                            )}
-                          </td>
-                          <td>
                             {currentCount !== null ? (
                               <strong>{currentCount}</strong>
-                            ) : (
-                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>—</span>
-                            )}
+                            ) : '—'}
+                          </td>
+                          <td>
+                            {seats ? (
+                              <Tooltip content={`${seats.assigned} assigned out of ${seats.total} total seats`}>
+                                <span><strong>{seats.assigned}</strong> / {seats.total}</span>
+                              </Tooltip>
+                            ) : '—'}
+                          </td>
+                          <td>
+                            {password ? (
+                              showPasswords
+                                ? <code className="ops-password">{password}</code>
+                                : <span className="ops-password-hidden">••••••••</span>
+                            ) : <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>None</span>}
                           </td>
                           <td>{fmtDate(ws.spec?.actionSchedule?.stop)}</td>
                           <td>{fmtDate(ws.spec?.lifespan?.end)}</td>
+                          <td>
+                            {workshopUrl ? (
+                              <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
+                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                                {workshopId}
+                              </a>
+                            ) : '—'}
+                          </td>
                         </tr>
                       );
                     })}
