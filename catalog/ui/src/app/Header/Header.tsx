@@ -83,7 +83,6 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
-
   if (status_page_url) {
     userHelpDropdownItems.push(
         <DropdownItem key="status-page-link" value={status_page_url}>
@@ -91,7 +90,6 @@ const Header: React.FC<{
         </DropdownItem>,
       );
   }
-
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem key="support-sla" value="/support">
@@ -99,14 +97,7 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
-  if (learn_more_link) {
-    userHelpDropdownItems.push(
-      <DropdownItem key="learn-more" value={learn_more_link}>
-        About RHDP
-      </DropdownItem>,
-    );
-  }
-  if (userInterface === 'rhpds') {
+   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem
         key="how-to-videos-link"
@@ -116,10 +107,10 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
-  if (feedback_link) {
+  if (learn_more_link) {
     userHelpDropdownItems.push(
-      <DropdownItem key="feedback" value={feedback_link}>
-        Provide Feedback
+      <DropdownItem key="learn-more" value={learn_more_link}>
+        About RHDP
       </DropdownItem>,
     );
   }
