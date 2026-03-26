@@ -15,6 +15,19 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+.ops-scope-spacer {
+  flex: 1;
+}
+
+.ops-tz-select {
+  max-width: 200px;
+}
+
+/* Scale card danger highlight when scaling down or to zero */
+.ops-scale-danger {
+  border: 2px solid var(--pf-t--global--color--status--warning--default);
+}
+
 /* Operation cards grid */
 .ops-grid {
   display: grid;

@@ -13,6 +13,8 @@ import {
   CardTitle,
   EmptyState,
   EmptyStateBody,
+  FormSelect,
+  FormSelectOption,
   Icon,
   Label,
   NumberInput,
@@ -27,12 +29,14 @@ import {
   ModalFooter,
   Split,
   SplitItem,
+  TextInput,
   Tooltip,
   Title,
 } from '@patternfly/react-core';
 import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
 import UsersIcon from '@patternfly/react-icons/dist/js/icons/users-icon';
+import GlobeIcon from '@patternfly/react-icons/dist/js/icons/globe-americas-icon';
 
 import {
   apiPaths,
@@ -57,6 +61,22 @@ interface OpsAlert {
   description?: string;
 }
 
+const COMMON_TIMEZONES = [
+  { value: 'local', label: 'Local (browser)' },
+  { value: 'UTC', label: 'UTC' },
+  { value: 'America/New_York', label: 'US Eastern (ET)' },
+  { value: 'America/Chicago', label: 'US Central (CT)' },
+  { value: 'America/Denver', label: 'US Mountain (MT)' },
+  { value: 'America/Los_Angeles', label: 'US Pacific (PT)' },
+  { value: 'Europe/London', label: 'UK (GMT/BST)' },
+  { value: 'Europe/Berlin', label: 'Central Europe (CET)' },
+  { value: 'Europe/Madrid', label: 'Spain (CET)' },
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+  { value: 'Asia/Tokyo', label: 'Japan (JST)' },
+  { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
+];
+
 const FETCH_LIMIT = 500;
 let alertKeyCounter = 0;
 
@@ -77,6 +97,20 @@ const Ops: React.FC = () => {
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
   }, []);
+
+  // ---------- Timezone ----------
+
+  const [timezone, setTimezone] = useState('local');
+
+  const fmtDate = useCallback((iso?: string) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const opts: Intl.DateTimeFormatOptions = {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+    };
+    if (timezone !== 'local') opts.timeZone = timezone;
+    return d.toLocaleString(undefined, opts);
+  }, [timezone]);
 
   // ---------- Data fetching ----------
 
@@ -156,7 +190,29 @@ const Ops: React.FC = () => {
   const [showScaleZeroConfirm, setShowScaleZeroConfirm] = useState(false);
   const [showScaleConfirm, setShowScaleConfirm] = useState(false);
 
+  // Scale safety: type-to-confirm for scale-down and scale-to-zero
+  const [scaleConfirmText, setScaleConfirmText] = useState('');
+
   const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+
+  // Scale direction analysis
+  const scaleAnalysis = useMemo(() => {
+    let up = 0, down = 0, same = 0, unknown = 0;
+    for (const ws of targets) {
+      const cur = getCurrentCount(ws.metadata.name);
+      if (cur === null) { unknown++; continue; }
+      if (scaleCount > cur) up++;
+      else if (scaleCount < cur) down++;
+      else same++;
+    }
+    return { up, down, same, unknown };
+  }, [targets, getCurrentCount, scaleCount]);
+
+  const isScaleDown = scaleAnalysis.down > 0;
+  const isScaleZero = scaleCount === 0;
+  const scaleNeedsConfirmText = isScaleZero || isScaleDown;
+  const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
+  const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
 
   // ---------- Handlers ----------
 
@@ -266,11 +322,16 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Disable auto-stop: ${ok} succeeded, ${fail} failed`);
   };
 
+  const openScaleConfirm = () => {
+    setScaleConfirmText('');
+    if (scaleCount === 0) setShowScaleZeroConfirm(true);
+    else setShowScaleConfirm(true);
+  };
+
   const handleScale = async () => {
-    if (scaleCount === 0 && !showScaleZeroConfirm) { setShowScaleZeroConfirm(true); return; }
-    if (scaleCount > 0 && !showScaleConfirm) { setShowScaleConfirm(true); return; }
     setShowScaleZeroConfirm(false);
     setShowScaleConfirm(false);
+    setScaleConfirmText('');
     setScaleLoading(true);
     let ok = 0, fail = 0;
     for (const ws of targets) {
@@ -294,14 +355,6 @@ const Ops: React.FC = () => {
     mutateProvisions();
     if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
-  };
-
-  // ---------- Helpers ----------
-
-  const fmtDate = (iso?: string) => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
   };
 
   // ---------- No namespace selected ----------
@@ -338,7 +391,6 @@ const Ops: React.FC = () => {
 
   return (
     <div className="admin-container">
-      {/* Toast alerts */}
       <AlertGroup isToast isLiveRegion className="ops-toast-group">
         {alerts.map(a => (
           <Alert
@@ -385,9 +437,9 @@ const Ops: React.FC = () => {
           </EmptyState>
         ) : (
           <>
-            {/* Global workshop scope selector */}
+            {/* Scope + timezone bar */}
             <div className="ops-scope-bar">
-              <label htmlFor="ops-scope" style={{ fontWeight: 600, marginRight: 8, whiteSpace: 'nowrap' }}>
+              <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                 Scope
               </label>
               <Select
@@ -411,6 +463,18 @@ const Ops: React.FC = () => {
               <span className="ops-scope-summary">
                 All operations below apply to {scopeLabel}
               </span>
+              <span className="ops-scope-spacer" />
+              <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
+              <FormSelect
+                aria-label="Timezone"
+                value={timezone}
+                onChange={(_e, val) => setTimezone(val)}
+                className="ops-tz-select"
+              >
+                {COMMON_TIMEZONES.map(tz => (
+                  <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
+                ))}
+              </FormSelect>
             </div>
 
             <div className="ops-grid">
@@ -419,7 +483,7 @@ const Ops: React.FC = () => {
                 <CardTitle>Resource Lock</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
-                    Toggle <code>demo.redhat.com/lock-enabled</code> on workshops.
+                    Toggle <code>lock-enabled</code> on workshops.
                     Locked resources cannot be modified by non-admin users.
                   </p>
                   <div className="ops-button-row">
@@ -509,16 +573,12 @@ const Ops: React.FC = () => {
               </Card>
 
               {/* Scale */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Sets the WorkshopProvision spec.count — replaces the current instance count.">
-                    <span>Scale Workshops</span>
-                  </Tooltip>
-                </CardTitle>
+              <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
+                <CardTitle>Scale Workshops</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
-                    Sets <code>spec.count</code> to a new value.
-                    This <strong>replaces</strong> the current instance count &mdash; lower = scale down, higher = scale up.
+                    Sets <code>spec.count</code> to the value below.
+                    This <strong>replaces</strong> the current instance count.
                   </p>
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
@@ -528,10 +588,16 @@ const Ops: React.FC = () => {
                       widthChars={4} aria-label="New instance count" />
                     <span>new instance count</span>
                   </div>
-                  <Button variant="primary" onClick={handleScale}
-                    isLoading={scaleLoading} isDisabled={anyLoading}>
-                    Scale
-                  </Button>
+                  {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
+                  {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
+                  {scaleAnalysis.same > 0 && <Label color="grey" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.same} no change</Label>}
+                  <div style={{ marginTop: 12 }}>
+                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
+                      onClick={openScaleConfirm}
+                      isLoading={scaleLoading} isDisabled={anyLoading}>
+                      {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
             </div>
@@ -681,8 +747,9 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showScaleConfirm} onClose={() => setShowScaleConfirm(false)} aria-labelledby="scale-confirm">
-        <ModalHeader title="Confirm Scale" labelId="scale-confirm" />
+      {/* Scale confirmation — with current→new breakdown + type-to-confirm for destructive ops */}
+      <Modal variant="small" isOpen={showScaleConfirm} onClose={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-confirm">
+        <ModalHeader title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'} labelId="scale-confirm" titleIconVariant={isScaleDown ? 'warning' : undefined} />
         <ModalBody>
           <p>
             Set instance count to <strong>{scaleCount}</strong> on{' '}
@@ -695,30 +762,42 @@ const Ops: React.FC = () => {
               <tbody>
                 {targets.map(ws => {
                   const cur = getCurrentCount(ws.metadata.name);
-                  const direction = cur === null ? '' : scaleCount > cur ? '(scale up)' : scaleCount < cur ? '(scale down)' : '(no change)';
+                  const isDown = cur !== null && scaleCount < cur;
+                  const isUp = cur !== null && scaleCount > cur;
+                  const label = cur === null ? '' : isUp ? 'scale up' : isDown ? 'scale down' : 'no change';
+                  const color = isDown ? 'var(--pf-t--global--color--status--danger--default)' : isUp ? 'var(--pf-t--global--color--status--info--default)' : 'var(--pf-t--global--text--color--subtle)';
                   return (
                     <tr key={ws.metadata.name}>
                       <td>{displayName(ws)}</td>
                       <td><strong>{cur ?? '?'}</strong></td>
                       <td>&rarr;</td>
-                      <td><strong>{scaleCount}</strong> <span style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>{direction}</span></td>
+                      <td><strong>{scaleCount}</strong> <span style={{ fontSize: '0.85em', color }}>{label}</span></td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           )}
-          <p style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-            This replaces the current <code>spec.count</code>. Each instance serves the workshop&rsquo;s configured number of users.
-          </p>
+          {isScaleDown && (
+            <>
+              <Alert variant="warning" isInline title="Scaling down will reduce running instances" style={{ marginTop: 12 }}>
+                Students on removed instances will lose access. This cannot be undone.
+              </Alert>
+              <p style={{ marginTop: 12, fontWeight: 600 }}>Type <code>{scaleConfirmWord}</code> to confirm:</p>
+              <TextInput value={scaleConfirmText} onChange={(_e, val) => setScaleConfirmText(val)} aria-label="Confirm scale down" />
+            </>
+          )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleScale}>Scale</Button>
-          <Button variant="link" onClick={() => setShowScaleConfirm(false)}>Cancel</Button>
+          <Button variant={isScaleDown ? 'warning' : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
+            {isScaleDown ? 'Scale Down' : 'Scale'}
+          </Button>
+          <Button variant="link" onClick={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => setShowScaleZeroConfirm(false)} aria-labelledby="scale-zero-confirm">
+      {/* Scale to zero — always type-to-confirm */}
+      <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-zero-confirm">
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
           <p>
@@ -726,11 +805,15 @@ const Ops: React.FC = () => {
             <strong>{targets.length} workshop(s)</strong>
             {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : <> in {namespace}</>}.
           </p>
-          <p style={{ marginTop: 8 }}>All running resources will be destroyed. Students will lose access immediately.</p>
+          <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
+            All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
+          </Alert>
+          <p style={{ marginTop: 12, fontWeight: 600 }}>Type <code>{scaleConfirmWord}</code> to confirm:</p>
+          <TextInput value={scaleConfirmText} onChange={(_e, val) => setScaleConfirmText(val)} aria-label="Confirm scale to zero" />
         </ModalBody>
         <ModalFooter>
-          <Button variant="danger" onClick={handleScale}>Scale to Zero</Button>
-          <Button variant="link" onClick={() => setShowScaleZeroConfirm(false)}>Cancel</Button>
+          <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
+          <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
     </div>
