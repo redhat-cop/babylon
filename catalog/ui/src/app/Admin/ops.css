@@ -1,0 +1,31 @@
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ops-number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ops-desc {
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.ops-button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ops-status-ok {
+  color: var(--pf-t--global--color--status--success--default);
+}
+
+.ops-status-fail {
+  color: var(--pf-t--global--color--status--danger--default);
+}
