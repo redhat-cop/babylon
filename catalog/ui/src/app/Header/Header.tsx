@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dropdown,
@@ -48,6 +48,13 @@ const Header: React.FC<{
   const { isAdmin, email, userInterface } = useSession().getSession();
   const { darkMode, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
+
+  // Dark mode is admin-only (beta). Auto-disable for non-admins.
+  useEffect(() => {
+    if (!isAdmin && darkMode) {
+      toggleDarkMode();
+    }
+  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
   const helpLink = useHelpLink();
   const menuRef = React.useRef<HTMLDivElement>(null);
   const { help_text, status_page_url, feedback_link, learn_more_link } =
@@ -159,14 +166,16 @@ const Header: React.FC<{
         <ToolbarGroup align={{ default: 'alignEnd' }}>
           <IncidentsNotificationDrawer />
           <ToolbarGroup variant="action-group-plain">
-            <ToolbarItem>
-              <MenuToggle
-                aria-label="Toggle dark mode"
-                variant="plain"
-                onClick={toggleDarkMode}
-                icon={darkMode ? <SunIcon /> : <MoonIcon />}
-              />
-            </ToolbarItem>
+            {isAdmin ? (
+              <ToolbarItem>
+                <MenuToggle
+                  aria-label="Toggle dark mode (beta)"
+                  variant="plain"
+                  onClick={toggleDarkMode}
+                  icon={darkMode ? <SunIcon /> : <MoonIcon />}
+                />
+              </ToolbarItem>
+            ) : null}
             <ToolbarItem>
               <Dropdown
                 isOpen={isUserHelpDropdownOpen}
