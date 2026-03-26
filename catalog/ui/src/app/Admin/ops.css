@@ -23,7 +23,61 @@
   max-width: 200px;
 }
 
-/* Scale card danger highlight when scaling down or to zero */
+/* Summary stats bar */
+.ops-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 14px 20px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ops-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+  min-width: 90px;
+}
+
+.ops-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ops-stat-of {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-stat-label {
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.ops-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--pf-t--global--border--color--default);
+}
+
+.ops-stat-attention .ops-stat-value {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+.ops-stat-attention .ops-stat-label {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* Scale card danger highlight */
 .ops-scale-danger {
   border: 2px solid var(--pf-t--global--color--status--warning--default);
 }
@@ -88,6 +142,11 @@
   font-family: var(--pf-t--global--font--family--mono);
 }
 
+/* Muted placeholder text */
+.ops-muted {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
 /* Password display */
 .ops-password {
   font-size: 0.85rem;
@@ -103,6 +162,58 @@
 .ops-ws-link {
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+/* Date urgency */
+.ops-date-critical {
+  color: var(--pf-t--global--color--status--danger--default);
+  font-weight: 600;
+}
+
+.ops-date-warning {
+  color: var(--pf-t--global--color--status--warning--default);
+  font-weight: 600;
+}
+
+/* Seat percentage badge */
+.ops-seat-pct {
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-seat-full {
+  color: var(--pf-t--global--color--status--success--default);
+  font-weight: 600;
+}
+
+.ops-seat-half {
+  color: var(--pf-t--global--color--status--info--default);
+}
+
+/* Projected seats */
+.ops-seats-projected {
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--subtle);
+  font-style: italic;
+}
+
+/* Row highlights */
+.ops-row-attention {
+  border-left: 3px solid var(--pf-t--global--color--status--danger--default);
+}
+
+.ops-row-stopped {
+  opacity: 0.6;
+}
+
+/* Refresh spinner */
+.ops-spin {
+  animation: ops-spin-anim 1s linear infinite;
+}
+
+@keyframes ops-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Toast group */

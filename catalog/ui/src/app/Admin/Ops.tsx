@@ -42,6 +42,9 @@ import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import InProgressIcon from '@patternfly/react-icons/dist/js/icons/in-progress-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
+import PauseCircleIcon from '@patternfly/react-icons/dist/js/icons/pause-circle-icon';
+import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
+import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 
 import {
   apiPaths,
@@ -86,7 +89,19 @@ const COMMON_TIMEZONES = [
 ];
 
 const FETCH_LIMIT = 500;
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
 let alertKeyCounter = 0;
+
+function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
+  if (!iso) return null;
+  const remaining = new Date(iso).getTime() - Date.now();
+  if (remaining < 0) return 'critical';
+  if (remaining < TWO_HOURS_MS) return 'critical';
+  if (remaining < TWENTY_FOUR_HOURS_MS) return 'warning';
+  return 'ok';
+}
 
 const Ops: React.FC = () => {
   const navigate = useNavigate();
@@ -111,7 +126,7 @@ const Ops: React.FC = () => {
   const [timezone, setTimezone] = useState('local');
 
   const fmtDate = useCallback((iso?: string) => {
-    if (!iso) return '—';
+    if (!iso) return null;
     const d = new Date(iso);
     const opts: Intl.DateTimeFormatOptions = {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
@@ -122,7 +137,7 @@ const Ops: React.FC = () => {
 
   // ---------- Data fetching ----------
 
-  const { data: workshopsData, mutate: mutateWorkshops } = useSWR<WorkshopList>(
+  const { data: workshopsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList>(
     namespace ? apiPaths.WORKSHOPS({ namespace, limit: FETCH_LIMIT }) : null,
     fetcher,
     { refreshInterval: 30000 },
@@ -133,7 +148,7 @@ const Ops: React.FC = () => {
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
   );
-  const { data: allProvData, mutate: mutateProvisions } = useSWR<WorkshopProvisionList[]>(
+  const { data: allProvData, mutate: mutateProvisions, isValidating: provValidating } = useSWR<WorkshopProvisionList[]>(
     provisionKeys.length > 0 ? provisionKeys : null,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopProvisionList>)),
     { refreshInterval: 30000 },
@@ -154,12 +169,11 @@ const Ops: React.FC = () => {
     return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
   }, [provisionsByWorkshop]);
 
-  // Fetch user assignments per workshop for seats display
   const assignmentKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
   );
-  const { data: allAssignData } = useSWR<WorkshopUserAssignmentList[]>(
+  const { data: allAssignData, isValidating: assignValidating } = useSWR<WorkshopUserAssignmentList[]>(
     assignmentKeys.length > 0 ? assignmentKeys : null,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
     { refreshInterval: 30000 },
@@ -181,8 +195,16 @@ const Ops: React.FC = () => {
     return { assigned, total: assignments.length };
   }, [assignmentsByWorkshop]);
 
-  // Password visibility toggle
   const [showPasswords, setShowPasswords] = useState(false);
+
+  // Manual refresh
+  const isRefreshing = wsValidating || provValidating || assignValidating;
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const handleRefresh = useCallback(() => {
+    mutateWorkshops();
+    mutateProvisions();
+    setLastRefresh(new Date());
+  }, [mutateWorkshops, mutateProvisions]);
 
   // ---------- Single global workshop filter ----------
 
@@ -203,6 +225,39 @@ const Ops: React.FC = () => {
     ? <>&ldquo;{workshopFilter}&rdquo; ({targets.length})</>
     : <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''}</>;
 
+  // ---------- Summary stats ----------
+
+  const summary = useMemo(() => {
+    let totalInstances = 0;
+    let seatsAssigned = 0;
+    let seatsTotal = 0;
+    let lockedCount = 0;
+    let activeCount = 0;
+    let attentionCount = 0;
+
+    for (const ws of targets) {
+      const count = getCurrentCount(ws.metadata.name);
+      if (count !== null) totalInstances += count;
+
+      const seats = getSeats(ws.metadata.name);
+      if (seats) {
+        seatsAssigned += seats.assigned;
+        seatsTotal += seats.total;
+      } else if (count !== null) {
+        seatsTotal += count;
+      }
+
+      if (isWorkshopLocked(ws)) lockedCount++;
+      if (seats && seats.assigned > 0) activeCount++;
+
+      const stopUrg = dateUrgency(ws.spec?.actionSchedule?.stop);
+      const destroyUrg = dateUrgency(ws.spec?.lifespan?.end);
+      if (stopUrg === 'critical' || destroyUrg === 'critical') attentionCount++;
+    }
+
+    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, attentionCount };
+  }, [targets, getCurrentCount, getSeats]);
+
   // ---------- Operation parameters ----------
 
   const [extStopDays, setExtStopDays] = useState(0);
@@ -211,7 +266,6 @@ const Ops: React.FC = () => {
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [scaleCount, setScaleCount] = useState(5);
 
-  // Loading states
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [extStopLoading, setExtStopLoading] = useState(false);
@@ -219,7 +273,6 @@ const Ops: React.FC = () => {
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
 
-  // Confirmation modals
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
   const [showExtStopConfirm, setShowExtStopConfirm] = useState(false);
@@ -228,12 +281,10 @@ const Ops: React.FC = () => {
   const [showScaleZeroConfirm, setShowScaleZeroConfirm] = useState(false);
   const [showScaleConfirm, setShowScaleConfirm] = useState(false);
 
-  // Scale safety: type-to-confirm for scale-down and scale-to-zero
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
   const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
 
-  // Scale direction analysis
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
     for (const ws of targets) {
@@ -427,6 +478,21 @@ const Ops: React.FC = () => {
 
   // ---------- Namespace selected — full UI ----------
 
+  const renderDateCell = (iso?: string, label?: string) => {
+    if (!iso) {
+      return <Label color="grey" isCompact>{label || 'Not set'}</Label>;
+    }
+    const urgency = dateUrgency(iso);
+    const formatted = fmtDate(iso);
+    if (urgency === 'critical') {
+      return <span className="ops-date-critical">{formatted}</span>;
+    }
+    if (urgency === 'warning') {
+      return <span className="ops-date-warning">{formatted}</span>;
+    }
+    return <span>{formatted}</span>;
+  };
+
   return (
     <div className="admin-container">
       <AlertGroup isToast isLiveRegion className="ops-toast-group">
@@ -454,6 +520,14 @@ const Ops: React.FC = () => {
             <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>
               Ops &mdash; <code>{namespace}</code>
             </Title>
+          </SplitItem>
+          <SplitItem>
+            <Tooltip content={`Last refreshed: ${lastRefresh.toLocaleTimeString()}. Auto-refreshes every 30s.`}>
+              <Button variant="plain" onClick={handleRefresh} isDisabled={isRefreshing}
+                aria-label="Refresh data" className={isRefreshing ? 'ops-spin' : undefined}>
+                <SyncAltIcon />
+              </Button>
+            </Tooltip>
           </SplitItem>
           <SplitItem>
             {workshops.length > 0 && (
@@ -513,6 +587,38 @@ const Ops: React.FC = () => {
                   <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
                 ))}
               </FormSelect>
+            </div>
+
+            {/* Summary stats */}
+            <div className="ops-summary-bar">
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.totalInstances}</span>
+                <span className="ops-stat-label">Instances</span>
+              </div>
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.seatsAssigned} <span className="ops-stat-of">/ {summary.seatsTotal}</span></span>
+                <span className="ops-stat-label">Seats filled</span>
+              </div>
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.activeCount}</span>
+                <span className="ops-stat-label">Active</span>
+              </div>
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.lockedCount}</span>
+                <span className="ops-stat-label">Locked</span>
+              </div>
+              {summary.attentionCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div className="ops-stat ops-stat-attention">
+                    <span className="ops-stat-value">{summary.attentionCount}</span>
+                    <span className="ops-stat-label">Need attention</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="ops-grid">
@@ -666,6 +772,7 @@ const Ops: React.FC = () => {
                       <th>Lock</th>
                       <th>Instances</th>
                       <th>Seats</th>
+                      <th>Registration</th>
                       <th>Password</th>
                       <th>Auto-Stop</th>
                       <th>Auto-Destroy</th>
@@ -683,15 +790,19 @@ const Ops: React.FC = () => {
                       const provs = provisionsByWorkshop.get(ws.metadata.name) ?? [];
                       const hasProvisions = provs.length > 0;
                       const provDisabled = ws.spec?.provisionDisabled === true;
+                      const isOpen = ws.spec?.openRegistration !== false;
 
                       let statusIcon: React.ReactNode;
                       let statusLabel: string;
+                      let statusClass = '';
                       if (provDisabled) {
                         statusLabel = 'Stopped';
-                        statusIcon = <Icon status="danger"><ExclamationCircleIcon /></Icon>;
+                        statusIcon = <Icon status="danger"><PauseCircleIcon /></Icon>;
+                        statusClass = 'ops-row-stopped';
                       } else if (!hasProvisions) {
                         statusLabel = 'No provisions';
-                        statusIcon = <Icon status="warning"><InProgressIcon /></Icon>;
+                        statusIcon = <Icon status="warning"><ExclamationCircleIcon /></Icon>;
+                        statusClass = 'ops-row-attention';
                       } else if (seats && seats.assigned > 0) {
                         statusLabel = 'Active';
                         statusIcon = <Icon status="success"><CheckCircleIcon /></Icon>;
@@ -700,8 +811,41 @@ const Ops: React.FC = () => {
                         statusIcon = <Icon status="info"><InProgressIcon /></Icon>;
                       }
 
+                      const stopUrgency = dateUrgency(ws.spec?.actionSchedule?.stop);
+                      const destroyUrgency = dateUrgency(ws.spec?.lifespan?.end);
+                      const needsAttention = stopUrgency === 'critical' || destroyUrgency === 'critical';
+                      const rowClass = needsAttention ? 'ops-row-attention' : statusClass;
+
+                      let seatsDisplay: React.ReactNode;
+                      if (seats) {
+                        const pct = seats.total > 0 ? Math.round((seats.assigned / seats.total) * 100) : 0;
+                        seatsDisplay = (
+                          <Tooltip content={`${seats.assigned} assigned of ${seats.total} total (${pct}%)`}>
+                            <span>
+                              <strong>{seats.assigned}</strong> / {seats.total}
+                              {seats.total > 0 && (
+                                <span className={`ops-seat-pct ${pct >= 90 ? 'ops-seat-full' : pct >= 50 ? 'ops-seat-half' : ''}`}>
+                                  {' '}{pct}%
+                                </span>
+                              )}
+                            </span>
+                          </Tooltip>
+                        );
+                      } else if (currentCount !== null && currentCount > 0) {
+                        seatsDisplay = (
+                          <Tooltip content={`${currentCount} seats projected from instance count (no user assignments yet)`}>
+                            <span className="ops-seats-projected">
+                              <ClockIcon style={{ marginRight: 4 }} />
+                              ~{currentCount} projected
+                            </span>
+                          </Tooltip>
+                        );
+                      } else {
+                        seatsDisplay = <span className="ops-muted">&mdash;</span>;
+                      }
+
                       return (
-                        <tr key={ws.metadata.uid || ws.metadata.name}>
+                        <tr key={ws.metadata.uid || ws.metadata.name} className={rowClass}>
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
@@ -724,31 +868,32 @@ const Ops: React.FC = () => {
                           <td>
                             {currentCount !== null ? (
                               <strong>{currentCount}</strong>
-                            ) : '—'}
+                            ) : <span className="ops-muted">&mdash;</span>}
                           </td>
+                          <td>{seatsDisplay}</td>
                           <td>
-                            {seats ? (
-                              <Tooltip content={`${seats.assigned} assigned out of ${seats.total} total seats`}>
-                                <span><strong>{seats.assigned}</strong> / {seats.total}</span>
-                              </Tooltip>
-                            ) : '—'}
+                            {isOpen ? (
+                              <Label color="green" isCompact>Open</Label>
+                            ) : (
+                              <Label color="blue" isCompact>Pre-registration</Label>
+                            )}
                           </td>
                           <td>
                             {password ? (
                               showPasswords
                                 ? <code className="ops-password">{password}</code>
                                 : <span className="ops-password-hidden">••••••••</span>
-                            ) : <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>None</span>}
+                            ) : <span className="ops-muted">None</span>}
                           </td>
-                          <td>{fmtDate(ws.spec?.actionSchedule?.stop)}</td>
-                          <td>{fmtDate(ws.spec?.lifespan?.end)}</td>
+                          <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
+                          <td>{renderDateCell(ws.spec?.lifespan?.end, 'No auto-destroy')}</td>
                           <td>
                             {workshopUrl ? (
                               <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />
                                 {workshopId}
                               </a>
-                            ) : '—'}
+                            ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                         </tr>
                       );
@@ -839,7 +984,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Scale confirmation — with current→new breakdown + type-to-confirm for destructive ops */}
       <Modal variant="small" isOpen={showScaleConfirm} onClose={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-confirm">
         <ModalHeader title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'} labelId="scale-confirm" titleIconVariant={isScaleDown ? 'warning' : undefined} />
         <ModalBody>
@@ -888,7 +1032,6 @@ const Ops: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Scale to zero — always type-to-confirm */}
       <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-zero-confirm">
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
