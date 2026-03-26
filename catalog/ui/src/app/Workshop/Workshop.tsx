@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Page } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import Footer from '@app/components/Footer';
 import summitLogo from '@app/bgimages/Summit-Logo.svg';
@@ -45,16 +44,19 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
   }
 
   return (
-    <Page masthead={<WorkshopHeader userInterface={userInterface} />} className="workshop">
-      {workshopPrivateInfo.assignment ? (
-        <WorkshopContent workshop={workshopPrivateInfo} />
-      ) : (
-        <WorkshopLogin
-          loginFailureMessage={loginFailureMessage}
-          onLogin={(email, accessPassword) => attemptLogin(email, accessPassword)}
-          workshop={workshop}
-        />
-      )}
+    <div className="workshop">
+      <WorkshopHeader userInterface={userInterface} />
+      <main className="workshop__main">
+        {workshopPrivateInfo.assignment ? (
+          <WorkshopContent workshop={workshopPrivateInfo} />
+        ) : (
+          <WorkshopLogin
+            loginFailureMessage={loginFailureMessage}
+            onLogin={(email, accessPassword) => attemptLogin(email, accessPassword)}
+            workshop={workshop}
+          />
+        )}
+      </main>
       <Footer
         rightElement={
           userInterface === 'summit' ? (
@@ -64,7 +66,7 @@ const Workshop: React.FC<{ title: string }> = ({ title }) => {
           ) : null
         }
       />
-    </Page>
+    </div>
   );
 };
 

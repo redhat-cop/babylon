@@ -1,23 +1,99 @@
-.workshop-content .pf-v6-c-description-list__group {
-  padding: var(--pf-t--global--spacer--md);
-  background-color: var(--pf-v6-global--palette--white);
-  border-radius: 4px;
-  box-shadow:
-    0 1px 5px 0 rgb(3 3 3 / 12%),
-    0 0 1px 0 rgb(3 3 3 / 6%);
+/* ── Content Hero ── */
+.workshop-content__hero-title {
+  margin: 0;
+  font-family: 'Red Hat Display', 'Overpass', overpass, helvetica, arial, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
-.workshop-content__title,
-.workshop-content__description {
-  text-align: center;
-  padding-bottom: var(--pf-t--global--spacer--md);
-  line-height: 1;
+
+/* ── Body ── */
+.workshop-content__body {
+  flex: 1;
+  background: #f0f0f0;
+  display: flex;
+  justify-content: center;
+  padding: 48px 24px;
 }
+
+/* ── Wrapper ── */
 .workshop-content__wrapper {
-  width: 1100px;
-  height: auto;
-  margin: 0 auto var(--pf-t--global--spacer--xl);
-  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
-.workshop-conte--pf-v6-rapper pre {
-  font-family: var(--pf-v6-global--FontFamily--sans-serif);
+
+/* ── Section Title ── */
+.workshop-content__section-title {
+  font-family: 'Red Hat Display', 'Overpass', overpass, helvetica, arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #151515;
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Cards ── */
+.workshop-content__card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 2px rgba(0, 0, 0, 0.06);
+  padding: 24px 32px;
+}
+
+.workshop-content__card-label {
+  font-family: 'Red Hat Display', 'Overpass', overpass, helvetica, arial, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6a6e73;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px;
+}
+
+/* ── Links ── */
+.workshop-content__link {
+  color: #0066cc;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.workshop-content__link:hover {
+  color: #004080;
+  text-decoration: underline;
+}
+
+/* ── Preformatted ── */
+.workshop-content__pre {
+  font-family: 'Red Hat Mono', 'Liberation Mono', monospace;
+  font-size: 14px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 16px;
+  margin: 0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .workshop-content__hero-title {
+    font-size: 1.75rem;
+  }
+
+  .workshop-content__body {
+    padding: 24px 16px;
+  }
+
+  .workshop-content__card {
+    padding: 20px;
+  }
 }

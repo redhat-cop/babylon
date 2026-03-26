@@ -1,19 +1,5 @@
 import React, { useMemo } from 'react';
 import yaml from 'js-yaml';
-import {
-  Bullseye,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  PageSection,
-  Panel,
-  PanelMain,
-  PanelMainBody,
-  Stack,
-  StackItem,
-  Title,
-} from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';
@@ -72,84 +58,69 @@ const WorkshopContent: React.FC<{
   }
 
   return (
-    <PageSection hasBodyWrapper={false}  className="workshop-content" padding={{ default: 'noPadding' }}>
-      <Hero image={heroImg}>
-        <Title headingLevel="h1" size="xl" style={{ fontSize: '40px' }}>
-          <b>{displayName}</b>
-        </Title>
+    <div className="workshop-content">
+      <Hero image={heroImg} overlay compact>
+        <h1 className="workshop-content__hero-title">{displayName}</h1>
       </Hero>
-      <Stack hasGutter className="workshop-content__wrapper">
-        <StackItem>
-          <Bullseye>
-            <Title headingLevel="h3" className="workshop-content__title">
-              Instructions for {displayName}
-            </Title>
-          </Bullseye>
-        </StackItem>
-        {description ? (
-          <StackItem className="workshop-content__description">
-            <div>
+      <section className="workshop-content__body">
+        <div className="workshop-content__wrapper">
+          <h2 className="workshop-content__section-title">
+            Instructions for {displayName}
+          </h2>
+
+          {description ? (
+            <div className="workshop-content__card">
               {renderEditor ? (
                 <EditorViewer value={description} />
               ) : (
                 <div dangerouslySetInnerHTML={{ __html: renderContent(description, { format: 'html' }) }} />
               )}
             </div>
-          </StackItem>
-        ) : null}
-        <StackItem>
-          <Bullseye>
-            <DescriptionList isHorizontal>
-              {userAssignment.labUserInterface ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Lab User Interface</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <a href={userAssignment.labUserInterface.url} target="_blank" rel="noreferrer">
-                      {userAssignment.labUserInterface.url} <ExternalLinkAltIcon />
-                    </a>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
+          ) : null}
+
+          {userAssignment.labUserInterface ? (
+            <div className="workshop-content__card">
+              <h3 className="workshop-content__card-label">Lab User Interface</h3>
+              <a
+                href={userAssignment.labUserInterface.url}
+                target="_blank"
+                rel="noreferrer"
+                className="workshop-content__link"
+              >
+                {userAssignment.labUserInterface.url} <ExternalLinkAltIcon />
+              </a>
+            </div>
+          ) : null}
+
+          {templateHtml ? (
+            <div className="workshop-content__card">
+              {templateHtml}
+            </div>
+          ) : (
+            <>
+              {userAssignment.messages ? (
+                <div className="workshop-content__card">
+                  <h3 className="workshop-content__card-label">Messages</h3>
+                  {userAssignmentMessagesHtml}
+                </div>
               ) : null}
-              {templateHtml ? null : (
-                <>
-                  {userAssignment.messages ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Messages</DescriptionListTerm>
-                      <DescriptionListDescription>{userAssignmentMessagesHtml}</DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
-                  {userAssignment.data ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Data</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <pre>
-                          {yaml.dump(
-                            Object.keys(userAssignment.data).length === 1
-                              ? userAssignment.data[Object.keys(userAssignment.data)[0]]
-                              : userAssignment.data,
-                          )}
-                        </pre>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
-                </>
-              )}
-            </DescriptionList>
-          </Bullseye>
-        </StackItem>
-        <StackItem>
-          <Bullseye>
-            {templateHtml ? (
-              <Panel>
-                <PanelMain>
-                  <PanelMainBody>{templateHtml}</PanelMainBody>
-                </PanelMain>
-              </Panel>
-            ) : null}
-          </Bullseye>
-        </StackItem>
-      </Stack>
-    </PageSection>
+              {userAssignment.data ? (
+                <div className="workshop-content__card">
+                  <h3 className="workshop-content__card-label">Data</h3>
+                  <pre className="workshop-content__pre">
+                    {yaml.dump(
+                      Object.keys(userAssignment.data).length === 1
+                        ? userAssignment.data[Object.keys(userAssignment.data)[0]]
+                        : userAssignment.data,
+                    )}
+                  </pre>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </section>
+    </div>
   );
 };
 

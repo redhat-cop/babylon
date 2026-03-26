@@ -41,11 +41,19 @@
   object-fit: contain;
 }
 
+/* ── Main Scrollable Area ── */
+.mwl-main {
+  flex: 1;
+  overflow: auto;
+  margin-top: 72px;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Hero Banner ── */
 .mwl-hero {
   position: relative;
   flex-shrink: 0;
-  margin-top: 72px;
   min-height: 260px;
   display: flex;
   align-items: center;
@@ -93,7 +101,6 @@
 /* ── Cards Section ── */
 .mwl-cards-section {
   flex: 1;
-  overflow: auto;
   background: #f0f0f0;
   display: flex;
   justify-content: center;

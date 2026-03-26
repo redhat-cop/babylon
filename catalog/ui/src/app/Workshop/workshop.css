@@ -1,16 +1,69 @@
-header.workshop {
-  background-color: rgb(21, 21, 21);
-}
-.pf-v6-c-page.workshop {
+/* Workshop Public Page */
+.workshop {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  font-family: 'Red Hat Text', 'Overpass', overpass, helvetica, arial, sans-serif;
+  overflow: hidden;
 }
-.pf-v6-c-page.workshop .pf-v6-c-page__main-container, .workshop-login {
-  flex: 1;
+
+/* ── Header ── */
+.workshop-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 72px;
+  background: #151515;
+  display: flex;
+  align-items: center;
+}
+
+.workshop-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  background-color: #f0f0f0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
-.workshop-login__form-content {
-  background-color: #fff;
+
+.workshop-header__brand a,
+.workshop-header__brand button {
+  display: flex;
+  align-items: center;
+}
+
+.workshop-header__right {
+  margin-left: auto;
+}
+
+/* ── Main Content ── */
+.workshop__main {
+  flex: 1;
+  overflow: auto;
+  margin-top: 72px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Child pages fill the main area so the grey bg reaches the footer */
+.workshop-login,
+.workshop-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Push hero right below header */
+.workshop__main .hero {
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .workshop-header__inner {
+    padding: 0 16px;
+  }
 }

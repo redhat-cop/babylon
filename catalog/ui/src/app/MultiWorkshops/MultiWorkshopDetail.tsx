@@ -117,6 +117,7 @@ const MultiWorkshopDetail: React.FC = () => {
 
   const [modalAddWorkshop, openModalAddWorkshop] = useModal();
   const [modalExternalWorkshop, openModalExternalWorkshop] = useModal();
+  const [modalStartNow, openModalStartNow] = useModal();
   const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
   const [workshopSearchValue, setWorkshopSearchValue] = useState('');
   const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string } } | null>(null);
@@ -501,6 +502,22 @@ const MultiWorkshopDetail: React.FC = () => {
       </Modal>
 
       <Modal
+        ref={modalStartNow}
+        onConfirm={async () => {
+          const apiDate = dateToApiString(new Date());
+          const updatedMultiWorkshop = await patchMultiWorkshop({
+            name: multiworkshop.metadata.name,
+            namespace: multiworkshop.metadata.namespace,
+            patch: { spec: { startDate: apiDate } },
+          });
+          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+        }}
+        title="Start provisioning now?"
+      >
+        <p>Workshop assets will begin provisioning immediately.</p>
+      </Modal>
+
+      <Modal
         ref={modalAddWorkshop}
         onConfirm={onAddWorkshopsConfirm}
         title="Add Existing Workshops"
@@ -716,15 +733,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             <Button
                               variant="link"
                               isInline
-                              onClick={async () => {
-                                const apiDate = dateToApiString(new Date());
-                                const updatedMultiWorkshop = await patchMultiWorkshop({
-                                  name: multiworkshop.metadata.name,
-                                  namespace: multiworkshop.metadata.namespace,
-                                  patch: { spec: { startDate: apiDate } },
-                                });
-                                mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                              }}
+                              onClick={openModalStartNow}
                             >
                               Start now
                             </Button>

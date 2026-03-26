@@ -11,8 +11,7 @@ const EditableText: React.FC<{
   componentType?: 'Password' | 'TextArea' | 'TextInput';
   updating?: boolean;
   value: string;
-  isLocked?: boolean;
-}> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value, isLocked = false }) => {
+}> = ({ 'aria-label': ariaLabel, componentType, onChange, placeholder, updating, value }) => {
   const [editing, setEditing] = useState(false);
   const [editedValue, setEditedValue] = useState(value || '');
 
@@ -60,12 +59,12 @@ const EditableText: React.FC<{
       <TextInput
         autoFocus
         aria-label={ariaLabel}
-        className="editable-text-input"
+        className={`editable-text-input${componentType === 'Password' ? ' editable-text-input--password' : ''}`}
         onBlur={() => finishEditing()}
         onChange={(_event, v) => setEditedValue(v)}
         onKeyUp={onKeyUp}
+        type="text"
         value={editedValue}
-        isDisabled={isLocked}
       />
     );
   }
