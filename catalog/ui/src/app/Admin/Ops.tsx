@@ -1477,7 +1477,7 @@ const Ops: React.FC = () => {
                           <td>
                             {grpLocked > 0 ? (
                               <Tooltip content={isMultiAsset
-                                ? `${grpLocked}/${group.items.length} assets locked — locked assets sync dates with parent`
+                                ? `${grpLocked}/${group.items.length} locked — dates sync with parent when locked`
                                 : `${grpLocked} of ${group.items.length} locked`}>
                                 <Icon status="warning"><LockIcon /></Icon>
                               </Tooltip>
@@ -1599,11 +1599,11 @@ const Ops: React.FC = () => {
                             </td>
                             <td>
                               {locked ? (
-                                <Tooltip content={isMultiAsset ? 'Locked — syncs dates with parent' : 'Locked'}>
+                                <Tooltip content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}>
                                   <Icon status="warning"><LockIcon /></Icon>
                                 </Tooltip>
                               ) : (
-                                <Tooltip content={isMultiAsset ? 'Unlocked — NOT syncing dates with parent' : 'Unlocked'}>
+                                <Tooltip content={isMultiAsset ? 'Unlocked — date sync with parent is OFF' : 'Unlocked'}>
                                   <Icon status={isMultiAsset ? 'danger' : 'success'}>{isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}</Icon>
                                 </Tooltip>
                               )}
@@ -1709,11 +1709,10 @@ const Ops: React.FC = () => {
           {(() => {
             const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
             return multiAssetChildren.length > 0 ? (
-              <Alert variant="danger" isInline title="Multi-asset workshop warning" style={{ marginTop: 12 }}>
-                <strong>{multiAssetChildren.length}</strong> of these workshop(s) are children of a multi-asset parent.
-                Unlocking them will <strong>break date synchronisation</strong> with the parent config &mdash;
-                their start, stop, and destroy dates will no longer follow the parent schedule.
-                They must be re-locked to restore sync.
+              <Alert variant="danger" isInline title={`${multiAssetChildren.length} workshop(s) belong to a multi-asset parent`} style={{ marginTop: 12 }}>
+                Unlocking will <strong>stop date sync</strong> with the parent &mdash; stop and destroy
+                times will no longer update when the parent schedule changes.
+                Re-lock to restore sync.
               </Alert>
             ) : null;
           })()}

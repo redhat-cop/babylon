@@ -443,8 +443,8 @@ describe('Ops Component', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
       await waitFor(() => {
         expect(screen.getByText('Confirm Unlock')).toBeInTheDocument();
-        expect(screen.getByText('Multi-asset workshop warning')).toBeInTheDocument();
-        expect(screen.getByText(/break date synchronisation/)).toBeInTheDocument();
+        expect(screen.getByText(/belong to a multi-asset parent/)).toBeInTheDocument();
+        expect(screen.getByText(/stop date sync/)).toBeInTheDocument();
       });
     });
 
