@@ -492,4 +492,34 @@ describe('Ops Component', () => {
       expect(tz).toHaveValue('UTC');
     });
   });
+
+  describe('Dark mode', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      document.documentElement.classList.remove('pf-v6-theme-dark');
+    });
+
+    test('renders dark mode toggle button', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Toggle dark mode'));
+      expect(screen.getByLabelText('Toggle dark mode')).toBeInTheDocument();
+    });
+
+    test('clicking toggle adds pf-v6-theme-dark class to html element', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Toggle dark mode'));
+      expect(document.documentElement).not.toHaveClass('pf-v6-theme-dark');
+      await userEvent.click(screen.getByLabelText('Toggle dark mode'));
+      expect(document.documentElement).toHaveClass('pf-v6-theme-dark');
+    });
+
+    test('persists preference in localStorage', async () => {
+      render(<Ops />);
+      await waitFor(() => screen.getByLabelText('Toggle dark mode'));
+      await userEvent.click(screen.getByLabelText('Toggle dark mode'));
+      expect(localStorage.getItem('ops-dark-mode')).toBe('true');
+      await userEvent.click(screen.getByLabelText('Toggle dark mode'));
+      expect(localStorage.getItem('ops-dark-mode')).toBe('false');
+    });
+  });
 });

@@ -520,3 +520,20 @@
     padding: 0 24px;
   }
 }
+
+/* ============================================================
+   Dark mode — applied via .pf-v6-theme-dark on <html>.
+   PF tokens auto-remap; these handle edge cases only.
+   ============================================================ */
+
+:root.pf-v6-theme-dark .ops-password {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .ops-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 80%, var(--pf-t--global--text--color--regular));
+}
+
+:root.pf-v6-theme-dark .ops-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 90%, var(--pf-t--global--text--color--subtle));
+}

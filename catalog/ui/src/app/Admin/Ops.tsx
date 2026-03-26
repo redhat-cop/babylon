@@ -51,6 +51,8 @@ import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-cl
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
+import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
+import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 
 import {
   apiPaths,
@@ -196,6 +198,30 @@ const Ops: React.FC = () => {
     setMultiNsMode(false);
     setMultiNsAck(false);
     setExtraNamespaces([]);
+  }, []);
+
+  // ---------- Dark mode ----------
+
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('ops-dark-mode') === 'true'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    const el = document.documentElement;
+    if (darkMode) {
+      el.classList.add('pf-v6-theme-dark');
+    } else {
+      el.classList.remove('pf-v6-theme-dark');
+    }
+    return () => { el.classList.remove('pf-v6-theme-dark'); };
+  }, [darkMode]);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem('ops-dark-mode', String(next)); } catch { /* noop */ }
+      return next;
+    });
   }, []);
 
   // ---------- Timezone ----------
@@ -604,6 +630,13 @@ const Ops: React.FC = () => {
             <SplitItem isFilled>
               <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Ops</Title>
             </SplitItem>
+            <SplitItem>
+              <Tooltip content={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+                <Button variant="plain" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+                  {darkMode ? <SunIcon /> : <MoonIcon />}
+                </Button>
+              </Tooltip>
+            </SplitItem>
           </Split>
         </PageSection>
         <PageSection key="body" className="admin-body" variant="default">
@@ -692,6 +725,13 @@ const Ops: React.FC = () => {
               <code className="ops-page-ns">{namespace}</code>
               {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
             </Title>
+          </SplitItem>
+          <SplitItem>
+            <Tooltip content={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <Button variant="plain" onClick={toggleDarkMode} aria-label="Toggle dark mode">
+                {darkMode ? <SunIcon /> : <MoonIcon />}
+              </Button>
+            </Tooltip>
           </SplitItem>
           <SplitItem>
             <Tooltip content={`Last refreshed: ${lastRefresh.toLocaleTimeString()}. Auto-refreshes every 30s.`}>
