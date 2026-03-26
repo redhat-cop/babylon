@@ -67,7 +67,7 @@ export function VirtualizedWorkshopTable({
   onSelectAll,
   isLoading = false,
 }: VirtualizedWorkshopTableProps) {
-  const [useVirtualization, setUseVirtualization] = useState(false);
+  const [enableVirtualization, setEnableVirtualization] = useState(false);
 
   // Smart pagination with performance optimization
   const {
@@ -92,13 +92,13 @@ export function VirtualizedWorkshopTable({
 
   // Virtualization for very large datasets
   const virtualization = useVirtualization(
-    useVirtualization ? workshops : currentPageItems,
+    enableVirtualization ? workshops : currentPageItems,
     CONTAINER_HEIGHT,
     ITEM_HEIGHT,
     5
   );
 
-  const displayItems = useVirtualization ? virtualization.visibleItems : currentPageItems;
+  const displayItems = enableVirtualization ? virtualization.visibleItems : currentPageItems;
 
   // Performance metrics
   const performanceInfo = useMemo(() => {
@@ -109,7 +109,7 @@ export function VirtualizedWorkshopTable({
 
     return {
       level: isExcellent ? 'excellent' : isGood ? 'good' : isFair ? 'fair' : 'poor',
-      color: isExcellent ? 'green' : isGood ? 'blue' : isFair ? 'orange' : 'red',
+      color: isExcellent ? 'green' as const : isGood ? 'blue' as const : isFair ? 'orange' as const : 'red' as const,
       message:
         isExcellent ? 'Excellent performance' :
         isGood ? 'Good performance' :
@@ -135,7 +135,7 @@ export function VirtualizedWorkshopTable({
 
   // Get seat information
   const getSeats = (workshop: Workshop) => {
-    const total = workshop.spec?.labUserInterface?.userCount || 0;
+    const total = (workshop.spec?.labUserInterface as any)?.userCount || 0;
     const assigned = workshop.status?.summary?.users?.length || 0;
     return { total, assigned, available: total - assigned };
   };
@@ -175,8 +175,8 @@ export function VirtualizedWorkshopTable({
               <Switch
                 id="virtualization-toggle"
                 label="Enable virtualization"
-                isChecked={useVirtualization}
-                onChange={(_, checked) => setUseVirtualization(checked)}
+                isChecked={enableVirtualization}
+                onChange={(_, checked) => setEnableVirtualization(checked)}
               />
             </FlexItem>
           )}
@@ -200,7 +200,7 @@ export function VirtualizedWorkshopTable({
               {shouldVirtualize && (
                 <button
                   className="pf-c-button pf-m-link pf-m-inline"
-                  onClick={() => setUseVirtualization(true)}
+                  onClick={() => setEnableVirtualization(true)}
                   style={{ marginLeft: 16 }}
                 >
                   Enable virtualization
@@ -215,13 +215,13 @@ export function VirtualizedWorkshopTable({
         {/* Virtualized table container */}
         <div
           style={{
-            height: useVirtualization ? CONTAINER_HEIGHT : 'auto',
-            overflow: useVirtualization ? 'auto' : 'visible',
+            height: enableVirtualization ? CONTAINER_HEIGHT : 'auto',
+            overflow: enableVirtualization ? 'auto' : 'visible',
             position: 'relative'
           }}
-          onScroll={useVirtualization ? virtualization.handleScroll : undefined}
+          onScroll={enableVirtualization ? virtualization.handleScroll : undefined}
         >
-          {useVirtualization && (
+          {enableVirtualization && (
             <div style={{ height: virtualization.totalHeight, position: 'relative' }}>
               <div
                 style={{
@@ -318,7 +318,7 @@ export function VirtualizedWorkshopTable({
           )}
 
           {/* Standard table for non-virtualized view */}
-          {!useVirtualization && (
+          {!enableVirtualization && (
             <Table variant="compact">
               <Thead>
                 <Tr>
@@ -408,14 +408,14 @@ export function VirtualizedWorkshopTable({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
           <div>
             <div style={{ fontSize: 'small', color: 'var(--pf-t--global--color--text--subtle)' }}>
-              Showing {!useVirtualization ? currentPageItems.length : displayItems.length} of {totalItems.toLocaleString()} workshops
+              Showing {!enableVirtualization ? currentPageItems.length : displayItems.length} of {totalItems.toLocaleString()} workshops
               {performance.memoryUsageEstimate && (
                 <span> • Est. memory: {Math.round(performance.memoryUsageEstimate / 1024)}KB</span>
               )}
             </div>
           </div>
 
-          {!useVirtualization && totalItems > pageSize && (
+          {!enableVirtualization && totalItems > pageSize && (
             <Pagination
               itemCount={totalItems}
               perPage={pageSize}

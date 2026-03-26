@@ -53,12 +53,12 @@ const statusIcons = {
 };
 
 const operationLabels = {
-  lock: { text: 'Lock', color: 'red' },
-  unlock: { text: 'Unlock', color: 'green' },
-  'extend-stop': { text: 'Extend Stop', color: 'blue' },
-  'extend-destroy': { text: 'Extend Destroy', color: 'purple' },
-  'disable-autostop': { text: 'Disable Auto-stop', color: 'orange' },
-  scale: { text: 'Scale', color: 'cyan' },
+  lock: { text: 'Lock', color: 'red' as const },
+  unlock: { text: 'Unlock', color: 'green' as const },
+  'extend-stop': { text: 'Extend Stop', color: 'blue' as const },
+  'extend-destroy': { text: 'Extend Destroy', color: 'purple' as const },
+  'disable-autostop': { text: 'Disable Auto-stop', color: 'orange' as const },
+  scale: { text: 'Scale', color: 'teal' as const },
 };
 
 interface OperationHistoryPanelProps {

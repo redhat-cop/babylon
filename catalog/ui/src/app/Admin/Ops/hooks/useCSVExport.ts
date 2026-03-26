@@ -114,7 +114,7 @@ export function useCSVExport() {
         p.status?.summary?.provision?.state === 'active'
       ).length;
 
-      const seatsTotal = workshop.spec?.labUserInterface?.userCount || 0;
+      const seatsTotal = (workshop.spec?.labUserInterface as any)?.userCount || 0;
       const seatsAssigned = workshop.status?.summary?.users?.length || 0;
 
       return {
@@ -129,8 +129,8 @@ export function useCSVExport() {
         isLocked: workshop.metadata.labels?.['demo.redhat.com/lock-enabled'] === 'true',
         autoStopTime: workshop.spec?.actionSchedule?.stop,
         destroyTime: workshop.spec?.lifespan?.end,
-        cloudProvider: workshop.spec?.vars?.cloudProvider,
-        cloudRegion: workshop.spec?.vars?.cloudRegion,
+        cloudProvider: (workshop.spec as any)?.vars?.cloudProvider,
+        cloudRegion: (workshop.spec as any)?.vars?.cloudRegion,
         failedProvisions,
         runningProvisions,
         lastActivity: workshop.status?.summary?.provision?.lastUpdated || workshop.metadata.creationTimestamp || '',

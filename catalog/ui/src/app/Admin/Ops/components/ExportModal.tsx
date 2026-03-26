@@ -169,24 +169,10 @@ export function ExportModal({
   return (
     <Modal
       variant="medium"
-      title={title || config.title}
       isOpen={isOpen}
       onClose={onClose}
-      actions={[
-        <Button
-          key="export"
-          variant="primary"
-          onClick={handleExport}
-          isDisabled={isExporting || (exportType !== 'summary' && selectedCount === 0)}
-          icon={<DownloadIcon />}
-        >
-          {isExporting ? 'Exporting...' : 'Export'}
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose} isDisabled={isExporting}>
-          Cancel
-        </Button>,
-      ]}
     >
+      <ModalHeader title={title || config.title} />
       <ModalBody>
         {/* Export Type Info */}
         <Card isPlain>
@@ -363,6 +349,19 @@ export function ExportModal({
           </CardBody>
         </Card>
       </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="primary"
+          onClick={handleExport}
+          isDisabled={isExporting || (exportType !== 'summary' && selectedCount === 0)}
+          icon={<DownloadIcon />}
+        >
+          {isExporting ? 'Exporting...' : 'Export'}
+        </Button>
+        <Button variant="link" onClick={onClose} isDisabled={isExporting}>
+          Cancel
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

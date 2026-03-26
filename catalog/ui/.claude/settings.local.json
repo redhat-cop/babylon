@@ -16,7 +16,12 @@
       "Bash(npm uninstall:*)",
       "Bash(npx playwright:*)",
       "Bash(npm audit:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(npx tsc:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -1973,7 +1973,7 @@ const Ops: React.FC = () => {
       </Modal>
 
       <OperationHistoryPanel
-        isOpen={showOperationHistory}
+        isVisible={showOperationHistory}
         onClose={() => setShowOperationHistory(false)}
         onExport={() => {
           setExportType('operations');
