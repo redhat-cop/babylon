@@ -289,7 +289,7 @@ const Ops: React.FC = () => {
     () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
   );
-  const { data: allAssignData, isValidating: assignValidating } = useSWR<WorkshopUserAssignmentList[]>(
+  const { data: allAssignData, mutate: mutateAssignments, isValidating: assignValidating } = useSWR<WorkshopUserAssignmentList[]>(
     assignmentKeys.length > 0 ? assignmentKeys : null,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
     { refreshInterval: 30000 },
@@ -318,8 +318,9 @@ const Ops: React.FC = () => {
   const handleRefresh = useCallback(() => {
     mutateWorkshops();
     mutateProvisions();
+    mutateAssignments();
     setLastRefresh(new Date());
-  }, [mutateWorkshops, mutateProvisions]);
+  }, [mutateWorkshops, mutateProvisions, mutateAssignments]);
 
   // ---------- Workshop filter ----------
 
@@ -570,8 +571,9 @@ const Ops: React.FC = () => {
     if (!showNoAutostopConfirm) { setShowNoAutostopConfirm(true); return; }
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
-    let ok = 0, fail = 0;
+    let ok = 0, skip = 0, fail = 0;
     for (const ws of targets) {
+      if (!ws.spec?.actionSchedule?.stop) { skip++; ok++; continue; }
       try {
         await patchWorkshop({
           name: ws.metadata.name,
@@ -583,7 +585,7 @@ const Ops: React.FC = () => {
     }
     setNoAutostopLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s)`);
+    if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s)${skip > 0 ? ` (${skip} already had no auto-stop)` : ''}`);
     else addAlert(AlertVariant.danger, `Disable auto-stop: ${ok} succeeded, ${fail} failed`);
   };
 
@@ -1181,7 +1183,9 @@ const Ops: React.FC = () => {
                             </span>
                           </td>
                           <td>
-                            {grpFailed > 0 ? (
+                            {grpStopped === group.items.length ? (
+                              <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
+                            ) : grpFailed > 0 ? (
                               <><Icon status="danger"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem', color: 'var(--pf-t--global--color--status--danger--default)' }}>Failed</span></>
                             ) : grpActive > 0 ? (
                               <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
@@ -1390,6 +1394,12 @@ const Ops: React.FC = () => {
             <strong>{targets.length} workshop(s)</strong>
             {modalScopeDescription}.
           </p>
+          {targets.some(ws => !ws.spec?.actionSchedule?.stop) && (
+            <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
+              {targets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) currently have no auto-stop.
+              This will set a stop time relative to now.
+            </Alert>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
@@ -1407,6 +1417,12 @@ const Ops: React.FC = () => {
             {modalScopeDescription}.
           </p>
           <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline.</p>
+          {targets.some(ws => !ws.spec?.lifespan?.end) && (
+            <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
+              {targets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) currently have no auto-destroy.
+              This will set a destroy time relative to now.
+            </Alert>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
