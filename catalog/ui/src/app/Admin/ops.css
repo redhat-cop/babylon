@@ -1,8 +1,15 @@
 .ops-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  max-width: 100%;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+@media (min-width: 1200px) {
+  .ops-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .ops-number-row {
@@ -43,6 +50,12 @@
 
 .ops-table-wrap table {
   width: 100%;
+}
+
+.ops-table-wrap th,
+.ops-table-wrap td {
+  padding: 8px 12px;
+  vertical-align: middle;
 }
 
 .ops-ws-meta {
