@@ -1003,7 +1003,6 @@ const Ops: React.FC = () => {
                     <tr>
                       <th></th>
                       <th>Name</th>
-                      {isMultiNs && <th>Namespace</th>}
                       <th>Status</th>
                       <th>Lock</th>
                       <th>Instances</th>
@@ -1032,6 +1031,7 @@ const Ops: React.FC = () => {
                       let grpStopped = 0;
                       let grpAttention = false;
                       const grpPasswords = new Set<string>();
+                      const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
 
                       for (const ws of group.items) {
@@ -1044,11 +1044,11 @@ const Ops: React.FC = () => {
                         if (ws.spec?.provisionDisabled) grpStopped++;
                         if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
                         if (ws.spec?.accessPassword) grpPasswords.add(ws.spec.accessPassword);
+                        grpNamespaces.add(ws.metadata.namespace);
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                       }
 
-                      const colSpan = 10 + (isMultiNs ? 1 : 0);
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
 
                       const headerRow = (
@@ -1068,6 +1068,11 @@ const Ops: React.FC = () => {
                             {isSingle && <span className="ops-ws-meta">{firstWs.metadata.name}</span>}
                             <span className="ops-ws-labels">
                               {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
+                              {isMultiNs && Array.from(grpNamespaces).map(ns => (
+                                <Label key={ns} isCompact color={
+                                  ns.includes('.prod') ? 'orange' : ns.includes('.event') ? 'purple' : ns.includes('.dev') ? 'green' : 'blue'
+                                }>{ns}</Label>
+                              ))}
                               {firstMultiWs && (
                                 <Tooltip content={`Part of Multi-Asset Workshop: ${firstMultiWs}`}>
                                   <Label isCompact color="cyan">Multi-Asset: {firstMultiWs}</Label>
@@ -1075,7 +1080,6 @@ const Ops: React.FC = () => {
                               )}
                             </span>
                           </td>
-                          {isMultiNs && <td><Label isCompact color="blue">{firstWs.metadata.namespace}</Label></td>}
                           <td>
                             {grpActive > 0 ? (
                               <><Icon status="success"><CheckCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Active</span></>
@@ -1161,8 +1165,16 @@ const Ops: React.FC = () => {
                             <td></td>
                             <td>
                               <span className="ops-ws-meta" style={{ marginLeft: 8 }}>{ws.metadata.name}</span>
+                              {isMultiNs && (
+                                <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
+                                  <Label isCompact color={
+                                    ws.metadata.namespace.includes('.prod') ? 'orange' :
+                                    ws.metadata.namespace.includes('.event') ? 'purple' :
+                                    ws.metadata.namespace.includes('.dev') ? 'green' : 'blue'
+                                  }>{ws.metadata.namespace}</Label>
+                                </span>
+                              )}
                             </td>
-                            {isMultiNs && <td><span className="ops-ws-meta">{ws.metadata.namespace}</span></td>}
                             <td>
                               <Tooltip content={statusLabel}>{statusIcon}</Tooltip>
                               <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{statusLabel}</span>
