@@ -1,0 +1,562 @@
+/* ============================================================
+   Ops page — Babylon Admin
+   ============================================================ */
+
+/* Page title */
+.ops-page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 36px;
+}
+
+.ops-page-title-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: 1.1em;
+}
+
+.ops-page-ns {
+  font-size: 0.85em;
+  padding: 2px 8px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+/* ---- Multi-namespace bar ---- */
+
+.ops-multi-ns-bar {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: var(--pf-t--global--background--color--secondary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ops-multi-ns-bar--active {
+  border-color: var(--pf-t--global--color--status--warning--default);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 5%, var(--pf-t--global--background--color--secondary--default));
+}
+
+.ops-ns-chips {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.ops-ns-chips-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.ops-multi-ns-banner {
+  margin-bottom: 16px;
+}
+
+.ops-ns-breakdown {
+  margin: 8px 0 0 20px;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.ops-ns-breakdown li {
+  margin-bottom: 2px;
+}
+
+/* ---- Scope bar ---- */
+
+.ops-scope-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.ops-scope-summary {
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-scope-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.ops-tz-select {
+  max-width: 200px;
+  min-width: 140px;
+}
+
+@media (max-width: 767px) {
+  .ops-scope-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .ops-scope-spacer {
+    display: none;
+  }
+
+  .ops-tz-select {
+    max-width: 100%;
+  }
+}
+
+.ops-stage-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.ops-stage-chip {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+
+.ops-stage-chip:hover {
+  opacity: 0.85;
+}
+
+/* ---- Summary stats bar ---- */
+
+.ops-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 20px;
+  padding: 16px 12px;
+  background: var(--pf-t--global--background--color--secondary--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.ops-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  min-width: 70px;
+}
+
+.ops-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ops-stat-of {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-stat-label {
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.ops-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--pf-t--global--border--color--default);
+}
+
+@media (max-width: 767px) {
+  .ops-summary-bar {
+    padding: 12px 8px;
+    gap: 8px;
+    row-gap: 8px;
+  }
+
+  .ops-stat {
+    padding: 4px 10px;
+    min-width: 60px;
+  }
+
+  .ops-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .ops-stat-divider {
+    display: none;
+  }
+}
+
+.ops-stat-attention .ops-stat-value {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+.ops-stat-attention .ops-stat-label {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* ---- Operation cards grid ---- */
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 100%;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .ops-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .ops-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ops-card-icon {
+  margin-right: 6px;
+  color: var(--pf-t--global--text--color--subtle);
+  vertical-align: -0.1em;
+}
+
+.ops-number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ops-desc {
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--subtle);
+  line-height: 1.5;
+}
+
+.ops-button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ops-scale-danger {
+  border: 2px solid var(--pf-t--global--color--status--warning--default);
+}
+
+/* ---- Workshop detail table ---- */
+
+.ops-workshops-section {
+  margin-top: 8px;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  padding-top: 16px;
+}
+
+.ops-table-wrap {
+  overflow-x: auto;
+}
+
+.ops-table-wrap table {
+  width: 100%;
+}
+
+.ops-table-wrap thead th {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--pf-t--global--text--color--subtle);
+  border-bottom: 2px solid var(--pf-t--global--border--color--default);
+  white-space: nowrap;
+}
+
+.ops-table-wrap td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.ops-ws-meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+  font-family: var(--pf-t--global--font--family--mono);
+  line-height: 1.3;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-ws-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+/* ---- Text & data styling ---- */
+
+.ops-muted {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-password {
+  font-size: 0.85rem;
+  word-break: break-all;
+  background: var(--pf-t--global--background--color--secondary--default);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.ops-password-hidden {
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 2px;
+}
+
+.ops-ws-link {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ops-status-cell {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+a.ops-ws-name-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.ops-ws-name-link:hover {
+  text-decoration: underline;
+  color: var(--pf-t--global--color--brand--default);
+}
+
+a.ops-ws-meta {
+  text-decoration: none;
+}
+
+a.ops-ws-meta:hover {
+  text-decoration: underline;
+}
+
+/* ---- Date urgency ---- */
+
+.ops-date-critical {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pf-t--global--color--status--danger--default);
+  font-weight: 700;
+  font-size: 0.9rem;
+  animation: ops-pulse 2s ease-in-out infinite;
+}
+
+.ops-date-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pf-t--global--color--status--warning--default);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ops-date-ok {
+  font-size: 0.85rem;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ops-date-icon {
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+
+@keyframes ops-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+/* ---- Seat percentage ---- */
+
+.ops-seat-pct {
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ops-seat-full {
+  color: var(--pf-t--global--color--status--success--default);
+  font-weight: 600;
+}
+
+.ops-seat-half {
+  color: var(--pf-t--global--color--status--info--default);
+}
+
+/* ---- Row highlights ---- */
+
+.ops-row-attention {
+  border-left: 3px solid var(--pf-t--global--color--status--danger--default);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 4%, transparent) !important;
+}
+
+.ops-row-stopped {
+  opacity: 0.55;
+}
+
+/* ---- Group header rows ---- */
+
+.ops-group-header {
+  background: var(--pf-t--global--background--color--secondary--default);
+  transition: background 0.1s;
+}
+
+.ops-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular));
+}
+
+.ops-group-header td:first-child {
+  width: 32px;
+  padding-right: 0;
+}
+
+.ops-expand-cell {
+  text-align: center;
+}
+
+.ops-expand-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  transition: transform 0.15s ease;
+}
+
+/* Child instance rows */
+.ops-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 97%, var(--pf-t--global--text--color--subtle));
+  font-size: 0.9rem;
+}
+
+.ops-child-row td:first-child {
+  width: 32px;
+  border-left: 2px solid var(--pf-t--global--color--status--info--default);
+}
+
+/* ---- Refresh spinner ---- */
+
+.ops-spin {
+  animation: ops-spin-anim 1s linear infinite;
+}
+
+@keyframes ops-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Toast group ---- */
+
+.ops-toast-group {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 9999;
+  max-width: 440px;
+}
+
+/* ============================================================
+   Responsive breakpoints
+   ============================================================ */
+
+@media (max-width: 767px) {
+  .ops-page-title {
+    flex-wrap: wrap;
+    font-size: 1rem;
+  }
+
+  .ops-page-ns {
+    font-size: 0.75em;
+  }
+
+  .ops-multi-ns-bar {
+    padding: 10px 12px;
+  }
+
+  .ops-number-row {
+    flex-wrap: wrap;
+  }
+
+  .ops-button-row {
+    flex-wrap: wrap;
+  }
+
+  .ops-workshops-section {
+    padding-top: 12px;
+  }
+
+  .ops-table-wrap td,
+  .ops-table-wrap thead th {
+    padding: 6px 8px;
+    font-size: 0.82rem;
+  }
+
+  .ops-ws-meta {
+    max-width: 180px;
+  }
+
+  .ops-toast-group {
+    max-width: calc(100vw - 32px);
+    right: 16px;
+    left: 16px;
+  }
+
+  .ops-stage-filters {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .ops-stat {
+    padding: 0 18px;
+  }
+
+  .ops-ws-meta {
+    max-width: 240px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .ops-stat {
+    padding: 0 24px;
+  }
+}
+
+/* ============================================================
+   Dark mode — applied via .pf-v6-theme-dark on <html>.
+   PF tokens auto-remap; these handle edge cases only.
+   ============================================================ */
+
+:root.pf-v6-theme-dark .ops-password {
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-dark .ops-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 80%, var(--pf-t--global--text--color--regular));
+}
+
+:root.pf-v6-theme-dark .ops-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 90%, var(--pf-t--global--text--color--subtle));
+}
