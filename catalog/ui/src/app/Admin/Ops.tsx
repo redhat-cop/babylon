@@ -59,7 +59,7 @@ import {
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ServiceNamespace,
 } from '@app/types';
-import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, namespaceToServiceNamespaceMapper } from '@app/util';
+import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
@@ -1001,6 +1001,7 @@ const Ops: React.FC = () => {
                       const provDisabled = ws.spec?.provisionDisabled === true;
                       const isOpen = ws.spec?.openRegistration !== false;
                       const multiWsSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+                      const stage = getStageFromK8sObject(ws);
 
                       let statusIcon: React.ReactNode;
                       let statusLabel: string;
@@ -1054,11 +1055,19 @@ const Ops: React.FC = () => {
                           <td>
                             <strong>{displayName(ws)}</strong>
                             <span className="ops-ws-meta">{ws.metadata.name}</span>
-                            {multiWsSource && (
-                              <Tooltip content={`Part of Multi-Asset Workshop: ${multiWsSource}`}>
-                                <Label isCompact color="cyan" className="ops-multi-ws-label">Multi-Asset: {multiWsSource}</Label>
-                              </Tooltip>
-                            )}
+                            <span className="ops-ws-labels">
+                              {stage && stage !== 'prod' && (
+                                <Label isCompact color={
+                                  stage === 'dev' ? 'green' : stage === 'event' ? 'purple' : stage === 'test' ? 'blue' : 'grey'
+                                }>{stage}</Label>
+                              )}
+                              {stage === 'prod' && <Label isCompact color="orange">prod</Label>}
+                              {multiWsSource && (
+                                <Tooltip content={`Part of Multi-Asset Workshop: ${multiWsSource}`}>
+                                  <Label isCompact color="cyan">Multi-Asset: {multiWsSource}</Label>
+                                </Tooltip>
+                              )}
+                            </span>
                           </td>
                           {isMultiNs && (
                             <td>

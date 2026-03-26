@@ -198,9 +198,11 @@
   font-family: var(--pf-t--global--font--family--mono);
 }
 
-/* Multi-asset workshop label */
-.ops-multi-ws-label {
-  display: inline-block;
+/* Workshop name labels (stage, multi-asset) */
+.ops-ws-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   margin-top: 3px;
 }
 
