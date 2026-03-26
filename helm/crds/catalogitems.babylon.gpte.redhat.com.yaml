@@ -373,6 +373,11 @@ spec:
                   Boolean flag to indicate if the catalog item provisions infrastructure for a multi-user catalog item.
                   If set then a ".user" catalog item will be created in addition to the infra catalog item.
                 type: boolean
+              numUsersParameter:
+                description: >-
+                  Configuration information which informs which parameter sets the number of workshop user seats
+                  provisioned for a multiuser environment.
+                type: string
               owners:
                 description: >-
                   Who owns this catalog item.
