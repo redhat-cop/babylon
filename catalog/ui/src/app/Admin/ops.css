@@ -614,17 +614,112 @@ a.ops-ws-meta:hover {
 
 /* ============================================================
    Dark mode — applied via .pf-v6-theme-dark on <html>.
-   PF tokens auto-remap; these handle edge cases only.
+   PF tokens auto-remap; these overrides polish the edges.
    ============================================================ */
 
-:root.pf-v6-theme-dark .ops-password {
+/* --- Cards: lift off the background with a subtle border + lighter fill --- */
+:root.pf-v6-theme-dark .ops-grid .pf-v6-c-card {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 70%, white);
+  border: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 80%, white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:root.pf-v6-theme-dark .ops-grid .pf-v6-c-card .pf-v6-c-card__title {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* --- Card descriptions: bump contrast --- */
+:root.pf-v6-theme-dark .ops-desc {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+:root.pf-v6-theme-dark .ops-desc code {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 60%, white);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* --- Number inputs: tame the white flash --- */
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input {
   background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button {
+  background: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+  border-color: var(--pf-t--global--border--color--default);
+}
+
+/* --- Summary stats bar: slightly lighter so it reads as a banner --- */
+:root.pf-v6-theme-dark .ops-summary-bar {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+  border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+:root.pf-v6-theme-dark .ops-stat-value {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* --- Scope bar: match the stats bar treatment --- */
+:root.pf-v6-theme-dark .ops-scope-bar {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+  border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+/* --- Table: clearer row separation --- */
+:root.pf-v6-theme-dark .ops-table-wrap thead th {
+  border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+:root.pf-v6-theme-dark .ops-table-wrap tbody tr {
+  border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 50%, transparent);
+}
+
+:root.pf-v6-theme-dark .ops-group-header {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
 }
 
 :root.pf-v6-theme-dark .ops-group-header:hover {
-  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 80%, var(--pf-t--global--text--color--regular));
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, white);
 }
 
 :root.pf-v6-theme-dark .ops-child-row {
-  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 90%, var(--pf-t--global--text--color--subtle));
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 92%, white);
+}
+
+/* --- Passwords --- */
+:root.pf-v6-theme-dark .ops-password {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 60%, white);
+}
+
+/* --- Status pills --- */
+:root.pf-v6-theme-dark .ops-status-cell > div {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, transparent);
+}
+
+/* --- Scale danger border: brighter in dark mode --- */
+:root.pf-v6-theme-dark .ops-scale-danger {
+  border-color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* --- Workshops section divider --- */
+:root.pf-v6-theme-dark .ops-workshops-section {
+  border-top-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+/* --- Name link hover --- */
+:root.pf-v6-theme-dark a.ops-ws-name-link:hover {
+  color: var(--pf-t--global--color--brand--default);
+}
+
+/* --- Namespace chip in page header --- */
+:root.pf-v6-theme-dark .ops-page-ns {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+}
+
+/* --- Multi-namespace bar --- */
+:root.pf-v6-theme-dark .ops-multi-ns-bar {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+  border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
 }
