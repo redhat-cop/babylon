@@ -537,3 +537,66 @@
 :root.pf-v6-theme-dark .ops-child-row {
   background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 90%, var(--pf-t--global--text--color--subtle));
 }
+
+/* Enhanced Filtering Styles */
+#ops-filter-toolbar {
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+#ops-filter-toolbar .pf-v6-c-toolbar__content {
+  padding-top: var(--pf-t--global--spacer--md);
+  padding-bottom: var(--pf-t--global--spacer--md);
+}
+
+.ops-scope-summary {
+  font-weight: var(--pf-t--global--font--weight--semi-bold);
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+.ops-tz-select {
+  min-width: 140px;
+}
+
+/* Responsive filter adjustments */
+@media (max-width: 991px) {
+  #ops-filter-toolbar .pf-v6-c-toolbar__group {
+    margin-bottom: var(--pf-t--global--spacer--sm);
+  }
+
+  .ops-scope-summary {
+    font-size: var(--pf-t--global--font--size--sm);
+  }
+}
+
+@media (max-width: 767px) {
+  .ops-tz-select {
+    min-width: 120px;
+  }
+}
+
+/* Template Management Styles */
+.ops-template-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ops-template-row .pf-v6-c-select {
+  max-width: 250px;
+}
+
+@media (max-width: 767px) {
+  .ops-template-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .ops-template-row .pf-v6-c-select,
+  .ops-template-row button {
+    width: 100%;
+    max-width: none;
+  }
+}

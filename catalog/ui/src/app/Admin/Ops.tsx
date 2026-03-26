@@ -11,6 +11,9 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Chip,
+  ChipGroup,
+  DatePicker,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -19,6 +22,7 @@ import {
   Label,
   NumberInput,
   PageSection,
+  SearchInput,
   Select,
   SelectOption,
   SelectList,
@@ -31,6 +35,12 @@ import {
   SplitItem,
   Switch,
   TextInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarToggleGroup,
   Tooltip,
   Title,
 } from '@patternfly/react-core';
@@ -48,6 +58,9 @@ import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import FilterIcon from '@patternfly/react-icons/dist/js/icons/filter-icon';
+import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
@@ -80,6 +93,29 @@ interface OpsAlert {
   title: string;
   variant: AlertVariant;
   description?: string;
+}
+
+interface OperationTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  operationType: 'lock' | 'unlock' | 'extend-stop' | 'extend-destroy' | 'disable-autostop' | 'scale';
+  parameters: {
+    extStopDays?: number;
+    extStopHours?: number;
+    extDestroyDays?: number;
+    extDestroyHours?: number;
+    scaleCount?: number;
+  };
+  scope: {
+    enhancedFilters: EnhancedFilters;
+    workshopFilter: string | null;
+    stageFilter: string | null;
+  };
+  metadata: {
+    created: string;
+    lastUsed?: string;
+  };
 }
 
 const COMMON_TIMEZONES = [
@@ -329,11 +365,333 @@ const Ops: React.FC = () => {
     return Array.from(names).sort();
   }, [workshops]);
 
+  // Legacy simple filters (keep for compatibility)
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
 
+  // Enhanced filtering system
+  interface EnhancedFilters {
+    searchText: string;
+    stages: string[];
+    namespaces: string[];
+    statuses: string[];
+    workshopTypes: string[];
+    dateRange: {
+      start?: string;
+      end?: string;
+    };
+  }
+
+  const [enhancedFilters, setEnhancedFilters] = useState<EnhancedFilters>({
+    searchText: '',
+    stages: [],
+    namespaces: [],
+    statuses: [],
+    workshopTypes: [],
+    dateRange: {}
+  });
+
+  const [filterPanelExpanded, setFilterPanelExpanded] = useState(false);
+  const [savedFilterViews, setSavedFilterViews] = useState<{[key: string]: EnhancedFilters}>({});
+  const [currentFilterView, setCurrentFilterView] = useState<string>('');
+
+  // Multi-select dropdown states
+  const [stageSelectOpen, setStageSelectOpen] = useState(false);
+  const [namespaceSelectOpen, setNamespaceSelectOpen] = useState(false);
+  const [statusSelectOpen, setStatusSelectOpen] = useState(false);
+  const [workshopTypeSelectOpen, setWorkshopTypeSelectOpen] = useState(false);
+
+  // Extract filter options from workshops
+  const filterOptions = useMemo(() => {
+    const stages = new Set<string>();
+    const namespaces = new Set<string>();
+    const statuses = new Set<string>();
+    const workshopTypes = new Set<string>();
+
+    workshops.forEach(w => {
+      const stage = getStageFromK8sObject(w);
+      if (stage) stages.add(stage);
+
+      namespaces.add(w.metadata.namespace);
+
+      // Extract status from workshop status or annotations
+      const status = w.status?.phase || w.metadata.annotations?.['status'] || 'Unknown';
+      statuses.add(status);
+
+      // Extract workshop type from catalog item name or labels
+      const catalogItem = w.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || 'Unknown';
+      workshopTypes.add(catalogItem);
+    });
+
+    return {
+      stages: Array.from(stages).sort(),
+      namespaces: Array.from(namespaces).sort(),
+      statuses: Array.from(statuses).sort(),
+      workshopTypes: Array.from(workshopTypes).sort()
+    };
+  }, [workshops]);
+
+  // Enhanced filtering logic
+  const applyEnhancedFilters = useCallback((workshops: Workshop[], filters: EnhancedFilters) => {
+    return workshops.filter(w => {
+      // Search text filter (searches display name, namespace, and labels)
+      if (filters.searchText) {
+        const searchLower = filters.searchText.toLowerCase();
+        const displayNameMatch = displayName(w).toLowerCase().includes(searchLower);
+        const namespaceMatch = w.metadata.namespace.toLowerCase().includes(searchLower);
+        const labelMatch = Object.values(w.metadata.labels || {}).some(label =>
+          label.toLowerCase().includes(searchLower)
+        );
+
+        if (!displayNameMatch && !namespaceMatch && !labelMatch) {
+          return false;
+        }
+      }
+
+      // Stage filter
+      if (filters.stages.length > 0) {
+        const stage = getStageFromK8sObject(w);
+        if (!stage || !filters.stages.includes(stage)) {
+          return false;
+        }
+      }
+
+      // Namespace filter
+      if (filters.namespaces.length > 0 && !filters.namespaces.includes(w.metadata.namespace)) {
+        return false;
+      }
+
+      // Status filter
+      if (filters.statuses.length > 0) {
+        const status = w.status?.phase || w.metadata.annotations?.['status'] || 'Unknown';
+        if (!filters.statuses.includes(status)) {
+          return false;
+        }
+      }
+
+      // Workshop type filter
+      if (filters.workshopTypes.length > 0) {
+        const catalogItem = w.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || 'Unknown';
+        if (!filters.workshopTypes.includes(catalogItem)) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange.start || filters.dateRange.end) {
+        const createdDate = new Date(w.metadata.creationTimestamp || '');
+        if (filters.dateRange.start && createdDate < new Date(filters.dateRange.start)) {
+          return false;
+        }
+        if (filters.dateRange.end && createdDate > new Date(filters.dateRange.end)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, []);
+
+  // Combine legacy and enhanced filters
   const targets = useMemo(() => {
+    let list = workshops;
+
+    // Apply legacy filters first (for backwards compatibility)
+    if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
+    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+
+    // Apply enhanced filters if any are active
+    const hasEnhancedFilters = enhancedFilters.searchText ||
+      enhancedFilters.stages.length > 0 ||
+      enhancedFilters.namespaces.length > 0 ||
+      enhancedFilters.statuses.length > 0 ||
+      enhancedFilters.workshopTypes.length > 0 ||
+      enhancedFilters.dateRange.start ||
+      enhancedFilters.dateRange.end;
+
+    if (hasEnhancedFilters) {
+      list = applyEnhancedFilters(list, enhancedFilters);
+    }
+
+    return list;
+  }, [workshops, workshopFilter, stageFilter, enhancedFilters, applyEnhancedFilters]);
+
+  // Enhanced filter management functions
+  const updateEnhancedFilter = useCallback(<K extends keyof EnhancedFilters>(
+    key: K,
+    value: EnhancedFilters[K]
+  ) => {
+    setEnhancedFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearAllEnhancedFilters = useCallback(() => {
+    setEnhancedFilters({
+      searchText: '',
+      stages: [],
+      namespaces: [],
+      statuses: [],
+      workshopTypes: [],
+      dateRange: {}
+    });
+    setWorkshopFilter('');
+    setStageFilter(null);
+  }, []);
+
+  const getActiveFilterCount = useCallback(() => {
+    let count = 0;
+    if (enhancedFilters.searchText) count++;
+    count += enhancedFilters.stages.length;
+    count += enhancedFilters.namespaces.length;
+    count += enhancedFilters.statuses.length;
+    count += enhancedFilters.workshopTypes.length;
+    if (enhancedFilters.dateRange.start || enhancedFilters.dateRange.end) count++;
+    if (workshopFilter) count++;
+    if (stageFilter) count++;
+    return count;
+  }, [enhancedFilters, workshopFilter, stageFilter]);
+
+  const saveFilterView = useCallback((name: string) => {
+    setSavedFilterViews(prev => ({
+      ...prev,
+      [name]: { ...enhancedFilters }
+    }));
+    setCurrentFilterView(name);
+  }, [enhancedFilters]);
+
+  const loadFilterView = useCallback((name: string) => {
+    const view = savedFilterViews[name];
+    if (view) {
+      setEnhancedFilters(view);
+      setCurrentFilterView(name);
+    }
+  }, [savedFilterViews]);
+
+  const deleteFilterView = useCallback((name: string) => {
+    setSavedFilterViews(prev => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+    if (currentFilterView === name) {
+      setCurrentFilterView('');
+    }
+  }, [currentFilterView]);
+
+  // ---------- Operation Template Management ----------
+
+  const [operationTemplates, setOperationTemplates] = useState<{[key: string]: OperationTemplate}>({});
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateToSave, setTemplateToSave] = useState<Partial<OperationTemplate> | null>(null);
+  const [showTemplateManagerModal, setShowTemplateManagerModal] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [templateSelectOpen, setTemplateSelectOpen] = useState(false);
+  const [extStopTemplateSelectOpen, setExtStopTemplateSelectOpen] = useState(false);
+  const [extDestroyTemplateSelectOpen, setExtDestroyTemplateSelectOpen] = useState(false);
+  const [scaleTemplateSelectOpen, setScaleTemplateSelectOpen] = useState(false);
+
+  // Load templates from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('babylon-admin-operation-templates');
+    if (saved) {
+      try {
+        setOperationTemplates(JSON.parse(saved));
+      } catch (e) {
+        console.warn('Failed to load operation templates from localStorage:', e);
+      }
+    }
+  }, []);
+
+  // Save templates to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('babylon-admin-operation-templates', JSON.stringify(operationTemplates));
+  }, [operationTemplates]);
+
+  const saveOperationTemplate = useCallback((name: string, description: string, operationType: OperationTemplate['operationType']) => {
+    const id = Date.now().toString();
+    const template: OperationTemplate = {
+      id,
+      name,
+      description,
+      operationType,
+      parameters: {
+        extStopDays,
+        extStopHours,
+        extDestroyDays,
+        extDestroyHours,
+        scaleCount,
+      },
+      scope: {
+        enhancedFilters: { ...enhancedFilters },
+        workshopFilter,
+        stageFilter,
+      },
+      metadata: {
+        created: new Date().toISOString(),
+      },
+    };
+
+    setOperationTemplates(prev => ({
+      ...prev,
+      [id]: template
+    }));
+
+    setShowTemplateModal(false);
+    setTemplateToSave(null);
+    addAlert(AlertVariant.success, `Template "${name}" saved successfully`);
+  }, [enhancedFilters, workshopFilter, stageFilter, extStopDays, extStopHours, extDestroyDays, extDestroyHours, scaleCount]);
+
+  const loadOperationTemplate = useCallback((templateId: string) => {
+    const template = operationTemplates[templateId];
+    if (!template) return;
+
+    // Apply scope (filters)
+    setEnhancedFilters(template.scope.enhancedFilters);
+    setWorkshopFilter(template.scope.workshopFilter || '');
+    setStageFilter(template.scope.stageFilter);
+
+    // Apply operation parameters
+    if (template.parameters.extStopDays !== undefined) setExtStopDays(template.parameters.extStopDays);
+    if (template.parameters.extStopHours !== undefined) setExtStopHours(template.parameters.extStopHours);
+    if (template.parameters.extDestroyDays !== undefined) setExtDestroyDays(template.parameters.extDestroyDays);
+    if (template.parameters.extDestroyHours !== undefined) setExtDestroyHours(template.parameters.extDestroyHours);
+    if (template.parameters.scaleCount !== undefined) setScaleCount(template.parameters.scaleCount);
+
+    // Update last used timestamp
+    setOperationTemplates(prev => ({
+      ...prev,
+      [templateId]: {
+        ...template,
+        metadata: {
+          ...template.metadata,
+          lastUsed: new Date().toISOString(),
+        },
+      },
+    }));
+
+    setSelectedTemplateId('');
+    addAlert(AlertVariant.info, `Template "${template.name}" applied`);
+  }, [operationTemplates]);
+
+  const deleteOperationTemplate = useCallback((templateId: string) => {
+    const template = operationTemplates[templateId];
+    if (!template) return;
+
+    setOperationTemplates(prev => {
+      const next = { ...prev };
+      delete next[templateId];
+      return next;
+    });
+
+    addAlert(AlertVariant.warning, `Template "${template.name}" deleted`);
+  }, [operationTemplates]);
+
+  const openSaveTemplateModal = useCallback((operationType: OperationTemplate['operationType']) => {
+    setTemplateToSave({ operationType });
+    setShowTemplateModal(true);
+  }, []);
+
+  const legacyTargets = useMemo(() => {
     let list = workshops;
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
@@ -343,14 +701,14 @@ const Ops: React.FC = () => {
   // Group workshops by display name for cleaner table
   const workshopGroups = useMemo(() => {
     const groups = new Map<string, Workshop[]>();
-    for (const ws of targets) {
+    for (const ws of legacyTargets) {
       const name = displayName(ws);
       const list = groups.get(name) ?? [];
       list.push(ws);
       groups.set(name, list);
     }
     return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
-  }, [targets]);
+  }, [legacyTargets]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -365,11 +723,19 @@ const Ops: React.FC = () => {
 
   const scopeLabel = useMemo(() => {
     const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    const activeFilterCount = getActiveFilterCount();
+
+    if (activeFilterCount > 0) {
+      const filterText = activeFilterCount === 1 ? '1 filter' : `${activeFilterCount} filters`;
+      return <>{targets.length} workshop{targets.length !== 1 ? 's' : ''} with {filterText} in {nsLabel}</>;
+    }
+
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
+
     return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace]);
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, getActiveFilterCount]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -842,58 +1208,240 @@ const Ops: React.FC = () => {
           </EmptyState>
         ) : (
           <>
-            {/* Scope + timezone bar */}
-            <div className="ops-scope-bar">
-              <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                Workshop
-              </label>
-              <Select
-                id="ops-scope"
-                isOpen={filterOpen}
-                selected={workshopFilter}
-                onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
-                onOpenChange={setFilterOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
-                    {workshopFilter || 'All Workshops'}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  <SelectOption value="">All Workshops</SelectOption>
-                  {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-                </SelectList>
-              </Select>
-              <div className="ops-stage-filters">
-                {STAGE_FILTERS.map(f => (
-                  <Label
-                    key={f.value}
-                    color={stageFilter === f.value ? f.color : 'grey'}
-                    isCompact
-                    onClick={() => setStageFilter(stageFilter === f.value ? null : f.value)}
-                    className="ops-stage-chip"
+            {/* Enhanced Filtering Toolbar */}
+            <Toolbar
+              id="ops-filter-toolbar"
+              clearAllFilters={clearAllEnhancedFilters}
+              clearFiltersButtonText="Clear all filters"
+              collapseListedFiltersBreakpoint="xl"
+              isSticky
+            >
+              <ToolbarContent>
+                <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+                  {/* Search Input */}
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarFilter categoryName="">
+                      <SearchInput
+                        placeholder="Search workshops..."
+                        value={enhancedFilters.searchText}
+                        onChange={(_e, value) => updateEnhancedFilter('searchText', value)}
+                        onClear={() => updateEnhancedFilter('searchText', '')}
+                        aria-label="Workshop search input"
+                      />
+                    </ToolbarFilter>
+                  </ToolbarGroup>
+
+                  {/* Stage Filter */}
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarFilter
+                      labels={enhancedFilters.stages.map(stage => ({ key: stage, node: stage }))}
+                      deleteLabel={(category, chip) => updateEnhancedFilter('stages', enhancedFilters.stages.filter(s => s !== chip.key))}
+                      categoryName="Stage"
+                    >
+                      <Select
+                        isOpen={stageSelectOpen}
+                        selected={enhancedFilters.stages}
+                        onSelect={(_e, val) => {
+                          const value = val as string;
+                          const newStages = enhancedFilters.stages.includes(value)
+                            ? enhancedFilters.stages.filter(s => s !== value)
+                            : [...enhancedFilters.stages, value];
+                          updateEnhancedFilter('stages', newStages);
+                        }}
+                        onOpenChange={setStageSelectOpen}
+                        toggle={(toggleRef) => (
+                          <MenuToggle ref={toggleRef} onClick={() => setStageSelectOpen(p => !p)} isExpanded={stageSelectOpen}>
+                            Stage {enhancedFilters.stages.length > 0 && (
+                              <Badge isRead>{enhancedFilters.stages.length}</Badge>
+                            )}
+                          </MenuToggle>
+                        )}
+                        shouldFocusToggleOnSelect={false}
+                      >
+                        <SelectList>
+                          {filterOptions.stages.map(stage => (
+                            <SelectOption
+                              key={stage}
+                              value={stage}
+                              hasCheckbox
+                              isSelected={enhancedFilters.stages.includes(stage)}
+                            >
+                              {stage}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </ToolbarFilter>
+                  </ToolbarGroup>
+
+                  {/* Namespace Filter */}
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarFilter
+                      labels={enhancedFilters.namespaces.map(ns => ({ key: ns, node: ns }))}
+                      deleteLabel={(category, chip) => updateEnhancedFilter('namespaces', enhancedFilters.namespaces.filter(n => n !== chip.key))}
+                      categoryName="Namespace"
+                    >
+                      <Select
+                        isOpen={namespaceSelectOpen}
+                        selected={enhancedFilters.namespaces}
+                        onSelect={(_e, val) => {
+                          const value = val as string;
+                          const newNamespaces = enhancedFilters.namespaces.includes(value)
+                            ? enhancedFilters.namespaces.filter(n => n !== value)
+                            : [...enhancedFilters.namespaces, value];
+                          updateEnhancedFilter('namespaces', newNamespaces);
+                        }}
+                        onOpenChange={setNamespaceSelectOpen}
+                        toggle={(toggleRef) => (
+                          <MenuToggle ref={toggleRef} onClick={() => setNamespaceSelectOpen(p => !p)} isExpanded={namespaceSelectOpen}>
+                            Namespace {enhancedFilters.namespaces.length > 0 && (
+                              <Badge isRead>{enhancedFilters.namespaces.length}</Badge>
+                            )}
+                          </MenuToggle>
+                        )}
+                        shouldFocusToggleOnSelect={false}
+                      >
+                        <SelectList>
+                          {filterOptions.namespaces.map(ns => (
+                            <SelectOption
+                              key={ns}
+                              value={ns}
+                              hasCheckbox
+                              isSelected={enhancedFilters.namespaces.includes(ns)}
+                            >
+                              {ns}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </ToolbarFilter>
+                  </ToolbarGroup>
+
+                  {/* Status Filter */}
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarFilter
+                      labels={enhancedFilters.statuses.map(status => ({ key: status, node: status }))}
+                      deleteLabel={(category, chip) => updateEnhancedFilter('statuses', enhancedFilters.statuses.filter(s => s !== chip.key))}
+                      categoryName="Status"
+                    >
+                      <Select
+                        isOpen={statusSelectOpen}
+                        selected={enhancedFilters.statuses}
+                        onSelect={(_e, val) => {
+                          const value = val as string;
+                          const newStatuses = enhancedFilters.statuses.includes(value)
+                            ? enhancedFilters.statuses.filter(s => s !== value)
+                            : [...enhancedFilters.statuses, value];
+                          updateEnhancedFilter('statuses', newStatuses);
+                        }}
+                        onOpenChange={setStatusSelectOpen}
+                        toggle={(toggleRef) => (
+                          <MenuToggle ref={toggleRef} onClick={() => setStatusSelectOpen(p => !p)} isExpanded={statusSelectOpen}>
+                            Status {enhancedFilters.statuses.length > 0 && (
+                              <Badge isRead>{enhancedFilters.statuses.length}</Badge>
+                            )}
+                          </MenuToggle>
+                        )}
+                        shouldFocusToggleOnSelect={false}
+                      >
+                        <SelectList>
+                          {filterOptions.statuses.map(status => (
+                            <SelectOption
+                              key={status}
+                              value={status}
+                              hasCheckbox
+                              isSelected={enhancedFilters.statuses.includes(status)}
+                            >
+                              {status}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </ToolbarFilter>
+                  </ToolbarGroup>
+
+                  {/* Workshop Type Filter */}
+                  <ToolbarGroup variant="filter-group">
+                    <ToolbarFilter
+                      labels={enhancedFilters.workshopTypes.map(type => ({ key: type, node: type }))}
+                      deleteLabel={(category, chip) => updateEnhancedFilter('workshopTypes', enhancedFilters.workshopTypes.filter(t => t !== chip.key))}
+                      categoryName="Workshop Type"
+                    >
+                      <Select
+                        isOpen={workshopTypeSelectOpen}
+                        selected={enhancedFilters.workshopTypes}
+                        onSelect={(_e, val) => {
+                          const value = val as string;
+                          const newTypes = enhancedFilters.workshopTypes.includes(value)
+                            ? enhancedFilters.workshopTypes.filter(t => t !== value)
+                            : [...enhancedFilters.workshopTypes, value];
+                          updateEnhancedFilter('workshopTypes', newTypes);
+                        }}
+                        onOpenChange={setWorkshopTypeSelectOpen}
+                        toggle={(toggleRef) => (
+                          <MenuToggle ref={toggleRef} onClick={() => setWorkshopTypeSelectOpen(p => !p)} isExpanded={workshopTypeSelectOpen}>
+                            Type {enhancedFilters.workshopTypes.length > 0 && (
+                              <Badge isRead>{enhancedFilters.workshopTypes.length}</Badge>
+                            )}
+                          </MenuToggle>
+                        )}
+                        shouldFocusToggleOnSelect={false}
+                      >
+                        <SelectList>
+                          {filterOptions.workshopTypes.map(type => (
+                            <SelectOption
+                              key={type}
+                              value={type}
+                              hasCheckbox
+                              isSelected={enhancedFilters.workshopTypes.includes(type)}
+                            >
+                              {type}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </ToolbarFilter>
+                  </ToolbarGroup>
+                </ToolbarToggleGroup>
+
+                {/* Right side items */}
+                <ToolbarItem>
+                  <span className="ops-scope-summary">
+                    {scopeLabel}
+                  </span>
+                </ToolbarItem>
+
+                <ToolbarItem>
+                  <Tooltip content="Manage saved operation templates">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowTemplateManagerModal(true)}
+                      style={{ marginRight: 12 }}
+                    >
+                      <CogIcon style={{ marginRight: 4 }} />
+                      Templates ({Object.keys(operationTemplates).length})
+                    </Button>
+                  </Tooltip>
+                </ToolbarItem>
+
+                <ToolbarItem>
+                  <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
+                </ToolbarItem>
+
+                <ToolbarItem>
+                  <FormSelect
+                    aria-label="Timezone"
+                    value={timezone}
+                    onChange={(_e, val) => setTimezone(val)}
+                    className="ops-tz-select"
                   >
-                    {f.label}
-                  </Label>
-                ))}
-              </div>
-              <span className="ops-scope-summary">
-                {scopeLabel}
-              </span>
-              <span className="ops-scope-spacer" />
-              <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
-              <FormSelect
-                aria-label="Timezone"
-                value={timezone}
-                onChange={(_e, val) => setTimezone(val)}
-                className="ops-tz-select"
-              >
-                {COMMON_TIMEZONES.map(tz => (
-                  <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
-                ))}
-              </FormSelect>
-            </div>
+                    {COMMON_TIMEZONES.map(tz => (
+                      <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
+                    ))}
+                  </FormSelect>
+                </ToolbarItem>
+              </ToolbarContent>
+            </Toolbar>
 
             {/* Summary stats */}
             <div className="ops-summary-bar">
@@ -959,6 +1507,56 @@ const Ops: React.FC = () => {
                     Toggle <code>lock-enabled</code> on workshops.
                     Locked resources cannot be modified by non-admin users.
                   </p>
+
+                  {/* Template Picker */}
+                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
+                    <Select
+                      isOpen={templateSelectOpen}
+                      selected={selectedTemplateId}
+                      onSelect={(_event, value) => {
+                        if (value && typeof value === 'string') {
+                          const template = operationTemplates[value];
+                          if (template && (template.operationType === 'lock' || template.operationType === 'unlock')) {
+                            loadOperationTemplate(value);
+                          }
+                        }
+                        setTemplateSelectOpen(false);
+                      }}
+                      onOpenChange={setTemplateSelectOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setTemplateSelectOpen(!templateSelectOpen)}
+                          isExpanded={templateSelectOpen}
+                          style={{ width: '200px' }}
+                        >
+                          Load Template
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {Object.values(operationTemplates)
+                          .filter(t => t.operationType === 'lock' || t.operationType === 'unlock')
+                          .map(template => (
+                            <SelectOption key={template.id} value={template.id}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{template.name}</div>
+                                {template.description && (
+                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {template.description}
+                                  </div>
+                                )}
+                              </div>
+                            </SelectOption>
+                          ))}
+                        {Object.values(operationTemplates).filter(t => t.operationType === 'lock' || t.operationType === 'unlock').length === 0 && (
+                          <SelectOption isDisabled>No lock/unlock templates saved</SelectOption>
+                        )}
+                      </SelectList>
+                    </Select>
+                  </div>
+
                   <div className="ops-button-row">
                     <Button variant="warning" onClick={() => setShowLockConfirm(true)}
                       isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
@@ -976,6 +1574,55 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
+                  {/* Template Picker */}
+                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
+                    <Select
+                      isOpen={extStopTemplateSelectOpen}
+                      selected={selectedTemplateId}
+                      onSelect={(_event, value) => {
+                        if (value && typeof value === 'string') {
+                          const template = operationTemplates[value];
+                          if (template && template.operationType === 'extend-stop') {
+                            loadOperationTemplate(value);
+                          }
+                        }
+                        setExtStopTemplateSelectOpen(false);
+                      }}
+                      onOpenChange={setExtStopTemplateSelectOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setExtStopTemplateSelectOpen(!extStopTemplateSelectOpen)}
+                          isExpanded={extStopTemplateSelectOpen}
+                          style={{ width: '200px' }}
+                        >
+                          Load Template
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {Object.values(operationTemplates)
+                          .filter(t => t.operationType === 'extend-stop')
+                          .map(template => (
+                            <SelectOption key={template.id} value={template.id}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{template.name}</div>
+                                {template.description && (
+                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {template.description}
+                                  </div>
+                                )}
+                              </div>
+                            </SelectOption>
+                          ))}
+                        {Object.values(operationTemplates).filter(t => t.operationType === 'extend-stop').length === 0 && (
+                          <SelectOption isDisabled>No extend-stop templates saved</SelectOption>
+                        )}
+                      </SelectList>
+                    </Select>
+                  </div>
+
                   <div className="ops-number-row">
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
@@ -1005,6 +1652,55 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
+                  {/* Template Picker */}
+                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
+                    <Select
+                      isOpen={extDestroyTemplateSelectOpen}
+                      selected={selectedTemplateId}
+                      onSelect={(_event, value) => {
+                        if (value && typeof value === 'string') {
+                          const template = operationTemplates[value];
+                          if (template && template.operationType === 'extend-destroy') {
+                            loadOperationTemplate(value);
+                          }
+                        }
+                        setExtDestroyTemplateSelectOpen(false);
+                      }}
+                      onOpenChange={setExtDestroyTemplateSelectOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setExtDestroyTemplateSelectOpen(!extDestroyTemplateSelectOpen)}
+                          isExpanded={extDestroyTemplateSelectOpen}
+                          style={{ width: '200px' }}
+                        >
+                          Load Template
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {Object.values(operationTemplates)
+                          .filter(t => t.operationType === 'extend-destroy')
+                          .map(template => (
+                            <SelectOption key={template.id} value={template.id}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{template.name}</div>
+                                {template.description && (
+                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {template.description}
+                                  </div>
+                                )}
+                              </div>
+                            </SelectOption>
+                          ))}
+                        {Object.values(operationTemplates).filter(t => t.operationType === 'extend-destroy').length === 0 && (
+                          <SelectOption isDisabled>No extend-destroy templates saved</SelectOption>
+                        )}
+                      </SelectList>
+                    </Select>
+                  </div>
+
                   <div className="ops-number-row">
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
@@ -1038,6 +1734,24 @@ const Ops: React.FC = () => {
                     Removes <code>actionSchedule.stop</code> so workshops remain running
                     until their destroy deadline or manual stop.
                   </p>
+
+                  {/* Template Picker */}
+                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
+                    <Button
+                      variant="tertiary"
+                      onClick={() => {
+                        const templates = Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop');
+                        if (templates.length === 0) return;
+                        // For disable-autostop, we'll just apply the first matching template since there are no parameters
+                        loadOperationTemplate(templates[0].id);
+                      }}
+                      style={{ width: '200px' }}
+                      isDisabled={Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop').length === 0}
+                    >
+                      Load Template ({Object.values(operationTemplates).filter(t => t.operationType === 'disable-autostop').length})
+                    </Button>
+                  </div>
+
                   <Button variant="warning" onClick={handleDisableAutostop}
                     isLoading={noAutostopLoading} isDisabled={anyLoading}>
                     Disable Auto-Stop
@@ -1053,6 +1767,56 @@ const Ops: React.FC = () => {
                     Sets <code>spec.count</code> to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
+
+                  {/* Template Picker */}
+                  <div className="ops-template-row" style={{ marginBottom: 12 }}>
+                    <Select
+                      isOpen={scaleTemplateSelectOpen}
+                      selected={selectedTemplateId}
+                      onSelect={(_event, value) => {
+                        if (value && typeof value === 'string') {
+                          const template = operationTemplates[value];
+                          if (template && template.operationType === 'scale') {
+                            loadOperationTemplate(value);
+                          }
+                        }
+                        setScaleTemplateSelectOpen(false);
+                      }}
+                      onOpenChange={setScaleTemplateSelectOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setScaleTemplateSelectOpen(!scaleTemplateSelectOpen)}
+                          isExpanded={scaleTemplateSelectOpen}
+                          style={{ width: '200px' }}
+                        >
+                          Load Template
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {Object.values(operationTemplates)
+                          .filter(t => t.operationType === 'scale')
+                          .map(template => (
+                            <SelectOption key={template.id} value={template.id}>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{template.name}</div>
+                                {template.description && (
+                                  <div style={{ fontSize: '0.85em', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                    {template.description}
+                                  </div>
+                                )}
+                              </div>
+                            </SelectOption>
+                          ))}
+                        {Object.values(operationTemplates).filter(t => t.operationType === 'scale').length === 0 && (
+                          <SelectOption isDisabled>No scale templates saved</SelectOption>
+                        )}
+                      </SelectList>
+                    </Select>
+                  </div>
+
                   <div className="ops-number-row">
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
@@ -1366,6 +2130,7 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleLock}>Lock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('lock')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1381,6 +2146,7 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleUnlock}>Unlock {targets.length} workshop{targets.length !== 1 ? 's' : ''}</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('unlock')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1403,6 +2169,7 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('extend-stop')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1426,6 +2193,7 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('extend-destroy')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1443,6 +2211,7 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('disable-autostop')}>Save as Template</Button>
           <Button variant="link" onClick={() => setShowNoAutostopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1493,6 +2262,7 @@ const Ops: React.FC = () => {
           <Button variant={isScaleDown ? 'warning' : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
             {isScaleDown ? 'Scale Down' : 'Scale'}
           </Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('scale')}>Save as Template</Button>
           <Button variant="link" onClick={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -1514,7 +2284,141 @@ const Ops: React.FC = () => {
         </ModalBody>
         <ModalFooter>
           <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
+          <Button variant="secondary" onClick={() => openSaveTemplateModal('scale')}>Save as Template</Button>
           <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Save Template Modal */}
+      <Modal variant="small" isOpen={showTemplateModal} onClose={() => {setShowTemplateModal(false); setTemplateToSave(null);}} aria-labelledby="save-template">
+        <ModalHeader title="Save Operation Template" labelId="save-template" />
+        <ModalBody>
+          {templateToSave && (
+            <>
+              <p style={{ marginBottom: 16 }}>
+                Save the current {templateToSave.operationType} operation setup with filters and parameters as a reusable template.
+              </p>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const name = formData.get('templateName') as string;
+                const description = formData.get('templateDescription') as string;
+                if (name.trim() && templateToSave.operationType) {
+                  saveOperationTemplate(name.trim(), description.trim(), templateToSave.operationType);
+                }
+              }}>
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="templateName" style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                    Template Name *
+                  </label>
+                  <TextInput
+                    id="templateName"
+                    name="templateName"
+                    isRequired
+                    placeholder="e.g. Extend prod workshops 2 days"
+                    aria-label="Template name"
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="templateDescription" style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>
+                    Description (Optional)
+                  </label>
+                  <TextInput
+                    id="templateDescription"
+                    name="templateDescription"
+                    placeholder="Brief description of when to use this template"
+                    aria-label="Template description"
+                  />
+                </div>
+                <Alert variant="info" isInline title="Template will include:" style={{ fontSize: '0.875rem' }}>
+                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                    <li>Current filter settings and workshop selection</li>
+                    <li>Operation parameters (days, hours, scale count, etc.)</li>
+                    <li>Timestamp for organization</li>
+                  </ul>
+                </Alert>
+              </form>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button type="submit" variant="primary" form="saveTemplateForm" onClick={(e) => {
+            const form = (e.currentTarget.closest('.pf-v6-c-modal') as HTMLElement)?.querySelector('form');
+            if (form) {
+              const formData = new FormData(form);
+              const name = formData.get('templateName') as string;
+              const description = formData.get('templateDescription') as string;
+              if (name.trim() && templateToSave?.operationType) {
+                saveOperationTemplate(name.trim(), description.trim(), templateToSave.operationType);
+              }
+            }
+          }}>Save Template</Button>
+          <Button variant="link" onClick={() => {setShowTemplateModal(false); setTemplateToSave(null);}}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Template Manager Modal */}
+      <Modal variant="medium" isOpen={showTemplateManagerModal} onClose={() => setShowTemplateManagerModal(false)} aria-labelledby="template-manager">
+        <ModalHeader title="Manage Operation Templates" labelId="template-manager" />
+        <ModalBody>
+          <p style={{ marginBottom: 16 }}>Manage your saved operation templates. Click a template to apply its settings.</p>
+
+          {Object.keys(operationTemplates).length === 0 ? (
+            <EmptyState>
+              <EmptyStateBody>
+                No templates saved yet. Save templates from operation confirmation dialogs to reuse configurations.
+              </EmptyStateBody>
+            </EmptyState>
+          ) : (
+            <div style={{ display: 'grid', gap: 12 }}>
+              {Object.values(operationTemplates)
+                .sort((a, b) => new Date(b.metadata.created).getTime() - new Date(a.metadata.created).getTime())
+                .map(template => (
+                  <Card key={template.id} isSelectableRaised onClick={() => {
+                    loadOperationTemplate(template.id);
+                    setShowTemplateManagerModal(false);
+                  }}>
+                    <CardTitle>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{template.name}</span>
+                          <Badge style={{ marginLeft: 8 }}>{template.operationType}</Badge>
+                        </div>
+                        <Button
+                          variant="plain"
+                          isDanger
+                          aria-label={`Delete template ${template.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteOperationTemplate(template.id);
+                          }}
+                        >
+                          <TimesIcon />
+                        </Button>
+                      </div>
+                    </CardTitle>
+                    <CardBody>
+                      {template.description && (
+                        <p style={{ margin: 0, marginBottom: 8, fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          {template.description}
+                        </p>
+                      )}
+                      <div style={{ fontSize: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        Created: {new Date(template.metadata.created).toLocaleDateString()}
+                        {template.metadata.lastUsed && (
+                          <span style={{ marginLeft: 12 }}>
+                            Last used: {new Date(template.metadata.lastUsed).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </CardBody>
+                  </Card>
+                ))}
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="link" onClick={() => setShowTemplateManagerModal(false)}>Close</Button>
         </ModalFooter>
       </Modal>
     </div>
