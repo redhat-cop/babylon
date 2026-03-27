@@ -17,7 +17,8 @@
     "outDir": "dist",
     "paths": {
       "@app/*": ["src/app/*"],
-      "@assets/*": ["node_modules/@patternfly/react-core/dist/styles/assets/*"]
+      "@assets/*": ["node_modules/@patternfly/react-core/dist/styles/assets/*"],
+      "DOMPurify": ["node_modules/dompurify"]
     },
     "rootDir": ".",
     "skipLibCheck": true,

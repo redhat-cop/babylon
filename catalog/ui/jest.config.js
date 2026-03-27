@@ -27,6 +27,8 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/__mocks__/fileMock.js',
     '@app/(.*)': '<rootDir>/src/app/$1',
+    // Match webpack.common.js alias: util.ts imports `DOMPurify` but package is `dompurify`
+    '^DOMPurify$': '<rootDir>/node_modules/dompurify',
   },
 
   // Exclude Playwright tests from Jest
