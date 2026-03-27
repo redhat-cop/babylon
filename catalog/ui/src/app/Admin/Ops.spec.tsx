@@ -1,7 +1,11 @@
 jest.mock('../api');
 import React from 'react';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
-import Ops, { distributeProvisionCounts } from './Ops';
+import Ops, {
+  distributeProvisionCounts,
+  distributeProvisionCountsRespectingAssigned,
+  workshopProvisionAssignedCount,
+} from './Ops';
 import { apiPaths, fetcher, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -655,6 +659,29 @@ describe('Ops Component', () => {
     });
     test('zeros when old sum is zero', () => {
       expect(distributeProvisionCounts([0, 0], 5)).toEqual([0, 0]);
+    });
+  });
+
+  describe('workshopProvisionAssignedCount', () => {
+    test('reads status.assignedCount', () => {
+      const p = { ...makeProvision('w', 5), status: { assignedCount: 3 } } as WorkshopProvision;
+      expect(workshopProvisionAssignedCount(p)).toBe(3);
+    });
+    test('returns 0 when missing', () => {
+      expect(workshopProvisionAssignedCount(makeProvision('w', 5))).toBe(0);
+    });
+  });
+
+  describe('distributeProvisionCountsRespectingAssigned', () => {
+    test('matches distribute when floors are zero', () => {
+      expect(distributeProvisionCountsRespectingAssigned([2, 2], 3, [0, 0])).toEqual(
+        distributeProvisionCounts([2, 2], 3),
+      );
+    });
+    test('sum equals targetTotal and respects assigned floors', () => {
+      const r = distributeProvisionCountsRespectingAssigned([5, 5], 5, [3, 0]);
+      expect(r.reduce((a, b) => a + b, 0)).toBe(5);
+      expect(r[0]).toBeGreaterThanOrEqual(3);
     });
   });
 

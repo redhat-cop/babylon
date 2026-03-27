@@ -210,6 +210,52 @@ export function distributeProvisionCounts(oldCounts: number[], newTotal: number)
   return out;
 }
 
+/**
+ * Operator-reported assigned seats on a WorkshopProvision (see PR #3141 pattern).
+ * Used as a per-provision floor when splitting scale targets across multiple provisions.
+ */
+export function workshopProvisionAssignedCount(prov: WorkshopProvision): number {
+  const n = (prov.status as { assignedCount?: number })?.assignedCount;
+  return typeof n === 'number' && n >= 0 ? Math.floor(n) : 0;
+}
+
+/**
+ * Same as {@link distributeProvisionCounts}, but never sets a provision below
+ * `assignedPerProvision[i]` (mirrors PR #3141: newCount = max(distributed, assignedCount)).
+ * If floors force sum above targetTotal, returns the tightest feasible counts; excess RCs are removed in handleScale step 2.
+ */
+export function distributeProvisionCountsRespectingAssigned(
+  oldCounts: number[],
+  targetTotal: number,
+  assignedPerProvision: number[],
+): number[] {
+  const n = oldCounts.length;
+  if (n === 0) return [];
+  if (assignedPerProvision.length !== n) {
+    return distributeProvisionCounts(oldCounts, targetTotal);
+  }
+  let newCounts = distributeProvisionCounts(oldCounts, targetTotal);
+  for (let i = 0; i < n; i++) {
+    newCounts[i] = Math.max(newCounts[i], assignedPerProvision[i]);
+  }
+  let sum = newCounts.reduce((a, b) => a + b, 0);
+  while (sum > targetTotal) {
+    let best = -1;
+    let bestSlack = 0;
+    for (let i = 0; i < n; i++) {
+      const slack = newCounts[i] - assignedPerProvision[i];
+      if (slack > bestSlack) {
+        bestSlack = slack;
+        best = i;
+      }
+    }
+    if (best < 0 || bestSlack <= 0) break;
+    newCounts[best]--;
+    sum--;
+  }
+  return newCounts;
+}
+
 function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
@@ -768,6 +814,7 @@ const Ops: React.FC = () => {
     let totalToRemove = 0;
     let usedInScope = 0;
     let unusedInScope = 0;
+    let assignedFromStatus = 0;
     for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
       if (cur === null || scaleCount >= cur) continue;
@@ -775,9 +822,13 @@ const Ops: React.FC = () => {
       totalToRemove += Math.max(0, active - scaleCount);
       unusedInScope += getUnusedClaims(ws).length;
       usedInScope += getUsedClaims(ws).length;
+      const provs = provisionsByWorkshop.get(wsKey(ws)) ?? [];
+      for (const p of provs) {
+        assignedFromStatus += workshopProvisionAssignedCount(p);
+      }
     }
-    return { totalToRemove, usedInScope, unusedInScope };
-  }, [isScaleDown, isScaleZero, operationTargets, scaleCount, getCurrentCount, getActiveResourceClaimCount, getUnusedClaims, getUsedClaims]);
+    return { totalToRemove, usedInScope, unusedInScope, assignedFromStatus };
+  }, [isScaleDown, isScaleZero, operationTargets, scaleCount, getCurrentCount, getActiveResourceClaimCount, getUnusedClaims, getUsedClaims, provisionsByWorkshop]);
 
   // ---------- CSV download ----------
 
@@ -981,21 +1032,29 @@ const Ops: React.FC = () => {
         const activeCount = getActiveResourceClaimCount(ws);
 
         // Step 1: Patch desired counts (single provision: same as WorkshopsItemServices;
-        // multiple provisions: proportional split so sum matches scaleCount)
+        // multiple provisions: proportional split, respecting WorkshopProvision.status.assignedCount
+        // per provision — same floor idea as PR #3141 delete-unassigned.
         if (items.length === 1) {
-          await patchWorkshopProvision({
-            name: items[0].metadata.name,
-            namespace: items[0].metadata.namespace,
-            patch: { spec: { count: scaleCount } },
-          });
-        } else {
-          const newCounts = distributeProvisionCounts(oldCounts, scaleCount);
-          for (let i = 0; i < items.length; i++) {
+          const curSpec = items[0].spec?.count ?? 0;
+          if (curSpec !== scaleCount) {
             await patchWorkshopProvision({
-              name: items[i].metadata.name,
-              namespace: items[i].metadata.namespace,
-              patch: { spec: { count: newCounts[i] } },
+              name: items[0].metadata.name,
+              namespace: items[0].metadata.namespace,
+              patch: { spec: { count: scaleCount } },
             });
+          }
+        } else {
+          const assignedPerProv = items.map(p => workshopProvisionAssignedCount(p));
+          const newCounts = distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv);
+          for (let i = 0; i < items.length; i++) {
+            const curSpec = items[i].spec?.count ?? 0;
+            if (newCounts[i] !== curSpec) {
+              await patchWorkshopProvision({
+                name: items[i].metadata.name,
+                namespace: items[i].metadata.namespace,
+                patch: { spec: { count: newCounts[i] } },
+              });
+            }
           }
         }
 
@@ -2468,6 +2527,10 @@ const Ops: React.FC = () => {
                   {scaleDownTarget !== 'used' && scaleDownUsageInfo.totalToRemove > scaleDownUsageInfo.unusedInScope && (
                     <><br /><strong>Warning:</strong> Not enough unused instances to fulfil the reduction &mdash;
                     {scaleDownUsageInfo.totalToRemove - scaleDownUsageInfo.unusedInScope} used instance(s) will also be removed.</>
+                  )}
+                  {scaleDownTarget !== 'used' && scaleDownUsageInfo.assignedFromStatus > scaleCount && (
+                    <><br />WorkshopProvision status reports <strong>{scaleDownUsageInfo.assignedFromStatus}</strong> assigned seat(s);
+                    the target is below that, so assigned instances may be removed after unused ones are cleared.</>
                   )}
                   {scaleDownTarget === 'used' && (
                     <><br /><strong>Students on these instances will lose access immediately.</strong></>
