@@ -23,32 +23,12 @@ module.exports = merge(common('development'), {
     },
     open: true,
     proxy: [
+      // All API endpoints proxy to mock server
       {
-        context: ['/api'],
-        target: 'http://localhost:8000',
+        context: ['/api', '/auth'],
+        target: 'http://localhost:8001',
         secure: false,
         changeOrigin: true,
-        headers: {
-          Connection: 'keep-alive',
-        },
-      },
-      {
-        context: ['/apis'],
-        target: 'http://localhost:8000',
-        secure: false,
-        changeOrigin: true,
-        headers: {
-          Connection: 'keep-alive',
-        },
-      },
-      {
-        context: ['/auth'],
-        target: 'http://localhost:8000',
-        secure: false,
-        changeOrigin: true,
-        headers: {
-          Connection: 'keep-alive',
-        },
       },
     ],
   },
