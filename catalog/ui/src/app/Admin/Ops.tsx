@@ -66,6 +66,7 @@ import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 import CopyIcon from '@patternfly/react-icons/dist/js/icons/copy-icon';
 import HeartIcon from '@patternfly/react-icons/dist/js/icons/heart-icon';
 import CalendarCheckIcon from '@patternfly/react-icons/dist/js/icons/calendar-check-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 
@@ -127,7 +128,7 @@ interface OperationTemplate {
   id: string;
   name: string;
   description?: string;
-  operationType: 'lock' | 'unlock' | 'extend-stop' | 'extend-destroy' | 'disable-autostop' | 'scale' | 'restart' | 'clone' | 'health-check';
+  operationType: 'lock' | 'unlock' | 'extend-stop' | 'extend-destroy' | 'disable-autostop' | 'scale' | 'restart' | 'clone' | 'health-check' | 'delete-unassigned';
   parameters: {
     extStopDays?: number;
     extStopHours?: number;
@@ -660,6 +661,7 @@ const Ops: React.FC = () => {
   const [preserveUsers, setPreserveUsers] = useState(false);
   const [healthCheckTimeout, setHealthCheckTimeout] = useState(60);
   const [healthCheckRetries, setHealthCheckRetries] = useState(3);
+  const [deleteUnassignedCount, setDeleteUnassignedCount] = useState(0);
 
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
@@ -670,6 +672,7 @@ const Ops: React.FC = () => {
   const [restartLoading, setRestartLoading] = useState(false);
   const [cloneLoading, setCloneLoading] = useState(false);
   const [healthCheckLoading, setHealthCheckLoading] = useState(false);
+  const [deleteUnassignedLoading, setDeleteUnassignedLoading] = useState(false);
 
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
@@ -681,6 +684,7 @@ const Ops: React.FC = () => {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [showCloneConfirm, setShowCloneConfirm] = useState(false);
   const [showHealthCheckConfirm, setShowHealthCheckConfirm] = useState(false);
+  const [showDeleteUnassignedConfirm, setShowDeleteUnassignedConfirm] = useState(false);
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
@@ -691,7 +695,7 @@ const Ops: React.FC = () => {
   const [showScheduledOperations, setShowScheduledOperations] = useState(false);
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || restartLoading || cloneLoading || healthCheckLoading;
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || restartLoading || cloneLoading || healthCheckLoading || deleteUnassignedLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -1013,6 +1017,43 @@ const Ops: React.FC = () => {
     mutateWorkshops();
     if (fail === 0) addAlert(AlertVariant.success, `Health check initiated for ${ok} workshop(s) (timeout: ${healthCheckTimeout}s, retries: ${healthCheckRetries})`);
     else addAlert(AlertVariant.danger, `Health check: ${ok} succeeded, ${fail} failed`);
+  };
+
+  // ---------- Delete Unassigned Instances Handler ----------
+
+  const handleDeleteUnassigned = async () => {
+    if (!showDeleteUnassignedConfirm) { setShowDeleteUnassignedConfirm(true); return; }
+    setShowDeleteUnassignedConfirm(false);
+    setDeleteUnassignedLoading(true);
+    let ok = 0, fail = 0;
+    for (const ws of operationTargets) {
+      try {
+        const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
+          workshopName: ws.metadata.name,
+          namespace: ws.metadata.namespace,
+        })) as WorkshopProvisionList;
+        for (const prov of provResp.items) {
+          const currentCount: number = (prov.spec as any)?.count ?? 0;
+          const assignedCount: number = (prov.status as any)?.assignedCount ?? 0;
+          const newCount = deleteUnassignedCount > 0
+            ? Math.min(deleteUnassignedCount, currentCount)
+            : assignedCount;
+          if (newCount < currentCount) {
+            await patchWorkshopProvision({
+              name: prov.metadata.name,
+              namespace: prov.metadata.namespace,
+              patch: { spec: { count: newCount } },
+            });
+          }
+        }
+        ok++;
+      } catch { fail++; }
+    }
+    setDeleteUnassignedLoading(false);
+    mutateWorkshops();
+    mutateProvisions();
+    if (fail === 0) addAlert(AlertVariant.success, `Deleted unassigned instances on ${ok} workshop(s)`);
+    else addAlert(AlertVariant.danger, `Delete unassigned: ${ok} succeeded, ${fail} failed`);
   };
 
   // ---------- Scheduling Handlers ----------
@@ -1726,6 +1767,39 @@ const Ops: React.FC = () => {
                   </div>
                 </CardBody>
               </Card>
+
+              {/* Delete Unassigned Instances */}
+              <Card isFullHeight className="ops-scale-danger">
+                <CardTitle>
+                  <Tooltip content="Delete unassigned (available) instances from selected workshops, keeping only assigned ones or a specified number.">
+                    <span><TrashIcon className="ops-card-icon" /> Delete Unassigned</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Removes unassigned instances from selected workshops.
+                    Set to <code>0</code> to keep only assigned instances (recommended),
+                    or specify a number to retain that many total instances.
+                  </p>
+                  <div className="ops-number-row" style={{ marginBottom: 8 }}>
+                    <NumberInput value={deleteUnassignedCount} min={0}
+                      onMinus={() => setDeleteUnassignedCount(Math.max(0, deleteUnassignedCount - 1))}
+                      onPlus={() => setDeleteUnassignedCount(deleteUnassignedCount + 1)}
+                      onChange={(e) => setDeleteUnassignedCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                      widthChars={4} aria-label="Instances to keep" />
+                    <span>{deleteUnassignedCount === 0 ? 'keep assigned only' : 'instances to keep'}</span>
+                  </div>
+                  <Alert variant="warning" isInline title="Unassigned instances will be destroyed" style={{ marginBottom: 12 }}>
+                    {deleteUnassignedCount === 0
+                      ? 'All unassigned (available) instances will be deleted. Assigned instances are preserved.'
+                      : `WorkshopProvision count will be set to ${deleteUnassignedCount}. Excess unassigned instances will be destroyed.`}
+                  </Alert>
+                  <Button variant="danger" onClick={handleDeleteUnassigned}
+                    isLoading={deleteUnassignedLoading} isDisabled={anyLoading}>
+                    Delete Unassigned Instances
+                  </Button>
+                </CardBody>
+              </Card>
             </div>
 
             {/* Workshop detail table */}
@@ -2412,6 +2486,32 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="secondary" onClick={handleHealthCheck}>Run Health Check</Button>
           <Button variant="link" onClick={() => setShowHealthCheckConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Delete Unassigned Instances Confirmation Modal */}
+      <Modal variant="small" isOpen={showDeleteUnassignedConfirm} onClose={() => setShowDeleteUnassignedConfirm(false)} aria-labelledby="delete-unassigned-confirm">
+        <ModalHeader title="Confirm Delete Unassigned Instances" labelId="delete-unassigned-confirm" titleIconVariant="warning" />
+        <ModalBody>
+          {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="warning" isInline title={`This will affect ALL ${operationTargets.length} workshops`} style={{ marginBottom: 12 }}>
+              No filter is set. Every workshop in scope will have unassigned instances removed.
+            </Alert>
+          )}
+          <p>
+            Delete unassigned instances on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+          </p>
+          <Alert variant="warning" isInline title="Unassigned instances will be permanently destroyed" style={{ marginTop: 12 }}>
+            {deleteUnassignedCount === 0
+              ? 'All unassigned (available) instances will be deleted. Only instances with active user assignments will be preserved.'
+              : `WorkshopProvision count will be reduced to ${deleteUnassignedCount}. Excess unassigned instances will be destroyed.`}
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="danger" onClick={handleDeleteUnassigned}>Delete Unassigned Instances</Button>
+          <Button variant="link" onClick={() => setShowDeleteUnassignedConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
