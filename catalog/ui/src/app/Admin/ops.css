@@ -461,20 +461,35 @@ a.ops-ws-meta:hover {
   50% { opacity: 0.65; }
 }
 
-/* ---- Seat percentage ---- */
+/* ---- Seat fill colors ---- */
 
-.ops-seat-pct {
-  font-size: 0.78rem;
-  color: var(--pf-t--global--text--color--subtle);
+.ops-seats-assigned {
+  font-weight: 700;
 }
 
-.ops-seat-full {
+.ops-seats-ok {
   color: var(--pf-t--global--color--status--success--default);
-  font-weight: 600;
 }
 
-.ops-seat-half {
-  color: var(--pf-t--global--color--status--info--default);
+.ops-seats-warn {
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ops-seats-full {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* ---- Clickable Failed stat ---- */
+
+.ops-stat-active-filter {
+  outline: 2px solid var(--pf-t--global--color--status--danger--default);
+  border-radius: 6px;
+}
+
+/* ---- Scale preference select ---- */
+
+.ops-scale-pref-select {
+  max-width: 300px;
 }
 
 /* ---- Row highlights ---- */

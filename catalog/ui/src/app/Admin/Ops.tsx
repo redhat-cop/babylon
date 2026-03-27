@@ -59,6 +59,7 @@ import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import {
   apiPaths,
   dateToApiString,
+  deleteResourceClaim,
   fetcher,
   lockWorkshop,
   patchWorkshop,
@@ -87,6 +88,50 @@ interface OpsAlert {
   description?: string;
 }
 
+export function distributeProvisionCounts(oldCounts: number[], newTotal: number): number[] {
+  const n = oldCounts.length;
+  if (n === 0) return [];
+  const oldSum = oldCounts.reduce((a, b) => a + b, 0);
+  if (oldSum === 0) return oldCounts.map(() => 0);
+  const exact = oldCounts.map(c => (c * newTotal) / oldSum);
+  const floors = exact.map(x => Math.floor(x));
+  let rem = newTotal - floors.reduce((a, b) => a + b, 0);
+  const order = oldCounts.map((_, i) => i).sort((i, j) => {
+    return (exact[j] - floors[j]) - (exact[i] - floors[i]);
+  });
+  for (const i of order) {
+    if (rem <= 0) break;
+    floors[i]++;
+    rem--;
+  }
+  return floors;
+}
+
+export function workshopProvisionAssignedCount(p: WorkshopProvision): number {
+  return (p.status as any)?.assignedCount ?? 0;
+}
+
+export function distributeProvisionCountsRespectingAssigned(
+  oldCounts: number[],
+  targetTotal: number,
+  assignedPerProv: number[],
+): number[] {
+  const base = distributeProvisionCounts(oldCounts, targetTotal);
+  const result = base.map((v, i) => Math.max(v, assignedPerProv[i] ?? 0));
+  let excess = result.reduce((a, b) => a + b, 0) - targetTotal;
+  if (excess > 0) {
+    const sorted = result.map((_, i) => i).sort((a, b) => (result[b] - (assignedPerProv[b] ?? 0)) - (result[a] - (assignedPerProv[a] ?? 0)));
+    for (const i of sorted) {
+      if (excess <= 0) break;
+      const canRemove = result[i] - (assignedPerProv[i] ?? 0);
+      const remove = Math.min(canRemove, excess);
+      result[i] -= remove;
+      excess -= remove;
+    }
+  }
+  return result;
+}
+
 const COMMON_TIMEZONES = [
   { value: 'local', label: 'Local (browser)' },
   { value: 'UTC', label: 'UTC' },
@@ -102,6 +147,14 @@ const COMMON_TIMEZONES = [
   { value: 'Asia/Tokyo', label: 'Japan (JST)' },
   { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
 ];
+
+function seatColorClass(assigned: number, total: number): string {
+  if (total <= 0 || assigned <= 0) return '';
+  const pct = assigned / total;
+  if (pct >= 1) return 'ops-seats-full';
+  if (pct >= 0.75) return 'ops-seats-warn';
+  return 'ops-seats-ok';
+}
 
 const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 'green' | 'purple' }[] = [
   { label: 'prod', value: 'prod', color: 'orange' },
@@ -409,18 +462,20 @@ const Ops: React.FC = () => {
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const [failedFilter, setFailedFilter] = useState(false);
 
   const targets = useMemo(() => {
     let list = workshops;
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+    if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     return list;
-  }, [workshops, workshopFilter, stageFilter]);
+  }, [workshops, workshopFilter, stageFilter, failedFilter, getFailedCount]);
 
   const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
 
   // Clear selection when filters change
-  useEffect(() => { setSelectedWs(new Set()); }, [workshopFilter, stageFilter, namespace]);
+  useEffect(() => { setSelectedWs(new Set()); setFailedFilter(false); }, [workshopFilter, stageFilter, namespace]);
 
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
@@ -571,6 +626,7 @@ const Ops: React.FC = () => {
     let activeCount = 0;
     let failedCount = 0;
     let attentionCount = 0;
+    const failedWorkshops: { name: string; failed: number }[] = [];
 
     for (const ws of effectiveTargets) {
       const count = getCurrentCount(ws);
@@ -584,14 +640,18 @@ const Ops: React.FC = () => {
 
       if (isWorkshopLocked(ws)) lockedCount++;
       if (seats && seats.assigned > 0) activeCount++;
-      if (getFailedCount(ws) > 0) failedCount++;
+      const wsFailed = getFailedCount(ws);
+      if (wsFailed > 0) {
+        failedCount++;
+        failedWorkshops.push({ name: displayName(ws), failed: wsFailed });
+      }
 
       const stopUrg = dateUrgency(ws.spec?.actionSchedule?.stop);
       const destroyUrg = dateUrgency(ws.spec?.lifespan?.end);
       if (stopUrg === 'critical' || destroyUrg === 'critical') attentionCount++;
     }
 
-    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount };
+    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   // ---------- Operation parameters ----------
@@ -601,6 +661,7 @@ const Ops: React.FC = () => {
   const [extDestroyDays, setExtDestroyDays] = useState(0);
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [scaleCount, setScaleCount] = useState(5);
+  const [scaleDownPreference, setScaleDownPreference] = useState<'unused' | 'used'>('unused');
 
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
@@ -835,13 +896,75 @@ const Ops: React.FC = () => {
           workshopName: ws.metadata.name,
           namespace: ws.metadata.namespace,
         })) as WorkshopProvisionList;
-        for (const prov of provResp.items) {
-          await patchWorkshopProvision({
-            name: prov.metadata.name,
-            namespace: prov.metadata.namespace,
-            patch: { spec: { count: scaleCount } },
-          });
+        const provs = provResp.items;
+        const isSingle = provs.length === 1;
+
+        if (isSingle) {
+          const prov = provs[0];
+          const currentSpecCount = prov.spec?.count ?? 0;
+          if (currentSpecCount !== scaleCount) {
+            await patchWorkshopProvision({
+              name: prov.metadata.name,
+              namespace: prov.metadata.namespace,
+              patch: { spec: { count: scaleCount } },
+            });
+          }
+        } else if (provs.length > 1) {
+          const oldCounts = provs.map(p => p.spec?.count ?? 0);
+          const assignedPerProv = provs.map(p => workshopProvisionAssignedCount(p));
+          const newCounts = distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv);
+          for (let i = 0; i < provs.length; i++) {
+            if (newCounts[i] !== oldCounts[i]) {
+              await patchWorkshopProvision({
+                name: provs[i].metadata.name,
+                namespace: provs[i].metadata.namespace,
+                patch: { spec: { count: newCounts[i] } },
+              });
+            }
+          }
         }
+
+        if (isScaleDown || isScaleZero) {
+          const rcResp = await fetcher(apiPaths.RESOURCE_CLAIMS({
+            namespace: ws.metadata.namespace,
+            labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
+            limit: 500,
+          })) as ResourceClaimList;
+          const liveRcs = rcResp.items.filter(rc => !rc.metadata.deletionTimestamp);
+
+          const totalNewCount = isSingle
+            ? scaleCount
+            : (() => {
+                const oldCounts = provs.map(p => p.spec?.count ?? 0);
+                const assignedPerProv = provs.map(p => workshopProvisionAssignedCount(p));
+                return distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv)
+                  .reduce((a, b) => a + b, 0);
+              })();
+
+          const excess = liveRcs.length - totalNewCount;
+          if (excess > 0) {
+            const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
+            const assignedRcNames = new Set(assignments.filter(a => a.spec?.assignment).map(a =>
+              a.spec?.resourceClaimName
+            ).filter(Boolean));
+
+            const sorted = [...liveRcs].sort((a, b) => {
+              const aAssigned = assignedRcNames.has(a.metadata.name) ? 1 : 0;
+              const bAssigned = assignedRcNames.has(b.metadata.name) ? 1 : 0;
+              return scaleDownPreference === 'unused'
+                ? aAssigned - bAssigned
+                : bAssigned - aAssigned;
+            });
+
+            const toDelete = sorted.slice(0, excess);
+            for (const rc of toDelete) {
+              try {
+                await deleteResourceClaim(rc);
+              } catch { /* best-effort */ }
+            }
+          }
+        }
+
         ok++;
       } catch { fail++; }
     }
@@ -1161,7 +1284,12 @@ const Ops: React.FC = () => {
               </div>
               <div className="ops-stat-divider" />
               <div className="ops-stat">
-                <span className="ops-stat-value">{summary.seatsAssigned} <span className="ops-stat-of">/ {summary.seatsTotal}</span></span>
+                <span className="ops-stat-value">
+                  <span className={`ops-seats-assigned ${seatColorClass(summary.seatsAssigned, summary.seatsTotal)}`}>
+                    {summary.seatsAssigned}
+                  </span>
+                  {' '}<span className="ops-stat-of">/ {summary.seatsTotal}</span>
+                </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
               <div className="ops-stat-divider" />
@@ -1172,10 +1300,25 @@ const Ops: React.FC = () => {
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
-                  <div className="ops-stat ops-stat-attention">
-                    <span className="ops-stat-value">{summary.failedCount}</span>
-                    <span className="ops-stat-label">Failed</span>
-                  </div>
+                  <Tooltip content={
+                    <div>
+                      {summary.failedWorkshops.map(fw => (
+                        <div key={fw.name}>{fw.name}: {fw.failed} failed</div>
+                      ))}
+                    </div>
+                  }>
+                    <div
+                      className={`ops-stat ops-stat-attention ${failedFilter ? 'ops-stat-active-filter' : ''}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setFailedFilter(f => !f)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setFailedFilter(f => !f); }}
+                    >
+                      <span className="ops-stat-value">{summary.failedCount}</span>
+                      <span className="ops-stat-label">Failed{failedFilter ? ' (filtered)' : ''}</span>
+                    </div>
+                  </Tooltip>
                 </>
               )}
               <div className="ops-stat-divider" />
@@ -1308,6 +1451,20 @@ const Ops: React.FC = () => {
                   {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
                   {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
                   {scaleAnalysis.same > 0 && <Label color="grey" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.same} no change</Label>}
+                  {(isScaleDown || isScaleZero) && (
+                    <div style={{ marginTop: 12 }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
+                      <FormSelect
+                        aria-label="Scale down preference"
+                        value={scaleDownPreference}
+                        onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')}
+                        className="ops-scale-pref-select"
+                      >
+                        <FormSelectOption value="unused" label="Unused instances first (safest)" />
+                        <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
+                      </FormSelect>
+                    </div>
+                  )}
                   <div style={{ marginTop: 12 }}>
                     <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
                       onClick={openScaleConfirm}
@@ -1515,7 +1672,10 @@ const Ops: React.FC = () => {
                                 <strong>{mwNumberSeats}</strong>
                               </Tooltip>
                             ) : grpSeatsTotal > 0 ? (
-                              <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
+                              <span>
+                                <strong className={seatColorClass(grpSeatsAssigned, grpSeatsTotal)}>{grpSeatsAssigned}</strong>
+                                {' '}/ {grpSeatsTotal}
+                              </span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                           <td>
@@ -1628,7 +1788,10 @@ const Ops: React.FC = () => {
                             <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
                               {seats ? (
-                                <span><strong>{seats.assigned}</strong> / {seats.total}</span>
+                                <span>
+                                  <strong className={seatColorClass(seats.assigned, seats.total)}>{seats.assigned}</strong>
+                                  {' '}/ {seats.total}
+                                </span>
                               ) : <span className="ops-muted">&mdash;</span>}
                             </td>
                             <td></td>
@@ -1847,8 +2010,14 @@ const Ops: React.FC = () => {
           )}
           {isScaleDown && (
             <>
-              <Alert variant="warning" isInline title="Scaling down will reduce running instances" style={{ marginTop: 12 }}>
-                Students on removed instances will lose access. This cannot be undone.
+              <Alert variant={scaleDownPreference === 'used' ? 'danger' : 'warning'} isInline
+                title={scaleDownPreference === 'used'
+                  ? 'DANGEROUS: Removing USED instances first — students lose access immediately'
+                  : 'Scaling down will reduce running instances'}
+                style={{ marginTop: 12 }}>
+                {scaleDownPreference === 'used'
+                  ? 'Active student sessions will be terminated. Only choose this if you are certain.'
+                  : 'Unused instances are removed first. Students on remaining instances are not affected.'}
               </Alert>
               <p style={{ marginTop: 12, fontWeight: 600 }}>Type <code>{scaleConfirmWord}</code> to confirm:</p>
               <TextInput value={scaleConfirmText} onChange={(_e, val) => setScaleConfirmText(val)} aria-label="Confirm scale down" />
@@ -1856,7 +2025,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant={isScaleDown ? 'warning' : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
+          <Button variant={isScaleDown ? (scaleDownPreference === 'used' ? 'danger' : 'warning') : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
             {isScaleDown ? 'Scale Down' : 'Scale'}
           </Button>
           <Button variant="link" onClick={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>

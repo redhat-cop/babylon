@@ -32,7 +32,11 @@ module.exports = {
   // The path to a module that runs some code to configure or set up the testing framework before each test
   setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
+  testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'],
+
   testEnvironment: 'jsdom',
+
+  transformIgnorePatterns: ['node_modules/(?!(parse-duration)/)'],
 
   watchman: false,
 };

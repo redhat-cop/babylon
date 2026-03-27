@@ -1,10 +1,22 @@
 jest.mock('../api');
 import React from 'react';
+import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
+import { within } from '@testing-library/react';
 import Ops from './Ops';
-import { apiPaths, fetcher, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
+import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
+
+function renderOps(ui: React.ReactElement = <Ops />) {
+  return render(<SWRConfig value={{ suspense: false }}>{ui}</SWRConfig>);
+}
+
+function getScaleWorkshopsCard(): HTMLElement {
+  const node = screen.getAllByText('Scale Workshops').find((el) => el.closest('.pf-v6-c-card'));
+  if (!node) throw new Error('Scale Workshops card not found');
+  return node.closest('.pf-v6-c-card') as HTMLElement;
+}
 
 const TEST_NAMESPACE = 'test-ns.prod';
 
@@ -208,6 +220,7 @@ jest.mock('@app/api', () => ({
     }
     return Promise.resolve({ items: [], metadata: {} });
   }),
+  deleteResourceClaim: jest.fn(() => Promise.resolve()),
   lockWorkshop: jest.fn(() => Promise.resolve()),
   patchWorkshop: jest.fn(() => Promise.resolve()),
   patchWorkshopProvision: jest.fn(() => Promise.resolve()),
@@ -220,7 +233,7 @@ describe('Ops Component', () => {
 
   describe('Page Layout', () => {
     test('renders page header with "Operations Workshop Control" title and namespace', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Operations Workshop Control')).toBeInTheDocument();
         expect(screen.getByText(TEST_NAMESPACE)).toBeInTheDocument();
@@ -228,7 +241,7 @@ describe('Ops Component', () => {
     });
 
     test('renders all five operation cards', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Resource Lock')).toBeInTheDocument();
         expect(screen.getByText(/Extend Stop Time/)).toBeInTheDocument();
@@ -239,7 +252,7 @@ describe('Ops Component', () => {
     });
 
     test('renders summary stats bar with all stat labels', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const bar = document.querySelector('.ops-summary-bar')!;
         expect(bar).toBeInTheDocument();
@@ -252,7 +265,7 @@ describe('Ops Component', () => {
     });
 
     test('renders timezone selector defaulting to "local"', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const tz = screen.getByLabelText('Timezone');
         expect(tz).toHaveValue('local');
@@ -260,14 +273,14 @@ describe('Ops Component', () => {
     });
 
     test('renders "All Workshops" default in scope selector', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('All Workshops')).toBeInTheDocument();
       });
     });
 
     test('renders stage filter chips (prod, event, dev, test)', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('prod')).toBeInTheDocument();
         expect(screen.getByText('event')).toBeInTheDocument();
@@ -276,7 +289,7 @@ describe('Ops Component', () => {
     });
 
     test('renders refresh button', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByLabelText('Refresh data')).toBeInTheDocument();
       });
@@ -285,7 +298,7 @@ describe('Ops Component', () => {
 
   describe('Workshop Table', () => {
     test('renders workshop display names in the table', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const table = document.querySelector('.ops-table-wrap')!;
         expect(table).toBeInTheDocument();
@@ -296,7 +309,7 @@ describe('Ops Component', () => {
     });
 
     test('groups workshops with same display name and shows badge count', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const table = document.querySelector('.ops-table-wrap')!;
         expect(table).toBeInTheDocument();
@@ -307,14 +320,14 @@ describe('Ops Component', () => {
     });
 
     test('shows "Show passwords" toggle button', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Show passwords')).toBeInTheDocument();
       });
     });
 
     test('clicking "Show passwords" reveals password text', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Show passwords')).toBeInTheDocument();
       });
@@ -326,7 +339,7 @@ describe('Ops Component', () => {
     });
 
     test('shows "Open" registration labels', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const labels = screen.getAllByText('Open');
         expect(labels.length).toBeGreaterThanOrEqual(1);
@@ -334,35 +347,35 @@ describe('Ops Component', () => {
     });
 
     test('shows workshop URL link', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('abc123')).toBeInTheDocument();
       });
     });
 
     test('shows "No auto-stop" for workshops without stop date', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getAllByText('No auto-stop').length).toBeGreaterThanOrEqual(1);
       });
     });
 
     test('shows "No auto-destroy" for workshops without destroy date', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getAllByText('No auto-destroy').length).toBeGreaterThanOrEqual(1);
       });
     });
 
     test('shows multi-asset label for multi-asset workshop groups', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getAllByText('Multi-Asset').length).toBeGreaterThanOrEqual(1);
       });
     });
 
     test('multi-asset group uses MultiWorkshop displayName and shows parent seats', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Multi Asset Event')).toBeInTheDocument();
         expect(screen.getByText('20')).toBeInTheDocument();
@@ -370,28 +383,28 @@ describe('Ops Component', () => {
     });
 
     test('shows workshops in scope heading with group count', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Workshops in scope')).toBeInTheDocument();
       });
     });
 
     test('shows Provision Failed status from WorkshopStatus for workshops with failed provisions', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Failed Provision Workshop'));
       const failedElements = screen.getAllByText(/Provision Failed/i);
       expect(failedElements.length).toBeGreaterThanOrEqual(1);
     });
 
     test('shows Running status from WorkshopStatus for active workshops', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Ansible Lab'));
       const runningElements = screen.getAllByText(/Running/i);
       expect(runningElements.length).toBeGreaterThanOrEqual(1);
     });
 
     test('shows instance count note when groups differ from total', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const note = screen.queryByText(/instances\)/);
         if (note) expect(note).toBeInTheDocument();
@@ -401,7 +414,7 @@ describe('Ops Component', () => {
 
   describe('Date Urgency Color Coding', () => {
     test('renders critical urgency elements for dates < 1 hour', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         const critical = document.querySelectorAll('.ops-date-critical');
         expect(critical.length).toBeGreaterThanOrEqual(1);
@@ -409,7 +422,7 @@ describe('Ops Component', () => {
     });
 
     test('shows "Need attention" stat when critical dates exist', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Need attention')).toBeInTheDocument();
       });
@@ -418,7 +431,7 @@ describe('Ops Component', () => {
 
   describe('Operation Confirmation Modals', () => {
     test('Lock button opens lock confirmation modal', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
       await waitFor(() => {
@@ -428,7 +441,7 @@ describe('Ops Component', () => {
     });
 
     test('Unlock button opens unlock confirmation modal', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
       await waitFor(() => {
@@ -438,7 +451,7 @@ describe('Ops Component', () => {
     });
 
     test('Unlock modal warns about multi-asset child workshops', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
       await waitFor(() => {
@@ -449,7 +462,7 @@ describe('Ops Component', () => {
     });
 
     test('Lock confirmation shows workshop count', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
       await waitFor(() => {
@@ -458,7 +471,7 @@ describe('Ops Component', () => {
     });
 
     test('Scale button opens scale confirmation modal', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Scale Workshops'));
       const scaleBtn = screen.getAllByRole('button').find(b => b.textContent === 'Scale');
       if (scaleBtn) await userEvent.click(scaleBtn);
@@ -468,7 +481,7 @@ describe('Ops Component', () => {
     });
 
     test('Scale shows current vs new count per workshop', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Scale Workshops'));
       const scaleBtn = screen.getAllByRole('button').find(b => b.textContent === 'Scale');
       if (scaleBtn) await userEvent.click(scaleBtn);
@@ -479,10 +492,10 @@ describe('Ops Component', () => {
     });
 
     test('Scale to zero shows destructive confirmation with type-to-confirm', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Scale Workshops'));
-      const minusButtons = screen.getAllByLabelText('Minus');
-      const lastMinus = minusButtons[minusButtons.length - 1];
+      const scaleCard = getScaleWorkshopsCard();
+      const lastMinus = within(scaleCard).getByLabelText('Minus');
       for (let i = 0; i < 5; i++) await userEvent.click(lastMinus);
       await waitFor(() => screen.getByText('Scale to Zero'));
       await userEvent.click(screen.getByRole('button', { name: 'Scale to Zero' }));
@@ -494,7 +507,7 @@ describe('Ops Component', () => {
     });
 
     test('Disable Auto-Stop opens confirmation modal', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText(/Removes/));
       const btn = screen.getAllByRole('button').find(b => {
         const text = b.textContent?.trim();
@@ -508,14 +521,14 @@ describe('Ops Component', () => {
     });
 
     test('Extend Stop is disabled when both day and hour are 0', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText(/Extend Stop Time/));
       const extendStopBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop');
       expect(extendStopBtn).toBeDisabled();
     });
 
     test('Extend Destroy is disabled when both day and hour are 0', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText(/Extend Destroy Time/));
       const extendDestroyBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy');
       expect(extendDestroyBtn).toBeDisabled();
@@ -524,14 +537,14 @@ describe('Ops Component', () => {
 
   describe('Multi-namespace Mode', () => {
     test('shows multi-namespace toggle for admin users', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => {
         expect(screen.getByText('Multi-namespace mode')).toBeInTheDocument();
       });
     });
 
     test('clicking multi-namespace toggle shows confirmation modal', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Multi-namespace mode'));
       const toggle = screen.getByLabelText('Multi-namespace mode');
       await userEvent.click(toggle);
@@ -545,7 +558,7 @@ describe('Ops Component', () => {
 
   describe('Scale Analysis Labels', () => {
     test('shows scale analysis labels (up/down/same)', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Scale Workshops'));
       await waitFor(() => {
         const labels = document.querySelectorAll('.pf-v6-c-label');
@@ -554,10 +567,10 @@ describe('Ops Component', () => {
     });
 
     test('scale card gets warning border when scaling down', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByText('Scale Workshops'));
-      const minusButtons = screen.getAllByLabelText('Minus');
-      const lastMinus = minusButtons[minusButtons.length - 1];
+      const scaleCard = getScaleWorkshopsCard();
+      const lastMinus = within(scaleCard).getByLabelText('Minus');
       for (let i = 0; i < 4; i++) await userEvent.click(lastMinus);
       await waitFor(() => {
         const dangerCards = document.querySelectorAll('.ops-scale-danger');
@@ -579,7 +592,7 @@ describe('Ops Component', () => {
 
   describe('Timezone', () => {
     test('timezone selector can be changed', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Timezone'));
       const tz = screen.getByLabelText('Timezone') as HTMLSelectElement;
       await userEvent.selectOptions(tz, 'UTC');
@@ -589,13 +602,13 @@ describe('Ops Component', () => {
 
   describe('Bulk Select', () => {
     test('renders select all checkbox in table header', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Select all workshops'));
       expect(screen.getByLabelText('Select all workshops')).toBeInTheDocument();
     });
 
     test('selecting all shows selection badge and clear button', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Select all workshops'));
       await userEvent.click(screen.getByLabelText('Select all workshops'));
       expect(screen.getByText('Selected workshops')).toBeInTheDocument();
@@ -603,7 +616,7 @@ describe('Ops Component', () => {
     });
 
     test('clear button deselects all', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Select all workshops'));
       await userEvent.click(screen.getByLabelText('Select all workshops'));
       expect(screen.getByText('Selected workshops')).toBeInTheDocument();
@@ -614,7 +627,7 @@ describe('Ops Component', () => {
 
   describe('CSV Export', () => {
     test('renders Export to CSV button', async () => {
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Export to CSV'));
       expect(screen.getByLabelText('Export to CSV')).toBeInTheDocument();
     });
@@ -631,7 +644,7 @@ describe('Ops Component', () => {
       });
       window.URL.createObjectURL = jest.fn().mockReturnValue('blob:test');
 
-      render(<Ops />);
+      renderOps();
       await waitFor(() => screen.getByLabelText('Export to CSV'));
       await userEvent.click(screen.getByLabelText('Export to CSV'));
       expect(clickSpy).toHaveBeenCalled();
