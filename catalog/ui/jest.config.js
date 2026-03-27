@@ -34,7 +34,5 @@ module.exports = {
 
   testEnvironment: 'jsdom',
 
-  transformIgnorePatterns: ['node_modules/(?!(parse-duration)/)'],
-
   watchman: false,
 };
