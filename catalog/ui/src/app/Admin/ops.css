@@ -85,6 +85,10 @@
   padding: 6px 10px;
 }
 
+.ops-deploy-csv-row--no-url {
+  opacity: 0.55;
+}
+
 .ops-ns-breakdown {
   margin: 8px 0 0 20px;
   padding: 0;

@@ -211,19 +211,20 @@ function wsDetailPath(ws: Workshop): string {
 // ---------- Deploy Workshop from CSV – types & helpers ----------
 
 interface CsvScheduleRow {
+  labCode: string;
+  room: string;
+  sessionTime: string;
   ciName: string;
   ciNamespace: string;
-  workshopTitle: string;
-  targetNamespace: string;
+  orderUrl: string;
   userCount: number;
-  enableWorkshopInterface: boolean;
-  startTime?: string;
-  stopTime?: string;
-  destroyTime?: string;
-  description?: string;
-  salesforceId?: string;
-  stage?: string;
-  multiuser?: boolean;
+  deployCount: number;
+  mode: string;
+  cloud: string;
+  region: string;
+  instances: string;
+  deployOn?: string;
+  hasOrderUrl: boolean;
   raw: Record<string, string>;
 }
 
@@ -252,58 +253,74 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
-function parseCsvBool(v: string): boolean {
-  return /^(true|yes|1)$/i.test(v.trim());
-}
-
 function parseCsvDate(v: string): string | undefined {
   if (!v || v.trim() === '') return undefined;
   const cleaned = v.trim();
-  // Already ISO
   if (/^\d{4}-\d{2}-\d{2}T/.test(cleaned)) return cleaned;
-  // YYYY-MM-DD HH:MM -> ISO
   const match = cleaned.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
   if (match) return `${match[1]}T${match[2]}:00Z`;
   return undefined;
 }
 
+// Extract CI name and namespace from Order URL.
+// URL pattern: /catalog/{namespace}/order/{ci_name}
+function extractCiFromUrl(url: string): { ciName: string; ciNamespace: string } | null {
+  const m = url.match(/\/catalog\/([^/]+)\/order\/([^/?#]+)/);
+  if (!m) return null;
+  return { ciNamespace: m[1], ciName: m[2] };
+}
+
 function parseCsvRows(text: string): { rows: CsvScheduleRow[]; errors: string[] } {
   const lines = text.split(/\r?\n/).filter(l => l.trim() !== '' && !l.trim().startsWith('#'));
   if (lines.length < 2) return { rows: [], errors: ['CSV must have a header row and at least one data row'] };
-  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/[\s-]/g, '_'));
+  // Normalise header names: lowercase, spaces/parens/slashes → _
+  const headers = parseCsvLine(lines[0]).map(h =>
+    h.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+  );
   const rows: CsvScheduleRow[] = [];
   const errors: string[] = [];
+
   for (let i = 1; i < lines.length; i++) {
     const vals = parseCsvLine(lines[i]);
     const raw: Record<string, string> = {};
     headers.forEach((h, idx) => { raw[h] = vals[idx] ?? ''; });
-    const ciName = raw['ci_name'] || raw['catalog_item'] || raw['catalog_item_name'] || '';
-    if (!ciName) { errors.push(`Row ${i}: missing ci_name`); continue; }
-    const userCount = parseInt(raw['user_count'] || raw['users'] || raw['seat_count'] || '1', 10);
-    const ciNamespace = raw['ci_namespace'] || raw['catalog_namespace'] || inferCatalogNamespace(ciName, raw['stage'] || raw['env'] || '');
+
+    const labCode = raw['lab_code'] || raw['lab'] || raw['code'] || '';
+    const orderUrl = raw['order_url'] || raw['url'] || raw['order'] || '';
+    const hasOrderUrl = orderUrl.trim() !== '';
+
+    let ciName = raw['ci_name'] || raw['catalog_item'] || '';
+    let ciNamespace = raw['ci_namespace'] || raw['catalog_namespace'] || '';
+
+    if (!ciName && hasOrderUrl) {
+      const extracted = extractCiFromUrl(orderUrl);
+      if (extracted) { ciName = extracted.ciName; ciNamespace = extracted.ciNamespace; }
+    }
+
+    if (!labCode && !ciName) { errors.push(`Row ${i}: missing Lab Code and no Order URL — skipping`); continue; }
+
+    const userCount = parseInt(raw['users'] || raw['user_count'] || raw['attendees'] || '1', 10);
+    const deployCount = parseInt(raw['deploy_count'] || raw['deploycount'] || String(userCount), 10);
+
     rows.push({
+      labCode,
+      room: raw['room'] || '',
+      sessionTime: raw['session_time'] || raw['session'] || '',
       ciName,
       ciNamespace,
-      workshopTitle: raw['workshop_title'] || raw['title'] || ciName,
-      targetNamespace: raw['target_namespace'] || raw['namespace'] || '',
+      orderUrl,
       userCount: isNaN(userCount) ? 1 : userCount,
-      enableWorkshopInterface: parseCsvBool(raw['enable_workshop_interface'] || raw['workshop_interface'] || 'true'),
-      startTime: parseCsvDate(raw['start_time'] || raw['start']),
-      stopTime: parseCsvDate(raw['stop_time'] || raw['stop']),
-      destroyTime: parseCsvDate(raw['destroy_time'] || raw['destroy'] || raw['end_time']),
-      description: raw['description'] || raw['notes'] || '',
-      salesforceId: raw['salesforce_id'] || raw['sf_id'] || '',
-      stage: raw['stage'] || raw['env'] || '',
-      multiuser: parseCsvBool(raw['multi_user'] || raw['multiuser'] || 'false'),
+      deployCount: isNaN(deployCount) ? userCount : deployCount,
+      mode: raw['mode'] || '',
+      cloud: raw['cloud'] || '',
+      region: raw['region'] || '',
+      instances: raw['instances'] || '',
+      deployOn: parseCsvDate(raw['deploy_on_utc_'] || raw['deploy_on_utc'] || raw['deploy_on'] || raw['start_time'] || ''),
+      hasOrderUrl,
       raw,
     });
   }
   return { rows, errors };
-}
-
-function inferCatalogNamespace(ciName: string, stage: string): string {
-  const env = stage || (ciName.endsWith('.prod') ? 'prod' : ciName.endsWith('.dev') ? 'dev' : ciName.endsWith('.test') ? 'test' : 'prod');
-  return `babylon-catalog-${env}`;
 }
 
 function generateK8sName(prefix: string): string {
@@ -313,117 +330,69 @@ function generateK8sName(prefix: string): string {
 }
 
 async function deployWorkshopRow(row: CsvScheduleRow, targetNs: string): Promise<void> {
-  const wsName = generateK8sName(row.workshopTitle || row.ciName);
-  const ns = targetNs || row.targetNamespace;
+  if (!row.hasOrderUrl || !row.ciName) throw new Error('No Order URL / catalog item — cannot deploy this row');
+  const wsName = generateK8sName(row.labCode || row.ciName);
+  const ns = targetNs;
   if (!ns) throw new Error('No target namespace specified for deployment');
 
-  if (row.enableWorkshopInterface) {
-    // Create Workshop object
-    const workshop = {
-      apiVersion: 'babylon.gpte.redhat.com/v1',
-      kind: 'Workshop',
-      metadata: {
-        name: wsName,
-        namespace: ns,
-        annotations: {
-          [`${BABYLON_DOMAIN}/workshopUserRegistration`]: 'open',
-          ...(row.description ? { [`${BABYLON_DOMAIN}/description`]: row.description } : {}),
-        },
-        labels: {
-          ...(row.stage ? { [`${BABYLON_DOMAIN}/stage`]: row.stage } : {}),
-        },
-      },
-      spec: {
-        multiuser: row.multiuser ?? false,
-        openRegistration: true,
-        accessPassword: '',
-        description: row.description || '',
-        displayName: row.workshopTitle || row.ciName,
-        ...(row.stopTime ? { lifespan: { end: row.stopTime } } : {}),
-      },
-    };
-    const wsResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshops`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(workshop),
-    });
-    if (!wsResp.ok) {
-      const err = await wsResp.json().catch(() => ({}));
-      throw new Error(`Workshop creation failed: ${err.message || wsResp.statusText}`);
-    }
+  const isMultiAsset = /multi.asset/i.test(row.mode);
 
-    // Create WorkshopProvision
-    const provision = {
-      apiVersion: 'babylon.gpte.redhat.com/v1',
-      kind: 'WorkshopProvision',
-      metadata: {
-        name: wsName,
-        namespace: ns,
-        labels: { [`${BABYLON_DOMAIN}/workshop`]: wsName },
+  // Always create Workshop + WorkshopProvision
+  const workshop = {
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'Workshop',
+    metadata: {
+      name: wsName,
+      namespace: ns,
+      annotations: {
+        [`${BABYLON_DOMAIN}/workshopUserRegistration`]: 'open',
       },
-      spec: {
-        catalogItem: { name: row.ciName, namespace: row.ciNamespace },
-        count: row.userCount,
-        workshopName: wsName,
-        parameters: [],
+      labels: {
+        [`${BABYLON_DOMAIN}/stage`]: row.ciNamespace?.replace('babylon-catalog-', '') || 'dev',
       },
-    };
-    const wpResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshopprovisions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(provision),
-    });
-    if (!wpResp.ok) {
-      const err = await wpResp.json().catch(() => ({}));
-      throw new Error(`WorkshopProvision creation failed: ${err.message || wpResp.statusText}`);
-    }
-  } else {
-    // Create ResourceClaim
-    const rc = {
-      apiVersion: 'poolboy.gpte.redhat.com/v1',
-      kind: 'ResourceClaim',
-      metadata: {
-        name: wsName,
-        namespace: ns,
-        annotations: {
-          ...(row.description ? { [`${DEMO_DOMAIN}/description`]: row.description } : {}),
-          ...(row.salesforceId ? { [`${BABYLON_DOMAIN}/salesforce-id`]: row.salesforceId } : {}),
-        },
-        labels: {
-          ...(row.stage ? { [`${BABYLON_DOMAIN}/stage`]: row.stage } : {}),
-        },
-      },
-      spec: {
-        resources: [{
-          provider: {
-            apiVersion: 'poolboy.gpte.redhat.com/v1',
-            kind: 'ResourceProvider',
-            name: 'babylon',
-            namespace: 'poolboy',
-          },
-          template: {
-            apiVersion: 'babylon.gpte.redhat.com/v1',
-            kind: 'AnarchySubject',
-            metadata: { annotations: { [`${BABYLON_DOMAIN}/catalogItemName`]: row.ciName, [`${BABYLON_DOMAIN}/catalogItemNamespace`]: row.ciNamespace } },
-            spec: {
-              vars: {
-                desired_state: 'started',
-                job_vars: { user_count: row.userCount },
-              },
-            },
-          },
-        }],
-      },
-    };
-    const rcResp = await apiFetch(`/apis/poolboy.gpte.redhat.com/v1/namespaces/${ns}/resourceclaims`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(rc),
-    });
-    if (!rcResp.ok) {
-      const err = await rcResp.json().catch(() => ({}));
-      throw new Error(`ResourceClaim creation failed: ${err.message || rcResp.statusText}`);
-    }
+    },
+    spec: {
+      multiuser: isMultiAsset,
+      openRegistration: true,
+      accessPassword: '',
+      displayName: row.labCode || row.ciName,
+      ...(row.deployOn ? { lifespan: { start: row.deployOn } } : {}),
+    },
+  };
+  const wsResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshops`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(workshop),
+  });
+  if (!wsResp.ok) {
+    const err = await wsResp.json().catch(() => ({}));
+    throw new Error(`Workshop creation failed: ${(err as any).message || wsResp.statusText}`);
+  }
+
+  // WorkshopProvision
+  const provision = {
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'WorkshopProvision',
+    metadata: {
+      name: wsName,
+      namespace: ns,
+      labels: { [`${BABYLON_DOMAIN}/workshop`]: wsName },
+    },
+    spec: {
+      catalogItem: { name: row.ciName, namespace: row.ciNamespace },
+      count: row.deployCount,
+      workshopName: wsName,
+      parameters: [],
+    },
+  };
+  const wpResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshopprovisions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(provision),
+  });
+  if (!wpResp.ok) {
+    const err = await wpResp.json().catch(() => ({}));
+    throw new Error(`WorkshopProvision creation failed: ${(err as any).message || wpResp.statusText}`);
   }
 }
 
@@ -1534,13 +1503,16 @@ const Ops: React.FC = () => {
                     <table className="pf-v6-c-table pf-m-compact pf-m-grid-md ops-deploy-csv-table">
                       <thead>
                         <tr>
-                          <th>Workshop Title</th>
+                          <th>Lab Code</th>
+                          <th>Room</th>
+                          <th>Session</th>
                           <th>Catalog Item</th>
                           <th>CI Namespace</th>
                           <th>Users</th>
-                          <th>Workshop UI</th>
-                          <th>Stop</th>
-                          <th>Destroy</th>
+                          <th>Deploy&nbsp;#</th>
+                          <th>Mode</th>
+                          <th>Cloud</th>
+                          <th>Deploy On (UTC)</th>
                           <th>Status</th>
                         </tr>
                       </thead>
@@ -1548,14 +1520,21 @@ const Ops: React.FC = () => {
                         {csvRows.map((row, idx) => {
                           const st = csvDeployStatus[idx];
                           return (
-                            <tr key={idx}>
-                              <td>{row.workshopTitle}</td>
-                              <td><code>{row.ciName}</code></td>
-                              <td><code>{row.ciNamespace}</code></td>
+                            <tr key={idx} className={!row.hasOrderUrl ? 'ops-deploy-csv-row--no-url' : ''}>
+                              <td><strong>{row.labCode || '—'}</strong></td>
+                              <td>{row.room || '—'}</td>
+                              <td style={{ whiteSpace: 'nowrap' }}>{row.sessionTime || '—'}</td>
+                              <td>
+                                {row.hasOrderUrl
+                                  ? <code>{row.ciName}</code>
+                                  : <Tooltip content="No Order URL — row will be skipped during deploy"><span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>No Order URL</span></Tooltip>}
+                              </td>
+                              <td><code>{row.ciNamespace || '—'}</code></td>
                               <td>{row.userCount}</td>
-                              <td>{row.enableWorkshopInterface ? 'Yes' : 'No'}</td>
-                              <td>{row.stopTime ? new Date(row.stopTime).toLocaleString() : '—'}</td>
-                              <td>{row.destroyTime ? new Date(row.destroyTime).toLocaleString() : '—'}</td>
+                              <td>{row.deployCount}</td>
+                              <td>{row.mode || '—'}</td>
+                              <td>{row.cloud || '—'}</td>
+                              <td style={{ whiteSpace: 'nowrap' }}>{row.deployOn ? new Date(row.deployOn).toLocaleString() : '—'}</td>
                               <td>
                                 {!st && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>—</span>}
                                 {st?.state === 'pending' && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>Queued</span>}
