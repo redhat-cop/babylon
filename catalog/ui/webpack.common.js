@@ -8,7 +8,6 @@ const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
 module.exports = () => {
-  const nm = path.resolve(__dirname, 'node_modules');
   return {
     optimization: {
       sideEffects: true,
@@ -110,13 +109,6 @@ module.exports = () => {
       symlinks: false,
       cacheWithContext: false,
       fallback: { crypto: false, buffer: false },
-      // util.ts imports 'DOMPurify' (package name is dompurify); resolve without changing source
-      // Pin react/react-dom so webpack resolves CJS entry (named exports like createPortal) reliably
-      alias: {
-        DOMPurify: path.join(nm, 'dompurify'),
-        react: path.join(nm, 'react'),
-        'react-dom': path.join(nm, 'react-dom'),
-      },
     },
   };
 };
