@@ -184,6 +184,32 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 let alertKeyCounter = 0;
 
+/**
+ * Split newTotal across WorkshopProvisions proportionally (largest remainder).
+ * Sum of the result equals newTotal when oldSum > 0.
+ */
+export function distributeProvisionCounts(oldCounts: number[], newTotal: number): number[] {
+  const n = oldCounts.length;
+  if (n === 0) return [];
+  const oldSum = oldCounts.reduce((a, b) => a + b, 0);
+  if (oldSum === 0) return oldCounts.map(() => 0);
+
+  const exact = oldCounts.map(c => (c * newTotal) / oldSum);
+  const floors = exact.map(x => Math.floor(x));
+  let rem = newTotal - floors.reduce((a, b) => a + b, 0);
+  const order = oldCounts.map((_, i) => i).sort((i, j) => {
+    const fi = exact[i] - Math.floor(exact[i]);
+    const fj = exact[j] - Math.floor(exact[j]);
+    if (fj !== fi) return fj - fi;
+    return i - j;
+  });
+  const out = [...floors];
+  for (let k = 0; k < rem; k++) {
+    out[order[k]]++;
+  }
+  return out;
+}
+
 function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
@@ -713,6 +739,10 @@ const Ops: React.FC = () => {
   const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
   const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
 
+  const getActiveResourceClaimCount = useCallback((ws: Workshop): number => {
+    return (resourceClaimsByWorkshop.get(wsKey(ws)) ?? []).filter(rc => !rc.metadata.deletionTimestamp).length;
+  }, [resourceClaimsByWorkshop]);
+
   const getUnusedClaims = useCallback((ws: Workshop): ResourceClaim[] => {
     const claims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
     const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
@@ -741,12 +771,13 @@ const Ops: React.FC = () => {
     for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
       if (cur === null || scaleCount >= cur) continue;
-      totalToRemove += cur - scaleCount;
+      const active = getActiveResourceClaimCount(ws);
+      totalToRemove += Math.max(0, active - scaleCount);
       unusedInScope += getUnusedClaims(ws).length;
       usedInScope += getUsedClaims(ws).length;
     }
     return { totalToRemove, usedInScope, unusedInScope };
-  }, [isScaleDown, isScaleZero, operationTargets, scaleCount, getCurrentCount, getUnusedClaims, getUsedClaims]);
+  }, [isScaleDown, isScaleZero, operationTargets, scaleCount, getCurrentCount, getActiveResourceClaimCount, getUnusedClaims, getUsedClaims]);
 
   // ---------- CSV download ----------
 
@@ -945,24 +976,35 @@ const Ops: React.FC = () => {
           namespace: ws.metadata.namespace,
         })) as WorkshopProvisionList;
 
-        // Step 1: Patch count on all provisions (matches existing pattern)
-        for (const prov of provResp.items) {
+        const items = provResp.items;
+        const oldCounts = items.map(p => p.spec?.count ?? 0);
+        const activeCount = getActiveResourceClaimCount(ws);
+
+        // Step 1: Patch desired counts (single provision: same as WorkshopsItemServices;
+        // multiple provisions: proportional split so sum matches scaleCount)
+        if (items.length === 1) {
           await patchWorkshopProvision({
-            name: prov.metadata.name,
-            namespace: prov.metadata.namespace,
+            name: items[0].metadata.name,
+            namespace: items[0].metadata.namespace,
             patch: { spec: { count: scaleCount } },
           });
+        } else {
+          const newCounts = distributeProvisionCounts(oldCounts, scaleCount);
+          for (let i = 0; i < items.length; i++) {
+            await patchWorkshopProvision({
+              name: items[i].metadata.name,
+              namespace: items[i].metadata.namespace,
+              patch: { spec: { count: newCounts[i] } },
+            });
+          }
         }
 
-        // Step 2: For targeted scale-down, delete specific claims
-        const curCount = provResp.items.reduce((s, p) => s + (p.spec?.count ?? 0), 0);
-        const isDown = scaleCount < curCount;
-
-        if (isDown && scaleDownTarget !== 'random') {
+        // Step 2: Targeted deletes — match WorkshopsItemServices: remove (active − target) claims,
+        // not (specSum − target), so drift between spec and live RCs does not under-delete.
+        const toRemove = Math.max(0, activeCount - scaleCount);
+        if (scaleDownTarget !== 'random' && toRemove > 0) {
           const unused = getUnusedClaims(ws);
           const used = getUsedClaims(ws);
-          const toRemove = curCount - scaleCount;
-
           const prioritized = scaleDownTarget === 'unused'
             ? [...unused, ...used]
             : [...used, ...unused];
@@ -972,7 +1014,7 @@ const Ops: React.FC = () => {
             try {
               await deleteResourceClaim(rc);
               deletedClaims++;
-            } catch { /* count patch already applied — operator handles remainder */ }
+            } catch { /* operator may have already removed this claim */ }
           }
         }
 

@@ -1,7 +1,7 @@
 jest.mock('../api');
 import React from 'react';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
-import Ops from './Ops';
+import Ops, { distributeProvisionCounts } from './Ops';
 import { apiPaths, fetcher, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -638,6 +638,23 @@ describe('Ops Component', () => {
 
       (document.createElement as jest.Mock).mockRestore();
       delete (window.URL as any).createObjectURL;
+    });
+  });
+
+  describe('distributeProvisionCounts', () => {
+    test('returns empty for empty input', () => {
+      expect(distributeProvisionCounts([], 5)).toEqual([]);
+    });
+    test('single provision maps to newTotal', () => {
+      expect(distributeProvisionCounts([5], 3)).toEqual([3]);
+    });
+    test('two equal provisions split with sum equal to newTotal', () => {
+      const r = distributeProvisionCounts([2, 2], 3);
+      expect(r.reduce((a, b) => a + b, 0)).toBe(3);
+      expect(r).toEqual([2, 1]);
+    });
+    test('zeros when old sum is zero', () => {
+      expect(distributeProvisionCounts([0, 0], 5)).toEqual([0, 0]);
     });
   });
 
