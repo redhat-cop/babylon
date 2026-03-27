@@ -154,6 +154,21 @@ interface OperationTemplate {
   };
 }
 
+interface ShowroomHealthResult {
+  wsKey: string;
+  workshopDisplayName: string;
+  workshopName: string;
+  workshopNamespace: string;
+  assignmentName: string;
+  userName?: string;
+  showroomUrl: string;
+  healthzUrl: string;
+  status: 'healthy' | 'unhealthy' | 'error' | 'checking' | 'no-url';
+  statusCode?: number;
+  errorMsg?: string;
+  checkedAt?: string;
+}
+
 const COMMON_TIMEZONES = [
   { value: 'local', label: 'Local (browser)' },
   { value: 'UTC', label: 'UTC' },
@@ -661,6 +676,27 @@ const Ops: React.FC = () => {
   const [healthCheckTimeout, setHealthCheckTimeout] = useState(60);
   const [healthCheckRetries, setHealthCheckRetries] = useState(3);
 
+  // Showroom health check state
+  const [showroomHealthResults, setShowroomHealthResults] = useState<ShowroomHealthResult[]>([]);
+  const [showroomHealthRunning, setShowroomHealthRunning] = useState(false);
+  const [showroomHealthModalOpen, setShowroomHealthModalOpen] = useState(false);
+
+  // Showroom health summary per workshop key (derived from results)
+  const showroomSummaryByWsKey = useMemo(() => {
+    const map = new Map<string, { healthy: number; unhealthy: number; error: number; total: number; checking: number; noUrl: number }>();
+    for (const r of showroomHealthResults) {
+      const cur = map.get(r.wsKey) ?? { healthy: 0, unhealthy: 0, error: 0, total: 0, checking: 0, noUrl: 0 };
+      cur.total++;
+      if (r.status === 'healthy') cur.healthy++;
+      else if (r.status === 'unhealthy') cur.unhealthy++;
+      else if (r.status === 'error') cur.error++;
+      else if (r.status === 'checking') cur.checking++;
+      else if (r.status === 'no-url') cur.noUrl++;
+      map.set(r.wsKey, cur);
+    }
+    return map;
+  }, [showroomHealthResults]);
+
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [extStopLoading, setExtStopLoading] = useState(false);
@@ -1014,6 +1050,97 @@ const Ops: React.FC = () => {
     if (fail === 0) addAlert(AlertVariant.success, `Health check initiated for ${ok} workshop(s) (timeout: ${healthCheckTimeout}s, retries: ${healthCheckRetries})`);
     else addAlert(AlertVariant.danger, `Health check: ${ok} succeeded, ${fail} failed`);
   };
+
+  // ---------- Showroom Health Check Handler ----------
+
+  const handleShowroomHealthCheck = useCallback(async () => {
+    setShowroomHealthResults([]);
+    setShowroomHealthRunning(true);
+    setShowroomHealthModalOpen(true);
+
+    const newResults: ShowroomHealthResult[] = [];
+
+    for (const ws of operationTargets) {
+      const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
+      if (assignments.length === 0) {
+        newResults.push({
+          wsKey: wsKey(ws),
+          workshopDisplayName: displayName(ws),
+          workshopName: ws.metadata.name,
+          workshopNamespace: ws.metadata.namespace,
+          assignmentName: '',
+          userName: undefined,
+          showroomUrl: '',
+          healthzUrl: '',
+          status: 'no-url',
+          errorMsg: 'No user assignments',
+        });
+        continue;
+      }
+
+      for (const assignment of assignments) {
+        const showroomUrl = assignment.spec?.labUserInterface?.url;
+        const base = {
+          wsKey: wsKey(ws),
+          workshopDisplayName: displayName(ws),
+          workshopName: ws.metadata.name,
+          workshopNamespace: ws.metadata.namespace,
+          assignmentName: assignment.metadata.name,
+          userName: assignment.spec?.userName,
+          showroomUrl: showroomUrl || '',
+        };
+
+        if (!showroomUrl) {
+          newResults.push({ ...base, healthzUrl: '', status: 'no-url' });
+          continue;
+        }
+
+        let healthzUrl: string;
+        try {
+          const urlObj = new URL(showroomUrl);
+          healthzUrl = `${urlObj.origin}/healthz`;
+        } catch {
+          newResults.push({ ...base, healthzUrl: '', status: 'error', errorMsg: 'Invalid URL' });
+          continue;
+        }
+
+        newResults.push({ ...base, healthzUrl, status: 'checking' });
+      }
+    }
+
+    setShowroomHealthResults([...newResults]);
+
+    await Promise.all(
+      newResults.map(async (result, idx) => {
+        if (result.status !== 'checking') return;
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const resp = await fetch(result.healthzUrl, { signal: controller.signal, mode: 'cors' });
+          clearTimeout(timeoutId);
+          newResults[idx] = {
+            ...newResults[idx],
+            status: resp.ok ? 'healthy' : 'unhealthy',
+            statusCode: resp.status,
+            checkedAt: new Date().toISOString(),
+          };
+        } catch (err: any) {
+          newResults[idx] = {
+            ...newResults[idx],
+            status: 'error',
+            errorMsg: err.name === 'AbortError' ? 'Timeout (10s)' : 'Unreachable',
+            checkedAt: new Date().toISOString(),
+          };
+        }
+
+        setShowroomHealthResults([...newResults]);
+      }),
+    );
+
+    setShowroomHealthResults([...newResults]);
+    setShowroomHealthRunning(false);
+  }, [operationTargets, assignmentsByWorkshop]);
 
   // ---------- Scheduling Handlers ----------
 
@@ -1726,6 +1853,48 @@ const Ops: React.FC = () => {
                   </div>
                 </CardBody>
               </Card>
+
+              {/* Showroom Health Check */}
+              <Card isFullHeight>
+                <CardTitle>
+                  <Tooltip content="Check Showroom /healthz endpoint for every user instance across selected workshops. Shows per-workshop and per-user status.">
+                    <span><GlobeIcon className="ops-card-icon" /> Showroom Health</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Ping the <code>/healthz</code> endpoint on each user&apos;s Showroom instance.
+                    Results are shown per workshop and per user assignment.
+                  </p>
+                  {showroomHealthResults.length > 0 && !showroomHealthRunning && (() => {
+                    const healthy = showroomHealthResults.filter(r => r.status === 'healthy').length;
+                    const total = showroomHealthResults.filter(r => r.status !== 'no-url').length;
+                    const hasIssue = showroomHealthResults.some(r => r.status === 'unhealthy' || r.status === 'error');
+                    return (
+                      <div style={{ marginBottom: 8 }}>
+                        <Label
+                          color={hasIssue ? 'red' : 'green'}
+                          isCompact
+                          icon={hasIssue ? <ExclamationCircleIcon /> : <CheckCircleIcon />}
+                        >
+                          {healthy}/{total} healthy
+                        </Label>
+                        <Button variant="link" size="sm" style={{ marginLeft: 8 }} onClick={() => setShowroomHealthModalOpen(true)}>
+                          View details
+                        </Button>
+                      </div>
+                    );
+                  })()}
+                  <Button
+                    variant="secondary"
+                    onClick={handleShowroomHealthCheck}
+                    isLoading={showroomHealthRunning}
+                    isDisabled={anyLoading}
+                  >
+                    {showroomHealthResults.length > 0 ? 'Re-check Showroom Health' : 'Check Showroom Health'}
+                  </Button>
+                </CardBody>
+              </Card>
             </div>
 
             {/* Workshop detail table */}
@@ -1808,6 +1977,11 @@ const Ops: React.FC = () => {
                       <th>Auto-Stop</th>
                       <th>Auto-Destroy</th>
                       <th>Workshop URL</th>
+                      <th>
+                        <Tooltip content="Showroom /healthz status. Run 'Check Showroom Health' to populate.">
+                          <span>Showroom</span>
+                        </Tooltip>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1989,6 +2163,38 @@ const Ops: React.FC = () => {
                               </a>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
+                          <td onClick={e => e.stopPropagation()}>
+                            {(() => {
+                              let grpHealthy = 0, grpHealthTotal = 0, grpChecking = 0;
+                              for (const ws of group.items) {
+                                const s = showroomSummaryByWsKey.get(wsKey(ws));
+                                if (s) {
+                                  grpHealthy += s.healthy;
+                                  grpHealthTotal += s.healthy + s.unhealthy + s.error;
+                                  grpChecking += s.checking;
+                                }
+                              }
+                              if (grpChecking > 0) return (
+                                <span style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--color--text--subtle)' }}>
+                                  <InProgressIcon style={{ marginRight: 4 }} />checking…
+                                </span>
+                              );
+                              if (grpHealthTotal === 0) return <span className="ops-muted">&mdash;</span>;
+                              const hasIssue = grpHealthy < grpHealthTotal;
+                              return (
+                                <Tooltip content={`${grpHealthy} healthy, ${grpHealthTotal - grpHealthy} issues`}>
+                                  <Label
+                                    isCompact
+                                    color={hasIssue ? 'red' : 'green'}
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => setShowroomHealthModalOpen(true)}
+                                  >
+                                    {grpHealthy}/{grpHealthTotal}
+                                  </Label>
+                                </Tooltip>
+                              );
+                            })()}
+                          </td>
                         </tr>
                       );
 
@@ -2083,6 +2289,35 @@ const Ops: React.FC = () => {
                                   {workshopId}
                                 </a>
                               ) : <span className="ops-muted">&mdash;</span>}
+                            </td>
+                            <td>
+                              {(() => {
+                                const s = showroomSummaryByWsKey.get(wsKey(ws));
+                                if (!s) return <span className="ops-muted">&mdash;</span>;
+                                if (s.checking > 0) return (
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--color--text--subtle)' }}>
+                                    <InProgressIcon style={{ marginRight: 4 }} />checking…
+                                  </span>
+                                );
+                                const checkedTotal = s.healthy + s.unhealthy + s.error;
+                                if (checkedTotal === 0) {
+                                  return <span className="ops-muted" style={{ fontSize: '0.8rem' }}>no URLs</span>;
+                                }
+                                const hasIssue = s.healthy < checkedTotal;
+                                return (
+                                  <Tooltip content={`${s.healthy} healthy, ${s.unhealthy} unhealthy, ${s.error} errors`}>
+                                    <Label
+                                      isCompact
+                                      color={hasIssue ? 'red' : 'green'}
+                                      icon={hasIssue ? <ExclamationCircleIcon /> : <CheckCircleIcon />}
+                                      style={{ cursor: 'pointer' }}
+                                      onClick={() => setShowroomHealthModalOpen(true)}
+                                    >
+                                      {s.healthy}/{checkedTotal}
+                                    </Label>
+                                  </Tooltip>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );
@@ -2412,6 +2647,125 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="secondary" onClick={handleHealthCheck}>Run Health Check</Button>
           <Button variant="link" onClick={() => setShowHealthCheckConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Showroom Health Results Modal */}
+      <Modal
+        variant="large"
+        isOpen={showroomHealthModalOpen}
+        onClose={() => setShowroomHealthModalOpen(false)}
+        aria-labelledby="showroom-health-modal"
+      >
+        <ModalHeader title="Showroom Health Check Results" labelId="showroom-health-modal" />
+        <ModalBody>
+          {showroomHealthRunning && (
+            <Alert variant="info" isInline title="Health check in progress…" style={{ marginBottom: 16 }}>
+              Checking Showroom /healthz endpoints. Results appear as each check completes.
+            </Alert>
+          )}
+          {showroomHealthResults.length === 0 && !showroomHealthRunning && (
+            <p style={{ color: 'var(--pf-t--global--color--text--subtle)' }}>No results yet. Run the health check first.</p>
+          )}
+          {showroomHealthResults.length > 0 && (() => {
+            const healthy = showroomHealthResults.filter(r => r.status === 'healthy').length;
+            const unhealthy = showroomHealthResults.filter(r => r.status === 'unhealthy').length;
+            const errors = showroomHealthResults.filter(r => r.status === 'error').length;
+            const noUrl = showroomHealthResults.filter(r => r.status === 'no-url').length;
+            const checking = showroomHealthResults.filter(r => r.status === 'checking').length;
+            const total = showroomHealthResults.filter(r => r.status !== 'no-url').length;
+
+            const byWorkshop = new Map<string, { displayName: string; results: ShowroomHealthResult[] }>();
+            for (const r of showroomHealthResults) {
+              const entry = byWorkshop.get(r.wsKey) ?? { displayName: r.workshopDisplayName, results: [] };
+              entry.results.push(r);
+              byWorkshop.set(r.wsKey, entry);
+            }
+
+            return (
+              <>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                  <Label color="green" isCompact icon={<CheckCircleIcon />}>{healthy} healthy</Label>
+                  {unhealthy > 0 && <Label color="red" isCompact icon={<ExclamationCircleIcon />}>{unhealthy} unhealthy</Label>}
+                  {errors > 0 && <Label color="orange" isCompact icon={<ExclamationTriangleIcon />}>{errors} errors</Label>}
+                  {noUrl > 0 && <Label color="grey" isCompact>{noUrl} no URL</Label>}
+                  {checking > 0 && <Label color="blue" isCompact icon={<InProgressIcon />}>{checking} checking…</Label>}
+                  <Label color="blue" isCompact>{total} total checked</Label>
+                </div>
+
+                {Array.from(byWorkshop.entries()).map(([key, { displayName: wsDisplayName, results: wsResults }]) => {
+                  const wsHealthy = wsResults.filter(r => r.status === 'healthy').length;
+                  const wsTotal = wsResults.filter(r => r.status !== 'no-url').length;
+                  const wsHasIssue = wsHealthy < wsTotal && wsTotal > 0;
+                  return (
+                    <div key={key} style={{ marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <strong style={{ fontSize: '0.95rem' }}>{wsDisplayName}</strong>
+                        <code style={{ fontSize: '0.75rem', opacity: 0.6 }}>{key}</code>
+                        {wsTotal > 0 && (
+                          <Label isCompact color={wsHasIssue ? 'red' : 'green'}>
+                            {wsHealthy}/{wsTotal} healthy
+                          </Label>
+                        )}
+                      </div>
+                      <table className="pf-v6-c-table pf-m-compact" style={{ width: '100%' }}>
+                        <thead>
+                          <tr>
+                            <th>User</th>
+                            <th>Showroom URL</th>
+                            <th>Healthz URL</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wsResults.map((r, idx) => (
+                            <tr key={idx}>
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {r.userName || <span style={{ opacity: 0.5 }}>{r.assignmentName || '—'}</span>}
+                              </td>
+                              <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {r.showroomUrl ? (
+                                  <a href={r.showroomUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                                    <ExternalLinkAltIcon style={{ marginRight: 4 }} />{r.showroomUrl}
+                                  </a>
+                                ) : <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>—</span>}
+                              </td>
+                              <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {r.healthzUrl ? (
+                                  <a href={r.healthzUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem' }}>
+                                    {r.healthzUrl}
+                                  </a>
+                                ) : <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>—</span>}
+                              </td>
+                              <td>
+                                {r.status === 'healthy' && <Label isCompact color="green" icon={<CheckCircleIcon />}>Healthy</Label>}
+                                {r.status === 'unhealthy' && <Label isCompact color="red" icon={<ExclamationCircleIcon />}>Unhealthy {r.statusCode ? `(${r.statusCode})` : ''}</Label>}
+                                {r.status === 'error' && <Label isCompact color="orange" icon={<ExclamationTriangleIcon />}>Error</Label>}
+                                {r.status === 'checking' && <Label isCompact color="blue" icon={<InProgressIcon />}>Checking…</Label>}
+                                {r.status === 'no-url' && <Label isCompact color="grey">No URL</Label>}
+                              </td>
+                              <td style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                                {r.statusCode && `HTTP ${r.statusCode}`}
+                                {r.errorMsg && r.errorMsg}
+                                {r.checkedAt && ` · ${new Date(r.checkedAt).toLocaleTimeString()}`}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={handleShowroomHealthCheck} isLoading={showroomHealthRunning}>
+            {showroomHealthResults.length > 0 ? 'Re-run Check' : 'Run Check'}
+          </Button>
+          <Button variant="link" onClick={() => setShowroomHealthModalOpen(false)}>Close</Button>
         </ModalFooter>
       </Modal>
 
