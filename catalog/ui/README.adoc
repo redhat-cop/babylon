@@ -13,7 +13,7 @@ npm install && npm run start:dev
 
 == Local testing authentication
 
-For local runs (webpack dev server + catalog API on port 8001), use **`oc login`** (and the usual cluster context) so the API can use your OpenShift session. **Prefer this for local testing** rather than the browser OAuth sign-in flow.
+For local runs (webpack dev server + catalog API on port 8001), use **`oc login`** against the **babydev** OpenShift cluster so the API uses that kube context. **Prefer this for local testing** rather than the browser OAuth sign-in flow.
 
 == Development scripts
 

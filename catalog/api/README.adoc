@@ -14,14 +14,15 @@ pip install -r requirements.txt
 
 Commands each time to start:
 
-Login with `oc`, then start the local development server.
+Login with `oc` to the **babydev** cluster, then start the local development server.
 
 ---------------------------------
 . ~/virtualenv/babylon-catalog-api/bin/activate
 export BABYLON_NAMESPACE=babylon-catalog
 export ENVIRONMENT=development
 export INTERFACE_NAME=rhpds
+export PORT=8001
 python3 app.py
 ---------------------------------
 
-The ReactJS user interface is configured to proxy requests to the server on port 5000.
+The ReactJS dev server proxies `/api` and `/auth` to **port 8001** (set `PORT=8001` above to match).
