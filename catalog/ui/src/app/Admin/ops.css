@@ -58,6 +58,33 @@
   margin-bottom: 16px;
 }
 
+.ops-deploy-csv-bar--active {
+  border-color: var(--pf-t--global--color--status--info--default);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--info--default) 5%, var(--pf-t--global--background--color--secondary--default));
+}
+
+.ops-deploy-csv-panel {
+  margin-top: 4px;
+}
+
+.ops-deploy-csv-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+.ops-deploy-csv-table {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.ops-deploy-csv-table th,
+.ops-deploy-csv-table td {
+  white-space: nowrap;
+  padding: 6px 10px;
+}
+
 .ops-ns-breakdown {
   margin: 8px 0 0 20px;
   padding: 0;

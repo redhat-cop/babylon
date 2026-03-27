@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -51,12 +51,14 @@ import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
+import UploadIcon from '@patternfly/react-icons/dist/js/icons/upload-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 
 import {
+  apiFetch,
   apiPaths,
   dateToApiString,
   deleteResourceClaim,
@@ -206,6 +208,225 @@ function wsDetailPath(ws: Workshop): string {
   return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
+// ---------- Deploy Workshop from CSV – types & helpers ----------
+
+interface CsvScheduleRow {
+  ciName: string;
+  ciNamespace: string;
+  workshopTitle: string;
+  targetNamespace: string;
+  userCount: number;
+  enableWorkshopInterface: boolean;
+  startTime?: string;
+  stopTime?: string;
+  destroyTime?: string;
+  description?: string;
+  salesforceId?: string;
+  stage?: string;
+  multiuser?: boolean;
+  raw: Record<string, string>;
+}
+
+interface CsvDeployStatus {
+  state: 'pending' | 'deploying' | 'success' | 'error';
+  message?: string;
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseCsvBool(v: string): boolean {
+  return /^(true|yes|1)$/i.test(v.trim());
+}
+
+function parseCsvDate(v: string): string | undefined {
+  if (!v || v.trim() === '') return undefined;
+  const cleaned = v.trim();
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}T/.test(cleaned)) return cleaned;
+  // YYYY-MM-DD HH:MM -> ISO
+  const match = cleaned.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  if (match) return `${match[1]}T${match[2]}:00Z`;
+  return undefined;
+}
+
+function parseCsvRows(text: string): { rows: CsvScheduleRow[]; errors: string[] } {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '' && !l.trim().startsWith('#'));
+  if (lines.length < 2) return { rows: [], errors: ['CSV must have a header row and at least one data row'] };
+  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/[\s-]/g, '_'));
+  const rows: CsvScheduleRow[] = [];
+  const errors: string[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCsvLine(lines[i]);
+    const raw: Record<string, string> = {};
+    headers.forEach((h, idx) => { raw[h] = vals[idx] ?? ''; });
+    const ciName = raw['ci_name'] || raw['catalog_item'] || raw['catalog_item_name'] || '';
+    if (!ciName) { errors.push(`Row ${i}: missing ci_name`); continue; }
+    const userCount = parseInt(raw['user_count'] || raw['users'] || raw['seat_count'] || '1', 10);
+    const ciNamespace = raw['ci_namespace'] || raw['catalog_namespace'] || inferCatalogNamespace(ciName, raw['stage'] || raw['env'] || '');
+    rows.push({
+      ciName,
+      ciNamespace,
+      workshopTitle: raw['workshop_title'] || raw['title'] || ciName,
+      targetNamespace: raw['target_namespace'] || raw['namespace'] || '',
+      userCount: isNaN(userCount) ? 1 : userCount,
+      enableWorkshopInterface: parseCsvBool(raw['enable_workshop_interface'] || raw['workshop_interface'] || 'true'),
+      startTime: parseCsvDate(raw['start_time'] || raw['start']),
+      stopTime: parseCsvDate(raw['stop_time'] || raw['stop']),
+      destroyTime: parseCsvDate(raw['destroy_time'] || raw['destroy'] || raw['end_time']),
+      description: raw['description'] || raw['notes'] || '',
+      salesforceId: raw['salesforce_id'] || raw['sf_id'] || '',
+      stage: raw['stage'] || raw['env'] || '',
+      multiuser: parseCsvBool(raw['multi_user'] || raw['multiuser'] || 'false'),
+      raw,
+    });
+  }
+  return { rows, errors };
+}
+
+function inferCatalogNamespace(ciName: string, stage: string): string {
+  const env = stage || (ciName.endsWith('.prod') ? 'prod' : ciName.endsWith('.dev') ? 'dev' : ciName.endsWith('.test') ? 'test' : 'prod');
+  return `babylon-catalog-${env}`;
+}
+
+function generateK8sName(prefix: string): string {
+  const slug = prefix.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 42);
+  const rand = Math.random().toString(36).slice(2, 7);
+  return `${slug}-${rand}`;
+}
+
+async function deployWorkshopRow(row: CsvScheduleRow, targetNs: string): Promise<void> {
+  const wsName = generateK8sName(row.workshopTitle || row.ciName);
+  const ns = targetNs || row.targetNamespace;
+  if (!ns) throw new Error('No target namespace specified for deployment');
+
+  if (row.enableWorkshopInterface) {
+    // Create Workshop object
+    const workshop = {
+      apiVersion: 'babylon.gpte.redhat.com/v1',
+      kind: 'Workshop',
+      metadata: {
+        name: wsName,
+        namespace: ns,
+        annotations: {
+          [`${BABYLON_DOMAIN}/workshopUserRegistration`]: 'open',
+          ...(row.description ? { [`${BABYLON_DOMAIN}/description`]: row.description } : {}),
+        },
+        labels: {
+          ...(row.stage ? { [`${BABYLON_DOMAIN}/stage`]: row.stage } : {}),
+        },
+      },
+      spec: {
+        multiuser: row.multiuser ?? false,
+        openRegistration: true,
+        accessPassword: '',
+        description: row.description || '',
+        displayName: row.workshopTitle || row.ciName,
+        ...(row.stopTime ? { lifespan: { end: row.stopTime } } : {}),
+      },
+    };
+    const wsResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshops`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(workshop),
+    });
+    if (!wsResp.ok) {
+      const err = await wsResp.json().catch(() => ({}));
+      throw new Error(`Workshop creation failed: ${err.message || wsResp.statusText}`);
+    }
+
+    // Create WorkshopProvision
+    const provision = {
+      apiVersion: 'babylon.gpte.redhat.com/v1',
+      kind: 'WorkshopProvision',
+      metadata: {
+        name: wsName,
+        namespace: ns,
+        labels: { [`${BABYLON_DOMAIN}/workshop`]: wsName },
+      },
+      spec: {
+        catalogItem: { name: row.ciName, namespace: row.ciNamespace },
+        count: row.userCount,
+        workshopName: wsName,
+        parameters: [],
+      },
+    };
+    const wpResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshopprovisions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(provision),
+    });
+    if (!wpResp.ok) {
+      const err = await wpResp.json().catch(() => ({}));
+      throw new Error(`WorkshopProvision creation failed: ${err.message || wpResp.statusText}`);
+    }
+  } else {
+    // Create ResourceClaim
+    const rc = {
+      apiVersion: 'poolboy.gpte.redhat.com/v1',
+      kind: 'ResourceClaim',
+      metadata: {
+        name: wsName,
+        namespace: ns,
+        annotations: {
+          ...(row.description ? { [`${DEMO_DOMAIN}/description`]: row.description } : {}),
+          ...(row.salesforceId ? { [`${BABYLON_DOMAIN}/salesforce-id`]: row.salesforceId } : {}),
+        },
+        labels: {
+          ...(row.stage ? { [`${BABYLON_DOMAIN}/stage`]: row.stage } : {}),
+        },
+      },
+      spec: {
+        resources: [{
+          provider: {
+            apiVersion: 'poolboy.gpte.redhat.com/v1',
+            kind: 'ResourceProvider',
+            name: 'babylon',
+            namespace: 'poolboy',
+          },
+          template: {
+            apiVersion: 'babylon.gpte.redhat.com/v1',
+            kind: 'AnarchySubject',
+            metadata: { annotations: { [`${BABYLON_DOMAIN}/catalogItemName`]: row.ciName, [`${BABYLON_DOMAIN}/catalogItemNamespace`]: row.ciNamespace } },
+            spec: {
+              vars: {
+                desired_state: 'started',
+                job_vars: { user_count: row.userCount },
+              },
+            },
+          },
+        }],
+      },
+    };
+    const rcResp = await apiFetch(`/apis/poolboy.gpte.redhat.com/v1/namespaces/${ns}/resourceclaims`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rc),
+    });
+    if (!rcResp.ok) {
+      const err = await rcResp.json().catch(() => ({}));
+      throw new Error(`ResourceClaim creation failed: ${err.message || rcResp.statusText}`);
+    }
+  }
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
@@ -254,6 +475,50 @@ const Ops: React.FC = () => {
   }, [namespace, multiNsMode, extraNamespaces]);
 
   const isMultiNs = activeNamespaces.length > 1;
+
+  // ---------- Deploy Workshop from CSV ----------
+
+  const [deployCSVMode, setDeployCSVMode] = useState(false);
+  const [csvRows, setCsvRows] = useState<CsvScheduleRow[]>([]);
+  const [csvParseErrors, setCsvParseErrors] = useState<string[]>([]);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvDeployNs, setCsvDeployNs] = useState('');
+  const [csvDeployStatus, setCsvDeployStatus] = useState<Record<number, CsvDeployStatus>>({});
+  const [csvDeploying, setCsvDeploying] = useState(false);
+  const csvFileRef = useRef<HTMLInputElement>(null);
+
+  const handleCsvFile = useCallback((file: File) => {
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const { rows, errors } = parseCsvRows(text);
+      setCsvRows(rows);
+      setCsvParseErrors(errors);
+      setCsvDeployStatus({});
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const handleDeployAll = useCallback(async () => {
+    if (csvRows.length === 0 || csvDeploying) return;
+    const targetNs = csvDeployNs || namespace || '';
+    setCsvDeploying(true);
+    const initialStatus: Record<number, CsvDeployStatus> = {};
+    csvRows.forEach((_, i) => { initialStatus[i] = { state: 'pending' }; });
+    setCsvDeployStatus(initialStatus);
+    for (let i = 0; i < csvRows.length; i++) {
+      setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'deploying' } }));
+      try {
+        await deployWorkshopRow(csvRows[i], targetNs);
+        setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'success' } }));
+      } catch (err: any) {
+        setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'error', message: err?.message || 'Unknown error' } }));
+      }
+    }
+    setCsvDeploying(false);
+    addAlert(AlertVariant.success, 'Deploy from CSV completed', 'Check individual row status for details.');
+  }, [csvRows, csvDeploying, csvDeployNs, namespace, addAlert]);
 
   const enableMultiNs = useCallback(() => {
     setMultiNsMode(true);
@@ -1185,6 +1450,132 @@ const Ops: React.FC = () => {
                     {ns}
                   </Label>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Deploy Workshop from CSV toggle */}
+        {isAdmin && (
+          <div className={`ops-multi-ns-bar ${deployCSVMode ? 'ops-deploy-csv-bar--active' : ''}`} style={{ marginTop: deployCSVMode ? 0 : undefined }}>
+            <Split hasGutter style={{ alignItems: 'center' }}>
+              <SplitItem>
+                <Tooltip content="Upload a CSV file to deploy multiple workshops at once. The CSV must include at minimum a ci_name column.">
+                  <Switch
+                    id="deploy-csv-toggle"
+                    label="Deploy Workshop from CSV"
+                    isChecked={deployCSVMode}
+                    onChange={(_e, checked) => {
+                      setDeployCSVMode(checked);
+                      if (!checked) { setCsvRows([]); setCsvParseErrors([]); setCsvFileName(''); setCsvDeployStatus({}); }
+                    }}
+                  />
+                </Tooltip>
+              </SplitItem>
+            </Split>
+
+            {deployCSVMode && (
+              <div className="ops-deploy-csv-panel">
+                {/* File picker row */}
+                <Split hasGutter style={{ alignItems: 'center', marginTop: 12 }}>
+                  <SplitItem>
+                    <input
+                      ref={csvFileRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      style={{ display: 'none' }}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCsvFile(f); }}
+                    />
+                    <Button
+                      variant="secondary"
+                      icon={<UploadIcon />}
+                      onClick={() => csvFileRef.current?.click()}
+                    >
+                      {csvFileName ? `Change file (${csvFileName})` : 'Upload CSV'}
+                    </Button>
+                  </SplitItem>
+                  {csvRows.length > 0 && (
+                    <SplitItem>
+                      <TextInput
+                        aria-label="Override deploy namespace"
+                        placeholder={`Target namespace (default: ${namespace})`}
+                        value={csvDeployNs}
+                        onChange={(_e, v) => setCsvDeployNs(v)}
+                        style={{ minWidth: 300 }}
+                      />
+                    </SplitItem>
+                  )}
+                  {csvRows.length > 0 && (
+                    <SplitItem>
+                      <Button
+                        variant="primary"
+                        isLoading={csvDeploying}
+                        isDisabled={csvDeploying}
+                        onClick={handleDeployAll}
+                      >
+                        Deploy All ({csvRows.length})
+                      </Button>
+                    </SplitItem>
+                  )}
+                </Split>
+
+                {/* Parse errors */}
+                {csvParseErrors.length > 0 && (
+                  <Alert variant="warning" isInline title="CSV parse warnings" style={{ marginTop: 8 }}>
+                    <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {csvParseErrors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  </Alert>
+                )}
+
+                {/* Preview / status table */}
+                {csvRows.length > 0 && (
+                  <div className="ops-deploy-csv-table-wrap">
+                    <table className="pf-v6-c-table pf-m-compact pf-m-grid-md ops-deploy-csv-table">
+                      <thead>
+                        <tr>
+                          <th>Workshop Title</th>
+                          <th>Catalog Item</th>
+                          <th>CI Namespace</th>
+                          <th>Users</th>
+                          <th>Workshop UI</th>
+                          <th>Stop</th>
+                          <th>Destroy</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvRows.map((row, idx) => {
+                          const st = csvDeployStatus[idx];
+                          return (
+                            <tr key={idx}>
+                              <td>{row.workshopTitle}</td>
+                              <td><code>{row.ciName}</code></td>
+                              <td><code>{row.ciNamespace}</code></td>
+                              <td>{row.userCount}</td>
+                              <td>{row.enableWorkshopInterface ? 'Yes' : 'No'}</td>
+                              <td>{row.stopTime ? new Date(row.stopTime).toLocaleString() : '—'}</td>
+                              <td>{row.destroyTime ? new Date(row.destroyTime).toLocaleString() : '—'}</td>
+                              <td>
+                                {!st && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>—</span>}
+                                {st?.state === 'pending' && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>Queued</span>}
+                                {st?.state === 'deploying' && <><InProgressIcon style={{ marginRight: 4 }} />Deploying…</>}
+                                {st?.state === 'success' && <><CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" style={{ marginRight: 4 }} />Deployed</>}
+                                {st?.state === 'error' && (
+                                  <Tooltip content={st.message || 'Error'}>
+                                    <span style={{ color: 'var(--pf-t--global--color--status--danger--default)', cursor: 'help' }}>
+                                      <ExclamationCircleIcon style={{ marginRight: 4 }} />Failed
+                                    </span>
+                                  </Tooltip>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
