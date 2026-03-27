@@ -217,6 +217,7 @@ interface CsvScheduleRow {
   ciName: string;
   ciNamespace: string;
   orderUrl: string;
+  targetNamespace: string;    // from csv column; may be empty — fallback to global default
   userCount: number;
   deployCount: number;
   mode: string;
@@ -309,6 +310,7 @@ function parseCsvRows(text: string): { rows: CsvScheduleRow[]; errors: string[] 
       ciName,
       ciNamespace,
       orderUrl,
+      targetNamespace: raw['target_namespace'] || raw['namespace'] || raw['deploy_namespace'] || '',
       userCount: isNaN(userCount) ? 1 : userCount,
       deployCount: isNaN(deployCount) ? userCount : deployCount,
       mode: raw['mode'] || '',
@@ -451,7 +453,8 @@ const Ops: React.FC = () => {
   const [csvRows, setCsvRows] = useState<CsvScheduleRow[]>([]);
   const [csvParseErrors, setCsvParseErrors] = useState<string[]>([]);
   const [csvFileName, setCsvFileName] = useState('');
-  const [csvDeployNs, setCsvDeployNs] = useState('');
+  const [csvDefaultNs, setCsvDefaultNs] = useState('');          // global fallback namespace
+  const [csvRowNs, setCsvRowNs] = useState<Record<number, string>>({});  // per-row overrides
   const [csvDeployStatus, setCsvDeployStatus] = useState<Record<number, CsvDeployStatus>>({});
   const [csvDeploying, setCsvDeploying] = useState(false);
   const csvFileRef = useRef<HTMLInputElement>(null);
@@ -465,21 +468,26 @@ const Ops: React.FC = () => {
       setCsvRows(rows);
       setCsvParseErrors(errors);
       setCsvDeployStatus({});
+      // pre-populate per-row namespaces from CSV column if present
+      const initNs: Record<number, string> = {};
+      rows.forEach((r, i) => { if (r.targetNamespace) initNs[i] = r.targetNamespace; });
+      setCsvRowNs(initNs);
     };
     reader.readAsText(file);
   }, []);
 
   const handleDeployAll = useCallback(async () => {
     if (csvRows.length === 0 || csvDeploying) return;
-    const targetNs = csvDeployNs || namespace || '';
     setCsvDeploying(true);
     const initialStatus: Record<number, CsvDeployStatus> = {};
     csvRows.forEach((_, i) => { initialStatus[i] = { state: 'pending' }; });
     setCsvDeployStatus(initialStatus);
     for (let i = 0; i < csvRows.length; i++) {
+      // per-row namespace > global default > current project namespace
+      const rowNs = csvRowNs[i] || csvDefaultNs || namespace || '';
       setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'deploying' } }));
       try {
-        await deployWorkshopRow(csvRows[i], targetNs);
+        await deployWorkshopRow(csvRows[i], rowNs);
         setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'success' } }));
       } catch (err: any) {
         setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'error', message: err?.message || 'Unknown error' } }));
@@ -487,7 +495,7 @@ const Ops: React.FC = () => {
     }
     setCsvDeploying(false);
     addAlert(AlertVariant.success, 'Deploy from CSV completed', 'Check individual row status for details.');
-  }, [csvRows, csvDeploying, csvDeployNs, namespace, addAlert]);
+  }, [csvRows, csvDeploying, csvRowNs, csvDefaultNs, namespace, addAlert]);
 
   const enableMultiNs = useCallback(() => {
     setMultiNsMode(true);
@@ -1436,7 +1444,7 @@ const Ops: React.FC = () => {
                     isChecked={deployCSVMode}
                     onChange={(_e, checked) => {
                       setDeployCSVMode(checked);
-                      if (!checked) { setCsvRows([]); setCsvParseErrors([]); setCsvFileName(''); setCsvDeployStatus({}); }
+                      if (!checked) { setCsvRows([]); setCsvParseErrors([]); setCsvFileName(''); setCsvDeployStatus({}); setCsvRowNs({}); }
                     }}
                   />
                 </Tooltip>
@@ -1465,13 +1473,15 @@ const Ops: React.FC = () => {
                   </SplitItem>
                   {csvRows.length > 0 && (
                     <SplitItem>
-                      <TextInput
-                        aria-label="Override deploy namespace"
-                        placeholder={`Target namespace (default: ${namespace})`}
-                        value={csvDeployNs}
-                        onChange={(_e, v) => setCsvDeployNs(v)}
-                        style={{ minWidth: 300 }}
-                      />
+                      <Tooltip content="Default target namespace for rows that don't specify their own. Each row can override this individually in the table below.">
+                        <TextInput
+                          aria-label="Default deploy namespace"
+                          placeholder={`Default namespace (fallback: ${namespace})`}
+                          value={csvDefaultNs}
+                          onChange={(_e, v) => setCsvDefaultNs(v)}
+                          style={{ minWidth: 300 }}
+                        />
+                      </Tooltip>
                     </SplitItem>
                   )}
                   {csvRows.length > 0 && (
@@ -1508,11 +1518,29 @@ const Ops: React.FC = () => {
                           <th>Session</th>
                           <th>Catalog Item</th>
                           <th>CI Namespace</th>
-                          <th>Users</th>
-                          <th>Deploy&nbsp;#</th>
+                          <th>
+                            <Tooltip content="Users per instance (seats each deployed instance serves).">
+                              <span>Users/Inst</span>
+                            </Tooltip>
+                          </th>
+                          <th>
+                            <Tooltip content="Number of instances to deploy (WorkshopProvision count). Per Attendee = 1 instance per user. Shared = 1 instance for all. Multi Asset (Nx) = N instances.">
+                              <span>Instances</span>
+                            </Tooltip>
+                          </th>
+                          <th>
+                            <Tooltip content="Total seats = Users/Inst × Instances.">
+                              <span>Total Seats</span>
+                            </Tooltip>
+                          </th>
                           <th>Mode</th>
                           <th>Cloud</th>
                           <th>Deploy On (UTC)</th>
+                          <th>
+                            <Tooltip content="Target namespace for this row. Overrides the global default above. Required if no default is set.">
+                              <span>Target Namespace <span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>*</span></span>
+                            </Tooltip>
+                          </th>
                           <th>Status</th>
                         </tr>
                       </thead>
@@ -1530,11 +1558,33 @@ const Ops: React.FC = () => {
                                   : <Tooltip content="No Order URL — row will be skipped during deploy"><span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>No Order URL</span></Tooltip>}
                               </td>
                               <td><code>{row.ciNamespace || '—'}</code></td>
-                              <td>{row.userCount}</td>
+                              {/* Users/Inst: Per Attendee = 1 per instance; Shared/Multi Asset = userCount per instance */}
+                              <td>{/per.attendee/i.test(row.mode) ? 1 : row.userCount}</td>
                               <td>{row.deployCount}</td>
-                              <td>{row.mode || '—'}</td>
+                              {/* Total Seats: Per Attendee = deployCount (1×each); Multi Asset = userCount×deployCount; Shared = userCount */}
+                              <td><strong>{/per.attendee/i.test(row.mode) ? row.deployCount : row.userCount * row.deployCount}</strong></td>
+                              <td>
+                                <Tooltip content={
+                                  /per.attendee/i.test(row.mode) ? `1 instance per user — ${row.deployCount} attendees each get a dedicated environment` :
+                                  /shared/i.test(row.mode) ? `1 shared instance — ${row.userCount} users share the same environment` :
+                                  /multi.asset/i.test(row.mode) ? `${row.deployCount} instances × ${row.userCount} users each = ${row.userCount * row.deployCount} total seats` :
+                                  row.mode
+                                }>
+                                  <span>{row.mode || '—'}</span>
+                                </Tooltip>
+                              </td>
                               <td>{row.cloud || '—'}</td>
                               <td style={{ whiteSpace: 'nowrap' }}>{row.deployOn ? new Date(row.deployOn).toLocaleString() : '—'}</td>
+                              <td>
+                                <TextInput
+                                  aria-label={`Target namespace for ${row.labCode}`}
+                                  placeholder={csvDefaultNs || namespace || 'namespace…'}
+                                  value={csvRowNs[idx] ?? ''}
+                                  onChange={(_e, v) => setCsvRowNs(prev => ({ ...prev, [idx]: v }))}
+                                  style={{ minWidth: 180, fontSize: '0.8rem' }}
+                                  isDisabled={csvDeploying}
+                                />
+                              </td>
                               <td>
                                 {!st && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>—</span>}
                                 {st?.state === 'pending' && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>Queued</span>}
