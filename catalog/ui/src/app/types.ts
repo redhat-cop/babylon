@@ -722,7 +722,7 @@ export type CostTracker = {
 
 export type Nullable<T> = T | null;
 
-export type IAppRouteAccessControl = 'admin';
+export type IAppRouteAccessControl = 'admin' | 'ops-admin';
 export type IAppRoute = {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   component: React.LazyExoticComponent<React.FC<any>>;
