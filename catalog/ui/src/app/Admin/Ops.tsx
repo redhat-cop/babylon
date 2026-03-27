@@ -64,6 +64,7 @@ import {
   lockWorkshop,
   patchWorkshop,
   patchWorkshopProvision,
+  scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
 import {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
@@ -860,21 +861,28 @@ const Ops: React.FC = () => {
     if (!showNoAutostopConfirm) { setShowNoAutostopConfirm(true); return; }
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
-    let ok = 0, skip = 0, fail = 0;
+    const farFuture = new Date(Date.now() + 365 * 24 * 3600_000);
+    let ok = 0, fail = 0;
     for (const ws of operationTargets) {
-      if (!ws.spec?.actionSchedule?.stop) { skip++; ok++; continue; }
       try {
         await patchWorkshop({
           name: ws.metadata.name,
           namespace: ws.metadata.namespace,
-          jsonPatch: [{ op: 'remove', path: '/spec/actionSchedule/stop' }],
+          patch: { spec: { actionSchedule: { stop: dateToApiString(farFuture) } } },
         });
+        const rcResp = await fetcher(apiPaths.RESOURCE_CLAIMS({
+          namespace: ws.metadata.namespace,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
+          limit: 500,
+        })) as ResourceClaimList;
+        const liveRCs = (rcResp?.items || []).filter(rc => !rc.metadata?.deletionTimestamp);
+        await Promise.all(liveRCs.map(rc => scheduleStopForAllResourcesInResourceClaim(rc, farFuture)));
         ok++;
       } catch { fail++; }
     }
     setNoAutostopLoading(false);
     mutateWorkshops();
-    if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s)${skip > 0 ? ` (${skip} already had no auto-stop)` : ''}`);
+    if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s) — stop pushed to ~1 year`);
     else addAlert(AlertVariant.danger, `Disable auto-stop: ${ok} succeeded, ${fail} failed`);
   };
 
