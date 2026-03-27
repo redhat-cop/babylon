@@ -723,3 +723,60 @@ a.ops-ws-meta:hover {
   background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
   border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
 }
+
+/* ============================================================
+   Seat capacity color coding
+   ============================================================ */
+
+.ops-seats-filled {
+  font-weight: 700;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ops-seats-active {
+  color: var(--pf-t--global--color--status--success--default);
+}
+
+.ops-seats-high {
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ops-seats-full {
+  color: var(--pf-t--global--color--status--danger--default);
+}
+
+/* ============================================================
+   Clickable stats (Failed card)
+   ============================================================ */
+
+.ops-stat-clickable {
+  cursor: pointer;
+  border-radius: var(--pf-t--global--border--radius--small);
+  transition: background 0.15s;
+}
+
+.ops-stat-clickable:hover {
+  background: color-mix(in srgb, var(--pf-t--global--color--status--danger--default) 10%, transparent);
+}
+
+.ops-stat-clickable:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--brand--default);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Scale-down target selector
+   ============================================================ */
+
+.ops-scale-target-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.ops-scale-target-select {
+  max-width: 320px;
+  font-size: 0.85rem;
+}

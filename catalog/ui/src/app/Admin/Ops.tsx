@@ -72,6 +72,7 @@ import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import {
   apiPaths,
   dateToApiString,
+  deleteResourceClaim,
   fetcher,
   lockWorkshop,
   patchWorkshop,
@@ -653,6 +654,7 @@ const Ops: React.FC = () => {
   const [extDestroyDays, setExtDestroyDays] = useState(0);
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [scaleCount, setScaleCount] = useState(5);
+  const [scaleDownTarget, setScaleDownTarget] = useState<'random' | 'unused' | 'used'>('unused');
   const [restartStrategy, setRestartStrategy] = useState<'graceful' | 'immediate'>('graceful');
   const [restartDelay, setRestartDelay] = useState(30);
   const [cloneNamePrefix, setCloneNamePrefix] = useState('');
@@ -710,6 +712,41 @@ const Ops: React.FC = () => {
   const scaleNeedsConfirmText = isScaleZero || isScaleDown;
   const scaleConfirmWord = isScaleZero ? 'SCALE-TO-ZERO' : 'SCALE-DOWN';
   const scaleConfirmValid = !scaleNeedsConfirmText || scaleConfirmText === scaleConfirmWord;
+
+  const getUnusedClaims = useCallback((ws: Workshop): ResourceClaim[] => {
+    const claims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
+    const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
+    return claims
+      .filter(rc => !rc.metadata.deletionTimestamp)
+      .filter(rc => !assignments.some(
+        a => a.spec.resourceClaimName === rc.metadata.name && a.spec.assignment?.email,
+      ));
+  }, [resourceClaimsByWorkshop, assignmentsByWorkshop]);
+
+  const getUsedClaims = useCallback((ws: Workshop): ResourceClaim[] => {
+    const claims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
+    const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
+    return claims
+      .filter(rc => !rc.metadata.deletionTimestamp)
+      .filter(rc => assignments.some(
+        a => a.spec.resourceClaimName === rc.metadata.name && a.spec.assignment?.email,
+      ));
+  }, [resourceClaimsByWorkshop, assignmentsByWorkshop]);
+
+  const scaleDownUsageInfo = useMemo(() => {
+    if (!isScaleDown && !isScaleZero) return null;
+    let totalToRemove = 0;
+    let usedInScope = 0;
+    let unusedInScope = 0;
+    for (const ws of operationTargets) {
+      const cur = getCurrentCount(ws);
+      if (cur === null || scaleCount >= cur) continue;
+      totalToRemove += cur - scaleCount;
+      unusedInScope += getUnusedClaims(ws).length;
+      usedInScope += getUsedClaims(ws).length;
+    }
+    return { totalToRemove, usedInScope, unusedInScope };
+  }, [isScaleDown, isScaleZero, operationTargets, scaleCount, getCurrentCount, getUnusedClaims, getUsedClaims]);
 
   // ---------- CSV download ----------
 
@@ -900,13 +937,15 @@ const Ops: React.FC = () => {
     setShowScaleConfirm(false);
     setScaleConfirmText('');
     setScaleLoading(true);
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, deletedClaims = 0;
     for (const ws of operationTargets) {
       try {
         const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
           workshopName: ws.metadata.name,
           namespace: ws.metadata.namespace,
         })) as WorkshopProvisionList;
+
+        // Step 1: Patch count on all provisions (matches existing pattern)
         for (const prov of provResp.items) {
           await patchWorkshopProvision({
             name: prov.metadata.name,
@@ -914,14 +953,40 @@ const Ops: React.FC = () => {
             patch: { spec: { count: scaleCount } },
           });
         }
+
+        // Step 2: For targeted scale-down, delete specific claims
+        const curCount = provResp.items.reduce((s, p) => s + (p.spec?.count ?? 0), 0);
+        const isDown = scaleCount < curCount;
+
+        if (isDown && scaleDownTarget !== 'random') {
+          const unused = getUnusedClaims(ws);
+          const used = getUsedClaims(ws);
+          const toRemove = curCount - scaleCount;
+
+          const prioritized = scaleDownTarget === 'unused'
+            ? [...unused, ...used]
+            : [...used, ...unused];
+
+          const toDelete = prioritized.slice(0, toRemove);
+          for (const rc of toDelete) {
+            try {
+              await deleteResourceClaim(rc);
+              deletedClaims++;
+            } catch { /* count patch already applied — operator handles remainder */ }
+          }
+        }
+
         ok++;
       } catch { fail++; }
     }
     setScaleLoading(false);
     mutateWorkshops();
     mutateProvisions();
-    if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
-    else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
+    const targetLabel = scaleDownTarget !== 'random' && deletedClaims > 0
+      ? ` (${deletedClaims} ${scaleDownTarget} instance${deletedClaims !== 1 ? 's' : ''} removed first)`
+      : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances${targetLabel}`);
+    else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed${targetLabel}`);
   };
 
   const handleRestart = async () => {
@@ -1402,7 +1467,15 @@ const Ops: React.FC = () => {
               </div>
               <div className="ops-stat-divider" />
               <div className="ops-stat">
-                <span className="ops-stat-value">{summary.seatsAssigned} <span className="ops-stat-of">/ {summary.seatsTotal}</span></span>
+                <span className="ops-stat-value">
+                  <span className={`ops-seats-filled ${
+                    summary.seatsTotal === 0 ? '' :
+                    summary.seatsAssigned >= summary.seatsTotal ? 'ops-seats-full' :
+                    summary.seatsAssigned / summary.seatsTotal >= 0.75 ? 'ops-seats-high' :
+                    summary.seatsAssigned > 0 ? 'ops-seats-active' : ''
+                  }`}>{summary.seatsAssigned}</span>
+                  {' '}<span className="ops-stat-of">/ {summary.seatsTotal}</span>
+                </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
               <div className="ops-stat-divider" />
@@ -1413,10 +1486,31 @@ const Ops: React.FC = () => {
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
-                  <div className="ops-stat ops-stat-attention">
-                    <span className="ops-stat-value">{summary.failedCount}</span>
-                    <span className="ops-stat-label">Failed</span>
-                  </div>
+                  <Tooltip content={
+                    <div>
+                      {effectiveTargets.filter(ws => getFailedCount(ws) > 0).map(ws => {
+                        const progress = getProvisionProgress(ws);
+                        return (
+                          <div key={wsKey(ws)} style={{ marginBottom: 4 }}>
+                            <strong>{displayName(ws)}</strong>: {getFailedCount(ws)} failed
+                            {progress ? ` of ${progress.desired} (${progress.claimed} claimed)` : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  }>
+                    <div className="ops-stat ops-stat-attention ops-stat-clickable"
+                      onClick={() => {
+                        const failedKeys = new Set(
+                          effectiveTargets.filter(ws => getFailedCount(ws) > 0).map(ws => wsKey(ws))
+                        );
+                        setSelectedWs(failedKeys);
+                      }}
+                      role="button" tabIndex={0}>
+                      <span className="ops-stat-value">{summary.failedCount}</span>
+                      <span className="ops-stat-label">Failed</span>
+                    </div>
+                  </Tooltip>
                 </>
               )}
               <div className="ops-stat-divider" />
@@ -1577,6 +1671,27 @@ const Ops: React.FC = () => {
                   {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
                   {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
                   {scaleAnalysis.same > 0 && <Label color="grey" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.same} no change</Label>}
+                  {(isScaleDown || isScaleZero) && (
+                    <div className="ops-scale-target-row">
+                      <label htmlFor="scale-target" style={{ fontWeight: 600, fontSize: '0.85rem' }}>Remove preference:</label>
+                      <FormSelect
+                        id="scale-target"
+                        value={scaleDownTarget}
+                        onChange={(_e, val) => setScaleDownTarget(val as 'random' | 'unused' | 'used')}
+                        className="ops-scale-target-select"
+                        aria-label="Scale down target preference"
+                      >
+                        <FormSelectOption value="unused" label="Unused instances first (safest)" />
+                        <FormSelectOption value="random" label="Random (default operator behavior)" />
+                        <FormSelectOption value="used" label="Used instances first (dangerous)" />
+                      </FormSelect>
+                      {scaleDownUsageInfo && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                          {scaleDownUsageInfo.unusedInScope} unused, {scaleDownUsageInfo.usedInScope} used in scope
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div style={{ marginTop: 12 }}>
                     <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
                       onClick={openScaleConfirm}
@@ -1950,7 +2065,13 @@ const Ops: React.FC = () => {
                                 <strong>{mwNumberSeats}</strong>
                               </Tooltip>
                             ) : grpSeatsTotal > 0 ? (
-                              <span><strong>{grpSeatsAssigned}</strong> / {grpSeatsTotal}</span>
+                              <span>
+                                <strong className={
+                                  grpSeatsAssigned >= grpSeatsTotal ? 'ops-seats-full' :
+                                  grpSeatsAssigned / grpSeatsTotal >= 0.75 ? 'ops-seats-high' :
+                                  grpSeatsAssigned > 0 ? 'ops-seats-active' : ''
+                                }>{grpSeatsAssigned}</strong> / {grpSeatsTotal}
+                              </span>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                           <td>
@@ -2063,7 +2184,13 @@ const Ops: React.FC = () => {
                             <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
                               {seats ? (
-                                <span><strong>{seats.assigned}</strong> / {seats.total}</span>
+                                <span>
+                                  <strong className={
+                                    seats.assigned >= seats.total ? 'ops-seats-full' :
+                                    seats.assigned / seats.total >= 0.75 ? 'ops-seats-high' :
+                                    seats.assigned > 0 ? 'ops-seats-active' : ''
+                                  }>{seats.assigned}</strong> / {seats.total}
+                                </span>
                               ) : <span className="ops-muted">&mdash;</span>}
                             </td>
                             <td></td>
@@ -2282,6 +2409,23 @@ const Ops: React.FC = () => {
           )}
           {isScaleDown && (
             <>
+              {scaleDownTarget !== 'random' && scaleDownUsageInfo && (
+                <Alert
+                  variant={scaleDownTarget === 'used' ? 'danger' : 'info'}
+                  isInline
+                  title={`Targeting: ${scaleDownTarget === 'unused' ? 'unused instances first (safest)' : 'used instances first (DANGEROUS)'}`}
+                  style={{ marginTop: 12 }}
+                >
+                  {scaleDownUsageInfo.unusedInScope} unused and {scaleDownUsageInfo.usedInScope} used instances detected.
+                  {scaleDownTarget === 'unused' && scaleDownUsageInfo.totalToRemove > scaleDownUsageInfo.unusedInScope && (
+                    <><br /><strong>Warning:</strong> Not enough unused instances to fulfil the reduction &mdash;
+                    {scaleDownUsageInfo.totalToRemove - scaleDownUsageInfo.unusedInScope} used instance(s) may also be removed.</>
+                  )}
+                  {scaleDownTarget === 'used' && (
+                    <><br /><strong>Students on these instances will lose access immediately.</strong></>
+                  )}
+                </Alert>
+              )}
               <Alert variant="warning" isInline title="Scaling down will reduce running instances" style={{ marginTop: 12 }}>
                 Students on removed instances will lose access. This cannot be undone.
               </Alert>
