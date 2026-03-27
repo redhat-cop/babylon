@@ -17,7 +17,6 @@ import {
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
-  Tooltip,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
@@ -169,14 +168,12 @@ const Header: React.FC<{
           <ToolbarGroup variant="action-group-plain">
             {isAdmin ? (
               <ToolbarItem>
-                <Tooltip content="Dark mode (beta)">
-                  <MenuToggle
-                    aria-label="Toggle dark mode (beta)"
-                    variant="plain"
-                    onClick={toggleDarkMode}
-                    icon={darkMode ? <SunIcon /> : <MoonIcon />}
-                  />
-                </Tooltip>
+                <MenuToggle
+                  aria-label="Toggle dark mode (beta)"
+                  variant="plain"
+                  onClick={toggleDarkMode}
+                  icon={darkMode ? <SunIcon /> : <MoonIcon />}
+                />
               </ToolbarItem>
             ) : null}
             <ToolbarItem>
