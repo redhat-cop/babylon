@@ -21,7 +21,15 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { incidents_enabled, ratings_enabled, multiworkshops_enabled, partner_connect_header_enabled } = useInterfaceConfig();
-  const { isAdmin, userNamespace } = useSession().getSession();
+  const { isAdmin, email, userNamespace } = useSession().getSession();
+
+  // Restrict Ops access to specific users
+  const ALLOWED_OPS_EMAILS = [
+    'jdisrael@redhat.com',
+    'bbethell@redhat.com',
+    'acasanov@redhat.com'
+  ];
+  const hasOpsAccess = isAdmin && ALLOWED_OPS_EMAILS.includes(email);
 
   function locationStartsWith(str: string): boolean {
     return location.pathname.startsWith(str);
@@ -177,11 +185,13 @@ const Navigation: React.FC = () => {
           ResourceProviders
         </NavLink>
       </NavItem>
-      <NavItem>
-        <NavLink className={locationStartsWith('/admin/ops') ? 'pf-m-current' : ''} to="/admin/ops">
-          Ops Workshop Control
-        </NavLink>
-      </NavItem>
+      {hasOpsAccess && (
+        <NavItem>
+          <NavLink className={locationStartsWith('/admin/ops') ? 'pf-m-current' : ''} to="/admin/ops">
+            Ops Workshop Control
+          </NavLink>
+        </NavItem>
+      )}
       <NavItem>
         <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">
           Workshops

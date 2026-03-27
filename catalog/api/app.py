@@ -1363,4 +1363,5 @@ app.on_startup.append(on_startup)
 app.on_cleanup.append(on_cleanup)
 
 if __name__ == '__main__':
-    web.run_app(app)
+    port = int(os.environ.get('PORT', 8080))
+    web.run_app(app, port=port)

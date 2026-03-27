@@ -174,10 +174,23 @@ export async function publicFetcher(path: string, opt?: Record<string, unknown>)
 }
 
 export async function fetcher(path: string, opt?: Record<string, unknown>) {
-  const response = await apiFetch(path, opt);
-  const contentType = response.headers.get('Content-Type');
-  if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
-  return response.json();
+  try {
+    const response = await apiFetch(path, opt);
+    const contentType = response.headers.get('Content-Type');
+    if (contentType?.includes('text/') || contentType?.includes('application/octet-stream')) return response.text();
+    return response.json();
+  } catch (error) {
+    // Handle Response objects thrown by apiFetch
+    if (error instanceof Response) {
+      const errorMessage = `HTTP ${error.status}: ${error.statusText}`;
+      const apiError = new Error(errorMessage);
+      apiError.name = 'ApiError';
+      (apiError as any).status = error.status;
+      (apiError as any).response = error;
+      throw apiError;
+    }
+    throw error;
+  }
 }
 export async function silentFetcher(path: string, opt?: Record<string, unknown>) {
   try {

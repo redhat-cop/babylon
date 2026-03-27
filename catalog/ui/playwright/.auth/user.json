@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:9000",
+      "localStorage": [
+        {
+          "name": "babylon-session",
+          "value": "{\"username\":\"test-admin\",\"email\":\"admin@example.com\",\"displayName\":\"Test Admin\",\"isAdmin\":true,\"userNamespace\":\"test-admin-namespace\"}"
+        }
+      ]
+    }
+  ]
+}

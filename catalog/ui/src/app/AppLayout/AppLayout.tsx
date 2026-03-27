@@ -22,7 +22,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
   useDocumentTitle(title);
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, email } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
 
   const onNavToggleMobile = () => {
@@ -42,7 +42,21 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     publicFetcher,
   );
 
-  if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
+  // Access control checks
+  if (accessControl === 'admin' && !isAdmin) {
+    throw new Error('Access denied');
+  }
+
+  if (accessControl === 'ops-admin') {
+    const ALLOWED_OPS_EMAILS = [
+      'jdisrael@redhat.com',
+      'bbethell@redhat.com',
+      'acasanov@redhat.com'
+    ];
+    if (!isAdmin || !ALLOWED_OPS_EMAILS.includes(email)) {
+      throw new Error('Access denied');
+    }
+  }
 
   const Sidebar = (
     <PageSidebar isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} style={{ margin: 0, zIndex: 999 }}>

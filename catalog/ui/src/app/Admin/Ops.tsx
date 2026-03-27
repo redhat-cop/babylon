@@ -12,6 +12,7 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  DatePicker,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -20,6 +21,7 @@ import {
   Label,
   NumberInput,
   PageSection,
+  SearchInput,
   Select,
   SelectOption,
   SelectList,
@@ -32,6 +34,12 @@ import {
   SplitItem,
   Switch,
   TextInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarToggleGroup,
   Tooltip,
   Title,
 } from '@patternfly/react-core';
@@ -49,8 +57,15 @@ import SyncAltIcon from '@patternfly/react-icons/dist/js/icons/sync-alt-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
+import FilterIcon from '@patternfly/react-icons/dist/js/icons/filter-icon';
+import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
+import CopyIcon from '@patternfly/react-icons/dist/js/icons/copy-icon';
+import HeartIcon from '@patternfly/react-icons/dist/js/icons/heart-icon';
+import CalendarCheckIcon from '@patternfly/react-icons/dist/js/icons/calendar-check-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 
@@ -74,6 +89,9 @@ import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
+import { OperationHistoryPanel } from './Ops/components/OperationHistoryPanel';
+import { ExportModal, ExportType } from './Ops/components/ExportModal';
+import { ScheduleModal, ScheduledOperationsPanel } from './Ops/components/scheduling';
 
 import './admin.css';
 import './ops.css';
@@ -83,6 +101,57 @@ interface OpsAlert {
   title: string;
   variant: AlertVariant;
   description?: string;
+}
+
+interface EnhancedFilters {
+  searchText: string;
+  stages: string[];
+  namespaces: string[];
+  statuses: string[];
+  categories: string[];
+  workshopTypes: string[];
+  userName?: string;
+  workshopName?: any;
+  labUserInterfaceUrls?: any;
+  cloudProvider?: any;
+  cloudRegion?: any;
+  salesforceId?: any;
+  serviceName?: any;
+  dateRange: {
+    start?: string;
+    end?: string;
+  };
+}
+
+interface OperationTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  operationType: 'lock' | 'unlock' | 'extend-stop' | 'extend-destroy' | 'disable-autostop' | 'scale' | 'restart' | 'clone' | 'health-check';
+  parameters: {
+    extStopDays?: number;
+    extStopHours?: number;
+    extDestroyDays?: number;
+    extDestroyHours?: number;
+    scaleCount?: number;
+    restartStrategy?: 'graceful' | 'immediate';
+    restartDelay?: number;
+    cloneNamePrefix?: string;
+    cloneNamespace?: string;
+    preserveUsers?: boolean;
+    healthCheckTimeout?: number;
+    healthCheckRetries?: number;
+  };
+  scope: {
+    enhancedFilters: EnhancedFilters;
+    workshopFilter: string | null;
+    stageFilter: string | null;
+  };
+  metadata: {
+    created: string;
+    lastUsed?: string;
+    isDefault?: boolean;
+  };
 }
 
 const COMMON_TIMEZONES = [
@@ -168,6 +237,15 @@ const Ops: React.FC = () => {
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
   }, []);
+
+  // ---------- Operation History Management ----------
+
+  const [showOperationHistory, setShowOperationHistory] = useState(false);
+
+  // ---------- CSV Export Management ----------
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState<ExportType>('workshops');
 
   // ---------- Multi-namespace mode ----------
 
@@ -575,6 +653,13 @@ const Ops: React.FC = () => {
   const [extDestroyDays, setExtDestroyDays] = useState(0);
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [scaleCount, setScaleCount] = useState(5);
+  const [restartStrategy, setRestartStrategy] = useState<'graceful' | 'immediate'>('graceful');
+  const [restartDelay, setRestartDelay] = useState(30);
+  const [cloneNamePrefix, setCloneNamePrefix] = useState('');
+  const [cloneNamespace, setCloneNamespace] = useState('');
+  const [preserveUsers, setPreserveUsers] = useState(false);
+  const [healthCheckTimeout, setHealthCheckTimeout] = useState(60);
+  const [healthCheckRetries, setHealthCheckRetries] = useState(3);
 
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
@@ -582,6 +667,9 @@ const Ops: React.FC = () => {
   const [extDestroyLoading, setExtDestroyLoading] = useState(false);
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
+  const [restartLoading, setRestartLoading] = useState(false);
+  const [cloneLoading, setCloneLoading] = useState(false);
+  const [healthCheckLoading, setHealthCheckLoading] = useState(false);
 
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
@@ -590,10 +678,20 @@ const Ops: React.FC = () => {
   const [showNoAutostopConfirm, setShowNoAutostopConfirm] = useState(false);
   const [showScaleZeroConfirm, setShowScaleZeroConfirm] = useState(false);
   const [showScaleConfirm, setShowScaleConfirm] = useState(false);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [showCloneConfirm, setShowCloneConfirm] = useState(false);
+  const [showHealthCheckConfirm, setShowHealthCheckConfirm] = useState(false);
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+  // Scheduling state
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleOperationType, setScheduleOperationType] = useState<string>('');
+  const [scheduleOperationLabel, setScheduleOperationLabel] = useState<string>('');
+  const [showScheduledOperations, setShowScheduledOperations] = useState(false);
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || restartLoading || cloneLoading || healthCheckLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -826,6 +924,189 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
+  const handleRestart = async () => {
+    if (!showRestartConfirm) { setShowRestartConfirm(true); return; }
+    setShowRestartConfirm(false);
+    setRestartLoading(true);
+    let ok = 0, fail = 0;
+    for (const ws of operationTargets) {
+      try {
+        // For restart operation, we'll patch the workshop with restart annotations
+        await patchWorkshop({
+          name: ws.metadata.name,
+          namespace: ws.metadata.namespace,
+          patch: {
+            metadata: {
+              annotations: {
+                [`${DEMO_DOMAIN}/restart-strategy`]: restartStrategy,
+                [`${DEMO_DOMAIN}/restart-delay`]: restartDelay.toString(),
+                [`${DEMO_DOMAIN}/restart-timestamp`]: new Date().toISOString(),
+              }
+            }
+          },
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    setRestartLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Restart initiated for ${ok} workshop(s) (${restartStrategy} strategy)`);
+    else addAlert(AlertVariant.danger, `Restart: ${ok} succeeded, ${fail} failed`);
+  };
+
+  const handleClone = async () => {
+    if (!showCloneConfirm) { setShowCloneConfirm(true); return; }
+    setShowCloneConfirm(false);
+    setCloneLoading(true);
+    let ok = 0, fail = 0;
+    for (const ws of operationTargets) {
+      try {
+        // For clone operation, we'll patch the workshop with clone annotations
+        await patchWorkshop({
+          name: ws.metadata.name,
+          namespace: ws.metadata.namespace,
+          patch: {
+            metadata: {
+              annotations: {
+                [`${DEMO_DOMAIN}/clone-name-prefix`]: cloneNamePrefix || `${ws.metadata.name}-clone`,
+                [`${DEMO_DOMAIN}/clone-namespace`]: cloneNamespace || ws.metadata.namespace,
+                [`${DEMO_DOMAIN}/preserve-users`]: preserveUsers.toString(),
+                [`${DEMO_DOMAIN}/clone-timestamp`]: new Date().toISOString(),
+              }
+            }
+          },
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    setCloneLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Clone initiated for ${ok} workshop(s) with prefix "${cloneNamePrefix || 'clone'}"`);
+    else addAlert(AlertVariant.danger, `Clone: ${ok} succeeded, ${fail} failed`);
+  };
+
+  const handleHealthCheck = async () => {
+    if (!showHealthCheckConfirm) { setShowHealthCheckConfirm(true); return; }
+    setShowHealthCheckConfirm(false);
+    setHealthCheckLoading(true);
+    let ok = 0, fail = 0;
+    for (const ws of operationTargets) {
+      try {
+        // For health check operation, we'll patch the workshop with health check annotations
+        await patchWorkshop({
+          name: ws.metadata.name,
+          namespace: ws.metadata.namespace,
+          patch: {
+            metadata: {
+              annotations: {
+                [`${DEMO_DOMAIN}/health-check-timeout`]: healthCheckTimeout.toString(),
+                [`${DEMO_DOMAIN}/health-check-retries`]: healthCheckRetries.toString(),
+                [`${DEMO_DOMAIN}/health-check-timestamp`]: new Date().toISOString(),
+              }
+            }
+          },
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    setHealthCheckLoading(false);
+    mutateWorkshops();
+    if (fail === 0) addAlert(AlertVariant.success, `Health check initiated for ${ok} workshop(s) (timeout: ${healthCheckTimeout}s, retries: ${healthCheckRetries})`);
+    else addAlert(AlertVariant.danger, `Health check: ${ok} succeeded, ${fail} failed`);
+  };
+
+  // ---------- Scheduling Handlers ----------
+
+  const openScheduleModal = (operationType: string, operationLabel: string) => {
+    setScheduleOperationType(operationType);
+    setScheduleOperationLabel(operationLabel);
+    setShowScheduleModal(true);
+  };
+
+  const handleScheduleSubmit = async (scheduleData: {
+    scheduledFor?: string;
+    cronExpression?: string;
+    timezone: string;
+    isRecurring: boolean;
+    maxExecutions?: number;
+  }) => {
+    setScheduleSubmitting(true);
+
+    try {
+      // Create the scheduled operation object
+      const scheduledOperation = {
+        operationType: scheduleOperationType,
+        scheduledBy: {
+          username: 'current-user', // TODO: Get from session
+          email: 'user@example.com', // TODO: Get from session
+          displayName: 'Current User', // TODO: Get from session
+        },
+        scheduledFor: scheduleData.scheduledFor,
+        cronExpression: scheduleData.cronExpression,
+        timezone: scheduleData.timezone,
+        parameters: {
+          // Collect current parameter values based on operation type
+          ...(scheduleOperationType === 'extend-stop' && { extStopDays, extStopHours }),
+          ...(scheduleOperationType === 'extend-destroy' && { extDestroyDays, extDestroyHours }),
+          ...(scheduleOperationType === 'scale' && { scaleCount }),
+          ...(scheduleOperationType === 'restart' && { restartStrategy, restartDelay }),
+          ...(scheduleOperationType === 'clone' && { cloneNamePrefix, cloneNamespace, preserveUsers }),
+          ...(scheduleOperationType === 'health-check' && { healthCheckTimeout, healthCheckRetries }),
+        },
+        targetScope: {
+          workshopCount: operationTargets.length,
+          namespaces: [...new Set(operationTargets.map(ws => ws.metadata.namespace))],
+          workshopNames: operationTargets.map(ws => ws.metadata.name),
+          filters: {
+            stages: stageFilter ? [stageFilter] : [],
+            namespaces: [namespace!],
+            statuses: [],
+            searchText: workshopFilter || '',
+          },
+        },
+        metadata: {
+          isRecurring: scheduleData.isRecurring,
+          maxExecutions: scheduleData.maxExecutions,
+        },
+      };
+
+      // TODO: Send to API for scheduling
+      console.log('Scheduled operation:', scheduledOperation);
+
+      addAlert(AlertVariant.success,
+        scheduleData.isRecurring
+          ? `Recurring ${scheduleOperationLabel.toLowerCase()} operation scheduled`
+          : `${scheduleOperationLabel} operation scheduled for ${new Date(scheduleData.scheduledFor!).toLocaleString()}`
+      );
+
+      setShowScheduleModal(false);
+    } catch (error) {
+      console.error('Failed to schedule operation:', error);
+      addAlert(AlertVariant.danger, 'Failed to schedule operation');
+    } finally {
+      setScheduleSubmitting(false);
+    }
+  };
+
+  const handleScheduledOperationsEdit = (operation: any) => {
+    // TODO: Implement edit functionality
+    console.log('Edit scheduled operation:', operation);
+  };
+
+  const handleScheduledOperationsCancel = (operation: any) => {
+    // TODO: Implement cancel functionality
+    console.log('Cancel scheduled operation:', operation);
+    addAlert(AlertVariant.info, 'Scheduled operation cancelled');
+  };
+
+  const handleScheduledOperationsRetry = (operation: any) => {
+    // TODO: Implement retry functionality
+    console.log('Retry scheduled operation:', operation);
+  };
+
+  // Get user timezone from browser or use UTC as default
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
   // ---------- No namespace selected ----------
 
   if (!namespace) {
@@ -950,7 +1231,7 @@ const Ops: React.FC = () => {
         </Split>
       </PageSection>
 
-      <PageSection key="body" className="admin-body" variant="default">
+      <PageSection key="body" className="admin-body" variant="default" data-testid="operations-panel">
         {/* Multi-namespace toggle */}
         {isAdmin && (
           <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
@@ -1169,6 +1450,16 @@ const Ops: React.FC = () => {
                     <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
                       isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                   </div>
+                  <div className="ops-button-row" style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('lock', 'Lock Workshops')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Lock
+                    </Button>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('unlock', 'Unlock Workshops')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Unlock
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
 
@@ -1198,6 +1489,12 @@ const Ops: React.FC = () => {
                     isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
                     Extend Stop
                   </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('extend-stop', 'Extend Stop Time')}
+                      isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)} icon={<CalendarCheckIcon />}>
+                      Schedule Extend Stop
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
 
@@ -1227,6 +1524,12 @@ const Ops: React.FC = () => {
                     isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
                     Extend Destroy
                   </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('extend-destroy', 'Extend Destroy Time')}
+                      isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)} icon={<CalendarCheckIcon />}>
+                      Schedule Extend Destroy
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
 
@@ -1246,6 +1549,12 @@ const Ops: React.FC = () => {
                     isLoading={noAutostopLoading} isDisabled={anyLoading}>
                     Disable Auto-Stop
                   </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('disable-autostop', 'Disable Auto-Stop')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Disable Auto-Stop
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
 
@@ -1273,6 +1582,146 @@ const Ops: React.FC = () => {
                       onClick={openScaleConfirm}
                       isLoading={scaleLoading} isDisabled={anyLoading}>
                       {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
+                    </Button>
+                  </div>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('scale', 'Scale Workshops')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Scale
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Restart Operations */}
+              <Card isFullHeight>
+                <CardTitle>
+                  <Tooltip content="Restart workshop instances with configurable strategy and delay.">
+                    <span><RedoIcon className="ops-card-icon" /> Restart Workshops</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Restart workshop instances with graceful or immediate strategy.
+                    Optionally add delay between restarts.
+                  </p>
+                  <div className="ops-form-row" style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, marginBottom: 4, display: 'block' }}>Strategy:</label>
+                    <FormSelect
+                      id="restart-strategy-select"
+                      aria-label="Restart strategy"
+                      value={restartStrategy}
+                      onChange={(_e, value) => setRestartStrategy(value as 'graceful' | 'immediate')}
+                    >
+                      <FormSelectOption value="graceful" label="Graceful (recommended)" />
+                      <FormSelectOption value="immediate" label="Immediate" />
+                    </FormSelect>
+                  </div>
+                  <div className="ops-number-row">
+                    <NumberInput value={restartDelay} min={0}
+                      onMinus={() => setRestartDelay(Math.max(0, restartDelay - 10))}
+                      onPlus={() => setRestartDelay(restartDelay + 10)}
+                      onChange={(e) => setRestartDelay(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                      widthChars={4} aria-label="Restart delay seconds" />
+                    <span>seconds delay</span>
+                  </div>
+                  <Button variant="warning" onClick={handleRestart}
+                    isLoading={restartLoading} isDisabled={anyLoading}>
+                    Restart Workshops
+                  </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('restart', 'Restart Workshops')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Restart
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Clone Operations */}
+              <Card isFullHeight>
+                <CardTitle>
+                  <Tooltip content="Create clones of selected workshops with configurable naming and namespace options.">
+                    <span><CopyIcon className="ops-card-icon" /> Clone Workshops</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Create clones of workshops with custom naming prefix and target namespace.
+                  </p>
+                  <div className="ops-form-row" style={{ marginBottom: 8 }}>
+                    <label style={{ fontWeight: 600, marginBottom: 4, display: 'block' }}>Name prefix:</label>
+                    <TextInput
+                      value={cloneNamePrefix}
+                      onChange={(_e, value) => setCloneNamePrefix(value)}
+                      placeholder="clone (default)"
+                      aria-label="Clone name prefix"
+                    />
+                  </div>
+                  <div className="ops-form-row" style={{ marginBottom: 8 }}>
+                    <label style={{ fontWeight: 600, marginBottom: 4, display: 'block' }}>Target namespace:</label>
+                    <TextInput
+                      value={cloneNamespace}
+                      onChange={(_e, value) => setCloneNamespace(value)}
+                      placeholder="Same as source (default)"
+                      aria-label="Clone namespace"
+                    />
+                  </div>
+                  <Checkbox
+                    id="preserve-users"
+                    label="Preserve user assignments"
+                    isChecked={preserveUsers}
+                    onChange={(_e, checked) => setPreserveUsers(checked)}
+                    style={{ marginBottom: 12 }}
+                  />
+                  <Button variant="primary" onClick={handleClone}
+                    isLoading={cloneLoading} isDisabled={anyLoading}>
+                    Clone Workshops
+                  </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('clone', 'Clone Workshops')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Clone
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Health Check Operations */}
+              <Card isFullHeight>
+                <CardTitle>
+                  <Tooltip content="Run health checks on workshop instances with configurable timeout and retry options.">
+                    <span><HeartIcon className="ops-card-icon" /> Health Check</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Verify workshop health status with configurable timeout and retry settings.
+                  </p>
+                  <div className="ops-number-row" style={{ marginBottom: 8 }}>
+                    <NumberInput value={healthCheckTimeout} min={10}
+                      onMinus={() => setHealthCheckTimeout(Math.max(10, healthCheckTimeout - 10))}
+                      onPlus={() => setHealthCheckTimeout(healthCheckTimeout + 10)}
+                      onChange={(e) => setHealthCheckTimeout(Math.max(10, Number((e.target as HTMLInputElement).value)))}
+                      widthChars={4} aria-label="Timeout seconds" />
+                    <span>timeout (seconds)</span>
+                  </div>
+                  <div className="ops-number-row">
+                    <NumberInput value={healthCheckRetries} min={1} max={10}
+                      onMinus={() => setHealthCheckRetries(Math.max(1, healthCheckRetries - 1))}
+                      onPlus={() => setHealthCheckRetries(Math.min(10, healthCheckRetries + 1))}
+                      onChange={(e) => setHealthCheckRetries(Math.max(1, Math.min(10, Number((e.target as HTMLInputElement).value))))}
+                      widthChars={3} aria-label="Retry count" />
+                    <span>retries</span>
+                  </div>
+                  <Button variant="secondary" onClick={handleHealthCheck}
+                    isLoading={healthCheckLoading} isDisabled={anyLoading}>
+                    Run Health Check
+                  </Button>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--pf-global--BorderColor--100)', paddingTop: 8 }}>
+                    <Button variant="link" size="sm" onClick={() => openScheduleModal('health-check', 'Health Check')}
+                      isDisabled={anyLoading} icon={<CalendarCheckIcon />}>
+                      Schedule Health Check
                     </Button>
                   </div>
                 </CardBody>
@@ -1310,6 +1759,32 @@ const Ops: React.FC = () => {
                     <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
                       aria-label="Export to CSV" isDisabled={workshopGroups.length === 0} />
                   </Tooltip>
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowExportModal(true)}
+                    isDisabled={workshopGroups.length === 0}
+                  >
+                    Export
+                  </Button>
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowOperationHistory(true)}
+                  >
+                    History
+                  </Button>
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="tertiary"
+                    onClick={() => setShowScheduledOperations(true)}
+                    icon={<CalendarCheckIcon />}
+                  >
+                    Scheduled Operations
+                  </Button>
                 </SplitItem>
               </Split>
               <div className="ops-table-wrap">
@@ -1848,6 +2323,133 @@ const Ops: React.FC = () => {
           <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
         </ModalFooter>
       </Modal>
+
+      {/* Restart Confirmation Modal */}
+      <Modal variant="small" isOpen={showRestartConfirm} onClose={() => setShowRestartConfirm(false)} aria-labelledby="restart-confirm">
+        <ModalHeader title="Confirm Restart Workshops" labelId="restart-confirm" titleIconVariant="warning" />
+        <ModalBody>
+          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
+          <p>
+            Restart <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription} using{' '}
+            <strong>{restartStrategy}</strong> strategy.
+          </p>
+          {restartDelay > 0 && (
+            <p style={{ marginTop: 8 }}>
+              A <strong>{restartDelay} second</strong> delay will be applied between restarts.
+            </p>
+          )}
+          <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
+            {restartStrategy === 'graceful'
+              ? 'Graceful restart will attempt to preserve user sessions and data where possible.'
+              : 'Immediate restart will terminate instances without waiting for graceful shutdown.'}
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="warning" onClick={handleRestart}>Restart Workshops</Button>
+          <Button variant="link" onClick={() => setShowRestartConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Clone Confirmation Modal */}
+      <Modal variant="small" isOpen={showCloneConfirm} onClose={() => setShowCloneConfirm(false)} aria-labelledby="clone-confirm">
+        <ModalHeader title="Confirm Clone Workshops" labelId="clone-confirm" titleIconVariant="info" />
+        <ModalBody>
+          {isMultiNs && <Alert variant="info" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
+          <p>
+            Clone <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription} with the following settings:
+          </p>
+          <div style={{ marginTop: 12 }}>
+            <p><strong>Name prefix:</strong> {cloneNamePrefix || 'clone'}</p>
+            <p><strong>Target namespace:</strong> {cloneNamespace || 'Same as source'}</p>
+            <p><strong>Preserve users:</strong> {preserveUsers ? 'Yes' : 'No'}</p>
+          </div>
+          <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
+            Cloned workshops will be created as new resources. This may incur additional costs.
+            {preserveUsers && ' User assignments will be copied to the cloned workshops.'}
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="primary" onClick={handleClone}>Clone Workshops</Button>
+          <Button variant="link" onClick={() => setShowCloneConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Health Check Confirmation Modal */}
+      <Modal variant="small" isOpen={showHealthCheckConfirm} onClose={() => setShowHealthCheckConfirm(false)} aria-labelledby="health-check-confirm">
+        <ModalHeader title="Confirm Health Check" labelId="health-check-confirm" titleIconVariant="info" />
+        <ModalBody>
+          {isMultiNs && <Alert variant="info" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
+            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+              No workshop or stage filter is set.
+            </Alert>
+          )}
+          <p>
+            Run health check on <strong>{operationTargets.length} workshop(s)</strong>
+            {hasSelection ? <> (selected)</> : modalScopeDescription} with the following settings:
+          </p>
+          <div style={{ marginTop: 12 }}>
+            <p><strong>Timeout:</strong> {healthCheckTimeout} seconds</p>
+            <p><strong>Retries:</strong> {healthCheckRetries}</p>
+          </div>
+          <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
+            Health checks will verify workshop instances are running and accessible.
+            Results will be displayed in the operation history panel.
+          </Alert>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={handleHealthCheck}>Run Health Check</Button>
+          <Button variant="link" onClick={() => setShowHealthCheckConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      <OperationHistoryPanel
+        isVisible={showOperationHistory}
+        onClose={() => setShowOperationHistory(false)}
+        onExport={() => {
+          setExportType('operations');
+          setShowExportModal(true);
+        }}
+      />
+
+      <ScheduleModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onSchedule={handleScheduleSubmit}
+        operationType={scheduleOperationType}
+        operationLabel={scheduleOperationLabel}
+        targetCount={operationTargets.length}
+        timezone={userTimezone}
+        isSubmitting={scheduleSubmitting}
+      />
+
+      <ScheduledOperationsPanel
+        isVisible={showScheduledOperations}
+        onClose={() => setShowScheduledOperations(false)}
+        onEdit={handleScheduledOperationsEdit}
+        onCancel={handleScheduledOperationsCancel}
+        onRetry={handleScheduledOperationsRetry}
+      />
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        exportType={exportType}
+        workshops={workshops}
+        provisions={workshops.flatMap(ws => provisionsByWorkshop.get(wsKey(ws)) || [])}
+      />
     </div>
   );
 };

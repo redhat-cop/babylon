@@ -176,13 +176,13 @@ const appRoutes: IAppRoute[] = [
     component: Ops,
     path: '/admin/ops/:namespace',
     title: 'Babylon | Workshop Control',
-    accessControl: 'admin',
+    accessControl: 'ops-admin',
   },
   {
     component: Ops,
     path: '/admin/ops',
     title: 'Babylon | Workshop Control',
-    accessControl: 'admin',
+    accessControl: 'ops-admin',
   },
   {
     component: SystemStatus,
