@@ -109,6 +109,10 @@ module.exports = () => {
       symlinks: false,
       cacheWithContext: false,
       fallback: { crypto: false, buffer: false },
+      // util.ts imports 'DOMPurify' (package name is dompurify); resolve without changing source
+      alias: {
+        DOMPurify: path.resolve(__dirname, 'node_modules/dompurify'),
+      },
     },
   };
 };
