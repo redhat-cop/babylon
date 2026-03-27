@@ -60,6 +60,7 @@ import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import {
   apiFetch,
   apiPaths,
+  createMultiWorkshop,
   dateToApiString,
   deleteResourceClaim,
   fetcher,
@@ -212,14 +213,19 @@ function wsDetailPath(ws: Workshop): string {
 
 interface CsvScheduleRow {
   labCode: string;
+  baseLabCode: string;        // lab code without trailing -N suffix, used to group Multi Asset rows
   room: string;
   sessionTime: string;
   ciName: string;
   ciNamespace: string;
   orderUrl: string;
   targetNamespace: string;    // from csv column; may be empty — fallback to global default
-  userCount: number;
-  deployCount: number;
+  userCount: number;          // users per instance (Shared/Multi Asset) or total users (Per Attendee)
+  deployCount: number;        // WorkshopProvision.spec.count — instances to provision
+  totalSeats: number;         // computed: Per Attendee = deployCount; Shared/Multi Asset = userCount * deployCount
+  isMultiAsset: boolean;
+  isPerAttendee: boolean;
+  isShared: boolean;
   mode: string;
   cloud: string;
   region: string;
@@ -303,17 +309,34 @@ function parseCsvRows(text: string): { rows: CsvScheduleRow[]; errors: string[] 
     const userCount = parseInt(raw['users'] || raw['user_count'] || raw['attendees'] || '1', 10);
     const deployCount = parseInt(raw['deploy_count'] || raw['deploycount'] || String(userCount), 10);
 
+    const mode = raw['mode'] || '';
+    const isMultiAsset = /multi.asset/i.test(mode);
+    const isPerAttendee = /per.attendee/i.test(mode);
+    const isShared = /shared/i.test(mode);
+    const uc = isNaN(userCount) ? 1 : userCount;
+    const dc = isNaN(deployCount) ? uc : deployCount;
+    // Per Attendee: deploy_count = users (1 per instance), total = deployCount
+    // Shared/Multi Asset: total = userCount × deployCount
+    const totalSeats = isPerAttendee ? dc : uc * dc;
+    // Strip trailing -N suffix to get the group key for Multi Asset rows (LB1846-1 → LB1846)
+    const baseLabCode = labCode.replace(/-\d+$/, '');
+
     rows.push({
       labCode,
+      baseLabCode,
       room: raw['room'] || '',
       sessionTime: raw['session_time'] || raw['session'] || '',
       ciName,
       ciNamespace,
       orderUrl,
       targetNamespace: raw['target_namespace'] || raw['namespace'] || raw['deploy_namespace'] || '',
-      userCount: isNaN(userCount) ? 1 : userCount,
-      deployCount: isNaN(deployCount) ? userCount : deployCount,
-      mode: raw['mode'] || '',
+      userCount: uc,
+      deployCount: dc,
+      totalSeats,
+      isMultiAsset,
+      isPerAttendee,
+      isShared,
+      mode,
       cloud: raw['cloud'] || '',
       region: raw['region'] || '',
       instances: raw['instances'] || '',
@@ -331,71 +354,78 @@ function generateK8sName(prefix: string): string {
   return `${slug}-${rand}`;
 }
 
-async function deployWorkshopRow(row: CsvScheduleRow, targetNs: string): Promise<void> {
+// Deploys a single Per Attendee or Shared row: Workshop + WorkshopProvision
+async function deployStandardRow(row: CsvScheduleRow, targetNs: string): Promise<void> {
   if (!row.hasOrderUrl || !row.ciName) throw new Error('No Order URL / catalog item — cannot deploy this row');
+  if (!targetNs) throw new Error('No target namespace specified for deployment');
+
   const wsName = generateK8sName(row.labCode || row.ciName);
-  const ns = targetNs;
-  if (!ns) throw new Error('No target namespace specified for deployment');
+  const stage = row.ciNamespace?.replace('babylon-catalog-', '') || 'dev';
 
-  const isMultiAsset = /multi.asset/i.test(row.mode);
-
-  // Always create Workshop + WorkshopProvision
   const workshop = {
     apiVersion: 'babylon.gpte.redhat.com/v1',
     kind: 'Workshop',
     metadata: {
       name: wsName,
-      namespace: ns,
-      annotations: {
-        [`${BABYLON_DOMAIN}/workshopUserRegistration`]: 'open',
-      },
-      labels: {
-        [`${BABYLON_DOMAIN}/stage`]: row.ciNamespace?.replace('babylon-catalog-', '') || 'dev',
-      },
+      namespace: targetNs,
+      annotations: { [`${BABYLON_DOMAIN}/workshopUserRegistration`]: 'open' },
+      labels: { [`${BABYLON_DOMAIN}/stage`]: stage },
     },
     spec: {
-      multiuser: isMultiAsset,
+      multiuser: false,
       openRegistration: true,
       accessPassword: '',
       displayName: row.labCode || row.ciName,
       ...(row.deployOn ? { lifespan: { start: row.deployOn } } : {}),
     },
   };
-  const wsResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshops`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(workshop),
+  const wsResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${targetNs}/workshops`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(workshop),
   });
   if (!wsResp.ok) {
     const err = await wsResp.json().catch(() => ({}));
     throw new Error(`Workshop creation failed: ${(err as any).message || wsResp.statusText}`);
   }
 
-  // WorkshopProvision
   const provision = {
     apiVersion: 'babylon.gpte.redhat.com/v1',
     kind: 'WorkshopProvision',
-    metadata: {
-      name: wsName,
-      namespace: ns,
-      labels: { [`${BABYLON_DOMAIN}/workshop`]: wsName },
-    },
-    spec: {
-      catalogItem: { name: row.ciName, namespace: row.ciNamespace },
-      count: row.deployCount,
-      workshopName: wsName,
-      parameters: [],
-    },
+    metadata: { name: wsName, namespace: targetNs, labels: { [`${BABYLON_DOMAIN}/workshop`]: wsName } },
+    spec: { catalogItem: { name: row.ciName, namespace: row.ciNamespace }, count: row.deployCount, workshopName: wsName, parameters: [] },
   };
-  const wpResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${ns}/workshopprovisions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(provision),
+  const wpResp = await apiFetch(`/apis/babylon.gpte.redhat.com/v1/namespaces/${targetNs}/workshopprovisions`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(provision),
   });
   if (!wpResp.ok) {
     const err = await wpResp.json().catch(() => ({}));
     throw new Error(`WorkshopProvision creation failed: ${(err as any).message || wpResp.statusText}`);
   }
+}
+
+// Deploys a group of Multi Asset rows as a single MultiWorkshop.
+// Returns the created MultiWorkshop name.
+async function deployMultiAssetGroup(rows: CsvScheduleRow[], targetNs: string): Promise<string> {
+  if (!targetNs) throw new Error('No target namespace specified for deployment');
+  const groupName = rows[0].baseLabCode || rows[0].labCode;
+  const startDate = rows[0].deployOn || new Date().toISOString();
+  // Default end = start + 3 hours
+  const endDate = new Date(new Date(startDate).getTime() + 3 * 60 * 60 * 1000).toISOString();
+
+  const mw = await createMultiWorkshop({
+    name: groupName,
+    namespace: targetNs,
+    startDate,
+    endDate,
+    numberSeats: rows.reduce((sum, r) => sum + r.totalSeats, 0),
+    assets: rows.filter(r => r.hasOrderUrl && r.ciName).map((r, i) => ({
+      key: r.labCode || `asset-${i}`,
+      name: r.ciName,
+      namespace: r.ciNamespace,
+      displayName: r.labCode || r.ciName,
+      type: 'Workshop' as const,
+    })),
+  });
+  return mw.metadata?.name || groupName;
 }
 
 const Ops: React.FC = () => {
@@ -453,9 +483,11 @@ const Ops: React.FC = () => {
   const [csvRows, setCsvRows] = useState<CsvScheduleRow[]>([]);
   const [csvParseErrors, setCsvParseErrors] = useState<string[]>([]);
   const [csvFileName, setCsvFileName] = useState('');
-  const [csvDefaultNs, setCsvDefaultNs] = useState('');          // global fallback namespace
-  const [csvRowNs, setCsvRowNs] = useState<Record<number, string>>({});  // per-row overrides
+  const [csvDefaultNs, setCsvDefaultNs] = useState('');
+  const [csvRowNs, setCsvRowNs] = useState<Record<number, string>>({});
   const [csvDeployStatus, setCsvDeployStatus] = useState<Record<number, CsvDeployStatus>>({});
+  // stores created MultiWorkshop name keyed by baseLabCode, for linking after deploy
+  const [csvMultiAssetNames, setCsvMultiAssetNames] = useState<Record<string, string>>({});
   const [csvDeploying, setCsvDeploying] = useState(false);
   const csvFileRef = useRef<HTMLInputElement>(null);
 
@@ -479,20 +511,53 @@ const Ops: React.FC = () => {
   const handleDeployAll = useCallback(async () => {
     if (csvRows.length === 0 || csvDeploying) return;
     setCsvDeploying(true);
+    setCsvMultiAssetNames({});
     const initialStatus: Record<number, CsvDeployStatus> = {};
     csvRows.forEach((_, i) => { initialStatus[i] = { state: 'pending' }; });
     setCsvDeployStatus(initialStatus);
-    for (let i = 0; i < csvRows.length; i++) {
-      // per-row namespace > global default > current project namespace
+
+    // Separate Multi Asset groups from standard rows
+    const multiAssetGroups: Record<string, number[]> = {}; // baseLabCode → row indices
+    const standardIndices: number[] = [];
+    csvRows.forEach((row, i) => {
+      if (row.isMultiAsset) {
+        if (!multiAssetGroups[row.baseLabCode]) multiAssetGroups[row.baseLabCode] = [];
+        multiAssetGroups[row.baseLabCode].push(i);
+      } else {
+        standardIndices.push(i);
+      }
+    });
+
+    // Deploy standard rows (Per Attendee / Shared) one by one
+    for (const i of standardIndices) {
       const rowNs = csvRowNs[i] || csvDefaultNs || namespace || '';
       setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'deploying' } }));
       try {
-        await deployWorkshopRow(csvRows[i], rowNs);
+        await deployStandardRow(csvRows[i], rowNs);
         setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'success' } }));
       } catch (err: any) {
         setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'error', message: err?.message || 'Unknown error' } }));
       }
     }
+
+    // Deploy Multi Asset groups — one MultiWorkshop per base lab code
+    for (const [baseCode, indices] of Object.entries(multiAssetGroups)) {
+      // Mark all rows in the group as deploying
+      indices.forEach(i => setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'deploying' } })));
+      // Use namespace from first deployable row in group, or global default
+      const firstDeployableIdx = indices.find(i => csvRows[i].hasOrderUrl) ?? indices[0];
+      const groupNs = csvRowNs[firstDeployableIdx] || csvDefaultNs || namespace || '';
+      const groupRows = indices.map(i => csvRows[i]);
+      try {
+        const mwName = await deployMultiAssetGroup(groupRows, groupNs);
+        setCsvMultiAssetNames(prev => ({ ...prev, [baseCode]: mwName }));
+        indices.forEach(i => setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'success' } })));
+      } catch (err: any) {
+        const msg = err?.message || 'Unknown error';
+        indices.forEach(i => setCsvDeployStatus(prev => ({ ...prev, [i]: { state: 'error', message: msg } })));
+      }
+    }
+
     setCsvDeploying(false);
     addAlert(AlertVariant.success, 'Deploy from CSV completed', 'Check individual row status for details.');
   }, [csvRows, csvDeploying, csvRowNs, csvDefaultNs, namespace, addAlert]);
@@ -1444,7 +1509,7 @@ const Ops: React.FC = () => {
                     isChecked={deployCSVMode}
                     onChange={(_e, checked) => {
                       setDeployCSVMode(checked);
-                      if (!checked) { setCsvRows([]); setCsvParseErrors([]); setCsvFileName(''); setCsvDeployStatus({}); setCsvRowNs({}); }
+                      if (!checked) { setCsvRows([]); setCsvParseErrors([]); setCsvFileName(''); setCsvDeployStatus({}); setCsvRowNs({}); setCsvMultiAssetNames({}); }
                     }}
                   />
                 </Tooltip>
@@ -1558,16 +1623,14 @@ const Ops: React.FC = () => {
                                   : <Tooltip content="No Order URL — row will be skipped during deploy"><span style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>No Order URL</span></Tooltip>}
                               </td>
                               <td><code>{row.ciNamespace || '—'}</code></td>
-                              {/* Users/Inst: Per Attendee = 1 per instance; Shared/Multi Asset = userCount per instance */}
-                              <td>{/per.attendee/i.test(row.mode) ? 1 : row.userCount}</td>
+                              <td>{row.isPerAttendee ? 1 : row.userCount}</td>
                               <td>{row.deployCount}</td>
-                              {/* Total Seats: Per Attendee = deployCount (1×each); Multi Asset = userCount×deployCount; Shared = userCount */}
-                              <td><strong>{/per.attendee/i.test(row.mode) ? row.deployCount : row.userCount * row.deployCount}</strong></td>
+                              <td><strong>{row.totalSeats}</strong></td>
                               <td>
                                 <Tooltip content={
-                                  /per.attendee/i.test(row.mode) ? `1 instance per user — ${row.deployCount} attendees each get a dedicated environment` :
-                                  /shared/i.test(row.mode) ? `1 shared instance — ${row.userCount} users share the same environment` :
-                                  /multi.asset/i.test(row.mode) ? `${row.deployCount} instances × ${row.userCount} users each = ${row.userCount * row.deployCount} total seats` :
+                                  row.isPerAttendee ? `1 instance per user — ${row.deployCount} attendees each get a dedicated environment` :
+                                  row.isShared ? `${row.deployCount} instance(s) × ${row.userCount} users = ${row.totalSeats} total seats` :
+                                  row.isMultiAsset ? `Multi Asset Workshop — grouped with other ${row.baseLabCode} rows into one MultiWorkshop (${row.totalSeats} total seats)` :
                                   row.mode
                                 }>
                                   <span>{row.mode || '—'}</span>
@@ -1589,7 +1652,15 @@ const Ops: React.FC = () => {
                                 {!st && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>—</span>}
                                 {st?.state === 'pending' && <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>Queued</span>}
                                 {st?.state === 'deploying' && <><InProgressIcon style={{ marginRight: 4 }} />Deploying…</>}
-                                {st?.state === 'success' && <><CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" style={{ marginRight: 4 }} />Deployed</>}
+                                {st?.state === 'success' && row.isMultiAsset && (
+                                  <span style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
+                                    <CheckCircleIcon style={{ marginRight: 4 }} />
+                                    <Link to="/admin/multiworkshops" style={{ marginLeft: 2 }}>View MultiWorkshops</Link>
+                                  </span>
+                                )}
+                                {st?.state === 'success' && !row.isMultiAsset && (
+                                  <><CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" style={{ marginRight: 4 }} />Deployed</>
+                                )}
                                 {st?.state === 'error' && (
                                   <Tooltip content={st.message || 'Error'}>
                                     <span style={{ color: 'var(--pf-t--global--color--status--danger--default)', cursor: 'help' }}>
