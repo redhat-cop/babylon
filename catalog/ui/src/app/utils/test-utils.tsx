@@ -6,7 +6,6 @@ import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import { SWRConfig } from 'swr';
 import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
-import { DarkModeProvider } from '@app/utils/useDarkMode';
 import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {
@@ -18,16 +17,14 @@ const AllTheProviders = ({ children, history }) => {
   useLayoutEffect(() => history.listen(setState), [history]);
 
   return (
-    <DarkModeProvider>
-      <Provider store={store}>
-        <SWRConfig value={{ suspense: true }}>
-          <Router location={state.location} navigationType={state.action} navigator={history}>
-            <Suspense fallback={<LoadingSection />}>{children}</Suspense>
-          </Router>
-          <div id="modal-root"></div>
-        </SWRConfig>
-      </Provider>
-    </DarkModeProvider>
+    <Provider store={store}>
+      <SWRConfig value={{ suspense: true }}>
+        <Router location={state.location} navigationType={state.action} navigator={history}>
+          <Suspense fallback={<LoadingSection />}>{children}</Suspense>
+        </Router>
+        <div id="modal-root"></div>
+      </SWRConfig>
+    </Provider>
   );
 };
 

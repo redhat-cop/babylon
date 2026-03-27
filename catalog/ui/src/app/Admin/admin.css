@@ -44,5 +44,5 @@
   flex-direction: column;
   overflow: auto;
   flex-grow: 1;
-  background-color: var(--pf-t--global--background--color--primary--default);
+  background-color: #fff;
 }
