@@ -632,9 +632,9 @@ a.ops-ws-meta:hover {
    PF tokens auto-remap; these overrides polish the edges.
    ============================================================ */
 
-/* --- Cards: lift off the background with a subtle border + lighter fill --- */
+/* --- Cards: lift off the background; mix with black (not white) so surfaces stay dark next to form controls --- */
 :root.pf-v6-theme-dark .ops-grid .pf-v6-c-card {
-  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 70%, white);
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 88%, black);
   border: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 80%, white);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
@@ -653,17 +653,41 @@ a.ops-ws-meta:hover {
   color: var(--pf-t--global--text--color--regular);
 }
 
-/* --- Number inputs: tame the white flash --- */
+/* --- Form controls (NumberInput, FormSelect, TextInput): PF6 uses CSS vars on .pf-v6-c-form-control; set them so inputs/selects match dark surfaces --- */
+:root.pf-v6-theme-dark .ops-grid .pf-v6-c-form-control,
+:root.pf-v6-theme-dark .ops-scope-bar .pf-v6-c-form-control {
+  --pf-v6-c-form-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+  --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--default);
+}
+
+:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-input-group {
+  --pf-v6-c-input-group__item--m-box--BackgroundColor: var(--pf-t--global--background--color--control--default);
+}
+
+:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-button.pf-m-control {
+  --pf-v6-c-button--m-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+  --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--m-control--Color: var(--pf-t--global--text--color--regular);
+}
+
+/* Legacy: direct input/button rules (span form-control owns bg for inputs; select uses BackgroundColor var) */
 :root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input {
-  background: var(--pf-t--global--background--color--secondary--default);
+  background: transparent;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button {
+  background: var(--pf-t--global--background--color--control--default);
   color: var(--pf-t--global--text--color--regular);
   border-color: var(--pf-t--global--border--color--default);
 }
 
-:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button {
-  background: var(--pf-t--global--background--color--secondary--default);
-  color: var(--pf-t--global--text--color--regular);
-  border-color: var(--pf-t--global--border--color--default);
+/* Confirmation modals (portaled) — type-to-confirm TextInputs */
+:root.pf-v6-theme-dark .pf-v6-c-modal-box .pf-v6-c-form-control {
+  --pf-v6-c-form-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+  --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--default);
 }
 
 /* --- Summary stats bar: slightly lighter so it reads as a banner --- */
