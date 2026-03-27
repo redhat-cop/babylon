@@ -999,15 +999,19 @@ const Ops: React.FC = () => {
           }
         }
 
-        // Step 2: Targeted deletes — match WorkshopsItemServices: remove (active − target) claims,
-        // not (specSum − target), so drift between spec and live RCs does not under-delete.
+        // Step 2: Explicitly delete excess RCs — the operator does NOT promptly
+        // remove them when spec.count is lowered, so we must delete them ourselves.
+        // Uses active RC count (not specSum) to avoid under-deleting when they diverge.
         const toRemove = Math.max(0, activeCount - scaleCount);
-        if (scaleDownTarget !== 'random' && toRemove > 0) {
+        if (toRemove > 0) {
           const unused = getUnusedClaims(ws);
           const used = getUsedClaims(ws);
-          const prioritized = scaleDownTarget === 'unused'
-            ? [...unused, ...used]
-            : [...used, ...unused];
+          let prioritized: ResourceClaim[];
+          if (scaleDownTarget === 'used') {
+            prioritized = [...used, ...unused];
+          } else {
+            prioritized = [...unused, ...used];
+          }
 
           const toDelete = prioritized.slice(0, toRemove);
           for (const rc of toDelete) {
@@ -1024,8 +1028,8 @@ const Ops: React.FC = () => {
     setScaleLoading(false);
     mutateWorkshops();
     mutateProvisions();
-    const targetLabel = scaleDownTarget !== 'random' && deletedClaims > 0
-      ? ` (${deletedClaims} ${scaleDownTarget} instance${deletedClaims !== 1 ? 's' : ''} removed first)`
+    const targetLabel = deletedClaims > 0
+      ? ` (${deletedClaims} instance${deletedClaims !== 1 ? 's' : ''} removed, ${scaleDownTarget === 'used' ? 'used' : 'unused'} first)`
       : '';
     if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances${targetLabel}`);
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed${targetLabel}`);
@@ -1724,8 +1728,8 @@ const Ops: React.FC = () => {
                         aria-label="Scale down target preference"
                       >
                         <FormSelectOption value="unused" label="Unused instances first (safest)" />
-                        <FormSelectOption value="random" label="Random (default operator behavior)" />
-                        <FormSelectOption value="used" label="Used instances first (dangerous)" />
+                        <FormSelectOption value="random" label="Unused first — no preference (default)" />
+                        <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
                       </FormSelect>
                       {scaleDownUsageInfo && (
                         <span style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
@@ -2451,17 +2455,19 @@ const Ops: React.FC = () => {
           )}
           {isScaleDown && (
             <>
-              {scaleDownTarget !== 'random' && scaleDownUsageInfo && (
+              {scaleDownUsageInfo && (
                 <Alert
                   variant={scaleDownTarget === 'used' ? 'danger' : 'info'}
                   isInline
-                  title={`Targeting: ${scaleDownTarget === 'unused' ? 'unused instances first (safest)' : 'used instances first (DANGEROUS)'}`}
+                  title={scaleDownTarget === 'used'
+                    ? 'Targeting: used instances first (DANGEROUS)'
+                    : `Targeting: unused instances first (${scaleDownUsageInfo.totalToRemove} to remove)`}
                   style={{ marginTop: 12 }}
                 >
                   {scaleDownUsageInfo.unusedInScope} unused and {scaleDownUsageInfo.usedInScope} used instances detected.
-                  {scaleDownTarget === 'unused' && scaleDownUsageInfo.totalToRemove > scaleDownUsageInfo.unusedInScope && (
+                  {scaleDownTarget !== 'used' && scaleDownUsageInfo.totalToRemove > scaleDownUsageInfo.unusedInScope && (
                     <><br /><strong>Warning:</strong> Not enough unused instances to fulfil the reduction &mdash;
-                    {scaleDownUsageInfo.totalToRemove - scaleDownUsageInfo.unusedInScope} used instance(s) may also be removed.</>
+                    {scaleDownUsageInfo.totalToRemove - scaleDownUsageInfo.unusedInScope} used instance(s) will also be removed.</>
                   )}
                   {scaleDownTarget === 'used' && (
                     <><br /><strong>Students on these instances will lose access immediately.</strong></>
