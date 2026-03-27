@@ -73,7 +73,7 @@ body,
   height: 100%;
 }
 .pf-v6-c-form-control:not(.pf-m-disabled) {
-  background-color: var(--pf-t--global--background--color--primary--default);
+  background-color: #fff;
 }
 .pf-v6-c-table__td > a {
   text-decoration: none;

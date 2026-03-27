@@ -6,7 +6,7 @@
   color: var(--pf-t--global--icon--color--100);
   display: flex;
   flex-direction: column;
-  background-color: var(--pf-t--global--background--color--primary--default);
+  background-color: #fff;
   box-shadow: var(--pf-v6-c-card--BoxShadow);
   height: 260px;
   width: 280px;
