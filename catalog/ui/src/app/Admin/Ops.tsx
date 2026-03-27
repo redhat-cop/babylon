@@ -726,7 +726,7 @@ const Ops: React.FC = () => {
   const [extDestroyDays, setExtDestroyDays] = useState(0);
   const [extDestroyHours, setExtDestroyHours] = useState(0);
   const [scaleCount, setScaleCount] = useState(5);
-  const [scaleDownTarget, setScaleDownTarget] = useState<'random' | 'unused' | 'used'>('unused');
+  const [scaleDownTarget, setScaleDownTarget] = useState<'unused' | 'used'>('unused');
   const [restartStrategy, setRestartStrategy] = useState<'graceful' | 'immediate'>('graceful');
   const [restartDelay, setRestartDelay] = useState(30);
   const [cloneNamePrefix, setCloneNamePrefix] = useState('');
@@ -1782,12 +1782,11 @@ const Ops: React.FC = () => {
                       <FormSelect
                         id="scale-target"
                         value={scaleDownTarget}
-                        onChange={(_e, val) => setScaleDownTarget(val as 'random' | 'unused' | 'used')}
+                        onChange={(_e, val) => setScaleDownTarget(val as 'unused' | 'used')}
                         className="ops-scale-target-select"
                         aria-label="Scale down target preference"
                       >
                         <FormSelectOption value="unused" label="Unused instances first (safest)" />
-                        <FormSelectOption value="random" label="Unused first — no preference (default)" />
                         <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
                       </FormSelect>
                       {scaleDownUsageInfo && (
