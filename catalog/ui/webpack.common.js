@@ -14,6 +14,12 @@ module.exports = () => {
     },
     module: {
       rules: [
+        // Webpack 5 + prebundled ESM in node_modules: allow extensionless imports so
+        // react-dom CJS re-exports resolve for PatternFly / @dnd-kit (createPortal, etc.).
+        {
+          test: /\.m?js$/,
+          resolve: { fullySpecified: false },
+        },
         {
           test: /\.(js|jsx|tsx|ts)$/,
           exclude: /node_modules/,
@@ -109,6 +115,10 @@ module.exports = () => {
       symlinks: false,
       cacheWithContext: false,
       fallback: { crypto: false, buffer: false },
+      // util.ts (main) imports 'DOMPurify'; npm package is 'dompurify'
+      alias: {
+        DOMPurify: path.resolve(__dirname, 'node_modules/dompurify'),
+      },
     },
   };
 };
