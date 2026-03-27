@@ -184,6 +184,12 @@ export interface CatalogItemSpec {
   workshopUiDisabled?: boolean;
   workshopUiMaxInstances?: number;
   workshopUserMode?: string;
+  /** Zero Touch (zero.rhdp.net) — when set, `enable` gates visibility there */
+  zerotouchAccess?: {
+    enable?: boolean;
+    lifespan?: string;
+    limits?: unknown;
+  };
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];

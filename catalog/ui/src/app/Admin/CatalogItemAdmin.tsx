@@ -12,6 +12,7 @@ import {
   PageSection,
   Split,
   SplitItem,
+  Switch,
   TextArea,
   TextInput,
   Title,
@@ -20,9 +21,9 @@ import {
 import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, fetcher } from '@app/api';
+import { apiPaths, fetcher, patchK8sObject } from '@app/api';
 import { CatalogItem, CatalogItemIncident, CatalogItemIncidentStatus } from '@app/types';
-import { displayName, getStageFromK8sObject } from '@app/util';
+import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import { formatString, getProvider } from '@app/Catalog/catalog-utils';
 import OperationalLogo from '@app/components/StatusPageIcons/Operational';
@@ -46,7 +47,10 @@ type comment = {
 const CatalogItemAdmin: React.FC = () => {
   const { namespace, name } = useParams();
   const navigate = useNavigate();
-  const { data: catalogItem } = useSWR<CatalogItem>(apiPaths.CATALOG_ITEM({ namespace, name }), fetcher);
+  const { data: catalogItem, mutate: mutateCatalogItem } = useSWR<CatalogItem>(
+    apiPaths.CATALOG_ITEM({ namespace, name }),
+    fetcher,
+  );
   const stage = getStageFromK8sObject(catalogItem);
   const matchMutate = useMatchMutate();
   const asset_uuid = catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'];
@@ -67,7 +71,14 @@ const CatalogItemAdmin: React.FC = () => {
   const [incidentUrl, setIncidentUrl] = useState('');
   const [jiraIssueId, setJiraIssueId] = useState('');
   const [comment, setComment] = useState('');
+  const [zerotouchEnable, setZerotouchEnable] = useState(false);
   const provider = getProvider(catalogItem);
+
+  useEffect(() => {
+    if (catalogItem) {
+      setZerotouchEnable(!!catalogItem.spec.zerotouchAccess?.enable);
+    }
+  }, [catalogItem]);
 
   const onToggleClick = () => {
     setIsOpen(!isOpen);
@@ -125,6 +136,22 @@ const CatalogItemAdmin: React.FC = () => {
         createdAt: new Date().toISOString(),
       });
     }
+
+    const updatedCi = await patchK8sObject<CatalogItem>({
+      apiVersion: `${BABYLON_DOMAIN}/v1`,
+      name: catalogItem.metadata.name,
+      namespace: catalogItem.metadata.namespace,
+      plural: 'catalogitems',
+      patch: {
+        spec: {
+          zerotouchAccess: {
+            ...(catalogItem.spec.zerotouchAccess || {}),
+            enable: zerotouchEnable,
+          },
+        },
+      },
+    });
+    await mutateCatalogItem(updatedCi, false);
 
     await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, stage }), {
       method: 'POST',
@@ -235,6 +262,21 @@ const CatalogItemAdmin: React.FC = () => {
                 aria-label="Users will not be able to order this Catalog Item"
                 className="tooltip-icon-only"
               />
+            </Tooltip>
+          </div>
+        </FormGroup>
+        <FormGroup fieldId="zerotouch-enable" label="Zero Touch">
+          <div className="catalog-item-admin__group-control--single">
+            <Switch
+              id="zerotouch-enable-switch"
+              aria-label="Enable in Zero Touch"
+              label="Enable in Zero Touch (zero.rhdp.net)"
+              isChecked={zerotouchEnable}
+              hasCheckIcon
+              onChange={(_event, checked) => setZerotouchEnable(checked)}
+            />
+            <Tooltip position="right" content="Show this item in Zero Touch (zero.rhdp.net).">
+              <OutlinedQuestionCircleIcon aria-label="Zero Touch help" className="tooltip-icon-only" />
             </Tooltip>
           </div>
         </FormGroup>
