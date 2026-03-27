@@ -1859,11 +1859,13 @@ const Ops: React.FC = () => {
               No workshop or stage filter is set. Consider filtering or selecting specific workshops.
             </Alert>
           )}
-          <p>
-            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+          <p className="ops-modal-scope">
+            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>Non-admin users will not be able to modify these resources.</p>
+          <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
+            Non-admin users will not be able to modify these resources.
+          </p>
         </ModalBody>
         <ModalFooter>
           <Button variant="warning" onClick={handleLock}>Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
@@ -1880,9 +1882,12 @@ const Ops: React.FC = () => {
               No workshop or stage filter is set.
             </Alert>
           )}
-          <p>
-            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}. Users will be able to modify these resources.
+          <p className="ops-modal-scope">
+            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+          </p>
+          <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
+            Users will be able to modify these resources.
           </p>
           {(() => {
             const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
@@ -1905,10 +1910,10 @@ const Ops: React.FC = () => {
         <ModalHeader title="Confirm Extend Stop Time" labelId="ext-stop-confirm" />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          <p>
+          <p className="ops-modal-scope">
             Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
           {operationTargets.some(ws => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
@@ -1932,12 +1937,14 @@ const Ops: React.FC = () => {
               No workshop or stage filter is set.
             </Alert>
           )}
-          <p>
+          <p className="ops-modal-scope">
             Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
-          <p style={{ marginTop: 8 }}>This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.</p>
+          <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
+            This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.
+          </p>
           {operationTargets.some(ws => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
               {operationTargets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
@@ -1960,10 +1967,10 @@ const Ops: React.FC = () => {
               No workshop or stage filter is set.
             </Alert>
           )}
-          <p>
+          <p className="ops-modal-scope">
             Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
           <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
             Workshops will remain running until their destroy deadline or manual stop.
@@ -1980,14 +1987,22 @@ const Ops: React.FC = () => {
         <ModalHeader title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'} labelId="scale-confirm" titleIconVariant={isScaleDown ? 'warning' : undefined} />
         <ModalBody>
           {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
-          <p>
+          <p className="ops-modal-scope">
             Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
           {operationTargets.length > 0 && (
-            <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: 12 }}>
-              <thead><tr>{isMultiNs && <th>NS</th>}<th>Workshop</th><th>Current</th><th></th><th>New</th></tr></thead>
+            <table className="ops-modal-table">
+              <thead>
+                <tr>
+                  {isMultiNs && <th>Namespace</th>}
+                  <th>Workshop</th>
+                  <th style={{ textAlign: 'center' }}>Current</th>
+                  <th></th>
+                  <th style={{ textAlign: 'center' }}>New</th>
+                </tr>
+              </thead>
               <tbody>
                 {operationTargets.map(ws => {
                   const cur = getCurrentCount(ws);
@@ -1997,11 +2012,11 @@ const Ops: React.FC = () => {
                   const color = isDown ? 'var(--pf-t--global--color--status--danger--default)' : isUp ? 'var(--pf-t--global--color--status--info--default)' : 'var(--pf-t--global--text--color--subtle)';
                   return (
                     <tr key={wsKey(ws)}>
-                      {isMultiNs && <td><code style={{ fontSize: '0.78rem' }}>{ws.metadata.namespace}</code></td>}
-                      <td>{displayName(ws)}</td>
-                      <td><strong>{cur ?? '?'}</strong></td>
-                      <td>&rarr;</td>
-                      <td><strong>{scaleCount}</strong> <span style={{ fontSize: '0.85em', color }}>{label}</span></td>
+                      {isMultiNs && <td className="ops-modal-ns-cell">{ws.metadata.namespace}</td>}
+                      <td className="ops-modal-ws-name">{displayName(ws)}</td>
+                      <td className="ops-modal-count">{cur ?? '?'}</td>
+                      <td className="ops-modal-arrow">&rarr;</td>
+                      <td className="ops-modal-count"><strong>{scaleCount}</strong> <span className="ops-modal-direction" style={{ color }}>{label}</span></td>
                     </tr>
                   );
                 })}
@@ -2041,10 +2056,10 @@ const Ops: React.FC = () => {
               No filter is set. Every workshop in scope will be scaled to zero.
             </Alert>
           )}
-          <p>
+          <p className="ops-modal-scope">
             Scaling to <strong>0</strong> will remove all instances on{' '}
-            <strong>{operationTargets.length} workshop(s)</strong>
-            {hasSelection ? <> (selected)</> : modalScopeDescription}.
+            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.

@@ -738,3 +738,104 @@ a.ops-ws-meta:hover {
   background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
   border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
 }
+
+/* ============================================================
+   Confirmation modal polish
+   ============================================================ */
+
+.ops-modal-scope {
+  font-size: 0.92rem;
+  color: var(--pf-t--global--text--color--regular);
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+
+.ops-modal-scope code {
+  font-size: 0.82rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--pf-t--global--background--color--secondary--default);
+}
+
+.ops-modal-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.88rem;
+}
+
+.ops-modal-table thead th {
+  background: var(--pf-t--global--background--color--secondary--default);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--pf-t--global--text--color--subtle);
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ops-modal-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 50%, transparent);
+  vertical-align: middle;
+}
+
+.ops-modal-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ops-modal-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 40%, transparent);
+}
+
+.ops-modal-table .ops-modal-arrow {
+  text-align: center;
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: 1.1em;
+  padding: 8px 4px;
+}
+
+.ops-modal-table .ops-modal-ws-name {
+  font-weight: 500;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-modal-table .ops-modal-count {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.ops-modal-table .ops-modal-direction {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.ops-modal-ns-cell {
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: 0.75rem;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* --- Dark mode --- */
+:root.pf-v6-theme-dark .ops-modal-table {
+  border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+:root.pf-v6-theme-dark .ops-modal-table thead th {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 80%, white);
+}
+
+:root.pf-v6-theme-dark .ops-modal-scope code {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 70%, white);
+}

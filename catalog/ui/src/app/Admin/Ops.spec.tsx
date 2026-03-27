@@ -466,7 +466,9 @@ describe('Ops Component', () => {
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
       await waitFor(() => {
-        expect(screen.getByText(/workshop\(s\)/)).toBeInTheDocument();
+        const modal = document.querySelector('.pf-v6-c-modal-box');
+        expect(modal).toBeInTheDocument();
+        expect(modal!.textContent).toMatch(/\d+.*workshop/);
       });
     });
 
