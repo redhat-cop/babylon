@@ -66,6 +66,8 @@ import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 import CopyIcon from '@patternfly/react-icons/dist/js/icons/copy-icon';
 import HeartIcon from '@patternfly/react-icons/dist/js/icons/heart-icon';
 import CalendarCheckIcon from '@patternfly/react-icons/dist/js/icons/calendar-check-icon';
+import KeyIcon from '@patternfly/react-icons/dist/js/icons/key-icon';
+import UploadIcon from '@patternfly/react-icons/dist/js/icons/upload-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 
@@ -92,6 +94,7 @@ import useSession from '@app/utils/useSession';
 import { OperationHistoryPanel } from './Ops/components/OperationHistoryPanel';
 import { ExportModal, ExportType } from './Ops/components/ExportModal';
 import { ScheduleModal, ScheduledOperationsPanel } from './Ops/components/scheduling';
+import { DeployFromCSVModal } from './Ops/components/DeployFromCSVModal';
 
 import './admin.css';
 import './ops.css';
@@ -727,7 +730,15 @@ const Ops: React.FC = () => {
   const [showScheduledOperations, setShowScheduledOperations] = useState(false);
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || restartLoading || cloneLoading || healthCheckLoading;
+  // Update passwords state
+  const [updatePasswordValue, setUpdatePasswordValue] = useState('');
+  const [showUpdatePasswordConfirm, setShowUpdatePasswordConfirm] = useState(false);
+  const [updatePasswordLoading, setUpdatePasswordLoading] = useState(false);
+
+  // Deploy from CSV modal state
+  const [showDeployCSVModal, setShowDeployCSVModal] = useState(false);
+
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || restartLoading || cloneLoading || healthCheckLoading || updatePasswordLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -1142,6 +1153,33 @@ const Ops: React.FC = () => {
     setShowroomHealthRunning(false);
   }, [operationTargets, assignmentsByWorkshop]);
 
+  // ---------- Update Passwords Handler ----------
+
+  const handleUpdatePassword = async () => {
+    if (!updatePasswordValue) return;
+    if (!showUpdatePasswordConfirm) { setShowUpdatePasswordConfirm(true); return; }
+    setShowUpdatePasswordConfirm(false);
+    setUpdatePasswordLoading(true);
+    let ok = 0, skip = 0, fail = 0;
+    for (const ws of operationTargets) {
+      const current = ws.spec?.accessPassword ?? '';
+      if (current === updatePasswordValue) { skip++; continue; }
+      try {
+        await patchWorkshop({
+          name: ws.metadata.name,
+          namespace: ws.metadata.namespace,
+          patch: { spec: { accessPassword: updatePasswordValue } },
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    setUpdatePasswordLoading(false);
+    mutateWorkshops();
+    const skipMsg = skip > 0 ? ` (${skip} already had that password)` : '';
+    if (fail === 0) addAlert(AlertVariant.success, `Updated password on ${ok} workshop(s)${skipMsg}`);
+    else addAlert(AlertVariant.danger, `Update password: ${ok} succeeded, ${fail} failed${skipMsg}`);
+  };
+
   // ---------- Scheduling Handlers ----------
 
   const openScheduleModal = (operationType: string, operationLabel: string) => {
@@ -1354,6 +1392,13 @@ const Ops: React.FC = () => {
                 {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
+          </SplitItem>
+          <SplitItem>
+            <Tooltip content="Deploy new workshops by uploading an RHDP-Flow CSV schedule file">
+              <Button variant="secondary" icon={<UploadIcon />} onClick={() => setShowDeployCSVModal(true)}>
+                Deploy from CSV
+              </Button>
+            </Tooltip>
           </SplitItem>
         </Split>
       </PageSection>
@@ -1893,6 +1938,50 @@ const Ops: React.FC = () => {
                   >
                     {showroomHealthResults.length > 0 ? 'Re-check Showroom Health' : 'Check Showroom Health'}
                   </Button>
+                </CardBody>
+              </Card>
+
+              {/* Update Password */}
+              <Card isFullHeight>
+                <CardTitle>
+                  <Tooltip content="Set or update the access password on workshops. Matches rhdp_flow --update-passwords behaviour: only patches workshops where the password differs.">
+                    <span><KeyIcon className="ops-card-icon" /> Update Password</span>
+                  </Tooltip>
+                </CardTitle>
+                <CardBody>
+                  <p className="ops-desc">
+                    Patches <code>spec.accessPassword</code> on all workshops in scope.
+                    Skips workshops that already have the specified password.
+                  </p>
+                  <div className="ops-form-row" style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, marginBottom: 4, display: 'block' }}>New password:</label>
+                    <TextInput
+                      value={updatePasswordValue}
+                      onChange={(_e, value) => setUpdatePasswordValue(value)}
+                      placeholder="Enter new access password"
+                      aria-label="New access password"
+                      type="text"
+                      isDisabled={updatePasswordLoading}
+                    />
+                  </div>
+                  {showUpdatePasswordConfirm && (
+                    <Alert variant="warning" isInline title={`Update password on ${operationTargets.length} workshop(s)?`} style={{ marginBottom: 8 }}>
+                      This will set the new password on all workshops in scope. Confirm by clicking again.
+                    </Alert>
+                  )}
+                  <Button
+                    variant="primary"
+                    onClick={handleUpdatePassword}
+                    isLoading={updatePasswordLoading}
+                    isDisabled={anyLoading || !updatePasswordValue}
+                  >
+                    {showUpdatePasswordConfirm ? 'Confirm Update' : 'Update Password'}
+                  </Button>
+                  {showUpdatePasswordConfirm && (
+                    <Button variant="link" style={{ marginLeft: 8 }} onClick={() => setShowUpdatePasswordConfirm(false)}>
+                      Cancel
+                    </Button>
+                  )}
                 </CardBody>
               </Card>
             </div>
@@ -2803,6 +2892,12 @@ const Ops: React.FC = () => {
         exportType={exportType}
         workshops={workshops}
         provisions={workshops.flatMap(ws => provisionsByWorkshop.get(wsKey(ws)) || [])}
+      />
+
+      <DeployFromCSVModal
+        isOpen={showDeployCSVModal}
+        onClose={() => { setShowDeployCSVModal(false); mutateWorkshops(); }}
+        defaultNamespace={namespace}
       />
     </div>
   );
