@@ -1,5 +1,5 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
-import DOMPurify from 'dompurify';
+import DOMPurify from 'DOMPurify'; // Use DOMPurify to make asciidoctor output safe
 import {
   AccessControl,
   AnarchySubject,
