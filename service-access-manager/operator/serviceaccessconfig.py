@@ -158,6 +158,25 @@ class ServiceAccessConfig(KopfObject):
                 verbs=['get', 'patch', 'update'],
             ),
         ]
+
+        # Add access to workshop if ResourceClaim owns a workshop.
+        workshop_name = resource_claim.labels.get(Babylon.workshop_label)
+        if workshop_name is not None:
+            workshop = await Workshop.fetch(
+                name=self.object_name,
+                namespace=self.namespace,
+            )
+            for owner_reference in workshop.owner_references:
+                if owner_reference['uid'] == resource_claim.uid:
+                    role.rules.append(
+                        V1PolicyRule(
+                            api_groups=[workshop.api_group],
+                            resource_names=[workshop.name],
+                            resources=[workshop.plural],
+                            verbs=['get', 'patch', 'update'],
+                        )
+                    )
+
         if current_state is None:
             try:
                 await Babylon.rbac_authorization_api.create_namespaced_role(self.namespace, role)

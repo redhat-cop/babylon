@@ -127,6 +127,10 @@ class K8sObject:
         return self.metadata.get('namespace')
 
     @property
+    def owner_references(self):
+        return self.metadata.get('ownerReferences', [])
+
+    @property
     def spec(self):
         return self.definition['spec']
 

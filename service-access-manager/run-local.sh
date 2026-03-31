@@ -2,6 +2,14 @@
 
 set -eo pipefail
 
+if [[ -d venv ]]; then
+  . ./venv/bin/activate
+else
+  python -m venv ./venv
+  . ./venv/bin/activate
+  pip install -r dev-requirements.txt
+fi
+
 cd ./operator
 
 exec kopf run \

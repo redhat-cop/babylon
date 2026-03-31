@@ -12,6 +12,7 @@ class Babylon():
     babylon_ignore_label = f"{babylon_domain}/ignore"
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     service_access_annotation = f"{babylon_domain}/service-access"
+    workshop_label = f"{babylon_domain}/workshop"
 
     @classmethod
     async def on_cleanup(cls):
