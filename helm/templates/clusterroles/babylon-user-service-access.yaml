@@ -42,6 +42,7 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - serviceaccesses
+  - serviceaccessconfigs
   verbs:
   - get
   - list
