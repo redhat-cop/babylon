@@ -112,10 +112,12 @@ class MultiWorkshop(CachedKopfObject):
     def generate_k8s_name(base_name, max_length=63):
         """Generate a K8s-compliant name with a random 5-char suffix."""
         sanitized = re.sub(r'[^a-z0-9.]', '-', base_name.lower())
-        sanitized = re.sub(r'-+', '-', sanitized).strip('-')
+        sanitized = re.sub(r'-+', '-', sanitized)
+        sanitized = re.sub(r'[-.]*\.[-.]*', '.', sanitized)
+        sanitized = sanitized.strip('-.')
         suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
         max_base = max_length - 6
-        truncated = sanitized[:max_base].rstrip('-')
+        truncated = sanitized[:max_base].rstrip('-.')
         return f"{truncated}-{suffix}"
 
     async def create_workshops_for_assets(self, logger):
