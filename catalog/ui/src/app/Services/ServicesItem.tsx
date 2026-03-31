@@ -100,7 +100,7 @@ import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
 import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
-import { getAutoStopTime, getInfoMessageTemplate, getStartTime } from './service-utils';
+import { getAutoStopTime, getInfoMessageTemplate, getStartTime, isResourceClaimLocked } from './service-utils';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServiceOpenStackConsole from './ServiceOpenStackConsole';
@@ -518,6 +518,18 @@ const ServicesItemComponent: React.FC<{
     );
   }
 
+  async function handleLockedChange(_: unknown, isChecked: boolean) {
+    mutate(
+      await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+        metadata: {
+          labels: {
+            [`${DEMO_DOMAIN}/lock-enabled`]: String(isChecked),
+          },
+        },
+      }),
+    );
+  }
+
   // As admin we need to fetch service namespaces for the service namespace dropdown
   const { data: userNamespaceList } = useSWR<NamespaceList>(
     isAdmin ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : '',
@@ -534,6 +546,7 @@ const ServicesItemComponent: React.FC<{
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const whiteGloved = getWhiteGloved(resourceClaim);
+  const isLocked = isResourceClaimLocked(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
   const anarchySubjects = resourcesK8sObj
     .filter((r: K8sObject) => r?.kind === 'AnarchySubject')
@@ -973,8 +986,11 @@ const ServicesItemComponent: React.FC<{
                         <AutoStopDestroy
                           type="auto-start"
                           onClick={() => {
-                            showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                            if (!isLocked) {
+                              showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                            }
                           }}
+                          isDisabled={isLocked}
                           resourceClaim={resourceClaim}
                           className="services-item__schedule-btn"
                           time={startTime}
@@ -990,8 +1006,11 @@ const ServicesItemComponent: React.FC<{
                       <AutoStopDestroy
                         type="auto-stop"
                         onClick={() => {
-                          showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                          if (!isLocked) {
+                            showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                          }
                         }}
+                        isDisabled={isLocked}
                         resourceClaim={resourceClaim}
                         className="services-item__schedule-btn"
                         time={autoStopTime}
@@ -1007,8 +1026,11 @@ const ServicesItemComponent: React.FC<{
                         <AutoStopDestroy
                           type="auto-destroy"
                           onClick={() => {
-                            showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                            if (!isLocked) {
+                              showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                            }
                           }}
+                          isDisabled={isLocked}
                           time={resourceClaim.status?.lifespan?.end}
                           className="services-item__schedule-btn"
                           variant="extended"
@@ -1222,6 +1244,19 @@ const ServicesItemComponent: React.FC<{
                                   />
                                 </Tooltip>
                               </div>
+                            </div>
+                            <div
+                              className="services-item__admin-field"
+                              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                            >
+                              <Switch
+                                id="lock-switch"
+                                aria-label="Locked"
+                                label="Locked"
+                                isChecked={isLocked}
+                                hasCheckIcon
+                                onChange={handleLockedChange}
+                              />
                             </div>
                             <div
                               className="services-item__admin-field"
