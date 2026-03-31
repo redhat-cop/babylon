@@ -118,7 +118,7 @@ const ResourcePoolSelector: React.FC<{
       toggle={toggle}
       shouldFocusToggleOnSelect
     >
-      <SelectList>
+      <SelectList style={{ maxHeight: '300px', overflowY: 'auto' }}>
         {filteredPools.length === 0 ? (
           <SelectOption isDisabled key="no-results">
             {filterValue ? 'No pools match your filter' : 'No pools available'}
