@@ -7,7 +7,12 @@ import {
 } from '@app/types';
 import parseDuration from 'parse-duration';
 import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
+
 import { phaseProps, getStatus } from './ServiceStatus';
+
+export function isResourceClaimLocked(resourceClaim: ResourceClaim): boolean {
+  return resourceClaim.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
+}
 
 export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number; stopTime: number } {
   if (
