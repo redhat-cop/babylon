@@ -3,7 +3,7 @@ import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import { within } from '@testing-library/react';
-import Ops, { getWorkshopScheduleStartMs, matchesOpsScheduleFilter } from './Ops';
+import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs, matchesOpsScheduleFilter } from './Ops';
 import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -142,8 +142,13 @@ const ws3 = makeWorkshop({ name: 'ws-stopped', displayName: 'Stopped Workshop', 
 const ws4 = makeWorkshop({ name: 'ws-ansible-2', displayName: 'Ansible Lab', workshopId: 'abc456' });
 const wsMulti = makeWorkshop({ name: 'ws-multi-child', displayName: 'Multi Child', multiworkshopSource: 'parent-multi' });
 const wsFailed = makeWorkshop({ name: 'ws-failed-prov', displayName: 'Failed Provision Workshop' });
+const wsNoAutoStop = makeWorkshop({
+  name: 'ws-no-autostop', displayName: 'No AutoStop WS',
+  stopDate: new Date(Date.now() + 200 * 86400000).toISOString(),
+  destroyDate: new Date(Date.now() + 365 * 86400000).toISOString(),
+});
 
-const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti, wsFailed];
+const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti, wsFailed, wsNoAutoStop];
 
 const provisionData: Record<string, WorkshopProvision[]> = {
   [ws1.metadata.name]: [makeProvision(ws1.metadata.name, 5)],
@@ -152,6 +157,7 @@ const provisionData: Record<string, WorkshopProvision[]> = {
   [ws4.metadata.name]: [makeProvision(ws4.metadata.name, 3)],
   [wsMulti.metadata.name]: [makeProvision(wsMulti.metadata.name, 2)],
   [wsFailed.metadata.name]: [makeProvision(wsFailed.metadata.name, 5, TEST_NAMESPACE, 5)],
+  [wsNoAutoStop.metadata.name]: [makeProvision(wsNoAutoStop.metadata.name, 1)],
 };
 
 const assignmentData: Record<string, WorkshopUserAssignment[]> = {
@@ -363,7 +369,7 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows "No auto-stop" for workshops without stop date', async () => {
+    test('shows "No auto-stop" when stop date is >6 months out', async () => {
       renderOps();
       await waitFor(() => {
         expect(screen.getAllByText('No auto-stop').length).toBeGreaterThanOrEqual(1);
@@ -388,7 +394,7 @@ describe('Ops Component', () => {
       renderOps();
       await waitFor(() => {
         expect(screen.getByText('Multi Asset Event')).toBeInTheDocument();
-        expect(screen.getByText('20')).toBeInTheDocument();
+        expect(screen.getAllByText('20').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -717,6 +723,26 @@ describe('Ops Component', () => {
       expect(matchesOpsScheduleFilter(in12h, 'd1', now)).toBe(true);
       expect(matchesOpsScheduleFilter(in2d, 'd1', now)).toBe(false);
       expect(matchesOpsScheduleFilter(in2d, 'd2', now)).toBe(true);
+    });
+
+    test('getWorkshopStopMs reads actionSchedule.stop', () => {
+      const ws = makeWorkshop({ stopDate: '2030-06-15T18:00:00.000Z' });
+      expect(getWorkshopStopMs(ws)).toBe(new Date('2030-06-15T18:00:00.000Z').getTime());
+    });
+
+    test('getWorkshopStopMs returns null when no stop date', () => {
+      const ws = makeWorkshop({});
+      expect(getWorkshopStopMs(ws)).toBeNull();
+    });
+
+    test('getWorkshopDestroyMs reads lifespan.end', () => {
+      const ws = makeWorkshop({ destroyDate: '2030-12-31T23:59:59.000Z' });
+      expect(getWorkshopDestroyMs(ws)).toBe(new Date('2030-12-31T23:59:59.000Z').getTime());
+    });
+
+    test('getWorkshopDestroyMs returns null when no destroy date', () => {
+      const ws = makeWorkshop({});
+      expect(getWorkshopDestroyMs(ws)).toBeNull();
     });
   });
 

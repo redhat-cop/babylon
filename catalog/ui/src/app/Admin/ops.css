@@ -950,6 +950,24 @@ a.ops-ws-meta:hover {
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/* --- Column sort buttons --- */
+.ops-col-sort-btn {
+  font-weight: 600;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ops-col-sort-btn:hover {
+  text-decoration: underline;
+}
+.ops-col-sort-icon {
+  margin-left: 3px;
+  font-size: 0.7em;
+  vertical-align: middle;
+  color: var(--pf-t--global--icon--color--brand--default);
+}
+
 /* --- Dark mode --- */
 :root.pf-v6-theme-dark .ops-modal-table {
   border-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);

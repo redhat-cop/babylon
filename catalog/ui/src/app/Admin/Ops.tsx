@@ -68,6 +68,7 @@ import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
+import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
 
 import {
   apiPaths,
@@ -202,7 +203,7 @@ const SIX_MONTHS_MS = 15778800000;
 const OPS_GROUP_PAGE_DEFAULT = 18;
 
 export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
-export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc';
+export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'stop-asc' | 'destroy-asc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
 export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
@@ -210,6 +211,20 @@ export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
     ws.spec?.actionSchedule?.start ||
     ws.spec?.lifespan?.start ||
     ws.metadata?.creationTimestamp;
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+export function getWorkshopStopMs(ws: Workshop): number | null {
+  const iso = ws.spec?.actionSchedule?.stop;
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+export function getWorkshopDestroyMs(ws: Workshop): number | null {
+  const iso = ws.spec?.lifespan?.end;
   if (!iso) return null;
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? t : null;
@@ -252,6 +267,22 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.NEGATIVE_INFINITY;
       const vb = tb ?? Number.NEGATIVE_INFINITY;
       if (vb !== va) return vb - va;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'stop-asc': {
+      const sa = getWorkshopStopMs(a);
+      const sb = getWorkshopStopMs(b);
+      const va = sa ?? Number.POSITIVE_INFINITY;
+      const vb = sb ?? Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'destroy-asc': {
+      const da = getWorkshopDestroyMs(a);
+      const db = getWorkshopDestroyMs(b);
+      const va = da ?? Number.POSITIVE_INFINITY;
+      const vb = db ?? Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
       return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
     }
     case 'start-asc':
@@ -951,12 +982,12 @@ const Ops: React.FC = () => {
           seats ? String(seats.assigned) : '',
           seats ? String(seats.total) : '',
           reg, password,
-          stop ? (
-            (new Date(stop).getTime() > Date.now() + SIX_MONTHS_MS ||
-              (destroy && new Date(stop).getTime() >= new Date(destroy).getTime()))
-              ? 'No auto-stop'
-              : fmtDateCSV(stop)
-          ) : 'No auto-stop',
+          stop ? (() => {
+            const stopT = new Date(stop).getTime();
+            if (stopT > Date.now() + SIX_MONTHS_MS) return 'No auto-stop';
+            if (destroy && stopT >= new Date(destroy).getTime()) return 'No auto-stop';
+            return fmtDateCSV(stop);
+          })() : '',
           destroy ? fmtDateCSV(destroy) : '',
           wsUrl,
           getWhiteGloved(ws) ? 'Yes' : 'No',
@@ -1230,40 +1261,46 @@ const Ops: React.FC = () => {
   // ---------- Namespace selected — full UI ----------
 
   /**
-   * Render a date cell. For auto-stop, pass `destroyIso` so we can match the
-   * existing AutoStopDestroy.tsx logic: show "No auto-stop" when stop >= destroy
-   * or stop is >6 months out.
+   * Render an auto-stop cell. Mirrors AutoStopDestroy.tsx logic exactly:
+   * - Not set → dash
+   * - Set but >6 months out → "No auto-stop" (likely Disable Auto-Stop action)
+   * - Set but stop >= destroy → "No auto-stop" (stop is meaningless)
+   * - Otherwise → date with urgency colors
    */
-  const renderDateCell = (iso?: string, offLabel?: string, destroyIso?: string) => {
-    if (!iso) {
-      if (offLabel) {
-        return <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel}</Label>;
-      }
-      return <span className="ops-muted">—</span>;
-    }
+  const renderStopCell = (stopIso?: string, destroyIso?: string) => {
+    if (!stopIso) return <span className="ops-muted">—</span>;
 
-    const t = new Date(iso).getTime();
-    const nowMs = Date.now();
+    const t = new Date(stopIso).getTime();
+    let noAutoStop = false;
 
-    if (destroyIso) {
-      let showNoAutoStop = false;
-      if (t > nowMs + SIX_MONTHS_MS) {
-        showNoAutoStop = true;
-      } else {
-        const destroyT = new Date(destroyIso).getTime();
-        if (Number.isFinite(destroyT) && t >= destroyT) {
-          showNoAutoStop = true;
-        }
-      }
-      if (showNoAutoStop) {
-        return (
-          <Tooltip content={`Actual: ${fmtDate(iso)} (${relativeTime(iso)})`}>
-            <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'No auto-stop'}</Label>
-          </Tooltip>
-        );
+    if (t > Date.now() + SIX_MONTHS_MS) {
+      noAutoStop = true;
+    } else if (destroyIso) {
+      const destroyT = new Date(destroyIso).getTime();
+      if (Number.isFinite(destroyT) && t >= destroyT) {
+        noAutoStop = true;
       }
     }
 
+    if (noAutoStop) {
+      return (
+        <Tooltip content={`Actual: ${fmtDate(stopIso)} (${relativeTime(stopIso)})`}>
+          <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>No auto-stop</Label>
+        </Tooltip>
+      );
+    }
+
+    return renderDateValue(stopIso);
+  };
+
+  /** Render an auto-destroy cell. Always shows the real date, dash if not set. */
+  const renderDestroyCell = (destroyIso?: string) => {
+    if (!destroyIso) return <span className="ops-muted">—</span>;
+    return renderDateValue(destroyIso);
+  };
+
+  /** Shared date rendering with urgency color coding. */
+  const renderDateValue = (iso: string) => {
     const urgency = dateUrgency(iso);
     const formatted = fmtDate(iso);
     const relative = relativeTime(iso);
@@ -1581,6 +1618,8 @@ const Ops: React.FC = () => {
                 >
                   <FormSelectOption value="start-asc" label="Start (oldest first)" />
                   <FormSelectOption value="start-desc" label="Start (newest first)" />
+                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
                   <FormSelectOption value="users-desc" label="Most seats assigned" />
                   <FormSelectOption value="name-asc" label="Name (A–Z)" />
                 </FormSelect>
@@ -1958,8 +1997,18 @@ const Ops: React.FC = () => {
                       <th>Seats</th>
                       <th>Registration</th>
                       <th>Password</th>
-                      <th>Auto-Stop</th>
-                      <th>Auto-Destroy</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('stop-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by Auto-Stop soonest">
+                          Auto-Stop {sortMode === 'stop-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('destroy-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by Auto-Destroy soonest">
+                          Auto-Destroy {sortMode === 'destroy-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Workshop URL</th>
                       <th className="ops-col-white-glove">White glove</th>
                     </tr>
@@ -2132,8 +2181,8 @@ const Ops: React.FC = () => {
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
-                          <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop', firstWs.spec?.lifespan?.end)}</td>
-                          <td>{renderDateCell(firstWs.spec?.lifespan?.end)}</td>
+                          <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
+                          <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
                           <td>
                             {isMultiAsset && mw ? (
                               <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
@@ -2247,8 +2296,8 @@ const Ops: React.FC = () => {
                                   : <span className="ops-password-hidden">••••••••</span>
                               ) : <span className="ops-muted">None</span>}
                             </td>
-                            <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop', ws.spec?.lifespan?.end)}</td>
-                            <td>{renderDateCell(ws.spec?.lifespan?.end)}</td>
+                            <td>{renderStopCell(ws.spec?.actionSchedule?.stop, ws.spec?.lifespan?.end)}</td>
+                            <td>{renderDestroyCell(ws.spec?.lifespan?.end)}</td>
                             <td>
                               {workshopUrl ? (
                                 <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
