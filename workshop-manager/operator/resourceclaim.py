@@ -40,7 +40,8 @@ class ResourceClaim(K8sObject):
                 logger.exception("Failed to get workshop %s", resource_claim.workshop_name)
 
         if event.get('type') == 'DELETED' or resource_claim.deletion_timestamp is not None:
-            await workshop.remove_resource_claim_from_status(resource_claim, logger=logger)
+            if workshop is not None:
+                await workshop.remove_resource_claim_from_status(resource_claim, logger=logger)
             await resource_claim.delete_workshop_user_assignments(logger=logger)
             return
 
