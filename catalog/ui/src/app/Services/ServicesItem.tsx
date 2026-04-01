@@ -570,14 +570,14 @@ const ServicesItemComponent: React.FC<{
     manageWorkshop?: () => void;
     rate?: () => void;
   } = {
-    delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
-    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
+    delete: isLocked ? undefined : () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+    lifespan: isLocked ? undefined : () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
   
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
+  if (!isLocked && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
+  if (!isLocked && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers.stop = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
     actionHandlers.runtime = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
