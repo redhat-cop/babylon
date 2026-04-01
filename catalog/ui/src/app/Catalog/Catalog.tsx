@@ -614,8 +614,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, showFavorites, isAdmin]);
 
   const DEFAULT_CATALOG_NAMESPACE = 'babylon-catalog-prod';
-  if (!catalogNamespaceName && catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)) {
-    return <Navigate to={`/catalog/${DEFAULT_CATALOG_NAMESPACE}${location.search}`} replace />;
+  if (!catalogNamespaceName && catalogNamespaces.length > 0) {
+    const defaultNs = catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)
+      ? DEFAULT_CATALOG_NAMESPACE
+      : catalogNamespaces[0].name;
+    return <Navigate to={`/catalog/${defaultNs}${location.search}`} replace />;
   }
 
   if (isLoading) {
