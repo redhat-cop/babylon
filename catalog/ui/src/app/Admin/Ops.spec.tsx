@@ -370,10 +370,10 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows "No auto-destroy" for workshops without destroy date', async () => {
+    test('shows dash for workshops without destroy date', async () => {
       renderOps();
       await waitFor(() => {
-        expect(screen.getAllByText('No auto-destroy').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
       });
     });
 

@@ -340,6 +340,11 @@ const Ops: React.FC = () => {
   const [nsSearchOpen, setNsSearchOpen] = useState(false);
   const [nsSearchText, setNsSearchText] = useState('');
 
+  // ---------- Platform-wide mode ----------
+
+  const [platformMode, setPlatformMode] = useState(false);
+  const [showPlatformConfirm, setShowPlatformConfirm] = useState(false);
+
   // Fetch all user namespaces for multi-ns picker
   const { data: allNsData } = useSWR<{ items: any[] }>(
     multiNsMode ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : null,
@@ -359,12 +364,13 @@ const Ops: React.FC = () => {
   }, [allNamespaces, namespace, extraNamespaces, nsSearchText]);
 
   const activeNamespaces = useMemo(() => {
+    if (platformMode) return [];
     const nsList = namespace ? [namespace] : [];
     if (multiNsMode) nsList.push(...extraNamespaces);
     return nsList;
-  }, [namespace, multiNsMode, extraNamespaces]);
+  }, [namespace, multiNsMode, extraNamespaces, platformMode]);
 
-  const isMultiNs = activeNamespaces.length > 1;
+  const isMultiNs = platformMode || activeNamespaces.length > 1;
 
   const enableMultiNs = useCallback(() => {
     setMultiNsMode(true);
@@ -378,6 +384,20 @@ const Ops: React.FC = () => {
     setExtraNamespaces([]);
     setNsSearchText('');
     setNsSearchOpen(false);
+  }, []);
+
+  const enablePlatformMode = useCallback(() => {
+    setPlatformMode(true);
+    setShowPlatformConfirm(false);
+    setMultiNsMode(false);
+    setMultiNsAck(false);
+    setExtraNamespaces([]);
+    setNsSearchText('');
+    setNsSearchOpen(false);
+  }, []);
+
+  const disablePlatformMode = useCallback(() => {
+    setPlatformMode(false);
   }, []);
 
   // ---------- Dark mode ----------
@@ -421,8 +441,10 @@ const Ops: React.FC = () => {
   // ---------- Data fetching (multi-namespace aware) ----------
 
   const workshopUrls = useMemo(
-    () => activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
-    [activeNamespaces],
+    () => platformMode
+      ? [apiPaths.WORKSHOPS({ limit: FETCH_LIMIT })]
+      : activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
+    [activeNamespaces, platformMode],
   );
   const { data: allWsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList[]>(
     workshopUrls.length > 0 ? workshopUrls : null,
@@ -436,8 +458,10 @@ const Ops: React.FC = () => {
 
   // Fetch MultiWorkshop resources for multi-asset parent info
   const multiWorkshopUrls = useMemo(
-    () => activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
-    [activeNamespaces],
+    () => platformMode
+      ? [apiPaths.MULTIWORKSHOPS({ limit: 500 })]
+      : activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    [activeNamespaces, platformMode],
   );
   const { data: allMwData } = useSWR<MultiWorkshopList[]>(
     multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
@@ -620,7 +644,7 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopFilter, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter]);
+  }, [workshopFilter, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
@@ -739,7 +763,7 @@ const Ops: React.FC = () => {
   }, []);
 
   const scopeLabel = useMemo(() => {
-    const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    const nsLabel = platformMode ? 'all namespaces (platform)' : isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
     if (hasSelection) {
       return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
     }
@@ -748,7 +772,7 @@ const Ops: React.FC = () => {
     }
     const modePrefix = whiteGloveMode ? 'White glove' : 'All';
     return <>{modePrefix} · {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode]);
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -1212,7 +1236,10 @@ const Ops: React.FC = () => {
    */
   const renderDateCell = (iso?: string, offLabel?: string, destroyIso?: string) => {
     if (!iso) {
-      return <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'Not set'}</Label>;
+      if (offLabel) {
+        return <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel}</Label>;
+      }
+      return <span className="ops-muted">—</span>;
     }
 
     const t = new Date(iso).getTime();
@@ -1323,9 +1350,9 @@ const Ops: React.FC = () => {
           </SplitItem>
           <SplitItem>
             {workshops.length > 0 && (
-              <Label isCompact color="blue">
+              <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
+                {platformMode ? ' (platform-wide)' : isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
           </SplitItem>
@@ -1335,43 +1362,69 @@ const Ops: React.FC = () => {
       <PageSection key="body" className="admin-body" variant="default">
         {/* View mode + namespace bar */}
         {isAdmin && (
-          <div className={`ops-mode-bar ${multiNsMode ? 'ops-mode-bar--multi-active' : ''}`}>
+          <div className={`ops-mode-bar ${(multiNsMode || platformMode) ? 'ops-mode-bar--multi-active' : ''}`}>
             <Split hasGutter style={{ alignItems: 'center' }}>
               <SplitItem>
-                <ToggleGroup aria-label="Workshop view mode" isCompact className="ops-view-mode-toggle">
-                  <ToggleGroupItem
-                    icon={<ListIcon />}
-                    text="All Workshops"
-                    buttonId="view-all"
-                    isSelected={opsViewMode === 'all'}
-                    onChange={() => setOpsViewMode('all')}
-                  />
-                  <ToggleGroupItem
-                    icon={<StarIcon />}
-                    text="White Glove"
-                    buttonId="view-white-glove"
-                    isSelected={opsViewMode === 'white-glove'}
-                    onChange={() => setOpsViewMode('white-glove')}
-                  />
-                </ToggleGroup>
+                <Tooltip content={
+                  platformMode
+                    ? 'Filtering all workshops on the platform'
+                    : isMultiNs
+                      ? `Filtering workshops across ${activeNamespaces.length} namespaces`
+                      : `Filtering workshops in ${namespace}`
+                }>
+                  <ToggleGroup aria-label="Workshop view mode" isCompact className="ops-view-mode-toggle">
+                    <ToggleGroupItem
+                      icon={<ListIcon />}
+                      text="All Workshops"
+                      buttonId="view-all"
+                      isSelected={opsViewMode === 'all'}
+                      onChange={() => setOpsViewMode('all')}
+                    />
+                    <ToggleGroupItem
+                      icon={<StarIcon />}
+                      text="White Glove"
+                      buttonId="view-white-glove"
+                      isSelected={opsViewMode === 'white-glove'}
+                      onChange={() => setOpsViewMode('white-glove')}
+                    />
+                  </ToggleGroup>
+                </Tooltip>
               </SplitItem>
+              {!platformMode && (
+                <SplitItem>
+                  <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
+                    <Switch
+                      id="multi-ns-toggle"
+                      label="Multi-namespace mode"
+                      isChecked={multiNsMode}
+                      onChange={(_e, checked) => {
+                        if (checked && !multiNsAck) {
+                          setShowMultiNsConfirm(true);
+                        } else if (!checked) {
+                          disableMultiNs();
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                </SplitItem>
+              )}
               <SplitItem>
-                <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
+                <Tooltip content="Load every workshop across all namespaces on the platform. Use with caution — can be slow and operations affect everything.">
                   <Switch
-                    id="multi-ns-toggle"
-                    label="Multi-namespace mode"
-                    isChecked={multiNsMode}
+                    id="platform-mode-toggle"
+                    label={<><GlobeIcon /> All Workshops (Platform)</>}
+                    isChecked={platformMode}
                     onChange={(_e, checked) => {
-                      if (checked && !multiNsAck) {
-                        setShowMultiNsConfirm(true);
-                      } else if (!checked) {
-                        disableMultiNs();
+                      if (checked) {
+                        setShowPlatformConfirm(true);
+                      } else {
+                        disablePlatformMode();
                       }
                     }}
                   />
                 </Tooltip>
               </SplitItem>
-              {multiNsMode && (
+              {multiNsMode && !platformMode && (
                 <SplitItem isFilled>
                   <Select
                     isOpen={nsSearchOpen}
@@ -1424,15 +1477,6 @@ const Ops: React.FC = () => {
                   </Select>
                 </SplitItem>
               )}
-              <SplitItem>
-                <Tooltip content="Full workshop admin list with actions and deletion — same data, different UI.">
-                  <Link to={`/admin/workshops/${namespace}`} className="ops-admin-link">
-                    <Button variant="link" isInline icon={<ExternalLinkAltIcon />} iconPosition="end">
-                      Workshops admin
-                    </Button>
-                  </Link>
-                </Tooltip>
-              </SplitItem>
             </Split>
             {multiNsMode && extraNamespaces.length > 0 && (
               <div className="ops-ns-chips">
@@ -2089,7 +2133,7 @@ const Ops: React.FC = () => {
                             ) : <span className="ops-muted">None</span>}
                           </td>
                           <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop', firstWs.spec?.lifespan?.end)}</td>
-                          <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                          <td>{renderDateCell(firstWs.spec?.lifespan?.end)}</td>
                           <td>
                             {isMultiAsset && mw ? (
                               <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
@@ -2204,7 +2248,7 @@ const Ops: React.FC = () => {
                               ) : <span className="ops-muted">None</span>}
                             </td>
                             <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop', ws.spec?.lifespan?.end)}</td>
-                            <td>{renderDateCell(ws.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                            <td>{renderDateCell(ws.spec?.lifespan?.end)}</td>
                             <td>
                               {workshopUrl ? (
                                 <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
@@ -2254,6 +2298,28 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="warning" onClick={enableMultiNs}>I understand, enable multi-namespace</Button>
           <Button variant="link" onClick={() => setShowMultiNsConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* ---------- Platform-wide mode acknowledgement ---------- */}
+
+      <Modal variant="small" isOpen={showPlatformConfirm} onClose={() => setShowPlatformConfirm(false)} aria-labelledby="platform-confirm">
+        <ModalHeader title="Enable Platform-Wide Mode" labelId="platform-confirm" titleIconVariant="danger" />
+        <ModalBody>
+          <Alert variant="danger" isInline title="All namespaces on the platform" style={{ marginBottom: 12 }}>
+            <p>This will load <strong>every workshop across every namespace</strong> on the platform. This can be slow and resource-intensive.</p>
+          </Alert>
+          <p>Operations (lock, extend, scale, etc.) will apply to workshops from <strong>all namespaces</strong> unless you filter or select specific ones first.</p>
+          <p style={{ marginTop: 12, fontWeight: 600 }}>Please confirm you understand the risks:</p>
+          <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+            <li>All workshops across the entire platform will be loaded</li>
+            <li>Operations apply globally unless filtered</li>
+            <li>You can disable this mode at any time to return to project-scoped view</li>
+          </ul>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="danger" onClick={enablePlatformMode}>I understand, show all workshops</Button>
+          <Button variant="link" onClick={() => setShowPlatformConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
 
