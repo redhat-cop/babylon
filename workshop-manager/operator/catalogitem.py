@@ -54,14 +54,6 @@ class CatalogItemParameter:
         self.required = definition.get('required', False)
         self.variable = definition.get('variable', None if self.annotation else self.name)
 
-        if 'resourceIndexes' in definition:
-            self.resource_indexes = [
-                resource_count - 1 if idx == '@' else idx
-                for idx in definition['resourceIndexes']
-            ]
-        else:
-            self.resource_indexes = [ resource_count - 1 ]
-
         if self.open_api_v3_schema:
             if 'default' in self.open_api_v3_schema:
                 self.default = self.open_api_v3_schema['default']
