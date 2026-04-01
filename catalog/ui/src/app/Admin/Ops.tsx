@@ -1951,7 +1951,7 @@ const Ops: React.FC = () => {
               {workshopView === 'calendar' && (
                 <p className="ops-calendar-hint">
                   Same filters as the table. Click an event to open the workshop. Uses start from{' '}
-                  <code>actionSchedule.start</code> or <code>lifespan.start</code> (shared with Scheduled Workshops).
+                  <code>actionSchedule.start</code> or <code>lifespan.start</code>.
                 </p>
               )}
               {workshopView === 'calendar' && (
