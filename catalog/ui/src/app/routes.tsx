@@ -17,7 +17,6 @@ const MultiWorkshopList = React.lazy(() => import('@app/MultiWorkshops/MultiWork
 const MultiWorkshopCreate = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopCreate'));
 const MultiWorkshopDetail = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopDetail'));
 const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
-const WorkshopsScheduled = React.lazy(() => import('@app/Admin/WorkshopsScheduled'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
@@ -138,16 +137,6 @@ const appRoutes: IAppRoute[] = [
     component: ResourceClaims,
     path: '/admin/resourceclaims',
     title: 'Babylon | ResourceClaims',
-  },
-  {
-    component: WorkshopsScheduled,
-    path: '/admin/scheduled/workshops',
-    title: 'Babylon | Scheduled Workshops',
-  },
-  {
-    component: WorkshopsScheduled,
-    path: '/admin/scheduled/workshops/:namespace',
-    title: 'Babylon | Scheduled Workshops',
   },
   {
     component: WorkshopsList,

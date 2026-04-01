@@ -51,31 +51,6 @@ export function workshopToCalendarEventOps(
   };
 }
 
-/**
- * Scheduled Workshops admin page — same rules as legacy eventMapper (action start required; past stops hidden).
- */
-export function workshopToCalendarEventScheduledPage(ws: Workshop): WorkshopCalendarEvent | null {
-  if (!ws.spec.actionSchedule?.start) return null;
-  if (ws.spec.actionSchedule?.stop) {
-    if (new Date(ws.spec.actionSchedule.stop) <= new Date()) return null;
-  }
-  const ownerReference = ws.metadata?.ownerReferences?.[0];
-  const owningResourceClaimName =
-    ownerReference && ownerReference.kind === 'ResourceClaim' ? ownerReference.name : null;
-  const url = owningResourceClaimName
-    ? `/services/${ws.metadata.namespace}/${owningResourceClaimName}/workshop`
-    : `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
-  const start = new Date(ws.spec.actionSchedule.start);
-  const end = computeEndFromStart(start, ws);
-  return {
-    title: ws.spec.displayName || ws.metadata.name,
-    start,
-    end,
-    url,
-    allDay: false,
-  };
-}
-
 export function workshopCalendarEventStyleGetter(_event: WorkshopCalendarEvent, start: Date) {
   if (start > new Date()) {
     return {

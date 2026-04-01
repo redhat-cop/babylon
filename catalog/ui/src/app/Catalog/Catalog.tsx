@@ -412,7 +412,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   });
 
   const catalogItems = useMemo(
-    () => catalogItemsArr.filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
+    () => (catalogItemsArr || []).filter((ci) => filterCatalogItemByAccessControl(ci, groups, isAdmin)),
     [catalogItemsArr, groups, isAdmin],
   );
 
