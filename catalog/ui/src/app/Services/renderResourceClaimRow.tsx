@@ -16,7 +16,7 @@ import {
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { getAutoStopTime } from './service-utils';
+import { getAutoStopTime, isResourceClaimLocked } from './service-utils';
 import ServiceStatus from './ServiceStatus';
 import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -83,16 +83,18 @@ const renderResourceClaimRow = ({
       })
       .find((u) => u != null);
 
+  const isLocked = isResourceClaimLocked(resourceClaim);
+
   // Available actions depends on kind of service
   const actionHandlers = {
-    delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
-    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
+    delete: isLocked ? null : () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+    lifespan: isLocked ? null : () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
     runtime: null,
     start: null,
     stop: null,
     manageWorkshop: null,
   };
-  if (resources.find((r) => r?.kind === 'AnarchySubject')) {
+  if (!isLocked && resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
@@ -171,6 +173,7 @@ const renderResourceClaimRow = ({
       <AutoStopDestroy
         time={autoStopTime}
         onClick={actionHandlers.runtime}
+        isDisabled={isLocked}
         className="services-list__schedule-btn"
         type="auto-stop"
         resourceClaim={resourceClaim}
@@ -183,6 +186,7 @@ const renderResourceClaimRow = ({
     <span key="resource-claim-auto-destroy">
       <AutoStopDestroy
         onClick={actionHandlers.lifespan}
+        isDisabled={isLocked}
         time={resourceClaim.spec.lifespan?.end || resourceClaim.status?.lifespan?.end}
         className="services-list__schedule-btn"
         type="auto-destroy"
@@ -203,7 +207,7 @@ const renderResourceClaimRow = ({
     >
       {!isPartOfWorkshop ? (
         <ButtonCircleIcon
-          isDisabled={!checkResourceClaimCanStart(resourceClaim)}
+          isDisabled={isLocked || !checkResourceClaimCanStart(resourceClaim)}
           onClick={actionHandlers.start}
           description="Start"
           icon={PlayIcon}
@@ -212,7 +216,7 @@ const renderResourceClaimRow = ({
       ) : null}
       {!isPartOfWorkshop ? (
         <ButtonCircleIcon
-          isDisabled={!checkResourceClaimCanStop(resourceClaim)}
+          isDisabled={isLocked || !checkResourceClaimCanStop(resourceClaim)}
           onClick={actionHandlers.stop}
           description="Stop"
           icon={StopIcon}
@@ -227,7 +231,7 @@ const renderResourceClaimRow = ({
           key="actions__manage-workshop"
         />
       ) : null}
-      <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} isDisabled={resourceClaim.isCollaborator} />
+      <ButtonCircleIcon key="actions__delete" onClick={actionHandlers.delete} description="Delete" icon={TrashIcon} isDisabled={isLocked || resourceClaim.isCollaborator} />
       {
         // Lab Interface
         labUserInterfaceUrl ? (
