@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Checkbox, Tooltip, Stack, StackItem } from '@patternfly/react-core';
+import { Checkbox, Tooltip, Stack, StackItem, Title } from '@patternfly/react-core';
 import { CatalogItem } from '@app/types';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import { formatString, getCategory } from './catalog-utils';
@@ -58,7 +58,13 @@ const CatalogCategorySelector: React.FC<{
   };
 
   return (
-    <Stack className="catalog-category-selector" hasGutter style={isHorizontal ? { flexDirection: 'row', flexWrap: 'wrap' } : undefined}>
+    <div className="catalog-category-selector">
+      {!isHorizontal && (
+        <Title headingLevel="h6" className="catalog-category-selector__title">
+          Category
+        </Title>
+      )}
+    <Stack className="catalog-category-selector__options" style={isHorizontal ? { flexDirection: 'row', flexWrap: 'wrap' } : undefined}>
       {onFavoritesChange && (
         <StackItem key="favorites">
           <Checkbox
@@ -99,6 +105,7 @@ const CatalogCategorySelector: React.FC<{
         );
       })}
     </Stack>
+    </div>
   );
 };
 
