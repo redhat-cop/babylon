@@ -13,61 +13,19 @@ import { Workshop } from '@app/types';
 import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import ProjectSelector from '@app/components/ProjectSelector';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
+import { Calendar } from 'react-big-calendar';
 
-const localizer = momentLocalizer(moment);
+import {
+  workshopCalendarEventStyleGetter,
+  workshopCalendarLocalizer,
+  workshopToCalendarEventScheduledPage,
+} from '@app/Admin/workshopCalendarEvents';
 
 import './admin.css';
 import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
-type TEvent = {
-  title: string;
-  start: Date;
-  end: Date;
-  url: string;
-  allDay: boolean;
-};
-
-const eventMapper = (workshop: Workshop): TEvent => {
-  if (!workshop.spec.actionSchedule?.start) return null;
-  if (workshop.spec.actionSchedule?.stop) {
-    if (new Date(workshop.spec.actionSchedule.stop) <= new Date()) return null;
-  }
-  const ownerReference = workshop.metadata?.ownerReferences?.[0];
-  const owningResourceClaimName =
-    ownerReference && ownerReference.kind === 'ResourceClaim' ? ownerReference.name : null;
-  return {
-    title: workshop.spec.displayName,
-    start: new Date(workshop.spec.actionSchedule?.start),
-    end: new Date(workshop.spec.lifespan?.end),
-    url: owningResourceClaimName
-      ? `/services/${workshop.metadata.namespace}/${owningResourceClaimName}/workshop`
-      : `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`,
-    allDay: false,
-  };
-};
-
 const filterOutNonScheduled = (w: Workshop) => {
   return (w.metadata.annotations[`${DEMO_DOMAIN}/scheduled`] === 'true')
-};
-
-const eventStyleGetter = (_event: TEvent, start: Date) => {
-  if (start > new Date()) {
-    return {
-      style: {
-        backgroundColor: '#def3ff',
-        color: '#002952',
-      },
-    };
-  }
-
-  return {
-    style: {
-      backgroundColor: '#f3faf2',
-      color: '#1e4f18',
-    },
-  };
 };
 
 const WorkshopsScheduled: React.FC = () => {
@@ -114,13 +72,16 @@ const WorkshopsScheduled: React.FC = () => {
       <PageSection hasBodyWrapper={false} key="body"  className="admin-body" style={{ minHeight: 750 }}>
         <p style={{ padding: '16px 0' }}>Showing only upcoming scheduled workshops.</p>
         <Calendar
-          localizer={localizer}
-          events={workshops.filter(filterOutNonScheduled).map(eventMapper).filter(Boolean)}
+          localizer={workshopCalendarLocalizer}
+          events={(workshops ?? [])
+            .filter(filterOutNonScheduled)
+            .map(workshopToCalendarEventScheduledPage)
+            .filter(Boolean)}
           startAccessor="start"
           endAccessor="end"
           style={{ height: 700 }}
-          onSelectEvent={(ev: TEvent) => navigate(ev.url)}
-          eventPropGetter={eventStyleGetter}
+          onSelectEvent={(ev) => navigate(ev.url)}
+          eventPropGetter={workshopCalendarEventStyleGetter}
           showAllEvents={true}
           showMultiDayTimes={true}
         />
