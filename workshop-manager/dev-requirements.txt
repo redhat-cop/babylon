@@ -1,0 +1,2 @@
+kopf==1.44.4
+kubernetes_asyncio==35.0.1
