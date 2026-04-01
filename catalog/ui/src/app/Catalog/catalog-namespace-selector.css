@@ -1,8 +1,8 @@
-.catalog-category-selector__title {
+.catalog-namespace-selector__title {
   margin-bottom: var(--pf-t--global--spacer--sm);
   font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
-.catalog-category-selector__options .pf-v6-l-stack {
+.catalog-namespace-selector__options .pf-v6-l-stack {
   gap: var(--pf-t--global--spacer--sm);
 }

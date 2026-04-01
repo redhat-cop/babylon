@@ -1,3 +1,30 @@
+.catalog-label-selector {
+  gap: 0;
+}
+
 .catalog-label-selector .pf-v6-c-expandable-section__content {
   padding-left: var(--pf-t--global--spacer--md);
+}
+
+.catalog-label-selector__toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.catalog-label-selector__clear-btn {
+  margin-left: auto;
+  margin-right: 0;
+  padding: 0;
+}
+
+.catalog-label-selector__rating-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.catalog-label-selector__rating-btn {
+  text-align: left;
+  padding-left: 0;
 }

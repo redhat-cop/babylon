@@ -139,28 +139,25 @@ const CatalogLabelSelector: React.FC<{
   });
 
   return (
-    <Form
-      className="catalog-label-selector"
-      style={{ gap: 0 }}
-    >
+    <Form className="catalog-label-selector">
       {labelsSorted.map(([attrKey, attr]: [string, CatalogLabelValues]) => (
         <ExpandableSection
           key={attrKey}
           isExpanded={expandedLabels[attrKey] || false}
           toggleContent={
-            <div style={{ display: 'flex', flexDirection: 'row' }}>
-              <p>{attr.displayName}</p>
+            <div className="catalog-label-selector__toggle">
+              <span>{attr.displayName}</span>
               {Object.entries(attr.values).some(([valueKey]) =>
                 (selected?.[attrKey] || []).includes(valueKey) || attrKey === CUSTOM_LABELS.RATING.key
                   ? selected?.[attrKey]
                   : false,
               ) ? (
-                <Tooltip content={<div>Clear filter</div>}>
+                <Tooltip content="Clear filter">
                   <Button
                     icon={<FilterAltIcon />}
                     variant="plain"
                     component="span"
-                    style={{ marginRight: 0, marginLeft: 'auto', padding: 0 }}
+                    className="catalog-label-selector__clear-btn"
                     onClick={(ev) => {
                       ev.stopPropagation();
                       onClearFilter(attrKey);
@@ -186,7 +183,7 @@ const CatalogLabelSelector: React.FC<{
                   />
                 ))
             ) : (
-              <div>
+              <div className="catalog-label-selector__rating-list">
                 {[4, 3, 2, 1].map((rating) => (
                   <Button
                     key={rating}

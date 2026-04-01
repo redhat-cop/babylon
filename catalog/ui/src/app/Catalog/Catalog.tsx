@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
-import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import {
   Backdrop,
   Button,
@@ -64,7 +64,7 @@ import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
 import CatalogItemDetails from './CatalogItemDetails';
 import CatalogLabelSelector from './CatalogLabelSelector';
-import CatalogNamespaceSelect from './CatalogNamespaceSelect';
+import CatalogNamespaceSelector from './CatalogNamespaceSelector';
 import CatalogContent from './CatalogContent';
 import LoadingSection from '@app/components/LoadingSection';
 
@@ -230,6 +230,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const { namespace: catalogNamespaceName } = useParams();
   const showFavorites = searchParams.has('favorites') ? searchParams.get('favorites') === 'true' : false;
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
+  const HIDDEN_CATALOG_NAMESPACES = ['babylon-catalog-infra'];
+  const visibleCatalogNamespaces = useMemo(
+    () => catalogNamespaces.filter((ns) => !HIDDEN_CATALOG_NAMESPACES.includes(ns.name)),
+    [catalogNamespaces],
+  );
   const [view, setView] = useState<'gallery' | 'list'>('gallery');
   const [sortBy, setSortBy] = useState<{ isOpen: boolean; selected: 'Featured' | 'Rating' | 'AZ' | 'ZA' }>({
     isOpen: false,
@@ -274,7 +279,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   const [searchInputStringCb, setSearchInputStringCb] = useState<(val: string) => void>(null);
   const assignSearchInputStringCb = (cb: (v: string) => void) => setSearchInputStringCb(cb);
-  const catalogNamespaceNames = catalogNamespaces.map((ci) => ci.name);
 
   // sync input with search param
   useLayoutEffect(() => {
@@ -387,9 +391,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
-    apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
-      stage: catalogNamespaceName ? catalogNamespaceName.split('-').slice(-1)[0] : 'all',
-    }),
+    catalogNamespaceName
+      ? apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
+          stage: catalogNamespaceName.split('-').slice(-1)[0],
+        })
+      : null,
     fetcher,
     {
       suspense: false,
@@ -397,10 +403,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     },
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    apiPaths.CATALOG_ITEMS({
-      namespace: catalogNamespaceName ? catalogNamespaceName : 'all-catalogs',
-    }),
-    () => fetchCatalog(catalogNamespaceName ? [catalogNamespaceName] : catalogNamespaceNames),
+    catalogNamespaceName ? apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }) : null,
+    () => fetchCatalog([catalogNamespaceName]),
   );
   const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES(), fetcher, {
     suspense: false,
@@ -563,11 +567,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   }
 
   function onSelectCatalogNamespace(namespaceName: string) {
-    if (namespaceName) {
-      navigate(`/catalog/${namespaceName}${location.search}`);
-    } else {
-      navigate(`/catalog${location.search}`);
-    }
+    navigate(`/catalog/${namespaceName}${location.search}`);
   }
 
   function onSelectCategories(categories: string[]) {
@@ -613,6 +613,11 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     return hasSearch || hasLabels || hasAdminFilter || hasCategories || showFavorites;
   }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, showFavorites, isAdmin]);
 
+  const DEFAULT_CATALOG_NAMESPACE = 'babylon-catalog-prod';
+  if (!catalogNamespaceName && catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)) {
+    return <Navigate to={`/catalog/${DEFAULT_CATALOG_NAMESPACE}${location.search}`} replace />;
+  }
+
   if (isLoading) {
     return <LoadingSection />;
   }
@@ -642,29 +647,29 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         >
           {openCatalogItem ? <Backdrop /> : null}
           <DrawerContentBody>
-            {catalogNamespaces.length > 1 ? (
-              <CatalogNamespaceSelect onSelect={onSelectCatalogNamespace} selected={catalogNamespaceName} />
-            ) : null}
             <CatalogInterfaceDescription />
             <PageSection hasBodyWrapper={false} className="catalog__body">
               <Card>
                 <CardBody style={{ padding: 0 }}>
                   <Sidebar tabIndex={0}>
-                    <SidebarPanel
-                      style={{
-                        marginTop: 'var(--pf-t--global--spacer--xl)',
-                        borderLeft: '1px solid var(--pf-v6-c-card--BorderColor)',
-                        padding: '0 var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <Stack hasGutter>
-                        {hasActiveFilters && (
+                    <SidebarPanel className="catalog__sidebar-panel">
+                      {hasActiveFilters && (
+                        <div className="catalog__sidebar-clear-filters">
+                          <Button variant="secondary" icon={<TimesIcon />} onClick={onClearFilters} size="sm">
+                            Clear all filters
+                          </Button>
+                        </div>
+                      )}
+                      <Stack className="catalog__sidebar-filters">
+                        {visibleCatalogNamespaces.length > 1 ? (
                           <StackItem>
-                            <Button variant="secondary" icon={<TimesIcon />} onClick={onClearFilters} size="sm">
-                              Clear all filters
-                            </Button>
+                            <CatalogNamespaceSelector
+                              catalogNamespaces={visibleCatalogNamespaces}
+                              onSelect={onSelectCatalogNamespace}
+                              selected={catalogNamespaceName}
+                            />
                           </StackItem>
-                        )}
+                        ) : null}
                         <StackItem>
                           <CatalogCategorySelector
                             catalogItems={catalogItems}
