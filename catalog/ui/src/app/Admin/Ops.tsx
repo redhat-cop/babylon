@@ -28,12 +28,21 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Divider,
+  InputGroup,
+  InputGroupItem,
+  MenuSearch,
+  MenuSearchInput,
+  Pagination,
+  SearchInput,
   Split,
   SplitItem,
   Switch,
   TextInput,
   Tooltip,
   Title,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
 import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import LockOpenIcon from '@patternfly/react-icons/dist/js/icons/lock-open-icon';
@@ -51,10 +60,15 @@ import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
+import TableIcon from '@patternfly/react-icons/dist/js/icons/table-icon';
+import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
+import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
+import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
 
 import {
   apiPaths,
@@ -73,14 +87,28 @@ import {
   MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
 } from '@app/types';
-import { displayName, BABYLON_DOMAIN, DEMO_DOMAIN, getStageFromK8sObject, namespaceToServiceNamespaceMapper } from '@app/util';
+import {
+  displayName,
+  BABYLON_DOMAIN,
+  DEMO_DOMAIN,
+  getStageFromK8sObject,
+  getWhiteGloved,
+  namespaceToServiceNamespaceMapper,
+} from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
+import { Calendar } from 'react-big-calendar';
+import {
+  workshopCalendarEventStyleGetter,
+  workshopCalendarLocalizer,
+  workshopToCalendarEventOps,
+} from '@app/Admin/workshopCalendarEvents';
 
 import './admin.css';
 import './ops.css';
+import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
 interface OpsAlert {
   key: number;
@@ -167,6 +195,115 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const ONE_DAY_MS = TWENTY_FOUR_HOURS_MS;
+/** ~6 months — matches AutoStopDestroy.tsx (15778800000ms) */
+const SIX_MONTHS_MS = 15778800000;
+
+/** Paginate workshop *groups* (rows), not individual asset lines */
+const OPS_GROUP_PAGE_DEFAULT = 18;
+
+export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
+export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'stop-asc' | 'destroy-asc';
+
+/** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
+export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
+  const iso =
+    ws.spec?.actionSchedule?.start ||
+    ws.spec?.lifespan?.start ||
+    ws.metadata?.creationTimestamp;
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+export function getWorkshopStopMs(ws: Workshop): number | null {
+  const iso = ws.spec?.actionSchedule?.stop;
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+export function getWorkshopDestroyMs(ws: Workshop): number | null {
+  const iso = ws.spec?.lifespan?.end;
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+export function matchesOpsScheduleFilter(
+  ws: Workshop,
+  filter: OpsScheduleFilterKey,
+  nowMs: number = Date.now(),
+): boolean {
+  if (filter === 'all') return true;
+  const t = getWorkshopScheduleStartMs(ws);
+  if (t === null) return false;
+  if (filter === 'scheduled') return t > nowMs;
+  if (t <= nowMs) return false;
+  if (filter === 'd1') return t <= nowMs + ONE_DAY_MS;
+  if (filter === 'd2') return t <= nowMs + 2 * ONE_DAY_MS;
+  if (filter === 'd3') return t <= nowMs + 3 * ONE_DAY_MS;
+  return true;
+}
+
+function compareWorkshopsForSort(
+  a: Workshop,
+  b: Workshop,
+  mode: OpsSortMode,
+  getSeats: (w: Workshop) => { assigned: number; total: number } | null,
+): number {
+  switch (mode) {
+    case 'name-asc':
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    case 'users-desc': {
+      const sa = getSeats(a)?.assigned ?? 0;
+      const sb = getSeats(b)?.assigned ?? 0;
+      if (sb !== sa) return sb - sa;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'start-desc': {
+      const ta = getWorkshopScheduleStartMs(a);
+      const tb = getWorkshopScheduleStartMs(b);
+      const va = ta ?? Number.NEGATIVE_INFINITY;
+      const vb = tb ?? Number.NEGATIVE_INFINITY;
+      if (vb !== va) return vb - va;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'stop-asc': {
+      const sa = getWorkshopStopMs(a);
+      const sb = getWorkshopStopMs(b);
+      const va = sa ?? Number.POSITIVE_INFINITY;
+      const vb = sb ?? Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'destroy-asc': {
+      const da = getWorkshopDestroyMs(a);
+      const db = getWorkshopDestroyMs(b);
+      const va = da ?? Number.POSITIVE_INFINITY;
+      const vb = db ?? Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+    case 'start-asc':
+    default: {
+      const ta = getWorkshopScheduleStartMs(a);
+      const tb = getWorkshopScheduleStartMs(b);
+      const va = ta ?? Number.POSITIVE_INFINITY;
+      const vb = tb ?? Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
+      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+    }
+  }
+}
+
+const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = [
+  { label: 'All dates', value: 'all' },
+  { label: 'Scheduled', value: 'scheduled' },
+  { label: '≤1 day', value: 'd1' },
+  { label: '≤2 days', value: 'd2' },
+  { label: '≤3 days', value: 'd3' },
+];
 
 let alertKeyCounter = 0;
 
@@ -232,6 +369,12 @@ const Ops: React.FC = () => {
   const [showMultiNsConfirm, setShowMultiNsConfirm] = useState(false);
   const [extraNamespaces, setExtraNamespaces] = useState<string[]>([]);
   const [nsSearchOpen, setNsSearchOpen] = useState(false);
+  const [nsSearchText, setNsSearchText] = useState('');
+
+  // ---------- Platform-wide mode ----------
+
+  const [platformMode, setPlatformMode] = useState(false);
+  const [showPlatformConfirm, setShowPlatformConfirm] = useState(false);
 
   // Fetch all user namespaces for multi-ns picker
   const { data: allNsData } = useSWR<{ items: any[] }>(
@@ -244,16 +387,21 @@ const Ops: React.FC = () => {
   }, [allNsData]);
 
   const filteredNsOptions = useMemo(() => {
-    return allNamespaces.filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name)).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allNamespaces, namespace, extraNamespaces]);
+    const q = nsSearchText.trim().toLowerCase();
+    return allNamespaces
+      .filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name))
+      .filter(ns => !q || ns.name.toLowerCase().includes(q) || (ns.displayName && ns.displayName.toLowerCase().includes(q)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allNamespaces, namespace, extraNamespaces, nsSearchText]);
 
   const activeNamespaces = useMemo(() => {
+    if (platformMode) return [];
     const nsList = namespace ? [namespace] : [];
     if (multiNsMode) nsList.push(...extraNamespaces);
     return nsList;
-  }, [namespace, multiNsMode, extraNamespaces]);
+  }, [namespace, multiNsMode, extraNamespaces, platformMode]);
 
-  const isMultiNs = activeNamespaces.length > 1;
+  const isMultiNs = platformMode || activeNamespaces.length > 1;
 
   const enableMultiNs = useCallback(() => {
     setMultiNsMode(true);
@@ -265,6 +413,22 @@ const Ops: React.FC = () => {
     setMultiNsMode(false);
     setMultiNsAck(false);
     setExtraNamespaces([]);
+    setNsSearchText('');
+    setNsSearchOpen(false);
+  }, []);
+
+  const enablePlatformMode = useCallback(() => {
+    setPlatformMode(true);
+    setShowPlatformConfirm(false);
+    setMultiNsMode(false);
+    setMultiNsAck(false);
+    setExtraNamespaces([]);
+    setNsSearchText('');
+    setNsSearchOpen(false);
+  }, []);
+
+  const disablePlatformMode = useCallback(() => {
+    setPlatformMode(false);
   }, []);
 
   // ---------- Dark mode ----------
@@ -299,7 +463,7 @@ const Ops: React.FC = () => {
     if (!iso) return null;
     const d = new Date(iso);
     const opts: Intl.DateTimeFormatOptions = {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
     };
     if (timezone !== 'local') opts.timeZone = timezone;
     return d.toLocaleString(undefined, opts);
@@ -308,8 +472,10 @@ const Ops: React.FC = () => {
   // ---------- Data fetching (multi-namespace aware) ----------
 
   const workshopUrls = useMemo(
-    () => activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
-    [activeNamespaces],
+    () => platformMode
+      ? [apiPaths.WORKSHOPS({ limit: FETCH_LIMIT })]
+      : activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
+    [activeNamespaces, platformMode],
   );
   const { data: allWsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList[]>(
     workshopUrls.length > 0 ? workshopUrls : null,
@@ -323,8 +489,10 @@ const Ops: React.FC = () => {
 
   // Fetch MultiWorkshop resources for multi-asset parent info
   const multiWorkshopUrls = useMemo(
-    () => activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
-    [activeNamespaces],
+    () => platformMode
+      ? [apiPaths.MULTIWORKSHOPS({ limit: 500 })]
+      : activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    [activeNamespaces, platformMode],
   );
   const { data: allMwData } = useSWR<MultiWorkshopList[]>(
     multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
@@ -464,35 +632,60 @@ const Ops: React.FC = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [failedFilter, setFailedFilter] = useState(false);
+  const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
+  const whiteGloveMode = opsViewMode === 'white-glove';
+  const [scheduleFilter, setScheduleFilter] = useState<OpsScheduleFilterKey>('all');
+  const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePerPage, setTablePerPage] = useState(OPS_GROUP_PAGE_DEFAULT);
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar'>('table');
 
   const targets = useMemo(() => {
     let list = workshops;
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
-    return list;
-  }, [workshops, workshopFilter, stageFilter, failedFilter, getFailedCount]);
+    if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
+    if (scheduleFilter !== 'all') list = list.filter(ws => matchesOpsScheduleFilter(ws, scheduleFilter));
+    const arr = [...list];
+    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats));
+    return arr;
+  }, [
+    workshops,
+    workshopFilter,
+    stageFilter,
+    failedFilter,
+    whiteGloveMode,
+    scheduleFilter,
+    sortMode,
+    getFailedCount,
+    getSeats,
+  ]);
+
+  const opsCalendarEvents = useMemo(
+    () =>
+      targets
+        .map(ws => workshopToCalendarEventOps(ws, wsDetailPath(ws), isMultiNs))
+        .filter(Boolean),
+    [targets, isMultiNs],
+  );
 
   const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
 
-  // Clear selection when filters change
-  useEffect(() => { setSelectedWs(new Set()); setFailedFilter(false); }, [workshopFilter, stageFilter, namespace]);
+  useEffect(() => {
+    setSelectedWs(new Set());
+    setTablePage(1);
+  }, [workshopFilter, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+
+  useEffect(() => {
+    setFailedFilter(false);
+  }, [workshopFilter, stageFilter, namespace]);
 
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
     if (!hasSelection) return targets;
     return targets.filter(ws => selectedWs.has(wsKey(ws)));
   }, [targets, selectedWs, hasSelection]);
-
-  const allSelected = targets.length > 0 && targets.every(ws => selectedWs.has(wsKey(ws)));
-
-  const toggleSelectAll = useCallback(() => {
-    if (allSelected) {
-      setSelectedWs(new Set());
-    } else {
-      setSelectedWs(new Set(targets.map(ws => wsKey(ws))));
-    }
-  }, [allSelected, targets]);
 
   const toggleSelectGroup = useCallback((group: { items: Workshop[] }) => {
     setSelectedWs(prev => {
@@ -551,6 +744,44 @@ const Ops: React.FC = () => {
     return result;
   }, [targets, multiWorkshopsByName]);
 
+  const maxTablePage = Math.max(1, Math.ceil(workshopGroups.length / tablePerPage) || 1);
+  const safeTablePage = Math.min(tablePage, maxTablePage);
+
+  const pagedWorkshopGroups = useMemo(() => {
+    const start = (safeTablePage - 1) * tablePerPage;
+    return workshopGroups.slice(start, start + tablePerPage);
+  }, [workshopGroups, safeTablePage, tablePerPage]);
+
+  const workshopKeysOnPage = useMemo(() => {
+    const keys: string[] = [];
+    for (const g of pagedWorkshopGroups) {
+      for (const ws of g.items) keys.push(wsKey(ws));
+    }
+    return keys;
+  }, [pagedWorkshopGroups]);
+
+  useEffect(() => {
+    if (tablePage > maxTablePage) setTablePage(maxTablePage);
+  }, [tablePage, maxTablePage]);
+
+  const allSelected = workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allSelected) {
+      setSelectedWs(prev => {
+        const next = new Set(prev);
+        workshopKeysOnPage.forEach(k => next.delete(k));
+        return next;
+      });
+    } else {
+      setSelectedWs(prev => {
+        const next = new Set(prev);
+        workshopKeysOnPage.forEach(k => next.add(k));
+        return next;
+      });
+    }
+  }, [allSelected, workshopKeysOnPage]);
+
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroup = useCallback((name: string) => {
@@ -563,15 +794,16 @@ const Ops: React.FC = () => {
   }, []);
 
   const scopeLabel = useMemo(() => {
-    const nsLabel = isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
+    const nsLabel = platformMode ? 'all namespaces (platform)' : isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
     if (hasSelection) {
       return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
     }
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
-    return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
+    const modePrefix = whiteGloveMode ? 'White glove' : 'All';
+    return <>{modePrefix} · {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
+  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -583,7 +815,7 @@ const Ops: React.FC = () => {
     return counts;
   }, [operationTargets]);
 
-  const isUnfiltered = !workshopFilter && !stageFilter;
+  const isUnfiltered = !workshopFilter && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
 
   const modalScopeDescription = useMemo(() => {
     if (!isMultiNs) {
@@ -721,7 +953,7 @@ const Ops: React.FC = () => {
 
     const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
       'Instances', 'Concurrency', 'Seats Assigned', 'Seats Total',
-      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL'];
+      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL', 'White glove'];
 
     const rows: string[][] = [];
     for (const group of workshopGroups) {
@@ -750,9 +982,15 @@ const Ops: React.FC = () => {
           seats ? String(seats.assigned) : '',
           seats ? String(seats.total) : '',
           reg, password,
-          stop ? fmtDateCSV(stop) : 'No auto-stop',
+          stop ? (() => {
+            const stopT = new Date(stop).getTime();
+            if (stopT > Date.now() + SIX_MONTHS_MS) return 'No auto-stop';
+            if (destroy && stopT >= new Date(destroy).getTime()) return 'No auto-stop';
+            return fmtDateCSV(stop);
+          })() : '',
           destroy ? fmtDateCSV(destroy) : '',
           wsUrl,
+          getWhiteGloved(ws) ? 'Yes' : 'No',
         ]);
       }
     }
@@ -766,7 +1004,7 @@ const Ops: React.FC = () => {
     link.setAttribute('download', `workshops-${namespace || 'multi'}-${ts}.csv`);
     document.body.appendChild(link);
     link.click();
-  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats]);
+  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats, getWhiteGloved]);
 
   // ---------- Handlers ----------
 
@@ -1022,10 +1260,47 @@ const Ops: React.FC = () => {
 
   // ---------- Namespace selected — full UI ----------
 
-  const renderDateCell = (iso?: string, offLabel?: string) => {
-    if (!iso) {
-      return <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>{offLabel || 'Not set'}</Label>;
+  /**
+   * Render an auto-stop cell. Mirrors AutoStopDestroy.tsx logic exactly:
+   * - Not set → dash
+   * - Set but >6 months out → "No auto-stop" (likely Disable Auto-Stop action)
+   * - Set but stop >= destroy → "No auto-stop" (stop is meaningless)
+   * - Otherwise → date with urgency colors
+   */
+  const renderStopCell = (stopIso?: string, destroyIso?: string) => {
+    if (!stopIso) return <span className="ops-muted">—</span>;
+
+    const t = new Date(stopIso).getTime();
+    let noAutoStop = false;
+
+    if (t > Date.now() + SIX_MONTHS_MS) {
+      noAutoStop = true;
+    } else if (destroyIso) {
+      const destroyT = new Date(destroyIso).getTime();
+      if (Number.isFinite(destroyT) && t >= destroyT) {
+        noAutoStop = true;
+      }
     }
+
+    if (noAutoStop) {
+      return (
+        <Tooltip content={`Actual: ${fmtDate(stopIso)} (${relativeTime(stopIso)})`}>
+          <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>No auto-stop</Label>
+        </Tooltip>
+      );
+    }
+
+    return renderDateValue(stopIso);
+  };
+
+  /** Render an auto-destroy cell. Always shows the real date, dash if not set. */
+  const renderDestroyCell = (destroyIso?: string) => {
+    if (!destroyIso) return <span className="ops-muted">—</span>;
+    return renderDateValue(destroyIso);
+  };
+
+  /** Shared date rendering with urgency color coding. */
+  const renderDateValue = (iso: string) => {
     const urgency = dateUrgency(iso);
     const formatted = fmtDate(iso);
     const relative = relativeTime(iso);
@@ -1112,9 +1387,9 @@ const Ops: React.FC = () => {
           </SplitItem>
           <SplitItem>
             {workshops.length > 0 && (
-              <Label isCompact color="blue">
+              <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
+                {platformMode ? ' (platform-wide)' : isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
           </SplitItem>
@@ -1122,58 +1397,122 @@ const Ops: React.FC = () => {
       </PageSection>
 
       <PageSection key="body" className="admin-body" variant="default">
-        {/* Multi-namespace toggle */}
+        {/* View mode + namespace bar */}
         {isAdmin && (
-          <div className={`ops-multi-ns-bar ${multiNsMode ? 'ops-multi-ns-bar--active' : ''}`}>
+          <div className={`ops-mode-bar ${(multiNsMode || platformMode) ? 'ops-mode-bar--multi-active' : ''}`}>
             <Split hasGutter style={{ alignItems: 'center' }}>
               <SplitItem>
-                <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
+                <Tooltip content={
+                  platformMode
+                    ? 'Filtering all workshops on the platform'
+                    : isMultiNs
+                      ? `Filtering workshops across ${activeNamespaces.length} namespaces`
+                      : `Filtering workshops in ${namespace}`
+                }>
+                  <ToggleGroup aria-label="Workshop view mode" isCompact className="ops-view-mode-toggle">
+                    <ToggleGroupItem
+                      icon={<ListIcon />}
+                      text="All Workshops"
+                      buttonId="view-all"
+                      isSelected={opsViewMode === 'all'}
+                      onChange={() => setOpsViewMode('all')}
+                    />
+                    <ToggleGroupItem
+                      icon={<StarIcon />}
+                      text="White Glove"
+                      buttonId="view-white-glove"
+                      isSelected={opsViewMode === 'white-glove'}
+                      onChange={() => setOpsViewMode('white-glove')}
+                    />
+                  </ToggleGroup>
+                </Tooltip>
+              </SplitItem>
+              {!platformMode && (
+                <SplitItem>
+                  <Tooltip content="Enable to select additional namespaces. Use with caution — operations will span multiple projects.">
+                    <Switch
+                      id="multi-ns-toggle"
+                      label="Multi-namespace mode"
+                      isChecked={multiNsMode}
+                      onChange={(_e, checked) => {
+                        if (checked && !multiNsAck) {
+                          setShowMultiNsConfirm(true);
+                        } else if (!checked) {
+                          disableMultiNs();
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                </SplitItem>
+              )}
+              <SplitItem>
+                <Tooltip content="Load every workshop across all namespaces on the platform. Use with caution — can be slow and operations affect everything.">
                   <Switch
-                    id="multi-ns-toggle"
-                    label="Multi-namespace mode"
-                    isChecked={multiNsMode}
+                    id="platform-mode-toggle"
+                    label={<><GlobeIcon /> All Workshops (Platform)</>}
+                    isChecked={platformMode}
                     onChange={(_e, checked) => {
-                      if (checked && !multiNsAck) {
-                        setShowMultiNsConfirm(true);
-                      } else if (!checked) {
-                        disableMultiNs();
+                      if (checked) {
+                        setShowPlatformConfirm(true);
+                      } else {
+                        disablePlatformMode();
                       }
                     }}
                   />
                 </Tooltip>
               </SplitItem>
-              {multiNsMode && (
-                <>
-                  <SplitItem isFilled>
-                    <Select
-                      isOpen={nsSearchOpen}
-                      onSelect={(_e, val) => {
-                        const ns = val as string;
-                        if (ns && !extraNamespaces.includes(ns)) {
-                          setExtraNamespaces(prev => [...prev, ns]);
-                        }
-                        setNsSearchOpen(false);
-                      }}
-                      onOpenChange={setNsSearchOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle ref={toggleRef} onClick={() => setNsSearchOpen(p => !p)} isExpanded={nsSearchOpen} style={{ minWidth: 320 }}>
-                          Add namespace...
-                        </MenuToggle>
-                      )}
-                      shouldFocusToggleOnSelect
-                    >
-                      <SelectList>
-                        {filteredNsOptions.length === 0 ? (
-                          <SelectOption isDisabled value="">No matching namespaces</SelectOption>
-                        ) : filteredNsOptions.slice(0, 50).map(ns => (
-                          <SelectOption key={ns.name} value={ns.name}>
-                            {ns.displayName !== ns.name ? `${ns.displayName} (${ns.name})` : ns.name}
-                          </SelectOption>
-                        ))}
-                      </SelectList>
-                    </Select>
-                  </SplitItem>
-                </>
+              {multiNsMode && !platformMode && (
+                <SplitItem isFilled>
+                  <Select
+                    isOpen={nsSearchOpen}
+                    onSelect={(_e, val) => {
+                      const ns = val as string;
+                      if (ns && !extraNamespaces.includes(ns)) {
+                        setExtraNamespaces(prev => [...prev, ns]);
+                      }
+                      setNsSearchText('');
+                    }}
+                    onOpenChange={(open) => {
+                      setNsSearchOpen(open);
+                      if (!open) setNsSearchText('');
+                    }}
+                    toggle={(toggleRef) => (
+                      <MenuToggle ref={toggleRef} onClick={() => setNsSearchOpen(p => !p)} isExpanded={nsSearchOpen} style={{ minWidth: 360 }}>
+                        {extraNamespaces.length > 0
+                          ? `${extraNamespaces.length} extra namespace${extraNamespaces.length !== 1 ? 's' : ''}`
+                          : 'Add namespaces…'}
+                      </MenuToggle>
+                    )}
+                    shouldFocusToggleOnSelect={false}
+                  >
+                    <MenuSearch>
+                      <MenuSearchInput>
+                        <InputGroup>
+                          <InputGroupItem isFill>
+                            <SearchInput
+                              value={nsSearchText}
+                              placeholder="Type to search namespaces…"
+                              onChange={(_e, val) => setNsSearchText(val)}
+                              aria-label="Search namespaces"
+                            />
+                          </InputGroupItem>
+                        </InputGroup>
+                      </MenuSearchInput>
+                    </MenuSearch>
+                    <Divider />
+                    <SelectList style={{ maxHeight: 280, overflowY: 'auto' }}>
+                      {filteredNsOptions.length === 0 ? (
+                        <SelectOption isDisabled value="">
+                          {nsSearchText ? 'No matching namespaces' : 'Loading…'}
+                        </SelectOption>
+                      ) : filteredNsOptions.slice(0, 100).map(ns => (
+                        <SelectOption key={ns.name} value={ns.name}>
+                          {ns.displayName && ns.displayName !== ns.name ? `${ns.displayName} (${ns.name})` : ns.name}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                </SplitItem>
               )}
             </Split>
             {multiNsMode && extraNamespaces.length > 0 && (
@@ -1185,6 +1524,13 @@ const Ops: React.FC = () => {
                     {ns}
                   </Label>
                 ))}
+              </div>
+            )}
+            {whiteGloveMode && (
+              <div className="ops-mode-hint">
+                <StarIcon className="ops-mode-hint-icon" />
+                Showing only workshops labeled <code>{`${DEMO_DOMAIN}/white-glove=true`}</code>.
+                {!isMultiNs && <> Enable multi-namespace mode to aggregate across namespaces.</>}
               </div>
             )}
           </div>
@@ -1203,62 +1549,95 @@ const Ops: React.FC = () => {
           <>
             {/* Scope + timezone bar */}
             <div className="ops-scope-bar">
-              <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                Workshop
-              </label>
-              <Select
-                id="ops-scope"
-                isOpen={filterOpen}
-                selected={workshopFilter}
-                onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
-                onOpenChange={setFilterOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
-                    {workshopFilter || 'All Workshops'}
-                  </MenuToggle>
-                )}
-                shouldFocusToggleOnSelect
-              >
-                <SelectList>
-                  <SelectOption value="">All Workshops</SelectOption>
-                  {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-                </SelectList>
-              </Select>
-              <div className="ops-stage-filters">
-                {STAGE_FILTERS.map(f => (
-                  <Label
-                    key={f.value}
-                    color={stageFilter === f.value ? f.color : 'grey'}
-                    isCompact
-                    onClick={() => setStageFilter(stageFilter === f.value ? null : f.value)}
-                    className="ops-stage-chip"
-                  >
-                    {f.label}
-                  </Label>
-                ))}
+              <div className="ops-scope-bar-main">
+                <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  Workshop
+                </label>
+                <Select
+                  id="ops-scope"
+                  isOpen={filterOpen}
+                  selected={workshopFilter}
+                  onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
+                  onOpenChange={setFilterOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
+                      {workshopFilter || 'All Workshops'}
+                    </MenuToggle>
+                  )}
+                  shouldFocusToggleOnSelect
+                >
+                  <SelectList>
+                    <SelectOption value="">All Workshops</SelectOption>
+                    {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
+                  </SelectList>
+                </Select>
+                <div className="ops-stage-filters">
+                  {STAGE_FILTERS.map(f => (
+                    <Label
+                      key={f.value}
+                      color={stageFilter === f.value ? f.color : 'grey'}
+                      isCompact
+                      onClick={() => setStageFilter(stageFilter === f.value ? null : f.value)}
+                      className="ops-stage-chip"
+                    >
+                      {f.label}
+                    </Label>
+                  ))}
+                </div>
+                <span className="ops-scope-summary">
+                  {scopeLabel}
+                  {hasSelection && (
+                    <span style={{ marginLeft: 8 }}>
+                      <Badge isRead>{selectedWs.size} selected</Badge>
+                      <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
+                        onClick={() => setSelectedWs(new Set())}>clear</Button>
+                    </span>
+                  )}
+                </span>
+                <span className="ops-scope-spacer" />
+                <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
+                <FormSelect
+                  aria-label="Timezone"
+                  value={timezone}
+                  onChange={(_e, val) => setTimezone(val)}
+                  className="ops-tz-select"
+                >
+                  {COMMON_TIMEZONES.map(tz => (
+                    <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
+                  ))}
+                </FormSelect>
               </div>
-              <span className="ops-scope-summary">
-                {scopeLabel}
-                {hasSelection && (
-                  <span style={{ marginLeft: 8 }}>
-                    <Badge isRead>{selectedWs.size} selected</Badge>
-                    <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
-                      onClick={() => setSelectedWs(new Set())}>clear</Button>
-                  </span>
-                )}
-              </span>
-              <span className="ops-scope-spacer" />
-              <GlobeIcon style={{ color: 'var(--pf-t--global--text--color--subtle)' }} />
-              <FormSelect
-                aria-label="Timezone"
-                value={timezone}
-                onChange={(_e, val) => setTimezone(val)}
-                className="ops-tz-select"
-              >
-                {COMMON_TIMEZONES.map(tz => (
-                  <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
-                ))}
-              </FormSelect>
+              <div className="ops-scope-bar-extra">
+                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                <FormSelect
+                  id="ops-sort"
+                  aria-label="Sort workshops"
+                  value={sortMode}
+                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
+                  className="ops-sort-select"
+                >
+                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
+                  <FormSelectOption value="start-desc" label="Start (newest first)" />
+                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
+                  <FormSelectOption value="users-desc" label="Most seats assigned" />
+                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
+                </FormSelect>
+                <span className="ops-filter-inline-label">Start window</span>
+                <div className="ops-schedule-filters">
+                  {SCHEDULE_FILTER_CHIPS.map(c => (
+                    <Label
+                      key={c.value}
+                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
+                      className="ops-schedule-chip"
+                    >
+                      {c.label}
+                    </Label>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Summary stats */}
@@ -1344,6 +1723,12 @@ const Ops: React.FC = () => {
                 </>
               )}
             </div>
+
+            {targets.length === 0 && workshops.length > 0 && (
+              <Alert variant="warning" isInline title="No workshops match the current filters" style={{ marginBottom: 16 }}>
+                Try another workshop name, stage, white glove mode, start window, or failed filter.
+              </Alert>
+            )}
 
             <div className="ops-grid">
               {/* Resource Lock */}
@@ -1491,6 +1876,11 @@ const Ops: React.FC = () => {
                   <Title headingLevel="h5">
                     {hasSelection ? 'Selected workshops' : 'Workshops in scope'}
                     <Badge isRead style={{ marginLeft: 8 }}>{hasSelection ? selectedWs.size : workshopGroups.length}</Badge>
+                    {!hasSelection && maxTablePage > 1 && (
+                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        page {safeTablePage} of {maxTablePage} ({pagedWorkshopGroups.length} groups shown)
+                      </span>
+                    )}
                     {!hasSelection && workshopGroups.length !== targets.length && (
                       <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         ({targets.length} instances)
@@ -1504,12 +1894,34 @@ const Ops: React.FC = () => {
                   </Title>
                 </SplitItem>
                 <SplitItem>
-                  <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
-                    aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
-                    {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
-                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
-                  </Button>
+                  <ToggleGroup aria-label="Workshop list view" isCompact className="ops-view-toggle">
+                    <ToggleGroupItem
+                      icon={<TableIcon />}
+                      text="Table"
+                      isSelected={workshopView === 'table'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('table');
+                      }}
+                    />
+                    <ToggleGroupItem
+                      icon={<OutlinedCalendarAltIcon />}
+                      text="Calendar"
+                      isSelected={workshopView === 'calendar'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('calendar');
+                      }}
+                    />
+                  </ToggleGroup>
                 </SplitItem>
+                {workshopView === 'table' && (
+                  <SplitItem>
+                    <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
+                      aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
+                      {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
+                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                    </Button>
+                  </SplitItem>
+                )}
                 <SplitItem>
                   <Tooltip content="Export to CSV">
                     <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
@@ -1517,13 +1929,63 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </SplitItem>
               </Split>
+              {workshopView === 'table' && workshopGroups.length > 0 && (
+                <Pagination
+                  className="ops-table-pagination"
+                  itemCount={workshopGroups.length}
+                  page={safeTablePage}
+                  perPage={tablePerPage}
+                  onSetPage={(_e, p) => setTablePage(p)}
+                  onPerPageSelect={(_e, _pp, p) => { setTablePerPage(p); setTablePage(1); }}
+                  perPageOptions={[
+                    { title: '15', value: 15 },
+                    { title: '18', value: 18 },
+                    { title: '20', value: 20 },
+                    { title: '50', value: 50 },
+                  ]}
+                  variant="top"
+                  isCompact
+                  titles={{ items: 'Workshop groups', itemsPerPage: 'Groups per page' }}
+                />
+              )}
+              {workshopView === 'calendar' && (
+                <p className="ops-calendar-hint">
+                  Same filters as the table. Click an event to open the workshop. Uses start from{' '}
+                  <code>actionSchedule.start</code> or <code>lifespan.start</code> (shared with Scheduled Workshops).
+                </p>
+              )}
+              {workshopView === 'calendar' && (
+                <div className="ops-calendar-panel">
+                  {opsCalendarEvents.length === 0 ? (
+                    <EmptyState titleText="Nothing to show on the calendar" headingLevel="h5">
+                      <EmptyStateBody>
+                        No workshops in the current scope have a start time set, or filters exclude them.
+                        Adjust filters or switch to the table view.
+                      </EmptyStateBody>
+                    </EmptyState>
+                  ) : (
+                    <Calendar
+                      localizer={workshopCalendarLocalizer}
+                      events={opsCalendarEvents}
+                      startAccessor="start"
+                      endAccessor="end"
+                      style={{ height: 640 }}
+                      onSelectEvent={ev => navigate(ev.url)}
+                      eventPropGetter={workshopCalendarEventStyleGetter}
+                      showAllEvents
+                      showMultiDayTimes
+                    />
+                  )}
+                </div>
+              )}
+              {workshopView === 'table' && (
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
                   <thead>
                     <tr>
                       <th style={{ width: 32 }}>
                         <Checkbox id="select-all-ws" isChecked={allSelected} onChange={toggleSelectAll}
-                          aria-label="Select all workshops" />
+                          aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'} />
                       </th>
                       <th></th>
                       <th>Name</th>
@@ -1535,13 +1997,24 @@ const Ops: React.FC = () => {
                       <th>Seats</th>
                       <th>Registration</th>
                       <th>Password</th>
-                      <th>Auto-Stop</th>
-                      <th>Auto-Destroy</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('stop-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by Auto-Stop soonest">
+                          Auto-Stop {sortMode === 'stop-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('destroy-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by Auto-Destroy soonest">
+                          Auto-Destroy {sortMode === 'destroy-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Workshop URL</th>
+                      <th className="ops-col-white-glove">White glove</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {workshopGroups.map(group => {
+                    {pagedWorkshopGroups.map(group => {
                       const expanded = expandedGroups.has(group.name);
                       const isSingle = group.items.length === 1 && !group.multiWorkshop;
                       const isMultiAsset = !!group.multiWorkshop;
@@ -1567,6 +2040,7 @@ const Ops: React.FC = () => {
                       const grpPasswords = new Map<string, string>();
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
+                      let grpWhiteGlove = 0;
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
@@ -1592,6 +2066,7 @@ const Ops: React.FC = () => {
                         grpNamespaces.add(ws.metadata.namespace);
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
+                        if (getWhiteGloved(ws)) grpWhiteGlove++;
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
@@ -1706,8 +2181,8 @@ const Ops: React.FC = () => {
                                 : <span className="ops-password-hidden">••••••••</span>
                             ) : <span className="ops-muted">None</span>}
                           </td>
-                          <td>{renderDateCell(firstWs.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
-                          <td>{renderDateCell(firstWs.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                          <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
+                          <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
                           <td>
                             {isMultiAsset && mw ? (
                               <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
@@ -1721,6 +2196,17 @@ const Ops: React.FC = () => {
                                 {grpUrls[0].id}
                               </a>
                             ) : <span className="ops-muted">&mdash;</span>}
+                          </td>
+                          <td className="ops-wg-cell">
+                            {grpWhiteGlove === 0 ? (
+                              <span className="ops-muted">&mdash;</span>
+                            ) : grpWhiteGlove === group.items.length ? (
+                              <Label isCompact color="yellow">Yes</Label>
+                            ) : (
+                              <Tooltip content={`${grpWhiteGlove} of ${group.items.length} assets`}>
+                                <span><Label isCompact color="orange">{grpWhiteGlove}/{group.items.length}</Label></span>
+                              </Tooltip>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1810,8 +2296,8 @@ const Ops: React.FC = () => {
                                   : <span className="ops-password-hidden">••••••••</span>
                               ) : <span className="ops-muted">None</span>}
                             </td>
-                            <td>{renderDateCell(ws.spec?.actionSchedule?.stop, 'No auto-stop')}</td>
-                            <td>{renderDateCell(ws.spec?.lifespan?.end, 'No auto-destroy')}</td>
+                            <td>{renderStopCell(ws.spec?.actionSchedule?.stop, ws.spec?.lifespan?.end)}</td>
+                            <td>{renderDestroyCell(ws.spec?.lifespan?.end)}</td>
                             <td>
                               {workshopUrl ? (
                                 <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
@@ -1819,6 +2305,13 @@ const Ops: React.FC = () => {
                                   {workshopId}
                                 </a>
                               ) : <span className="ops-muted">&mdash;</span>}
+                            </td>
+                            <td className="ops-wg-cell">
+                              {getWhiteGloved(ws) ? (
+                                <Label isCompact color="yellow">Yes</Label>
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1829,6 +2322,7 @@ const Ops: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
           </>
         )}
@@ -1853,6 +2347,28 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="warning" onClick={enableMultiNs}>I understand, enable multi-namespace</Button>
           <Button variant="link" onClick={() => setShowMultiNsConfirm(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* ---------- Platform-wide mode acknowledgement ---------- */}
+
+      <Modal variant="small" isOpen={showPlatformConfirm} onClose={() => setShowPlatformConfirm(false)} aria-labelledby="platform-confirm">
+        <ModalHeader title="Enable Platform-Wide Mode" labelId="platform-confirm" titleIconVariant="danger" />
+        <ModalBody>
+          <Alert variant="danger" isInline title="All namespaces on the platform" style={{ marginBottom: 12 }}>
+            <p>This will load <strong>every workshop across every namespace</strong> on the platform. This can be slow and resource-intensive.</p>
+          </Alert>
+          <p>Operations (lock, extend, scale, etc.) will apply to workshops from <strong>all namespaces</strong> unless you filter or select specific ones first.</p>
+          <p style={{ marginTop: 12, fontWeight: 600 }}>Please confirm you understand the risks:</p>
+          <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+            <li>All workshops across the entire platform will be loaded</li>
+            <li>Operations apply globally unless filtered</li>
+            <li>You can disable this mode at any time to return to project-scoped view</li>
+          </ul>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="danger" onClick={enablePlatformMode}>I understand, show all workshops</Button>
+          <Button variant="link" onClick={() => setShowPlatformConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
 

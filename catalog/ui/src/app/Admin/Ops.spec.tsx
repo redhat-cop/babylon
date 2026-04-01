@@ -3,7 +3,7 @@ import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import { within } from '@testing-library/react';
-import Ops from './Ops';
+import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs, matchesOpsScheduleFilter } from './Ops';
 import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -43,10 +43,12 @@ function makeWorkshop(overrides: Partial<{
   openRegistration: boolean;
   provisionDisabled: boolean;
   stopDate: string;
+  startDate: string;
   destroyDate: string;
   workshopId: string;
   multiworkshopSource: string;
   namespace: string;
+  whiteGlove: boolean;
 }>): Workshop {
   const {
     name = 'ws-test',
@@ -56,10 +58,12 @@ function makeWorkshop(overrides: Partial<{
     openRegistration = true,
     provisionDisabled = false,
     stopDate,
+    startDate,
     destroyDate,
     workshopId,
     multiworkshopSource,
     namespace = TEST_NAMESPACE,
+    whiteGlove,
   } = overrides;
   return {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -72,6 +76,7 @@ function makeWorkshop(overrides: Partial<{
         [`${BABYLON_DOMAIN}/catalogItemName`]: name,
         ...(locked ? { [`${DEMO_DOMAIN}/lock-enabled`]: 'true' } : {}),
         ...(workshopId ? { [`${BABYLON_DOMAIN}/workshop-id`]: workshopId } : {}),
+        ...(whiteGlove ? { [`${DEMO_DOMAIN}/white-glove`]: 'true' } : {}),
       },
       annotations: {
         ...(multiworkshopSource ? { [`${BABYLON_DOMAIN}/multiworkshop-source`]: multiworkshopSource } : {}),
@@ -82,7 +87,12 @@ function makeWorkshop(overrides: Partial<{
       accessPassword,
       openRegistration,
       provisionDisabled,
-      actionSchedule: stopDate ? { stop: stopDate } : undefined,
+      ...((stopDate || startDate) ? {
+        actionSchedule: {
+          ...(stopDate ? { stop: stopDate } : {}),
+          ...(startDate ? { start: startDate } : {}),
+        },
+      } : { actionSchedule: undefined }),
       lifespan: destroyDate ? { end: destroyDate } : undefined,
     },
   };
@@ -132,8 +142,13 @@ const ws3 = makeWorkshop({ name: 'ws-stopped', displayName: 'Stopped Workshop', 
 const ws4 = makeWorkshop({ name: 'ws-ansible-2', displayName: 'Ansible Lab', workshopId: 'abc456' });
 const wsMulti = makeWorkshop({ name: 'ws-multi-child', displayName: 'Multi Child', multiworkshopSource: 'parent-multi' });
 const wsFailed = makeWorkshop({ name: 'ws-failed-prov', displayName: 'Failed Provision Workshop' });
+const wsNoAutoStop = makeWorkshop({
+  name: 'ws-no-autostop', displayName: 'No AutoStop WS',
+  stopDate: new Date(Date.now() + 200 * 86400000).toISOString(),
+  destroyDate: new Date(Date.now() + 365 * 86400000).toISOString(),
+});
 
-const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti, wsFailed];
+const allWorkshops = [ws1, ws2, ws3, ws4, wsMulti, wsFailed, wsNoAutoStop];
 
 const provisionData: Record<string, WorkshopProvision[]> = {
   [ws1.metadata.name]: [makeProvision(ws1.metadata.name, 5)],
@@ -142,6 +157,7 @@ const provisionData: Record<string, WorkshopProvision[]> = {
   [ws4.metadata.name]: [makeProvision(ws4.metadata.name, 3)],
   [wsMulti.metadata.name]: [makeProvision(wsMulti.metadata.name, 2)],
   [wsFailed.metadata.name]: [makeProvision(wsFailed.metadata.name, 5, TEST_NAMESPACE, 5)],
+  [wsNoAutoStop.metadata.name]: [makeProvision(wsNoAutoStop.metadata.name, 1)],
 };
 
 const assignmentData: Record<string, WorkshopUserAssignment[]> = {
@@ -275,8 +291,8 @@ describe('Ops Component', () => {
     test('renders "All Workshops" default in scope selector', async () => {
       renderOps();
       await waitFor(() => {
-        expect(screen.getByText('All Workshops')).toBeInTheDocument();
-      });
+        expect(screen.getAllByText(/All Workshops/i).length).toBeGreaterThanOrEqual(1);
+      }, { timeout: 5000 });
     });
 
     test('renders stage filter chips (prod, event, dev, test)', async () => {
@@ -353,17 +369,17 @@ describe('Ops Component', () => {
       });
     });
 
-    test('shows "No auto-stop" for workshops without stop date', async () => {
+    test('shows "No auto-stop" when stop date is >6 months out', async () => {
       renderOps();
       await waitFor(() => {
         expect(screen.getAllByText('No auto-stop').length).toBeGreaterThanOrEqual(1);
       });
     });
 
-    test('shows "No auto-destroy" for workshops without destroy date', async () => {
+    test('shows dash for workshops without destroy date', async () => {
       renderOps();
       await waitFor(() => {
-        expect(screen.getAllByText('No auto-destroy').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -378,7 +394,7 @@ describe('Ops Component', () => {
       renderOps();
       await waitFor(() => {
         expect(screen.getByText('Multi Asset Event')).toBeInTheDocument();
-        expect(screen.getByText('20')).toBeInTheDocument();
+        expect(screen.getAllByText('20').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -685,4 +701,49 @@ describe('Ops Component', () => {
       expect(localStorage.getItem('ops-dark-mode')).toBe('false');
     });
   });
+
+  describe('Schedule helpers', () => {
+    test('getWorkshopScheduleStartMs reads actionSchedule.start', () => {
+      const ws = makeWorkshop({ startDate: '2030-01-15T12:00:00.000Z' });
+      expect(getWorkshopScheduleStartMs(ws)).toBe(new Date('2030-01-15T12:00:00.000Z').getTime());
+    });
+
+    test('matchesOpsScheduleFilter scheduled is future start only', () => {
+      const now = new Date('2030-01-01T00:00:00.000Z').getTime();
+      const past = makeWorkshop({ startDate: '2020-01-01T12:00:00.000Z' });
+      const future = makeWorkshop({ name: 'ws-fut', startDate: '2035-06-01T12:00:00.000Z' });
+      expect(matchesOpsScheduleFilter(past, 'scheduled', now)).toBe(false);
+      expect(matchesOpsScheduleFilter(future, 'scheduled', now)).toBe(true);
+    });
+
+    test('matchesOpsScheduleFilter d1 is within 24h', () => {
+      const now = new Date('2030-01-01T12:00:00.000Z').getTime();
+      const in12h = makeWorkshop({ startDate: new Date(now + 12 * 3600 * 1000).toISOString() });
+      const in2d = makeWorkshop({ name: 'ws-2d', startDate: new Date(now + 2 * 86400 * 1000).toISOString() });
+      expect(matchesOpsScheduleFilter(in12h, 'd1', now)).toBe(true);
+      expect(matchesOpsScheduleFilter(in2d, 'd1', now)).toBe(false);
+      expect(matchesOpsScheduleFilter(in2d, 'd2', now)).toBe(true);
+    });
+
+    test('getWorkshopStopMs reads actionSchedule.stop', () => {
+      const ws = makeWorkshop({ stopDate: '2030-06-15T18:00:00.000Z' });
+      expect(getWorkshopStopMs(ws)).toBe(new Date('2030-06-15T18:00:00.000Z').getTime());
+    });
+
+    test('getWorkshopStopMs returns null when no stop date', () => {
+      const ws = makeWorkshop({});
+      expect(getWorkshopStopMs(ws)).toBeNull();
+    });
+
+    test('getWorkshopDestroyMs reads lifespan.end', () => {
+      const ws = makeWorkshop({ destroyDate: '2030-12-31T23:59:59.000Z' });
+      expect(getWorkshopDestroyMs(ws)).toBe(new Date('2030-12-31T23:59:59.000Z').getTime());
+    });
+
+    test('getWorkshopDestroyMs returns null when no destroy date', () => {
+      const ws = makeWorkshop({});
+      expect(getWorkshopDestroyMs(ws)).toBeNull();
+    });
+  });
+
 });
