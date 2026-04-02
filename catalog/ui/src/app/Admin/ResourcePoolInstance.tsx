@@ -1,13 +1,17 @@
-import React, { useReducer } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Button,
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
+  Form,
+  FormGroup,
+  NumberInput,
   PageSection,
   Split,
   SplitItem,
@@ -20,20 +24,32 @@ import {
   Spinner,
   } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
-import { apiPaths, deleteResourceHandle, deleteResourcePool, fetcher, fetcherItemsInAllPages } from '@app/api';
+import {
+  apiPaths,
+  createResourcePoolScaling,
+  deleteResourceHandle,
+  deleteResourcePool,
+  deleteResourcePoolScaling,
+  fetcher,
+  fetcherItemsInAllPages,
+} from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourceHandle, ResourcePool, ResourcePoolList } from '@app/types';
+import { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
+import DateTimePicker from '@app/components/DateTimePicker';
 import LocalTimestamp from '@app/components/LocalTimestamp';
+import Modal, { useModal } from '@app/Modal/Modal';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
 import { useErrorHandler } from 'react-error-boundary';
 import useSWR from 'swr';
-import { BABYLON_DOMAIN, compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjects, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import getPoolStatus from './getPoolStatus';
 import useSession from '@app/utils/useSession';
@@ -51,6 +67,79 @@ function fetchResourceHandlesFromResourcePool(resourcePoolName: string) {
   );
 }
 
+const CreateResourcePoolScalingForm: React.FC<{
+  resourcePool: ResourcePool;
+  onCreated: (scaling: ResourcePoolScaling) => void;
+  setOnConfirmCb?: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
+}> = ({ resourcePool, onCreated, setOnConfirmCb }) => {
+  const [count, setCount] = useState(1);
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
+  const [now] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!setOnConfirmCb) return;
+    setOnConfirmCb(() => async () => {
+      const definition: ResourcePoolScaling = {
+        apiVersion: 'poolboy.gpte.redhat.com/v1',
+        kind: 'ResourcePoolScaling',
+        metadata: {
+          generateName: `${resourcePool.metadata.name}-`,
+          namespace: 'poolboy',
+          name: '',
+          labels: {
+            'poolboy.gpte.redhat.com/resource-pool-name': resourcePool.metadata.name,
+          },
+          ownerReferences: [
+            {
+              apiVersion: 'poolboy.gpte.redhat.com/v1',
+              controller: true,
+              kind: 'ResourcePool',
+              name: resourcePool.metadata.name,
+              uid: resourcePool.metadata.uid,
+            },
+          ],
+        },
+        spec: {
+          count,
+          resourcePool: {
+            name: resourcePool.metadata.name,
+          },
+        },
+      };
+      if (scheduledDate) {
+        definition.spec.at = scheduledDate.toISOString();
+      }
+      const created = await createResourcePoolScaling(definition);
+      onCreated(created);
+    });
+  }, [count, onCreated, resourcePool, scheduledDate, setOnConfirmCb]);
+
+  return (
+    <Form>
+      <FormGroup label="Number of ResourceHandles to add" isRequired fieldId="scaling-count">
+        <NumberInput
+          id="scaling-count"
+          value={count}
+          min={1}
+          onMinus={() => setCount(Math.max(1, count - 1))}
+          onPlus={() => setCount(count + 1)}
+          onChange={(event: React.FormEvent<HTMLInputElement>) => {
+            const val = parseInt((event.target as HTMLInputElement).value, 10);
+            if (!isNaN(val) && val >= 1) setCount(val);
+          }}
+        />
+      </FormGroup>
+      <FormGroup label="Scheduled time (optional)" fieldId="scaling-time">
+        <DateTimePicker
+          defaultTimestamp={now}
+          onSelect={(date) => setScheduledDate(date)}
+          minDate={now}
+        />
+      </FormGroup>
+    </Form>
+  );
+};
+
 const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; activeTab: string }> = ({
   resourcePoolName,
   activeTab,
@@ -59,6 +148,10 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
   const { consoleUrl } = useSession().getSession();
   const matchMutate = useMatchMutate();
   const [selectedResourceHandleUids, reduceResourceHandleSelectedUids] = useReducer(selectedUidsReducer, []);
+  const [selectedScalingUids, reduceScalingSelectedUids] = useReducer(selectedUidsReducer, []);
+  const [createScalingModal, openCreateScalingModal] = useModal();
+  const [deleteScalingModal, openDeleteScalingModal] = useModal();
+  const [scalingToDelete, setScalingToDelete] = useState<ResourcePoolScaling | null>(null);
 
   const {
     data: resourcePool,
@@ -85,6 +178,28 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       : null,
     () => fetchResourceHandlesFromResourcePool(resourcePoolName),
   );
+
+  const { data: resourcePoolScalings, mutate: mutateScalings } = useSWR<ResourcePoolScaling[]>(
+    resourcePool
+      ? apiPaths.RESOURCE_POOL_SCALINGS({
+          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
+          limit: FETCH_BATCH_LIMIT,
+        })
+      : null,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_POOL_SCALINGS({
+          labelSelector: `poolboy.gpte.redhat.com/resource-pool-name=${resourcePoolName}`,
+          limit: FETCH_BATCH_LIMIT,
+          continueId,
+        }),
+      ),
+    {
+      refreshInterval: 8000,
+      compare: compareK8sObjectsArr,
+    },
+  );
+
   const { total, taken, available } = getPoolStatus(resourceHandles);
 
   function mutateResourcePoolsList(data: ResourcePoolList) {
@@ -98,6 +213,21 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       mutateResourceHandles();
       mutateResourcePoolsList(undefined);
       navigate('/admin/resourcepools');
+    }
+  }
+
+  async function confirmThenDeleteSelectedScalings(): Promise<void> {
+    if (confirm('Delete selected ResourcePoolScalings?')) {
+      const remaining: ResourcePoolScaling[] = [];
+      for (const scaling of resourcePoolScalings || []) {
+        if (selectedScalingUids.includes(scaling.metadata.uid)) {
+          await deleteResourcePoolScaling(scaling);
+        } else {
+          remaining.push(scaling);
+        }
+      }
+      reduceScalingSelectedUids({ type: 'clear' });
+      mutateScalings(remaining);
     }
   }
 
@@ -117,6 +247,36 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
 
   return (
     <>
+      <Modal
+        ref={createScalingModal}
+        title="Add Capacity to ResourcePool"
+        onConfirm={() => {}}
+        passModifiers
+        confirmText="Create"
+      >
+        <CreateResourcePoolScalingForm
+          resourcePool={resourcePool}
+          onCreated={(created) => {
+            mutateScalings((prev) => [...(prev || []), created], false);
+          }}
+        />
+      </Modal>
+      <Modal
+        ref={deleteScalingModal}
+        title={`Delete ResourcePoolScaling ${scalingToDelete?.metadata.name}?`}
+        onConfirm={async () => {
+          if (!scalingToDelete) return;
+          await deleteResourcePoolScaling(scalingToDelete);
+          mutateScalings(
+            (prev) => (prev || []).filter((s) => s.metadata.uid !== scalingToDelete.metadata.uid),
+            false,
+          );
+          setScalingToDelete(null);
+        }}
+        confirmText="Delete"
+      >
+        <p>This will remove the scaling request from the ResourcePool.</p>
+      </Modal>
       <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
         <Breadcrumb>
           <BreadcrumbItem
@@ -140,10 +300,21 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
               actionDropdownItems={[
                 <ActionDropdownItem key="delete" label="Delete ResourcePool" onSelect={confirmThenDelete} />,
                 <ActionDropdownItem
+                  key="addCapacity"
+                  label="Add Capacity (ResourcePoolScaling)"
+                  onSelect={openCreateScalingModal}
+                />,
+                <ActionDropdownItem
                   key="deletedSelectedHandles"
                   isDisabled={selectedResourceHandleUids.length === 0}
                   label="Delete Selected ResourceHandles"
                   onSelect={confirmThenDeleteSelectedHandles}
+                />,
+                <ActionDropdownItem
+                  key="deleteSelectedScalings"
+                  isDisabled={selectedScalingUids.length === 0}
+                  label="Delete Selected ResourcePoolScalings"
+                  onSelect={confirmThenDeleteSelectedScalings}
                 />,
                 <ActionDropdownItem
                   key="editInOpenShift"
@@ -358,6 +529,83 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                 })}
               />
             )}
+          </Tab>
+          <Tab eventKey="scaling" title={<TabTitleText>Scaling</TabTitleText>}>
+            <Stack hasGutter>
+              <StackItem>
+                <Split hasGutter>
+                  <SplitItem isFilled />
+                  <SplitItem>
+                    <Button variant="primary" onClick={openCreateScalingModal}>
+                      Add Capacity
+                    </Button>
+                  </SplitItem>
+                </Split>
+              </StackItem>
+              <StackItem>
+                {!resourcePoolScalings || resourcePoolScalings.length === 0 ? (
+                  <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No ResourcePoolScalings found." variant="full" />
+                ) : (
+                  <SelectableTable
+                    columns={['Name', 'Requested Count', 'Current Count', 'Scheduled At', 'Created At', '']}
+                    onSelectAll={(isSelected: boolean) => {
+                      if (isSelected) {
+                        reduceScalingSelectedUids({
+                          type: 'set',
+                          uids: resourcePoolScalings.map((item) => item.metadata.uid),
+                        });
+                      } else {
+                        reduceScalingSelectedUids({ type: 'clear' });
+                      }
+                    }}
+                    rows={resourcePoolScalings.map((scaling: ResourcePoolScaling) => ({
+                      cells: [
+                        <>
+                          {scaling.metadata.name}
+                          <OpenshiftConsoleLink key="console" resource={scaling} />
+                        </>,
+                        <>{scaling.spec.count}</>,
+                        <>{scaling.status?.count ?? '-'}</>,
+                        <>
+                          {scaling.spec.at ? (
+                            <>
+                              <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
+                              <span key="interval" style={{ padding: '0 6px' }}>
+                                (<TimeInterval key="time-interval" toTimestamp={scaling.spec.at} />)
+                              </span>
+                            </>
+                          ) : (
+                            'Immediate'
+                          )}
+                        </>,
+                        <>
+                          <LocalTimestamp key="timestamp" timestamp={scaling.metadata.creationTimestamp} />
+                          <span key="interval" style={{ padding: '0 6px' }}>
+                            (<TimeInterval key="time-interval" toTimestamp={scaling.metadata.creationTimestamp} />)
+                          </span>
+                        </>,
+                        <div key="actions">
+                          <ButtonCircleIcon
+                            onClick={() => {
+                              setScalingToDelete(scaling);
+                              openDeleteScalingModal();
+                            }}
+                            description="Delete"
+                            icon={TrashIcon}
+                          />
+                        </div>,
+                      ],
+                      onSelect: (isSelected: boolean) =>
+                        reduceScalingSelectedUids({
+                          type: isSelected ? 'add' : 'remove',
+                          uids: [scaling.metadata.uid],
+                        }),
+                      selected: selectedScalingUids.includes(scaling.metadata.uid),
+                    }))}
+                  />
+                )}
+              </StackItem>
+            </Stack>
           </Tab>
           <Tab eventKey="yaml" title={<TabTitleText>YAML</TabTitleText>}>
             <Editor

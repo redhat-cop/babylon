@@ -13,6 +13,7 @@ import {
   ResourceClaim,
   ResourceHandle,
   ResourcePool,
+  ResourcePoolScaling,
   ResourceProvider,
   ServiceAccessConfig,
   ServiceNamespace,
@@ -416,6 +417,20 @@ async function createResourceClaim(definition: ResourceClaim) {
 
 export async function createResourcePool(definition: ResourcePool) {
   return await createK8sObject<ResourcePool>(definition);
+}
+
+export async function createResourcePoolScaling(definition: ResourcePoolScaling) {
+  return await createK8sObject<ResourcePoolScaling>(definition);
+}
+
+export async function deleteResourcePoolScaling(resourcePoolScaling: ResourcePoolScaling) {
+  return await deleteNamespacedCustomObject(
+    'poolboy.gpte.redhat.com',
+    'v1',
+    resourcePoolScaling.metadata.namespace,
+    'resourcepoolscalings',
+    resourcePoolScaling.metadata.name,
+  );
 }
 
 export async function saveExternalItemRequest({
@@ -2336,6 +2351,10 @@ export const apiPaths = {
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
+  RESOURCE_POOL_SCALINGS: ({ labelSelector, limit, continueId }: { labelSelector?: string; limit?: number | string; continueId?: string }) =>
+    `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepoolscalings?${
+      labelSelector ? `labelSelector=${labelSelector}` : ''
+    }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   RESOURCE_PROVIDERS: ({ limit, continueId }: { limit: number | string; continueId?: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourceproviders?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
