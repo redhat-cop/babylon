@@ -558,7 +558,9 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         reduceScalingSelectedUids({ type: 'clear' });
                       }
                     }}
-                    rows={resourcePoolScalings.map((scaling: ResourcePoolScaling) => ({
+                    rows={[...resourcePoolScalings].sort((a, b) =>
+                      new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
+                    ).map((scaling: ResourcePoolScaling) => ({
                       cells: [
                         <>
                           {scaling.metadata.name}
