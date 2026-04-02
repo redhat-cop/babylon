@@ -129,7 +129,7 @@ const CreateResourcePoolScalingForm: React.FC<{
           }}
         />
       </FormGroup>
-      <FormGroup label="Scheduled time (optional)" fieldId="scaling-time">
+      <FormGroup label="Scheduled time" fieldId="scaling-time">
         <DateTimePicker
           defaultTimestamp={now}
           onSelect={(date) => setScheduledDate(date)}
@@ -547,7 +547,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                   <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No ResourcePoolScalings found." variant="full" />
                 ) : (
                   <SelectableTable
-                    columns={['Name', 'Requested Count', 'Current Count', 'Scheduled At', 'Created At', '']}
+                    columns={['Name', 'Requested Count', 'Current Count', 'State', 'Created At', '']}
                     onSelectAll={(isSelected: boolean) => {
                       if (isSelected) {
                         reduceScalingSelectedUids({
@@ -567,15 +567,15 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         <>{scaling.spec.count}</>,
                         <>{scaling.status?.count ?? '-'}</>,
                         <>
-                          {scaling.spec.at ? (
+                          {scaling.status?.state === 'waiting' && scaling.spec.at ? (
                             <>
-                              <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
+                              Scheduled at <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
                               <span key="interval" style={{ padding: '0 6px' }}>
                                 (<TimeInterval key="time-interval" toTimestamp={scaling.spec.at} />)
                               </span>
                             </>
                           ) : (
-                            'Immediate'
+                            scaling.status?.state || '-'
                           )}
                         </>,
                         <>
