@@ -9,6 +9,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp import web
@@ -880,7 +881,32 @@ async def public_multiworkshop_get(request):
             asset_type = asset.get('type', 'Workshop')
             workshop_name = asset.get('name')
             workshop_namespace = asset.get('namespace')
-            if asset_type == 'external' or not workshop_name or not workshop_namespace:
+
+            if asset_type == 'external':
+                asset_url = asset.get('url', '')
+                parsed = urlparse(asset_url)
+                if parsed.hostname == 'zero.rhdp.net' and parsed.path:
+                    pool_name = parsed.path.rstrip('/').split('/')[-1]
+                    try:
+                        handles_resp = await custom_objects_api.list_namespaced_custom_object(
+                            group='poolboy.gpte.redhat.com',
+                            version='v1',
+                            namespace='poolboy',
+                            plural='resourcehandles',
+                            label_selector=f"poolboy.gpte.redhat.com/resource-pool-name={pool_name}",
+                        )
+                        available = sum(
+                            1 for h in handles_resp.get('items', [])
+                            if not h.get('spec', {}).get('resourceClaim')
+                            and h.get('status', {}).get('healthy')
+                            and h.get('status', {}).get('ready')
+                        )
+                        asset['availableSeats'] = available
+                    except Exception:
+                        pass
+                continue
+
+            if not workshop_name or not workshop_namespace:
                 continue
             try:
                 workshop = await custom_objects_api.get_namespaced_custom_object(
