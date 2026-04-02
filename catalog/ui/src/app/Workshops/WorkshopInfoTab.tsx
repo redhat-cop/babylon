@@ -98,7 +98,12 @@ const WorkshopInfoTab: React.FC<{
                 <AutoStopDestroy
                   type="auto-start"
                   variant="extended"
-                  onClick={() => showModal({ resourceClaims: [], action: 'scheduleStart' })}
+                  onClick={() => {
+                    if (!isLocked) {
+                      showModal({ resourceClaims: [], action: 'scheduleStart' });
+                    }
+                  }}
+                  isDisabled={isLocked}
                   className="workshops-item__schedule-btn"
                   time={autoStartTime}
                 />

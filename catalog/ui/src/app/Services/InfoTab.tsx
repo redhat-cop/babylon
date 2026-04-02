@@ -16,6 +16,7 @@ import {
   getInfoMessageTemplate,
   getMostRelevantResourceAndTemplate,
   getStartTime,
+  isResourceClaimLocked,
 } from './service-utils';
 import AdocWrapper from '@app/components/AdocWrapper';
 
@@ -38,6 +39,7 @@ const InfoTab: React.FC<{
     getMostRelevantResourceAndTemplate(resourceClaim);
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const isLocked = isResourceClaimLocked(resourceClaim);
   const autoStopTime = getAutoStopTime(resourceClaim);
   const startTime = getStartTime(resourceClaim);
 
@@ -86,8 +88,11 @@ const InfoTab: React.FC<{
                 <AutoStopDestroy
                   type="auto-start"
                   onClick={() => {
-                    showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                    if (!isLocked) {
+                      showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                    }
                   }}
+                  isDisabled={isLocked}
                   resourceClaim={resourceClaim}
                   className="services-item__schedule-btn"
                   time={startTime}
@@ -103,8 +108,11 @@ const InfoTab: React.FC<{
               <AutoStopDestroy
                 type="auto-stop"
                 onClick={() => {
-                  showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                  if (!isLocked) {
+                    showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                  }
                 }}
+                isDisabled={isLocked}
                 className="services-item__schedule-btn"
                 time={autoStopTime}
                 variant="extended"
@@ -121,8 +129,11 @@ const InfoTab: React.FC<{
                   <AutoStopDestroy
                     type="auto-destroy"
                     onClick={() => {
-                      showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                      if (!isLocked) {
+                        showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                      }
                     }}
+                    isDisabled={isLocked}
                     className="services-item__schedule-btn"
                     time={resourceClaim.status?.lifespan?.end}
                     variant="extended"
