@@ -902,11 +902,12 @@ async def public_multiworkshop_get(request):
                             and h.get('status', {}).get('ready')
                         )
                         asset['availableSeats'] = available
-                    except Exception:
+                    except Exception as e:
+                        logging.error(f"Error getting available seats: {e}")
                         pass
                 continue
 
-            if not workshop_name or not workshop_namespace:
+            elif not workshop_name or not workshop_namespace:
                 continue
             try:
                 workshop = await custom_objects_api.get_namespaced_custom_object(
@@ -919,9 +920,9 @@ async def public_multiworkshop_get(request):
                 available = workshop.get('status', {}).get('userCount', {}).get('available')
                 if available is not None:
                     asset['availableSeats'] = available
-            except Exception:
+            except Exception as e:
+                logging.error(f"Error getting available seats: {e}")
                 pass
-
         return web.json_response(multiworkshop)
 
     except kubernetes_asyncio.client.exceptions.ApiException as e:
