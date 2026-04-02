@@ -288,6 +288,7 @@ export interface K8sObjectMeta {
   creationTimestamp?: string;
   deletionTimestamp?: string;
   finalizers?: string[];
+  generateName?: string;
   labels?: Record<string, string>;
   name: string;
   namespace?: string;
@@ -462,6 +463,23 @@ export interface ResourcePoolSpecResource {
   name?: string;
   provider: K8sObjectReference;
   template?: any;
+}
+
+export interface ResourcePoolScaling extends K8sObject {
+  spec: ResourcePoolScalingSpec;
+  status?: ResourcePoolScalingStatus;
+}
+
+export interface ResourcePoolScalingSpec {
+  at?: string;
+  count: number;
+  resourcePool: {
+    name: string;
+  };
+}
+
+export interface ResourcePoolScalingStatus {
+  count?: number;
 }
 
 export interface ResourceProvider extends K8sObject {
