@@ -570,14 +570,14 @@ const ServicesItemComponent: React.FC<{
     manageWorkshop?: () => void;
     rate?: () => void;
   } = {
-    delete: isLocked ? undefined : () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
-    lifespan: isLocked ? undefined : () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
+    delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
   
-  if (!isLocked && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
+  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
-  if (!isLocked && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
+  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers.stop = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
     actionHandlers.runtime = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
@@ -879,7 +879,7 @@ const ServicesItemComponent: React.FC<{
                   {externalPlatformUrl}
                 </Button>
               ) : (
-                <ServiceActions position="right" resourceClaim={resourceClaim} actionHandlers={actionHandlers} canManageCollaborators={canManageCollaborators} />
+                <ServiceActions position="right" resourceClaim={resourceClaim} actionHandlers={actionHandlers} canManageCollaborators={canManageCollaborators} isLocked={isLocked} />
               )}
             </Bullseye>
           </SplitItem>

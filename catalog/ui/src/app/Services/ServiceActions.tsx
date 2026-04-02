@@ -1,5 +1,6 @@
 import React from 'react';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
+import { LockedIcon } from '@patternfly/react-icons';
 import { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import {
@@ -23,11 +24,12 @@ const ServiceActions: React.FC<{
   canManageCollaborators?: boolean;
   className?: string;
   isDisabled?: boolean;
+  isLocked?: boolean;
   position?: 'right' | 'left';
   resourceClaim?: ResourceClaim;
   serviceName?: string;
   iconOnly?: boolean;
-}> = ({ actionHandlers, canManageCollaborators = true, className, isDisabled, position, resourceClaim, serviceName, iconOnly = false }) => {
+}> = ({ actionHandlers, canManageCollaborators = true, className, isDisabled, isLocked = false, position, resourceClaim, serviceName, iconOnly = false }) => {
   const actionDropdownItems = [];
   const { ratings_enabled } = useInterfaceConfig();
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
@@ -41,9 +43,10 @@ const ServiceActions: React.FC<{
         key="runtime"
         label="Edit Auto-Stop"
         isDisabled={
-          !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
+          isLocked || !resourceClaim || !canStop || !resourceClaim?.status?.resources?.[0]?.state?.spec?.vars?.action_schedule
         }
         onSelect={actionHandlers.runtime}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }
@@ -52,8 +55,9 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="lifespan"
         label="Edit Auto-Destroy"
-        isDisabled={!resourceClaim?.status?.lifespan}
+        isDisabled={isLocked || !resourceClaim?.status?.lifespan}
         onSelect={actionHandlers.lifespan}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }
@@ -62,8 +66,9 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="delete"
         label={serviceName ? `Delete ${serviceName}` : 'Delete'}
-        isDisabled={!canManageCollaborators}
+        isDisabled={isLocked || !canManageCollaborators}
         onSelect={actionHandlers.delete}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }
@@ -72,8 +77,9 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="start"
         label={serviceName ? `Start ${serviceName}` : 'Start'}
-        isDisabled={!canStart}
+        isDisabled={isLocked || !canStart}
         onSelect={actionHandlers.start}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }
@@ -82,8 +88,9 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem
         key="stop"
         label={serviceName ? `Stop ${serviceName}` : 'Stop'}
-        isDisabled={!canStop}
+        isDisabled={isLocked || !canStop}
         onSelect={actionHandlers.stop}
+        icon={isLocked ? <LockedIcon /> : null}
       />,
     );
   }

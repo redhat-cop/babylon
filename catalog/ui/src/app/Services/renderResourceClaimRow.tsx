@@ -87,14 +87,14 @@ const renderResourceClaimRow = ({
 
   // Available actions depends on kind of service
   const actionHandlers = {
-    delete: isLocked ? null : () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
-    lifespan: isLocked ? null : () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
+    delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
+    lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
     runtime: null,
     start: null,
     stop: null,
     manageWorkshop: null,
   };
-  if (!isLocked && resources.find((r) => r?.kind === 'AnarchySubject')) {
+  if (resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', resourceClaim });
     actionHandlers['stop'] = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
