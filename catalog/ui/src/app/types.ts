@@ -480,6 +480,7 @@ export interface ResourcePoolScalingSpec {
 
 export interface ResourcePoolScalingStatus {
   count?: number;
+  state?: string;
 }
 
 export interface ResourceProvider extends K8sObject {
