@@ -46,12 +46,15 @@ const InfoTab: React.FC<{
   const infoHtml = useMemo(() => {
     const provision_vars: object = Object.assign(
       {},
-      ...(resourceClaim.status?.resources || []).flatMap((resource) => ({
-        [resource.name.split('.').length > 1 ? resource.name.split('.')[1] : resource.name]: resource.state?.spec.vars
-          ?.provision_data
-          ? { ...resource.state.spec.vars?.provision_data }
-          : null,
-      })),
+      ...(resourceClaim.status?.resources || []).flatMap((resource) => {
+        if (!resource.name) return {};
+        return {
+          [resource.name.split('.').length > 1 ? resource.name.split('.')[1] : resource.name]: resource.state?.spec.vars
+            ?.provision_data
+            ? { ...resource.state.spec.vars?.provision_data }
+            : null,
+        };
+      }),
       resourceClaim.status?.summary?.provision_data || {},
     );
 
