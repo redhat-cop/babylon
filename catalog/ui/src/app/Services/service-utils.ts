@@ -64,7 +64,8 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   const resourcesStatus: { index: number; phase: phaseProps }[] = [];
   for (const [i, resource] of resources.entries()) {
     const resourceK8s = resource.state;
-    const currentState = resourceK8s?.kind === 'AnarchySubject' ? resourceK8s?.spec?.vars?.current_state : 'available';
+    const currentState =
+      resourceK8s?.kind === 'AnarchySubject' ? resourceK8s?.spec?.vars?.current_state ?? '' : '';
     const specResource = getSpecResourceByName(resource.name);
     const desiredState = specResource?.template?.spec?.vars?.desired_state;
     const startTimestamp =
@@ -83,6 +84,7 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
         startTime,
         stopTime,
         resourceClaim,
+        resourceK8s,
       ).phase,
     });
   }
