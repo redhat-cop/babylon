@@ -70,6 +70,10 @@ export function getStatus(
     
   }
 
+  if (!currentState && resource) {
+    return { statusName: 'Loading status', phase: 'in-progress' };
+  }
+
   if (!currentState) {
     if (creationTime && creationTime - Date.now() < 60 * 1000) {
       return { statusName: 'Requested', phase: 'unknown' };
@@ -141,6 +145,10 @@ export function getPhaseState(__state: string) {
   const state = __state.toLowerCase().replace(/ /g, '-');
   let _state = state.replace(/-/g, ' ');
   switch (true) {
+    case state === 'loading-status':
+      _phase = 'in-progress';
+      _state = 'Loading status';
+      break;
     case state.endsWith('-queued'):
       _phase = 'queued';
       _state = 'In Queue';
@@ -184,7 +192,8 @@ const ServiceStatus: React.FC<{
   const { resource, template: resourceTemplate } = getMostRelevantResourceAndTemplate(resourceClaim);
   const summary = resourceClaim.status?.summary;
   const errorMessage = summary?.error_message;
-  const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
+  const currentState =
+    resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state ?? '' : '';
 
   // Check for waiting states BEFORE checking summary
   const scheduledStartTime = getScheduledStartTimestamp(resourceClaim);

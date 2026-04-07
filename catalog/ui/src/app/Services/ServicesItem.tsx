@@ -1315,8 +1315,8 @@ const ServicesItemComponent: React.FC<{
                           resourceStatus?.name;
                         const currentState =
                           resourceState?.kind === 'AnarchySubject'
-                            ? resourceState.spec.vars?.current_state
-                            : 'available';
+                            ? resourceState.spec.vars?.current_state ?? ''
+                            : '';
                         const stopTimestamp =
                           resourceState?.kind === 'AnarchySubject'
                             ? resourceState?.spec.vars.action_schedule?.stop

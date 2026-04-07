@@ -15,6 +15,7 @@ const codeLevels = [
   'provisioning',
   'stop-scheduled',
   'start-scheduled',
+  'loading-status',
   'available',
   'requested',
   'running',
@@ -38,7 +39,8 @@ const WorkshopStatus: React.FC<{
       const creationTime = Date.parse(resourceClaim.metadata.creationTimestamp);
       const resource = getMostRelevantResourceAndTemplate(resourceClaim).resource;
       const resourceTemplate = getMostRelevantResourceAndTemplate(resourceClaim).template;
-      const currentState = resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state : 'available';
+      const currentState =
+        resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state ?? '' : '';
       const desiredState = resourceTemplate?.spec?.vars?.desired_state;
       const { startTime, stopTime } = getAutoTimes(resourceClaim);
       const _startTime =
