@@ -33,6 +33,7 @@ import useSession from '@app/utils/useSession';
 import useServiceQuota from '@app/utils/useServiceQuota';
 import {
   checkAccessControl,
+  compareK8sObjects,
   displayName,
   renderContent,
   BABYLON_DOMAIN,
@@ -74,9 +75,22 @@ enum CatalogItemAccess {
   RequestInformation,
 }
 
-const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem, onClose }) => {
+const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem: catalogItemProp, onClose }) => {
   const navigate = useNavigate();
   const { userNamespace, isAdmin, groups } = useSession().getSession();
+  const { data: catalogItemFromApi } = useSWR<CatalogItem>(
+    apiPaths.CATALOG_ITEM({
+      namespace: catalogItemProp.metadata.namespace,
+      name: catalogItemProp.metadata.name,
+    }),
+    fetcher,
+    {
+      fallbackData: catalogItemProp,
+      compare: compareK8sObjects,
+      suspense: false,
+    },
+  );
+  const catalogItem = catalogItemFromApi ?? catalogItemProp;
   const { accessControl, lastUpdate, agnosticvRepo } = catalogItem.spec;
   const { labels, namespace, name } = catalogItem.metadata;
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
