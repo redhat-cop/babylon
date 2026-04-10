@@ -66,6 +66,16 @@ spec:
             secretKeyRef:
               key: database-password
               name: babylon-notifier-redis
+        {{- $catalogUrl := "" }}
+        {{- range $namespace, $_interface := $.Values.catalog.interfaces }}
+        {{-   $interface := merge $_interface (deepCopy $.Values.catalog.defaults) }}
+        {{-   $domain := $interface.route.host | default (printf "%s.%s" $namespace $.Values.ingressDomain) }}
+        {{-   $catalogUrl = printf "https://%s" $domain }}
+        {{- end }}
+        {{- with $notifier.catalogUrl | default $catalogUrl }}
+        - name: CATALOG_URL
+          value: {{ . | quote }}
+        {{- end }}
         {{- with $notifier.onlySendTo }}
         - name: ONLY_SEND_TO
           value: {{ . | quote }}
