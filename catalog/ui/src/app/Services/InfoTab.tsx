@@ -124,36 +124,32 @@ const InfoTab: React.FC<{
             </DescriptionListDescription>
           </DescriptionListGroup>
 
-          {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
+          {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
-              {resourceClaim.status?.lifespan?.end ? (
-                <DescriptionListDescription>
-                  <AutoStopDestroy
-                    type="auto-destroy"
-                    onClick={() => {
-                      if (!isLocked) {
-                        showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
-                      }
-                    }}
-                    isDisabled={isLocked}
-                    className="services-item__schedule-btn"
-                    time={resourceClaim.status?.lifespan?.end}
-                    variant="extended"
-                    resourceClaim={resourceClaim}
-                  >
-                    {resourceClaim.spec?.lifespan?.end &&
-                    resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
-                      <>
-                        {' '}
-                        <Spinner size="md" />
-                      </>
-                    ) : null}
-                  </AutoStopDestroy>
-                </DescriptionListDescription>
-              ) : (
-                <p>-</p>
-              )}
+              <DescriptionListDescription>
+                <AutoStopDestroy
+                  type="auto-destroy"
+                  onClick={() => {
+                    if (!isLocked) {
+                      showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                    }
+                  }}
+                  isDisabled={isLocked}
+                  className="services-item__schedule-btn"
+                  time={resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end}
+                  variant="extended"
+                  resourceClaim={resourceClaim}
+                >
+                  {resourceClaim.status?.lifespan?.end && resourceClaim.spec?.lifespan?.end &&
+                  resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
+                    <>
+                      {' '}
+                      <Spinner size="md" />
+                    </>
+                  ) : null}
+                </AutoStopDestroy>
+              </DescriptionListDescription>
             </DescriptionListGroup>
           ) : null}
         </DescriptionList>

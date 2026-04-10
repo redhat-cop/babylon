@@ -1019,7 +1019,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {!externalPlatformUrl && !isPartOfWorkshop && resourceClaim.status?.lifespan?.end ? (
+                  {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1031,12 +1031,12 @@ const ServicesItemComponent: React.FC<{
                             }
                           }}
                           isDisabled={isLocked}
-                          time={resourceClaim.status?.lifespan?.end}
+                          time={resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end}
                           className="services-item__schedule-btn"
                           variant="extended"
                           resourceClaim={resourceClaim}
                         >
-                          {resourceClaim.spec?.lifespan?.end &&
+                          {resourceClaim.status?.lifespan?.end && resourceClaim.spec?.lifespan?.end &&
                           resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
                             <>
                               {' '}
