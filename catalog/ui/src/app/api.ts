@@ -658,6 +658,7 @@ export async function createWorkshop({
   customOwnerReferences?: K8sOwnerReference[];
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
 }): Promise<Workshop> {
+  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
   // Generate workshop name with random suffix and ensure Kubernetes compliance
   const workshopName = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
@@ -678,6 +679,7 @@ export async function createWorkshop({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/workshops/${serviceNamespace.name}/${workshopName}`,
         ...(catalogItem.spec.messageTemplates?.info
           ? { [`${DEMO_DOMAIN}/info-message-template`]: JSON.stringify(catalogItem.spec.messageTemplates.info) }
           : {}),
@@ -732,8 +734,10 @@ export async function createWorkshop({
     } catch (error: unknown) {
       if ((error as Response).status === 409 && retryCount < maxRetries) {
         retryCount++;
-        // Generate a new name with random suffix on conflict
-        definition.metadata.name = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
+        const newWorkshopName = generateK8sNameWithSuffix(customWorkshopName || catalogItem.metadata.name);
+        definition.metadata.name = newWorkshopName;
+        definition.metadata.annotations[`${BABYLON_DOMAIN}/url`] =
+          `${baseUrl}/workshops/${serviceNamespace.name}/${newWorkshopName}`;
       } else {
         throw error;
       }
@@ -757,6 +761,7 @@ export async function createWorkshopForMultiuserService({
   openRegistration: boolean;
   resourceClaim: ResourceClaim;
 }): Promise<{ resourceClaim: ResourceClaim; workshop: Workshop }> {
+  const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const catalogItemName: string = resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`];
   const catalogItemNamespace: string = resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemNamespace`];
   const definition: Workshop = {
@@ -771,6 +776,7 @@ export async function createWorkshopForMultiuserService({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/category`],
+        [`${BABYLON_DOMAIN}/url`]: `${baseUrl}/workshops/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`,
         ...(resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/user-message-template`]
           ? {
               [`${DEMO_DOMAIN}/user-message-template`]:
