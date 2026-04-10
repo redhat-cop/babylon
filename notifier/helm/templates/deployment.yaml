@@ -67,10 +67,6 @@ spec:
             secretKeyRef:
               key: database-password
               name: {{ include "babylon-notifier.redisName" . | quote }}
-        {{- with .Values.catalogUrl }}
-        - name: CATALOG_URL
-          value: {{ . | quote }}
-        {{- end }}
         {{- with .Values.onlySendTo }}
         - name: ONLY_SEND_TO
           value: {{ . | quote }}

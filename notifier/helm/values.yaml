@@ -5,10 +5,6 @@
 deploy: true
 replicaCount: 1
 
-# Base URL for the catalog portal, used to construct links in notification emails.
-# Example: https://catalog.demo.redhat.com
-#catalogUrl:
-
 # Set onlySendTo for development to prevent accidental email delivery.
 #onlySendTo:
 
