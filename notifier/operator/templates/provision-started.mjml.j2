@@ -18,11 +18,6 @@
 
     <p>You can change the {% if stop_timestamp < retirement_timestamp %}auto-stop and {% endif %}auto-destroy time in the UI.</p>
 
-    {% if service_url %}
-    <p>You may manage your {{ catalog_namespace.display_name }} service at:<br>
-    <a href="{{ service_url }}">{{ service_url }}</a>.</p>
-    {% endif %}
-
   </mj-text>
 </mj-column>
 

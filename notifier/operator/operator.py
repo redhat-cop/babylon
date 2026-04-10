@@ -48,8 +48,6 @@ smtp_tls_key = os.environ.get('SMTP_TLS_KEY', None)
 smtp_tls_key_file = os.environ.get('SMTP_TLS_KEY_FILE', None)
 smtp_tls_validate_certs = os.environ.get('SMTP_TLS_VALIDATE_CERTS', 'true') != 'false'
 
-catalog_url = os.environ.get('CATALOG_URL', '').rstrip('/')
-
 ### Development/Test variables
 # Only send messages to contact listed in ONLY_SEND_TO
 only_send_to = os.environ.get('ONLY_SEND_TO', None)
@@ -676,6 +674,7 @@ async def notify_deleted(catalog_item, catalog_namespace, email_addresses, logge
         resource_claim = resource_claim,
         subject = catalog_item.service_deleted_email_subject_template,
         template = "service-deleted",
+        template_vars = dict(service_url=None),
         to = email_addresses,
     )
 
@@ -927,10 +926,6 @@ def get_template_vars(catalog_item, catalog_namespace, resource_claim):
     stop_timedelta = stop_datetime - datetime.now(timezone.utc) if stop_datetime else None
     stop_timedelta_humanized = naturaldelta(stop_timedelta + timedelta(seconds=30)) if stop_timedelta else None
 
-    service_url = resource_claim.service_url
-    if not service_url and catalog_url:
-        service_url = f"{catalog_url}/services/{resource_claim.namespace}/{resource_claim.name}"
-
     return {
         **{k: v for (k, v) in provision_data.items() if isinstance(k, str)},
         "catalog_display_name": catalog_namespace.display_name,
@@ -948,7 +943,7 @@ def get_template_vars(catalog_item, catalog_namespace, resource_claim):
         "stop_timedelta": stop_timedelta,
         "stop_timedelta_humanized": stop_timedelta_humanized,
         "service_display_name": f"{catalog_item.display_name} {resource_claim.guid}",
-        "service_url": service_url,
+        "service_url": resource_claim.service_url,
         "survey_link": catalog_item.survey_link,
     }
 
@@ -964,14 +959,13 @@ async def send_notification_email(
     template_vars={},
     attachments=[]
 ):
-    template_vars = deepcopy(template_vars)
-    template_vars.update(
-        get_template_vars(
-            catalog_item=catalog_item,
-            catalog_namespace=catalog_namespace,
-            resource_claim=resource_claim,
-        )
+    caller_vars = deepcopy(template_vars)
+    template_vars = get_template_vars(
+        catalog_item=catalog_item,
+        catalog_namespace=catalog_namespace,
+        resource_claim=resource_claim,
     )
+    template_vars.update(caller_vars)
     template_vars['have_attachments'] = len(attachments) > 0
     template_vars['service_status'] = ' '.join(elem.capitalize() for elem in template.replace('-', ' ').split())
 
@@ -1054,9 +1048,7 @@ async def send_workshop_notification_email(
     retirement_timedelta = retirement_datetime - datetime.now(timezone.utc) if retirement_datetime else None
     retirement_timedelta_humanized = naturaldelta(retirement_timedelta + timedelta(seconds=30)) if retirement_timedelta else None
 
-    service_url = workshop.service_url
-    if not service_url and catalog_url:
-        service_url = f"{catalog_url}/workshops/{workshop.namespace}/{workshop.name}"
+    service_url = None if template == "workshop-deleted" else workshop.service_url
 
     template_vars = {
         "workshop": workshop,

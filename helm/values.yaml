@@ -178,9 +178,6 @@ configNamespace:
 
 notifier:
   deploy: false
-  # catalogUrl is derived automatically from catalog.interfaces route host.
-  # Set explicitly only to override:
-  #catalogUrl: https://<catalog-route-host>
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
