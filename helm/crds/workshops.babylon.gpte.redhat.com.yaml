@@ -198,6 +198,11 @@ spec:
                   properties:
                     uid:
                       type: string
+              workshopURL:
+                description: >-
+                  URL for accessing this workshop. Constructed from the
+                  WORKSHOP_BASE_URL environment variable and the workshop-id label.
+                type: string
         required:
         - apiVersion
         - kind
