@@ -197,6 +197,10 @@ class Workshop(CachedKopfObject):
             }
         })
         logger.info(f"Assigned workshop id {workshop_id} to {self}")
+
+        workshop_url = f"{Babylon.workshop_base_url}/workshop/{workshop_id}"
+        await self.merge_patch_status({"workshopURL": workshop_url})
+        logger.info(f"Set workshopURL {workshop_url} for {self}")
         return
 
     async def add_resource_claim_to_status(self, resource_claim, logger):
