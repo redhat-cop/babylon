@@ -202,6 +202,7 @@ spec:
                 description: >-
                   URL for accessing this workshop. Constructed from the
                   WORKSHOP_BASE_URL environment variable and the workshop-id label.
+                  If WORKSHOP_BASE_URL is not set, the URL is relative (e.g. /workshop/abc123).
                 type: string
         required:
         - apiVersion

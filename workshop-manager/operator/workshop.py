@@ -100,6 +100,10 @@ class Workshop(CachedKopfObject):
     def workshop_id(self):
         return self.labels.get(Babylon.workshop_id_label)
 
+    @property
+    def workshop_url(self):
+        return self.status.get('workshopURL')
+
     def get_workshop_provisions(self):
         return workshopprovision.WorkshopProvision.get_for_workshop(self)
 
@@ -180,6 +184,10 @@ class Workshop(CachedKopfObject):
         Generate a unique workshop id label for workshop to provide a short URL for access.
         """
         if self.workshop_id:
+            if not self.workshop_url:
+                workshop_url = f"{Babylon.workshop_base_url}/workshop/{self.workshop_id}"
+                await self.merge_patch_status({"workshopURL": workshop_url})
+                logger.info(f"Set workshopURL {workshop_url} for {self}")
             return
 
         while True:
@@ -201,7 +209,6 @@ class Workshop(CachedKopfObject):
         workshop_url = f"{Babylon.workshop_base_url}/workshop/{workshop_id}"
         await self.merge_patch_status({"workshopURL": workshop_url})
         logger.info(f"Set workshopURL {workshop_url} for {self}")
-        return
 
     async def add_resource_claim_to_status(self, resource_claim, logger):
         if resource_claim.name in self.status.get('resourceClaims', {}):
