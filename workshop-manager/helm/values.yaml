@@ -42,6 +42,8 @@ affinity: {}
 babylon:
   domain: babylon.gpte.redhat.com
 
+workshopBaseUrl: ""
+
 poolboy:
   domain: poolboy.gpte.redhat.com
 
