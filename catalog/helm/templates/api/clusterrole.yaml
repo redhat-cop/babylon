@@ -44,3 +44,10 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - poolboy.gpte.redhat.com
+  resources:
+  - resourcehandles
+  verbs:
+  - get
+  - list
