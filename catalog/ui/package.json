@@ -101,7 +101,7 @@
     "lodash.throttle": "^4.1.1",
     "moment": "^2.30.1",
     "monaco-editor": "^0.55.1",
-    "parse-duration": "^1.1.1",
+    "parse-duration": "^2.1.6",
     "react": "^18.2.0",
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.3.1",
