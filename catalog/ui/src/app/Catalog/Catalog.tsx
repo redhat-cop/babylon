@@ -615,10 +615,15 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
 
   const DEFAULT_CATALOG_NAMESPACE = 'babylon-catalog-prod';
   if (!catalogNamespaceName && catalogNamespaces.length > 0) {
-    const defaultNs = catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)
-      ? DEFAULT_CATALOG_NAMESPACE
-      : catalogNamespaces[0].name;
-    return <Navigate to={`/catalog/${defaultNs}${location.search}`} replace />;
+    const itemParam = searchParams.get('item');
+    const itemNamespace = itemParam?.includes('/') ? itemParam.split('/')[0] : null;
+    const targetNs =
+      itemNamespace && catalogNamespaces.some((ns) => ns.name === itemNamespace)
+        ? itemNamespace
+        : catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)
+          ? DEFAULT_CATALOG_NAMESPACE
+          : catalogNamespaces[0].name;
+    return <Navigate to={`/catalog/${targetNs}${location.search}`} replace />;
   }
 
   if (isLoading) {
