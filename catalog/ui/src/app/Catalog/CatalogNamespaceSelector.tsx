@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Radio, Stack, StackItem, Title } from '@patternfly/react-core';
 import { CatalogNamespace } from '@app/types';
 import { displayName } from '@app/util';
+import { ALL_CATALOGS_NS } from './catalog-utils';
 
 import './catalog-namespace-selector.css';
 
@@ -28,6 +29,15 @@ const CatalogNamespaceSelector: React.FC<{
         Catalog
       </Title>
       <Stack className="catalog-namespace-selector__options">
+        <StackItem>
+          <Radio
+            id="catalog-ns-all"
+            name="catalog-namespace"
+            label="All"
+            isChecked={selected === ALL_CATALOGS_NS}
+            onChange={() => onSelect(ALL_CATALOGS_NS)}
+          />
+        </StackItem>
         {sortedNamespaces.map((ns) => (
           <StackItem key={ns.name}>
             <Radio

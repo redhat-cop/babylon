@@ -1,6 +1,8 @@
 import { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
 
+export const ALL_CATALOGS_NS = 'all';
+
 export function getProvider(catalogItem: CatalogItem) {
   const { domain, key } = CUSTOM_LABELS.PROVIDER;
   return catalogItem.metadata.labels?.[`${domain}/${key}`] || 'Red Hat';

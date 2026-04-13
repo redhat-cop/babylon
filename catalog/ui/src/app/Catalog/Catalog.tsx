@@ -59,6 +59,7 @@ import {
   getRating,
   getSLA,
   SLAs,
+  ALL_CATALOGS_NS,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -390,8 +391,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     [sortBy.selected],
   );
 
+  const isAllCatalogs = catalogNamespaceName === ALL_CATALOGS_NS;
+  const allVisibleNsNames = useMemo(
+    () => visibleCatalogNamespaces.map((ns) => ns.name),
+    [visibleCatalogNamespaces],
+  );
+
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
-    catalogNamespaceName
+    catalogNamespaceName && !isAllCatalogs
       ? apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
           stage: catalogNamespaceName.split('-').slice(-1)[0],
         })
@@ -403,8 +410,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     },
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    catalogNamespaceName ? apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }) : null,
-    () => fetchCatalog([catalogNamespaceName]),
+    isAllCatalogs
+      ? allVisibleNsNames.length > 0
+        ? `catalog-items-all`
+        : null
+      : catalogNamespaceName
+        ? apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName })
+        : null,
+    () => fetchCatalog(isAllCatalogs ? allVisibleNsNames : [catalogNamespaceName]),
   );
   const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES(), fetcher, {
     suspense: false,
@@ -613,17 +626,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     return hasSearch || hasLabels || hasAdminFilter || hasCategories || showFavorites;
   }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, showFavorites, isAdmin]);
 
-  const DEFAULT_CATALOG_NAMESPACE = 'babylon-catalog-prod';
   if (!catalogNamespaceName && catalogNamespaces.length > 0) {
-    const itemParam = searchParams.get('item');
-    const itemNamespace = itemParam?.includes('/') ? itemParam.split('/')[0] : null;
-    const targetNs =
-      itemNamespace && catalogNamespaces.some((ns) => ns.name === itemNamespace)
-        ? itemNamespace
-        : catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)
-          ? DEFAULT_CATALOG_NAMESPACE
-          : catalogNamespaces[0].name;
-    return <Navigate to={`/catalog/${targetNs}${location.search}`} replace />;
+    return <Navigate to={`/catalog/${ALL_CATALOGS_NS}${location.search}`} replace />;
   }
 
   if (isLoading) {

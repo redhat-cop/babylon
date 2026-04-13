@@ -5,7 +5,7 @@ import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
-import { formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA } from './catalog-utils';
+import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
@@ -29,7 +29,7 @@ const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick,
   
   // Only handle routing params if not in selectable mode
   if (!isSelectable) {
-    if (namespace && searchParams.get('item') !== catalogItem.metadata.name) {
+    if (namespace && namespace !== ALL_CATALOGS_NS && searchParams.get('item') !== catalogItem.metadata.name) {
       searchParams.set('item', catalogItem.metadata.name);
     } else if (searchParams.get('item') !== `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`) {
       searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);

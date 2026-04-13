@@ -6,7 +6,7 @@ import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import CatalogItemIcon from './CatalogItemIcon';
-import { formatString, getDescription, getProvider, getRating, getSLA, getStage, getStatusFromCatalogItem } from './catalog-utils';
+import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getSLA, getStage, getStatusFromCatalogItem } from './catalog-utils';
 
 import './catalog-item-list-item.css';
 
@@ -22,7 +22,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const sla = getSLA(catalogItem);
 
   if (!searchParams.has('item')) {
-    if (namespace) {
+    if (namespace && namespace !== ALL_CATALOGS_NS) {
       searchParams.set('item', catalogItem.metadata.name);
     } else {
       searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
