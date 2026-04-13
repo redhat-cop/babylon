@@ -911,7 +911,7 @@ const ServicesItemComponent: React.FC<{
                     <DescriptionListTerm>Name</DescriptionListTerm>
                     <DescriptionListDescription>
                       {catalogItem?.metadata.namespace && catalogItem?.metadata.name ? (
-                        <Link to={`/catalog?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
+                        <Link to={`/catalog/${catalogItem?.metadata.namespace}?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
                           {resourceClaim.metadata.name}
                         </Link>
                       ) : (

@@ -284,7 +284,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
               <ShareLink
                 url={
                   new URL(
-                    `/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
+                    `/catalog/${catalogItem.metadata.namespace}?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`,
                     window.location.origin,
                   )
                 }
