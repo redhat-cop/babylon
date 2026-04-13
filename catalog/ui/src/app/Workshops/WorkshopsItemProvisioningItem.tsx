@@ -72,7 +72,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
           <DescriptionListDescription>
             {catalogItem ? (
               <>
-                <Link to={`/catalog?item=${catalogItem.metadata.namespace}%2F${catalogItem.metadata.name}`}>
+                <Link to={`/catalog/${catalogItem.metadata.namespace}?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}>
                   {displayName(catalogItem)}
                 </Link>
                 {isAdmin ? <OpenshiftConsoleLink resource={catalogItem} /> : null}

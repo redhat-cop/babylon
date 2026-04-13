@@ -464,7 +464,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         <BreadcrumbItem
           render={({ className }) => (
             <Link
-              to={`/catalog?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}
+              to={`/catalog/${catalogItem.metadata.namespace}?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}
               className={className}
             >
               {_displayName}

@@ -51,5 +51,6 @@
 }
 
 .catalog__sidebar-clear-filters {
-  padding-top: var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--md) 0;
+  text-align: center;
 }
