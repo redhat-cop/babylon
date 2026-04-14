@@ -105,6 +105,7 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
+import { OpsShowroomPanelTable } from '@app/Admin/OpsShowroomPanel';
 
 import './admin.css';
 import './ops.css';
@@ -193,6 +194,8 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
 ];
 
 const FETCH_LIMIT = 500;
+/** Columns in the main Ops workshop table (checkbox + expand + body) */
+const OPS_TABLE_COL_SPAN = 15;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = TWENTY_FOUR_HOURS_MS;
@@ -783,6 +786,16 @@ const Ops: React.FC = () => {
   }, [allSelected, workshopKeysOnPage]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [showroomPanelOpen, setShowroomPanelOpen] = useState<Set<string>>(new Set());
+
+  const toggleShowroomPanel = useCallback((key: string) => {
+    setShowroomPanelOpen(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const toggleGroup = useCallback((name: string) => {
     setExpandedGroups(prev => {
@@ -2116,6 +2129,20 @@ const Ops: React.FC = () => {
                                 <Label isCompact color="teal">Multi-Asset</Label>
                               )}
                             </span>
+                            {isSingle && !isMultiAsset && (
+                              <Button
+                                variant="link"
+                                isInline
+                                className="ops-showrooms-btn"
+                                aria-expanded={showroomPanelOpen.has(wsKey(firstWs))}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  toggleShowroomPanel(wsKey(firstWs));
+                                }}
+                              >
+                                Showrooms
+                              </Button>
+                            )}
                           </td>
                           <td className="ops-status-cell">
                             {grpStopped === group.items.length ? (
@@ -2211,7 +2238,26 @@ const Ops: React.FC = () => {
                         </tr>
                       );
 
-                      if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
+                      if ((isSingle && !isMultiAsset) || !expanded) {
+                        if (isSingle && !isMultiAsset) {
+                          const singleKey = wsKey(firstWs);
+                          return (
+                            <React.Fragment key={`grp-f-${group.name}`}>
+                              {headerRow}
+                              {showroomPanelOpen.has(singleKey) ? (
+                                <tr className="ops-showroom-panel-row" key={`showroom-${singleKey}`}>
+                                  <td colSpan={OPS_TABLE_COL_SPAN} className="ops-showroom-panel-cell">
+                                    <div className="ops-showroom-scroll">
+                                      <OpsShowroomPanelTable resourceClaims={resourceClaimsByWorkshop.get(singleKey) ?? []} />
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        }
+                        return headerRow;
+                      }
 
                       const childRows = group.items.map(ws => {
                         const locked = isWorkshopLocked(ws);
@@ -2226,7 +2272,8 @@ const Ops: React.FC = () => {
                         const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
 
                         return (
-                          <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
+                          <React.Fragment key={wsKey(ws)}>
+                          <tr className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
                             <td>
                               <Checkbox id={`select-ws-${ws.metadata.name}`}
                                 isChecked={selectedWs.has(wsKey(ws))}
@@ -2254,6 +2301,18 @@ const Ops: React.FC = () => {
                                   }>{ws.metadata.namespace}</Label>
                                 </span>
                               )}
+                              <Button
+                                variant="link"
+                                isInline
+                                className="ops-showrooms-btn"
+                                aria-expanded={showroomPanelOpen.has(wsKey(ws))}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  toggleShowroomPanel(wsKey(ws));
+                                }}
+                              >
+                                Showrooms
+                              </Button>
                             </td>
                             <td className="ops-status-cell">
                               {provDisabled ? (
@@ -2314,6 +2373,16 @@ const Ops: React.FC = () => {
                               )}
                             </td>
                           </tr>
+                          {showroomPanelOpen.has(wsKey(ws)) ? (
+                            <tr className="ops-showroom-panel-row" key={`showroom-${wsKey(ws)}`}>
+                              <td colSpan={OPS_TABLE_COL_SPAN} className="ops-showroom-panel-cell">
+                                <div className="ops-showroom-scroll">
+                                  <OpsShowroomPanelTable resourceClaims={wsClaims} />
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                          </React.Fragment>
                         );
                       });
 
