@@ -412,6 +412,48 @@ async def get_auth_session(request):
     finally:
         await api_client.close()
 
+@routes.get('/auth/cli-redirect')
+async def get_auth_cli_redirect(request):
+    """CLI login endpoint. Called after OAuth flow completes.
+
+    The browser has the _oauth2_proxy cookie at this point. This endpoint
+    creates a session (via the normal OAuth proxy headers) and redirects
+    to the CLI's localhost callback, POSTing the session token and proxy
+    cookie so the CLI can use both for subsequent API calls.
+    """
+    callback = request.query.get('callback', '')
+    if not callback or not callback.startswith('http://localhost'):
+        raise web.HTTPBadRequest(reason="Missing or invalid 'callback' parameter (must be http://localhost)")
+
+    user = await get_proxy_user(request)
+    user_groups = await get_user_groups(user)
+    api_client, session, token = await start_user_session(user, user_groups)
+    try:
+        user_name = user['metadata']['name']
+
+        # Collect all OAuth proxy cookies to forward to the CLI.
+        # The cookie name is dynamic (based on hostname), so we send all of them.
+        import html as html_module
+        cookie_fields = ""
+        for name, value in request.cookies.items():
+            cookie_fields += f'  <input type="hidden" name="cookie_{html_module.escape(name)}" value="{html_module.escape(value)}">\n'
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head><title>Babylon CLI Login</title></head>
+<body>
+<p>Logging in as <strong>{html_module.escape(user_name)}</strong>... you can close this tab.</p>
+<form id="f" method="POST" action="{html_module.escape(callback)}">
+  <input type="hidden" name="token" value="{html_module.escape(token)}">
+  <input type="hidden" name="user" value="{html_module.escape(user_name)}">
+{cookie_fields}</form>
+<script>document.getElementById('f').submit();</script>
+</body>
+</html>"""
+        return web.Response(text=html, content_type='text/html')
+    finally:
+        await api_client.close()
+
 @routes.get("/auth/users/{user_name}")
 async def get_auth_users_info(request):
     user_name = request.match_info.get('user_name')
