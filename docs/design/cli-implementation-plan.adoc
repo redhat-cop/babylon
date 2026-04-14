@@ -1,0 +1,413 @@
+= Babylon CLI Implementation Plan
+:toc: macro
+:toc-title: Table of Contents
+:toclevels: 3
+:icons: font
+
+toc::[]
+
+== Summary
+
+This document describes the implementation plan for the Babylon CLI — a Go-based command-line tool that provides the core features of the Babylon UI.
+The CLI communicates with the existing Catalog API and requires no backend changes.
+
+== Phase 1: Foundation
+
+=== 1.1 Go Module Initialization
+
+Create the `cli/` directory at the project root with a Go module.
+
+[source]
+----
+cli/
+├── go.mod
+├── go.sum
+└── main.go
+----
+
+**Module path**: `github.com/redhat-gpte/babylon/cli`
+
+**Dependencies**:
+
+* `github.com/spf13/cobra` — CLI framework
+* `gopkg.in/yaml.v3` — config file and YAML output
+
+NOTE: We deliberately avoid `k8s.io/apimachinery` to keep the binary small.
+Lightweight K8s metadata types are defined directly in the `types` package.
+
+==== Status: [green]#DONE#
+
+=== 1.2 Types Package
+
+Define Go structs mirroring the TypeScript types in `catalog/ui/src/app/types.ts`.
+
+[source]
+----
+cli/pkg/types/
+├── common.go          # ObjectMeta, OwnerReference, ObjectReference, ListMeta, domain constants
+├── session.go         # Session, CatalogNamespace, ServiceNamespace, UserNamespace
+├── catalog.go         # CatalogItem, CatalogItemSpec, CatalogItemParameter, CatalogItemList
+└── resourceclaim.go   # ResourceClaim, ResourceClaimSpec, ResourceClaimStatus, AnarchySubject
+----
+
+**Key design decisions**:
+
+* JSON and YAML struct tags on all fields for multi-format output
+* `map[string]interface{}` for `parameterValues` to handle mixed types
+* `json.RawMessage` for ResourceClaim resource templates (pass-through, not interpreted)
+* Domain constants (`BabylonDomain`, `DemoDomain`, `PoolboyDomain`) centralized in `common.go`
+
+==== Status: [green]#DONE#
+
+=== 1.3 Config Package
+
+Config file management for `~/.babylon/config.yaml`.
+
+[source]
+----
+cli/pkg/config/
+└── config.go          # Load, Save, DefaultPath
+----
+
+**Fields**: `server`, `namespace`, `output`, `auth.token`, `auth.expiry`, `auth.user`
+
+**File permissions**: config directory created with `0700`, config file written with `0600` (contains tokens).
+
+==== Status: [green]#DONE#
+
+=== 1.4 API Client Package
+
+HTTP client that handles authentication, request building, and error parsing.
+
+[source]
+----
+cli/pkg/api/
+├── client.go          # Client struct, doRequest, get/post/patch/delete helpers
+└── session.go         # GetSession, EnsureSession, UserNamespace, CatalogNamespaces
+----
+
+**Key behaviors**:
+
+* `Authentication: Bearer {token}` header on all requests
+* `Content-Type: application/merge-patch+json` for PATCH operations
+* Typed `APIError` with helpers: `IsNotFound()`, `IsConflict()`
+* K8s-style status message extraction from error responses
+* 30-second HTTP timeout
+
+==== Status: [green]#DONE#
+
+=== 1.5 Output Package
+
+Format dispatcher supporting table, JSON, and YAML output.
+
+[source]
+----
+cli/pkg/output/
+├── output.go          # Print() dispatcher, printJSON, printYAML
+└── table.go           # Table struct with NewTable, AddRow, Render via tabwriter
+----
+
+==== Status: [green]#DONE#
+
+== Phase 2: Catalog Commands
+
+=== 2.1 Catalog API Functions
+
+[source]
+----
+cli/pkg/api/
+└── catalog.go         # ListCatalogItems, ListAllCatalogItems, GetCatalogItem, FindCatalogItem
+----
+
+* `ListAllCatalogItems` iterates all catalog namespaces from the session and auto-paginates
+* `FindCatalogItem` searches across all catalog namespaces, returning the first match
+
+==== Status: [green]#DONE#
+
+=== 2.2 Root Command
+
+[source]
+----
+cli/cmd/
+└── root.go            # Root cobra command, PersistentPreRunE for auth setup
+----
+
+**PersistentPreRunE** flow:
+
+. Load config from `~/.babylon/config.yaml`
+. Resolve server URL: flag → env var → config
+. Resolve token: flag → env var → config
+. Create API client
+. Fetch session (`EnsureSession`)
+. Default namespace to user namespace from session
+
+==== Status: [green]#DONE#
+
+=== 2.3 Catalog List Command
+
+[source,bash]
+----
+babylon catalog list [--category <category>] [--namespace <ns>]
+----
+
+Fetches items from all catalog namespaces (or a specific one), with optional category filtering.
+Table output shows: NAME, DISPLAY NAME, CATEGORY, NAMESPACE.
+
+==== Status: [green]#DONE#
+
+=== 2.4 Catalog Describe Command
+
+[source,bash]
+----
+babylon catalog describe <name> [--namespace <ns>]
+----
+
+Shows detailed info: name, namespace, display name, category, description, provision time estimate, lifespan, runtime, keywords, rating, and parameters table.
+
+HTML tags in descriptions are stripped for CLI display.
+
+==== Status: [green]#DONE#
+
+== Phase 3: Service Read Commands
+
+=== 3.1 Service API Functions
+
+[source]
+----
+cli/pkg/api/
+└── service.go         # ListResourceClaims, ListAllResourceClaims, GetResourceClaim,
+                       # CreateResourceClaim, PatchResourceClaim, DeleteResourceClaim,
+                       # StartResourceClaim, StopResourceClaim, RetireResourceClaim,
+                       # OrderService, DisplayName
+----
+
+Also includes helper functions:
+
+* `formatTime` — RFC3339 UTC formatting
+* `generateK8sName` — sanitize + 5-char random suffix
+* `parseDuration` — handles Go durations plus `"Nd"` day format
+* `sanitizeForK8s` — lowercase, replace non-alphanumeric with hyphens
+
+==== Status: [green]#DONE#
+
+=== 3.2 Service List Command
+
+[source,bash]
+----
+babylon service list [--namespace <ns>]
+----
+
+Lists all ResourceClaims in the user's namespace (auto-paginates).
+Table output shows: NAME, DISPLAY NAME, STATE, NAMESPACE, CREATED.
+
+==== Status: [green]#DONE#
+
+=== 3.3 Service Status Command
+
+[source,bash]
+----
+babylon service status <name>
+----
+
+Shows detailed service status: name, display name, namespace, creation time, catalog item, state, error message, lifespan, resource handle, and per-resource state/health table.
+
+==== Status: [green]#DONE#
+
+== Phase 4: Service Write Commands
+
+=== 4.1 Service Order Command
+
+[source,bash]
+----
+babylon service order <catalog-item> [--param key=value ...] [--end-date <duration-or-date>] [--purpose <purpose>]
+----
+
+**Implementation** (mirrors `createServiceRequest` in `api.ts:481-618`):
+
+. Find the catalog item across all catalog namespaces
+. Parse `--end-date` (supports durations like `72h`/`3d` and dates like `2024-12-31`; defaults to 24h)
+. Build ResourceClaim body with proper labels, annotations, and parameter values
+. Set defaults from catalog item parameters, override with `--param` flags
+. POST to create; on `409 Conflict`, retry with new random name (up to 5 attempts)
+
+==== Status: [green]#DONE#
+
+=== 4.2 Service Start Command
+
+[source,bash]
+----
+babylon service start <name>
+----
+
+**Implementation** (mirrors `startAllResourcesInResourceClaim` in `api.ts:1960`):
+
+. GET the ResourceClaim to read `status.summary.runtime_default`
+. Compute `stop_timestamp = now + runtime_default` (default: 4 hours)
+. PATCH with `spec.provider.parameterValues.start_timestamp` and `stop_timestamp`
+
+==== Status: [green]#DONE#
+
+=== 4.3 Service Stop Command
+
+[source,bash]
+----
+babylon service stop <name>
+----
+
+**Implementation** (mirrors `stopAllResourcesInResourceClaim` in `api.ts:1972`):
+
+. PATCH with `spec.provider.parameterValues.stop_timestamp = now`
+
+==== Status: [green]#DONE#
+
+=== 4.4 Service Retire Command
+
+[source,bash]
+----
+babylon service retire <name>
+----
+
+**Implementation** (mirrors `setLifespanEndForResourceClaim` in `api.ts:1871`):
+
+. PATCH with `spec.lifespan.end = now`
+
+==== Status: [green]#DONE#
+
+=== 4.5 Service Delete Command
+
+[source,bash]
+----
+babylon service delete <name>
+----
+
+**Implementation**: DELETE the ResourceClaim by namespace and name.
+
+==== Status: [green]#DONE#
+
+=== 4.6 Service Delete-All Command
+
+[source,bash]
+----
+babylon service delete-all [--yes]
+----
+
+**Implementation**:
+
+. Always use `session.userNamespace.name` — `--namespace` flag is ignored
+. List all ResourceClaims in user namespace
+. Display list of services to be deleted with name, display name, and state
+. Require `--yes` flag or interactive `y/N` confirmation
+. Delete each service, reporting per-service success/failure
+. Print summary: `N/M service(s) deleted`
+
+==== Status: [green]#DONE#
+
+== Phase 5: Build and Verification
+
+=== Build
+
+[source,bash]
+----
+cd cli
+CGO_ENABLED=0 go build -o babylon .
+----
+
+Produces a statically-linked binary with no CGO dependencies.
+
+==== Status: [green]#DONE#
+
+=== Verification Checklist
+
+[cols="3,1"]
+|===
+| Test | Status
+
+| `babylon --help` shows command tree with catalog and service subcommands
+| [green]#PASS#
+
+| `babylon catalog --help` shows list and describe subcommands
+| [green]#PASS#
+
+| `babylon service --help` shows all 8 subcommands (list, status, order, start, stop, retire, delete, delete-all)
+| [green]#PASS#
+
+| `babylon service order --help` shows --param, --end-date, --purpose flags with examples
+| [green]#PASS#
+
+| `babylon service delete-all --help` shows safety messaging and --yes flag
+| [green]#PASS#
+
+| Binary compiles with `CGO_ENABLED=0` (no C dependencies)
+| [green]#PASS#
+|===
+
+== Directory Structure (Final)
+
+[source]
+----
+cli/
+├── main.go                          # Entry point
+├── go.mod
+├── go.sum
+├── cmd/
+│   ├── root.go                      # Root command, global flags, auth setup
+│   ├── catalog.go                   # catalog parent command
+│   ├── catalog_list.go              # catalog list
+│   ├── catalog_describe.go          # catalog describe
+│   ├── service.go                   # service parent command (alias: svc)
+│   ├── service_list.go              # service list
+│   ├── service_status.go            # service status
+│   ├── service_order.go             # service order
+│   ├── service_start.go             # service start
+│   ├── service_stop.go              # service stop
+│   ├── service_retire.go            # service retire
+│   ├── service_delete.go            # service delete
+│   └── service_delete_all.go        # service delete-all
+└── pkg/
+    ├── api/
+    │   ├── client.go                # HTTP client, error types
+    │   ├── session.go               # Session management
+    │   ├── catalog.go               # Catalog API functions
+    │   └── service.go               # Service API functions + helpers
+    ├── types/
+    │   ├── common.go                # K8s base types, domain constants
+    │   ├── session.go               # Session types
+    │   ├── catalog.go               # CatalogItem types
+    │   └── resourceclaim.go         # ResourceClaim, AnarchySubject types
+    ├── config/
+    │   └── config.go                # Config file management
+    └── output/
+        ├── output.go                # Format dispatcher
+        └── table.go                 # Table renderer
+----
+
+== Future Work
+
+The following features are out of scope for the initial implementation but are natural extensions:
+
+* **Shell completions** — Cobra provides built-in `completion` command for bash/zsh/fish/powershell
+* **Workshop commands** — `babylon workshop list/create/delete` for multi-user workshops
+* **Admin commands** — `babylon admin` for incident management, user lookup, system status
+* **Watch mode** — `babylon service status <name> --watch` for polling status changes
+* **Interactive order** — prompt for required parameters when `--param` is not provided
+* **Token caching with auto-refresh** — persist token with expiry in config, auto-refresh on use
+* **Makefile** — build targets, cross-compilation, release packaging
+
+== Source References
+
+[cols="2,3"]
+|===
+| File | Relevance
+
+| `catalog/ui/src/app/api.ts`
+| All API call patterns and request body construction (~2100 lines)
+
+| `catalog/ui/src/app/types.ts`
+| TypeScript type definitions translated to Go structs (~968 lines)
+
+| `catalog/ui/src/app/util.ts`
+| Domain constants, display name logic, canStart/canStop checks
+
+| `catalog/api/app.py`
+| Server-side auth flow, route definitions, proxy behavior (~1394 lines)
+|===

@@ -1,0 +1,401 @@
+= Babylon CLI Design
+:toc: macro
+:toc-title: Table of Contents
+:toclevels: 3
+:icons: font
+
+toc::[]
+
+== Overview
+
+The Babylon CLI (`babylon`) is a command-line interface that provides the core features of the Babylon UI for managing demo and lab services.
+It is built with Go and the https://cobra.dev[Cobra] framework, and communicates with the existing Catalog API — the same backend the UI uses.
+
+=== Goals
+
+* Provide CLI equivalents for the most common UI operations
+* Reuse the existing Catalog API — no new backend endpoints required
+* Keep the binary lightweight with minimal dependencies
+* Prioritize safety for destructive operations
+
+=== Non-Goals
+
+* Replacing the full UI experience (workshops, multi-user, admin features)
+* Direct Kubernetes API access — all calls go through the Catalog API proxy
+* Interactive parameter forms (parameters are passed as flags)
+
+== Architecture
+
+[source]
+----
+┌──────────────┐         ┌──────────────────┐         ┌──────────────┐
+│              │  HTTPS   │                  │  K8s    │              │
+│  babylon CLI ├─────────►│   Catalog API    ├────────►│  Kubernetes  │
+│              │  REST    │  (Python/aiohttp)│  API    │  API Server  │
+└──────────────┘         └──────────────────┘         └──────────────┘
+                                  │
+                                  │ OAuth / X-Forwarded-User
+                                  ▼
+                          ┌──────────────┐
+                          │  OAuth Proxy │
+                          └──────────────┘
+----
+
+The CLI is a standalone Go binary that talks exclusively to the Catalog API.
+It does not import `client-go` or talk to the Kubernetes API directly.
+
+== Command Structure
+
+[source]
+----
+babylon
+├── catalog
+│   ├── list          # List available catalog items
+│   └── describe      # Show details of a catalog item
+└── service (alias: svc)
+    ├── list          # List your services
+    ├── status        # Show service status
+    ├── order         # Order a new service from the catalog
+    ├── start         # Start a stopped service
+    ├── stop          # Stop a running service
+    ├── retire        # Retire a service
+    ├── delete        # Delete a service
+    └── delete-all    # Delete all services in your namespace
+----
+
+=== Global Flags
+
+[cols="1,1,2,1"]
+|===
+| Flag | Env Var | Description | Default
+
+| `--server`
+| `BABYLON_SERVER`
+| Catalog API base URL
+| (from config)
+
+| `--namespace`, `-n`
+| `BABYLON_NAMESPACE`
+| Target namespace
+| User namespace from session
+
+| `--output`, `-o`
+| —
+| Output format: `table`, `json`, `yaml`
+| `table`
+
+| `--token`
+| `BABYLON_TOKEN`
+| Authentication token
+| (from config/session)
+
+| `--config`
+| —
+| Config file path
+| `~/.babylon/config.yaml`
+|===
+
+== API Endpoints
+
+The CLI calls the same REST endpoints as the UI.
+All Kubernetes-style endpoints follow the pattern:
+
+[source]
+----
+/apis/{group}/{version}/namespaces/{namespace}/{plural}[/{name}]
+----
+
+=== Endpoint Map
+
+[cols="2,1,3"]
+|===
+| Command | Method | Endpoint
+
+| `catalog list`
+| GET
+| `/apis/babylon.gpte.redhat.com/v1/namespaces/{ns}/catalogitems`
+
+| `catalog describe`
+| GET
+| `/apis/babylon.gpte.redhat.com/v1/namespaces/{ns}/catalogitems/{name}`
+
+| `service list`
+| GET
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims`
+
+| `service status`
+| GET
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
+
+| `service order`
+| POST
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims`
+
+| `service start`
+| PATCH
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
+
+| `service stop`
+| PATCH
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
+
+| `service retire`
+| PATCH
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
+
+| `service delete`
+| DELETE
+| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
+
+| `service delete-all`
+| list + DELETE
+| List then delete each ResourceClaim in user namespace
+|===
+
+== Authentication
+
+=== Flow
+
+. The CLI sends `GET /auth/session` to the Catalog API.
+  The Catalog API sits behind an OAuth proxy that identifies the user via `X-Forwarded-User` / `X-Forwarded-Email` headers.
+. The API returns a `Session` object containing a short-lived `token`, the user's identity, groups, roles, and available namespaces.
+. The CLI caches the session token in `~/.babylon/config.yaml`.
+. All subsequent API calls include the `Authentication: Bearer {token}` header.
+. On a `401` response, the CLI automatically refreshes the session.
+
+=== Direct Token Access
+
+For development or automation, users can bypass the OAuth flow:
+
+[source,bash]
+----
+# Via flag
+babylon service list --server https://babylon.example.com --token <openshift-token>
+
+# Via environment variable
+export BABYLON_SERVER=https://babylon.example.com
+export BABYLON_TOKEN=<openshift-token>
+babylon service list
+----
+
+=== Session Object
+
+[source,json]
+----
+{
+  "token": "abc123...",
+  "user": "jdoe@redhat.com",
+  "admin": false,
+  "groups": ["rhpds-users"],
+  "roles": ["user"],
+  "lifetime": 600,
+  "catalogNamespaces": [
+    {"name": "babylon-catalog-prod", "displayName": "Production"}
+  ],
+  "serviceNamespaces": [
+    {"name": "user-jdoe-redhat-com", "displayName": "jdoe"}
+  ],
+  "userNamespace": {
+    "name": "user-jdoe-redhat-com",
+    "displayName": "jdoe"
+  }
+}
+----
+
+== Domain Model
+
+=== Key Custom Resources
+
+[cols="2,2,3"]
+|===
+| Resource | API Group | Purpose
+
+| `CatalogItem`
+| `babylon.gpte.redhat.com/v1`
+| Service definition in the catalog
+
+| `ResourceClaim`
+| `poolboy.gpte.redhat.com/v1`
+| User's provisioned service instance
+
+| `Workshop`
+| `babylon.gpte.redhat.com/v1`
+| Multi-user workshop environment
+
+| `ResourcePool`
+| `poolboy.gpte.redhat.com/v1`
+| Pool of pre-provisioned resources
+
+| `AnarchySubject`
+| `anarchy.gpte.redhat.com/v1`
+| Automation state (provisioning, runtime)
+|===
+
+=== Domain Constants
+
+[source]
+----
+babylon.gpte.redhat.com  — CatalogItem labels/annotations
+demo.redhat.com          — requester, salesforce, scheduling annotations
+poolboy.gpte.redhat.com  — ResourceClaim, ResourcePool
+----
+
+=== Service Lifecycle States
+
+[source]
+----
+new → requesting → provisioning → started ⇄ stopped → retired/deleted
+
+Failure states: provision-failed, provision-pending, start-failed, stop-failed
+Transitional:   starting, stopping, start-pending, stop-pending
+----
+
+== Command Details
+
+=== `catalog list`
+
+Lists all available catalog items across all catalog namespaces from the session.
+
+[source,bash]
+----
+babylon catalog list
+babylon catalog list --category "OpenShift"
+babylon catalog list -o json
+----
+
+Auto-paginates through all results. Supports `--category` filtering.
+
+=== `catalog describe`
+
+Shows details of a single catalog item including parameters, lifespan, and runtime defaults.
+
+[source,bash]
+----
+babylon catalog describe my-catalog-item
+babylon catalog describe my-catalog-item -n babylon-catalog-prod
+----
+
+If `--namespace` is not specified, searches across all catalog namespaces.
+
+=== `service order`
+
+Orders a new service from a catalog item.
+
+[source,bash]
+----
+babylon service order my-catalog-item
+babylon service order my-catalog-item --end-date 3d --purpose Development
+babylon service order my-catalog-item --param region=us-east-1 --param size=large
+----
+
+Generates a Kubernetes-compliant name: sanitized catalog item name + 5-char random suffix (max 63 chars).
+On a `409 Conflict`, retries with a new name (up to 5 attempts).
+
+==== ResourceClaim Construction
+
+The CLI builds the ResourceClaim body following the same pattern as the UI (`api.ts:481-618`):
+
+* **metadata.labels**: `catalogItemName`, `catalogItemNamespace`, `asset-uuid`
+* **metadata.annotations**: `catalogItemDisplayName`, `requester`, `orderedBy`, `category`
+* **spec.provider.name**: catalog item name
+* **spec.provider.parameterValues**: defaults from catalog item parameters, overridden by `--param` flags
+* **spec.lifespan.end**: from `--end-date` (defaults to 24h)
+
+=== `service start`
+
+Starts a stopped service by setting `start_timestamp` and `stop_timestamp` in the provider parameter values.
+
+The stop timestamp is computed as: `now + runtime_default` (from `status.summary.runtime_default`, defaulting to 4 hours).
+This matches the UI behavior in `startAllResourcesInResourceClaim` (`api.ts:1960`).
+
+=== `service stop`
+
+Stops a running service by setting `stop_timestamp` to now.
+Matches `stopAllResourcesInResourceClaim` (`api.ts:1972`).
+
+=== `service retire`
+
+Retires a service by setting `spec.lifespan.end` to now.
+Matches `setLifespanEndForResourceClaim` (`api.ts:1871`).
+
+=== `service delete-all`
+
+Deletes all services in the user's own namespace.
+
+IMPORTANT: This command always operates on `session.userNamespace.name` regardless of the `--namespace` flag.
+This is a safety measure to prevent accidental deletion in shared or admin namespaces.
+
+Requires `--yes` flag or interactive confirmation.
+
+== Safety and Error Handling
+
+=== Error Mapping
+
+[cols="1,3"]
+|===
+| HTTP Status | User Message
+
+| 401
+| "Session expired" — auto-refresh attempted
+
+| 403
+| "Permission denied. You do not have access to this resource."
+
+| 404
+| "Service '<name>' not found in namespace '<ns>'."
+
+| 409
+| Retry with new name (order only)
+
+| 5xx
+| "Server error: <message>"
+
+| Connection error
+| "Cannot reach Babylon API at <url>"
+|===
+
+=== delete-all Safeguards
+
+. Hardcoded to user namespace only — `--namespace` flag is ignored
+. Lists all services before deletion and shows what will be deleted
+. Requires explicit `--yes` flag or interactive `y/N` confirmation
+. Reports per-service success/failure
+
+== Configuration
+
+=== Config File
+
+Location: `~/.babylon/config.yaml`
+
+[source,yaml]
+----
+server: https://babylon-catalog.apps.example.com
+namespace: ""          # override default service namespace
+output: table          # default output format
+auth:
+  token: "abc123..."   # cached session token (managed by CLI)
+  expiry: 1712345678
+  user: "jdoe@redhat.com"
+----
+
+=== Precedence Order
+
+[source]
+----
+Command-line flag  >  Environment variable  >  Config file  >  Session default
+----
+
+== Output Formats
+
+All commands support three output formats via `--output` / `-o`:
+
+* **table** (default) — human-readable tabular output via `tabwriter`
+* **json** — full JSON response, useful for scripting
+* **yaml** — full YAML response
+
+Example:
+
+[source,bash]
+----
+babylon service list -o json | jq '.[].metadata.name'
+----
