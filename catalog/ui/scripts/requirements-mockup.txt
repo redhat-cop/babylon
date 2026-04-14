@@ -1,2 +1,0 @@
-# Optional: only for regenerating docs/images/ops-showroom-panel-mockup.png
-pillow>=10.0.0
