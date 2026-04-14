@@ -144,21 +144,31 @@ export const OpsShowroomPanelTable: React.FC<{ resourceClaims: ResourceClaim[] }
     });
   }, [rows]);
 
-  const recheckRow = useCallback(
-    async (r: ShowroomUserRow) => {
-      const k = rowKey(r);
-      setProbes(prev => ({
-        ...prev,
-        [k]: { hz: 'loading', rz: 'loading' },
-      }));
-      const [h, z] = await Promise.all([probeUrl(r.healthzUrl), probeUrl(r.readyzUrl)]);
-      setProbes(prev => ({
-        ...prev,
-        [k]: { hz: mapProbeResult(h), rz: mapProbeResult(z) },
-      }));
-    },
-    [],
-  );
+  const recheckRowHealthz = useCallback(async (r: ShowroomUserRow) => {
+    const k = rowKey(r);
+    setProbes(prev => ({
+      ...prev,
+      [k]: { ...(prev[k] ?? { hz: 'idle', rz: 'idle' }), hz: 'loading' },
+    }));
+    const h = await probeUrl(r.healthzUrl);
+    setProbes(prev => ({
+      ...prev,
+      [k]: { ...(prev[k] ?? { hz: 'idle', rz: 'idle' }), hz: mapProbeResult(h) },
+    }));
+  }, []);
+
+  const recheckRowReadyz = useCallback(async (r: ShowroomUserRow) => {
+    const k = rowKey(r);
+    setProbes(prev => ({
+      ...prev,
+      [k]: { ...(prev[k] ?? { hz: 'idle', rz: 'idle' }), rz: 'loading' },
+    }));
+    const z = await probeUrl(r.readyzUrl);
+    setProbes(prev => ({
+      ...prev,
+      [k]: { ...(prev[k] ?? { hz: 'idle', rz: 'idle' }), rz: mapProbeResult(z) },
+    }));
+  }, []);
 
   useEffect(() => {
     if (rows.length === 0) {
@@ -201,7 +211,7 @@ export const OpsShowroomPanelTable: React.FC<{ resourceClaims: ResourceClaim[] }
           <th>Showroom</th>
           <th>/healthz</th>
           <th>/readyz</th>
-          <th></th>
+          <th className="ops-showroom-actions-col">Recheck</th>
         </tr>
       </thead>
       <tbody>
@@ -224,9 +234,28 @@ export const OpsShowroomPanelTable: React.FC<{ resourceClaims: ResourceClaim[] }
               <td className="ops-showroom-probe-cell">
                 <StatusDot state={p.rz} label="/readyz" />
               </td>
-              <td>
-                <Button variant="link" isInline onClick={() => recheckRow(r)} icon={<SyncAltIcon />} iconPosition="right">
-                  Recheck
+              <td className="ops-showroom-row-actions">
+                <Button
+                  variant="link"
+                  isInline
+                  size="sm"
+                  icon={<SyncAltIcon />}
+                  iconPosition="right"
+                  onClick={() => recheckRowHealthz(r)}
+                  aria-label={`Recheck healthz for ${r.userName}`}
+                >
+                  healthz
+                </Button>
+                <Button
+                  variant="link"
+                  isInline
+                  size="sm"
+                  icon={<SyncAltIcon />}
+                  iconPosition="right"
+                  onClick={() => recheckRowReadyz(r)}
+                  aria-label={`Recheck readyz for ${r.userName}`}
+                >
+                  readyz
                 </Button>
               </td>
             </tr>

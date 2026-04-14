@@ -1091,3 +1091,15 @@ a.ops-ws-meta:hover {
 .ops-showroom-empty code {
   font-size: 0.85em;
 }
+
+.ops-showroom-actions-col {
+  white-space: nowrap;
+}
+
+.ops-showroom-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  vertical-align: middle;
+}
