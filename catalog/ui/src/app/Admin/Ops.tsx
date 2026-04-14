@@ -69,6 +69,8 @@ import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
+import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
+import BundleIcon from '@patternfly/react-icons/dist/js/icons/bundle-icon';
 
 import {
   apiPaths,
@@ -343,10 +345,25 @@ function wsDetailPath(ws: Workshop): string {
   return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
+/** Public catalog URL for Demolition multi-workshop / load-style runs (see rhpds/demolition). */
+export function demolitionMultiWorkshopCatalogUrl(origin: string, catalogUser: string, multiWorkshopName: string): string {
+  const base = origin.replace(/\/$/, '');
+  return `${base}/multi-workshop/${encodeURIComponent(catalogUser)}/${encodeURIComponent(multiWorkshopName)}`;
+}
+
+/** Shell-friendly CLI line for local Demolition runs. */
+export function formatDemolitionSimulateCli(targetUrl: string, password?: string): string {
+  const u = targetUrl.replace(/'/g, `'\\''`);
+  const line = `./demolition.py simulate '${u}'`;
+  if (!password) return line;
+  const p = password.replace(/'/g, `'\\''`);
+  return `${line} --password '${p}'`;
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, authUser } = useSession().getSession();
 
   // ---------- Alerts ----------
 
@@ -357,6 +374,18 @@ const Ops: React.FC = () => {
     setAlerts(prev => [{ key, variant, title, description }, ...prev]);
     setTimeout(() => setAlerts(prev => prev.filter(a => a.key !== key)), 8000);
   }, []);
+
+  const copyDemolitionCommand = useCallback(
+    async (command: string, successTitle: string) => {
+      try {
+        await navigator.clipboard.writeText(command);
+        addAlert(AlertVariant.success, successTitle);
+      } catch {
+        addAlert(AlertVariant.danger, 'Could not copy to clipboard');
+      }
+    },
+    [addAlert],
+  );
 
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
@@ -2010,6 +2039,7 @@ const Ops: React.FC = () => {
                         </Button>
                       </th>
                       <th>Workshop URL</th>
+                      <th>Demolition</th>
                       <th className="ops-col-white-glove">White glove</th>
                     </tr>
                   </thead>
@@ -2197,6 +2227,88 @@ const Ops: React.FC = () => {
                               </a>
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
+                          <td className="ops-demolition-cell" onClick={e => e.stopPropagation()}>
+                            {isMultiAsset && mw ? (
+                              <Split hasGutter>
+                                <SplitItem>
+                                  <Tooltip content="Copy ./demolition.py simulate … for this workshop portal GUID (student URL). Expand rows for per-asset GUIDs when multiple assets exist.">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      icon={<UserIcon />}
+                                      isDisabled={grpUrls.length === 0}
+                                      onClick={() => {
+                                        const first = grpUrls[0];
+                                        if (first) {
+                                          void copyDemolitionCommand(
+                                            formatDemolitionSimulateCli(first.url, firstWs.spec?.accessPassword),
+                                            'Demolition command copied (workshop GUID)',
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      GUID
+                                    </Button>
+                                  </Tooltip>
+                                </SplitItem>
+                                <SplitItem>
+                                  <Tooltip content={
+                                    authUser
+                                      ? 'Copy ./demolition.py simulate … for the full multi-asset workshop (catalog multi-workshop URL). Typically requires kubeconfig or Demolition Coordinator.'
+                                      : 'Signed-in user not available — cannot build multi-workshop URL.'
+                                  }>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      icon={<BundleIcon />}
+                                      isDisabled={!authUser}
+                                      onClick={() => {
+                                        if (authUser) {
+                                          void copyDemolitionCommand(
+                                            formatDemolitionSimulateCli(
+                                              demolitionMultiWorkshopCatalogUrl(window.location.origin, authUser, mw.metadata.name),
+                                            ),
+                                            'Demolition command copied (whole multi-asset workshop)',
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      All
+                                    </Button>
+                                  </Tooltip>
+                                </SplitItem>
+                              </Split>
+                            ) : grpUrls.length > 0 ? (
+                              <Split hasGutter>
+                                <SplitItem>
+                                  <Tooltip content="Copy ./demolition.py simulate … for this workshop portal (GUID).">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      icon={<UserIcon />}
+                                      onClick={() =>
+                                        copyDemolitionCommand(
+                                          formatDemolitionSimulateCli(grpUrls[0].url, firstWs.spec?.accessPassword),
+                                          'Demolition command copied (workshop GUID)',
+                                        )
+                                      }
+                                    >
+                                      GUID
+                                    </Button>
+                                  </Tooltip>
+                                </SplitItem>
+                                <SplitItem>
+                                  <Tooltip content="Single-workshop row — same catalog target as GUID.">
+                                    <Button size="sm" variant="secondary" icon={<BundleIcon />} isDisabled>
+                                      All
+                                    </Button>
+                                  </Tooltip>
+                                </SplitItem>
+                              </Split>
+                            ) : (
+                              <span className="ops-muted">&mdash;</span>
+                            )}
+                          </td>
                           <td className="ops-wg-cell">
                             {grpWhiteGlove === 0 ? (
                               <span className="ops-muted">&mdash;</span>
@@ -2233,7 +2345,11 @@ const Ops: React.FC = () => {
                                 onChange={() => setSelectedWs(prev => {
                                   const next = new Set(prev);
                                   const k = wsKey(ws);
-                                  next.has(k) ? next.delete(k) : next.add(k);
+                                  if (next.has(k)) {
+                                    next.delete(k);
+                                  } else {
+                                    next.add(k);
+                                  }
                                   return next;
                                 })}
                                 aria-label={`Select ${ws.metadata.name}`} />
@@ -2305,6 +2421,57 @@ const Ops: React.FC = () => {
                                   {workshopId}
                                 </a>
                               ) : <span className="ops-muted">&mdash;</span>}
+                            </td>
+                            <td className="ops-demolition-cell" onClick={e => e.stopPropagation()}>
+                              {workshopUrl ? (
+                                <Split hasGutter>
+                                  <SplitItem>
+                                    <Tooltip content="Copy ./demolition.py simulate … for this asset’s workshop portal (GUID).">
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        icon={<UserIcon />}
+                                        onClick={() =>
+                                          copyDemolitionCommand(
+                                            formatDemolitionSimulateCli(workshopUrl, password),
+                                            'Demolition command copied (workshop GUID)',
+                                          )
+                                        }
+                                      >
+                                        GUID
+                                      </Button>
+                                    </Tooltip>
+                                  </SplitItem>
+                                  <SplitItem>
+                                    <Tooltip content={
+                                      isMultiAsset && mw && authUser
+                                        ? 'Copy ./demolition.py simulate … for the full multi-asset workshop (all assets).'
+                                        : 'Whole-workshop URL applies to multi-asset events only.'
+                                    }>
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        icon={<BundleIcon />}
+                                        isDisabled={!(isMultiAsset && mw && authUser)}
+                                        onClick={() => {
+                                          if (isMultiAsset && mw && authUser) {
+                                            void copyDemolitionCommand(
+                                              formatDemolitionSimulateCli(
+                                                demolitionMultiWorkshopCatalogUrl(window.location.origin, authUser, mw.metadata.name),
+                                              ),
+                                              'Demolition command copied (whole multi-asset workshop)',
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        All
+                                      </Button>
+                                    </Tooltip>
+                                  </SplitItem>
+                                </Split>
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
                             </td>
                             <td className="ops-wg-cell">
                               {getWhiteGloved(ws) ? (

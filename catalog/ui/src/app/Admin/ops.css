@@ -148,6 +148,12 @@
   width: 1%;
 }
 
+.ops-demolition-cell {
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 1%;
+}
+
 .ops-table-pagination {
   margin-bottom: 8px;
 }

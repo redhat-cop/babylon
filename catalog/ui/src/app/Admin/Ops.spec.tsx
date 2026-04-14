@@ -3,7 +3,14 @@ import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import { within } from '@testing-library/react';
-import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs, matchesOpsScheduleFilter } from './Ops';
+import Ops, {
+  getWorkshopScheduleStartMs,
+  getWorkshopStopMs,
+  getWorkshopDestroyMs,
+  matchesOpsScheduleFilter,
+  demolitionMultiWorkshopCatalogUrl,
+  formatDemolitionSimulateCli,
+} from './Ops';
 import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -241,6 +248,23 @@ jest.mock('@app/api', () => ({
   patchWorkshop: jest.fn(() => Promise.resolve()),
   patchWorkshopProvision: jest.fn(() => Promise.resolve()),
 }));
+
+describe('Demolition URL helpers', () => {
+  test('formatDemolitionSimulateCli builds simulate command with optional password', () => {
+    expect(formatDemolitionSimulateCli('https://catalog.example.com/workshop/abc12')).toBe(
+      "./demolition.py simulate 'https://catalog.example.com/workshop/abc12'",
+    );
+    expect(formatDemolitionSimulateCli('https://x/y', "p'ass")).toBe(
+      "./demolition.py simulate 'https://x/y' --password 'p'\\''ass'",
+    );
+  });
+
+  test('demolitionMultiWorkshopCatalogUrl encodes path segments', () => {
+    expect(demolitionMultiWorkshopCatalogUrl('https://catalog.example.com', 'user@host', 'mw-name')).toBe(
+      'https://catalog.example.com/multi-workshop/user%40host/mw-name',
+    );
+  });
+});
 
 describe('Ops Component', () => {
   beforeEach(() => {
