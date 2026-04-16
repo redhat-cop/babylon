@@ -12,9 +12,9 @@ type WorkshopSpec struct {
 	DisplayName       string              `json:"displayName,omitempty" yaml:"displayName,omitempty"`
 	Description       string              `json:"description,omitempty" yaml:"description,omitempty"`
 	AccessPassword    string              `json:"accessPassword,omitempty" yaml:"accessPassword,omitempty"`
-	MultiuserServices bool                `json:"multiuserServices,omitempty" yaml:"multiuserServices,omitempty"`
-	OpenRegistration  bool                `json:"openRegistration,omitempty" yaml:"openRegistration,omitempty"`
-	ProvisionDisabled bool                `json:"provisionDisabled,omitempty" yaml:"provisionDisabled,omitempty"`
+	MultiuserServices bool                `json:"multiuserServices" yaml:"multiuserServices"`
+	OpenRegistration  bool                `json:"openRegistration" yaml:"openRegistration"`
+	ProvisionDisabled bool                `json:"provisionDisabled" yaml:"provisionDisabled"`
 	Lifespan          *WorkshopLifespan   `json:"lifespan,omitempty" yaml:"lifespan,omitempty"`
 	ActionSchedule    *WorkshopSchedule   `json:"actionSchedule,omitempty" yaml:"actionSchedule,omitempty"`
 	LabUserInterface  *LabUserInterface   `json:"labUserInterface,omitempty" yaml:"labUserInterface,omitempty"`
