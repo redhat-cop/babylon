@@ -4,3 +4,4 @@ notifier/values.yaml
 *.swp
 __pycache__
 .vscode
+.worktrees
