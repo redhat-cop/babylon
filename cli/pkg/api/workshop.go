@@ -250,7 +250,8 @@ func (c *Client) CreateWorkshop(
 		provision,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("workshop created but provision failed: %w", err)
+		return nil, fmt.Errorf("workshop %q created but provision failed (clean up with 'babylon workshop delete %s'): %w",
+			createdWorkshop.Metadata.Name, createdWorkshop.Metadata.Name, err)
 	}
 
 	return createdWorkshop, nil
