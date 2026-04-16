@@ -270,6 +270,38 @@ func WorkshopDisplayName(ws *types.Workshop) string {
 	return ws.Metadata.Name
 }
 
+// ListWorkshopServices lists ResourceClaims associated with a workshop via label selector.
+func (c *Client) ListWorkshopServices(namespace, workshopName string) ([]types.ResourceClaim, error) {
+	var allItems []types.ResourceClaim
+	continueToken := ""
+	for {
+		params := url.Values{}
+		params.Set("labelSelector", types.BabylonDomain+"/workshop="+workshopName)
+		params.Set("limit", "100")
+		if continueToken != "" {
+			params.Set("continue", continueToken)
+		}
+
+		path := fmt.Sprintf("/apis/%s/v1/namespaces/%s/resourceclaims?%s",
+			types.PoolboyDomain, namespace, params.Encode())
+		data, err := c.get(path)
+		if err != nil {
+			return nil, err
+		}
+
+		var list types.ResourceClaimList
+		if err := json.Unmarshal(data, &list); err != nil {
+			return nil, fmt.Errorf("parsing workshop services: %w", err)
+		}
+		allItems = append(allItems, list.Items...)
+		if list.Metadata.Continue == "" {
+			break
+		}
+		continueToken = list.Metadata.Continue
+	}
+	return allItems, nil
+}
+
 // GeneratePassword generates a random password of the given length.
 func GeneratePassword(n int) string {
 	const chars = "abcdefghjkmnpqrstuvwxyz23456789"
