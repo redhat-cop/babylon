@@ -99,19 +99,16 @@ spec:
                 description: >-
                   Flag to indicate that services for this workshop are multi-user.
                 type: boolean
-                default: false
               openRegistration:
                 description: >-
                   If set to true then users will not need to be pre-registered.
                 type: boolean
-                default: false
               provisionDisabled:
                 description: >-
                   If set then WorkshopProvisions are disabled for this Workshop.
                   This is appropriate to set when a multi-user workshop environment is provisioned first and then a Workshop is created later to provide access only.
                   In this case the Workshop should also be set to be owned by the ResourceClaim for the service.
                 type: boolean
-                default: false
               userAssignments:
                 description: >-
                   Users for multi-user workshop environments.
