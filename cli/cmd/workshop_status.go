@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"time"
 
@@ -13,33 +14,33 @@ import (
 	"github.com/redhat-gpte/babylon/cli/pkg/types"
 )
 
+var workshopStatusWatch bool
+var workshopStatusInterval int
+
 var workshopStatusCmd = &cobra.Command{
 	Use:   "status <workshop-name>",
 	Short: "Show workshop provisioning status",
-	Long: `Show detailed provisioning status for a workshop, including per-seat
-state and timing information useful for load testing.
+	Long: `Show detailed provisioning status for a workshop, including per-seat state.
+
+Use --watch to poll until all seats are ready and measure total provisioning time.
 
 Examples:
   babylon workshop status my-workshop-jntrj
+  babylon workshop status my-workshop-jntrj --watch
+  babylon workshop status my-workshop-jntrj --watch --interval 5
   babylon workshop status my-workshop-jntrj -o json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
-		ws, err := apiClient.GetWorkshop(namespace, name)
+		if workshopStatusWatch {
+			return watchWorkshopStatus(name)
+		}
+
+		ws, services, err := fetchWorkshopStatus(name)
 		if err != nil {
 			return err
 		}
-
-		services, err := apiClient.ListWorkshopServices(namespace, name)
-		if err != nil {
-			return err
-		}
-
-		// Sort by creation time
-		sort.Slice(services, func(i, j int) bool {
-			return services[i].Metadata.CreationTimestamp < services[j].Metadata.CreationTimestamp
-		})
 
 		data := workshopStatusData{Workshop: ws, Services: services}
 		return output.Print(getOutputFormat(), data, func(w io.Writer) {
@@ -51,6 +52,62 @@ Examples:
 type workshopStatusData struct {
 	Workshop *types.Workshop       `json:"workshop" yaml:"workshop"`
 	Services []types.ResourceClaim `json:"services" yaml:"services"`
+}
+
+func fetchWorkshopStatus(name string) (*types.Workshop, []types.ResourceClaim, error) {
+	ws, err := apiClient.GetWorkshop(namespace, name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	services, err := apiClient.ListWorkshopServices(namespace, name)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].Metadata.CreationTimestamp < services[j].Metadata.CreationTimestamp
+	})
+
+	return ws, services, nil
+}
+
+func watchWorkshopStatus(name string) error {
+	startTime := time.Now()
+	interval := time.Duration(workshopStatusInterval) * time.Second
+
+	for {
+		ws, services, err := fetchWorkshopStatus(name)
+		if err != nil {
+			return err
+		}
+
+		readyCount, total := countReady(services)
+		elapsed := time.Since(startTime).Truncate(time.Second)
+
+		// Clear line and print progress
+		fmt.Fprintf(os.Stderr, "\r\033[KProvisioning:  %d/%d ready  (%s elapsed)", readyCount, total, elapsed)
+
+		if total > 0 && readyCount == total {
+			fmt.Fprintf(os.Stderr, "\n")
+			// Print full status to stdout
+			printWorkshopStatus(os.Stdout, ws, services)
+			fmt.Fprintf(os.Stdout, "\nAll %d seats ready in %s\n", total, elapsed)
+			return nil
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+func countReady(services []types.ResourceClaim) (int, int) {
+	ready := 0
+	for _, svc := range services {
+		if seatState(&svc) == "started" {
+			ready++
+		}
+	}
+	return ready, len(services)
 }
 
 func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.ResourceClaim) {
@@ -65,17 +122,9 @@ func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.Resou
 		fmt.Fprintf(w, "Password:    %s\n", ws.Spec.AccessPassword)
 	}
 
-	// Count ready seats
-	readyCount := 0
-	for _, svc := range services {
-		if seatState(&svc) == "started" {
-			readyCount++
-		}
-	}
-	total := len(services)
+	readyCount, total := countReady(services)
 	fmt.Fprintf(w, "\nProvisioning:  %d/%d ready\n", readyCount, total)
 
-	// Per-seat table
 	if total > 0 {
 		t := output.NewTable("SEAT", "STATE", "AGE")
 		for i, svc := range services {
@@ -86,39 +135,6 @@ func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.Resou
 			)
 		}
 		t.Render(w)
-	}
-
-	// Timing summary
-	requestedAt, _ := time.Parse(time.RFC3339, ws.Metadata.CreationTimestamp)
-	if requestedAt.IsZero() || readyCount == 0 {
-		return
-	}
-
-	var firstReady, lastReady time.Time
-	for _, svc := range services {
-		if seatState(&svc) != "started" {
-			continue
-		}
-		readyAt := seatReadyTime(&svc)
-		if readyAt.IsZero() {
-			continue
-		}
-		if firstReady.IsZero() || readyAt.Before(firstReady) {
-			firstReady = readyAt
-		}
-		if lastReady.IsZero() || readyAt.After(lastReady) {
-			lastReady = readyAt
-		}
-	}
-
-	fmt.Fprintln(w)
-	if !firstReady.IsZero() {
-		fmt.Fprintf(w, "First ready:   %s  (%s after request)\n",
-			firstReady.Format(time.RFC3339), firstReady.Sub(requestedAt).Truncate(time.Second))
-	}
-	if !lastReady.IsZero() && readyCount == total {
-		fmt.Fprintf(w, "Last ready:    %s  (%s after request)\n",
-			lastReady.Format(time.RFC3339), lastReady.Sub(requestedAt).Truncate(time.Second))
 	}
 }
 
@@ -136,15 +152,8 @@ func seatState(svc *types.ResourceClaim) string {
 	return "pending"
 }
 
-func seatReadyTime(svc *types.ResourceClaim) time.Time {
-	if svc.Status != nil && svc.Status.Lifespan != nil && svc.Status.Lifespan.Start != "" {
-		if t, err := time.Parse(time.RFC3339, svc.Status.Lifespan.Start); err == nil {
-			return t
-		}
-	}
-	return time.Time{}
-}
-
 func init() {
 	workshopCmd.AddCommand(workshopStatusCmd)
+	workshopStatusCmd.Flags().BoolVarP(&workshopStatusWatch, "watch", "w", false, "poll until all seats are ready")
+	workshopStatusCmd.Flags().IntVar(&workshopStatusInterval, "interval", 10, "polling interval in seconds (with --watch)")
 }
