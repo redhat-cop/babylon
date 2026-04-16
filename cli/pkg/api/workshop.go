@@ -302,6 +302,23 @@ func (c *Client) ListWorkshopServices(namespace, workshopName string) ([]types.R
 	return allItems, nil
 }
 
+// GetAnarchySubject fetches the full AnarchySubject directly from the K8s API.
+// The ResourceClaim status includes a trimmed AnarchySubject (no towerJobs),
+// so this call is needed to get provisioning timestamps.
+func (c *Client) GetAnarchySubject(namespace, name string) (*types.AnarchySubject, error) {
+	path := fmt.Sprintf("/apis/anarchy.gpte.redhat.com/v1/namespaces/%s/anarchysubjects/%s", namespace, name)
+	data, err := c.get(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var subject types.AnarchySubject
+	if err := json.Unmarshal(data, &subject); err != nil {
+		return nil, fmt.Errorf("parsing anarchy subject: %w", err)
+	}
+	return &subject, nil
+}
+
 // GeneratePassword generates a random password of the given length.
 func GeneratePassword(n int) string {
 	const chars = "abcdefghjkmnpqrstuvwxyz23456789"

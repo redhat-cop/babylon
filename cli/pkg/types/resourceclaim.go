@@ -94,7 +94,13 @@ type AnarchyActionSchedule struct {
 }
 
 type AnarchySubjectStatus struct {
-	SupportedActions map[string]interface{} `json:"supportedActions,omitempty" yaml:"supportedActions,omitempty"`
+	SupportedActions map[string]interface{}       `json:"supportedActions,omitempty" yaml:"supportedActions,omitempty"`
+	TowerJobs        map[string]AnarchyTowerJob   `json:"towerJobs,omitempty" yaml:"towerJobs,omitempty"`
+}
+
+type AnarchyTowerJob struct {
+	StartTimestamp    string `json:"startTimestamp,omitempty" yaml:"startTimestamp,omitempty"`
+	CompleteTimestamp string `json:"completeTimestamp,omitempty" yaml:"completeTimestamp,omitempty"`
 }
 
 type ResourceClaimList struct {

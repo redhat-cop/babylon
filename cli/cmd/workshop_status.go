@@ -42,9 +42,12 @@ Examples:
 			return err
 		}
 
+		// Fetch full AnarchySubjects for provisioning timestamps
+		provisionTimes := fetchProvisionTimes(services)
+
 		data := workshopStatusData{Workshop: ws, Services: services}
 		return output.Print(getOutputFormat(), data, func(w io.Writer) {
-			printWorkshopStatus(w, ws, services)
+			printWorkshopStatus(w, ws, services, provisionTimes)
 		})
 	},
 }
@@ -72,6 +75,34 @@ func fetchWorkshopStatus(name string) (*types.Workshop, []types.ResourceClaim, e
 	return ws, services, nil
 }
 
+// fetchProvisionTimes fetches the full AnarchySubject for each service to get
+// towerJobs.provision.completeTimestamp (not included in the ResourceClaim response).
+func fetchProvisionTimes(services []types.ResourceClaim) map[string]time.Time {
+	times := make(map[string]time.Time)
+	for _, svc := range services {
+		if svc.Status == nil {
+			continue
+		}
+		for _, r := range svc.Status.Resources {
+			if r.State == nil || r.State.Metadata.Name == "" {
+				continue
+			}
+			subject, err := apiClient.GetAnarchySubject(r.State.Metadata.Namespace, r.State.Metadata.Name)
+			if err != nil {
+				continue
+			}
+			if subject.Status != nil && subject.Status.TowerJobs != nil {
+				if job, ok := subject.Status.TowerJobs["provision"]; ok && job.CompleteTimestamp != "" {
+					if t, err := time.Parse(time.RFC3339, job.CompleteTimestamp); err == nil {
+						times[svc.Metadata.Name] = t
+					}
+				}
+			}
+		}
+	}
+	return times
+}
+
 func watchWorkshopStatus(name string) error {
 	startTime := time.Now()
 	interval := time.Duration(workshopStatusInterval) * time.Second
@@ -90,8 +121,10 @@ func watchWorkshopStatus(name string) error {
 
 		if total > 0 && readyCount == total {
 			fmt.Fprintf(os.Stderr, "\n")
-			// Print full status to stdout
-			printWorkshopStatus(os.Stdout, ws, services)
+
+			provisionTimes := fetchProvisionTimes(services)
+
+			printWorkshopStatus(os.Stdout, ws, services, provisionTimes)
 			fmt.Fprintf(os.Stdout, "\nAll %d seats ready in %s\n", total, elapsed)
 			return nil
 		}
@@ -110,7 +143,7 @@ func countReady(services []types.ResourceClaim) (int, int) {
 	return ready, len(services)
 }
 
-func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.ResourceClaim) {
+func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.ResourceClaim, provisionTimes map[string]time.Time) {
 	fmt.Fprintf(w, "Workshop:    %s\n", ws.Metadata.Name)
 	fmt.Fprintf(w, "Display:     %s\n", api.WorkshopDisplayName(ws))
 	fmt.Fprintf(w, "Namespace:   %s\n", ws.Metadata.Namespace)
@@ -126,15 +159,46 @@ func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.Resou
 	fmt.Fprintf(w, "\nProvisioning:  %d/%d ready\n", readyCount, total)
 
 	if total > 0 {
-		t := output.NewTable("SEAT", "STATE", "AGE")
+		t := output.NewTable("SEAT", "STATE", "PROVISIONED", "AGE")
 		for i, svc := range services {
+			provisioned := "-"
+			if pt, ok := provisionTimes[svc.Metadata.Name]; ok {
+				provisioned = pt.Format(time.RFC3339)
+			}
 			t.AddRow(
 				fmt.Sprintf("%d", i+1),
 				seatState(&svc),
+				provisioned,
 				formatWorkshopAge(svc.Metadata.CreationTimestamp),
 			)
 		}
 		t.Render(w)
+	}
+
+	// Timing summary
+	requestedAt, _ := time.Parse(time.RFC3339, ws.Metadata.CreationTimestamp)
+	if requestedAt.IsZero() || len(provisionTimes) == 0 {
+		return
+	}
+
+	var firstReady, lastReady time.Time
+	for _, pt := range provisionTimes {
+		if firstReady.IsZero() || pt.Before(firstReady) {
+			firstReady = pt
+		}
+		if lastReady.IsZero() || pt.After(lastReady) {
+			lastReady = pt
+		}
+	}
+
+	fmt.Fprintln(w)
+	if !firstReady.IsZero() {
+		fmt.Fprintf(w, "First ready:   %s  (%s after request)\n",
+			firstReady.Format(time.RFC3339), firstReady.Sub(requestedAt).Truncate(time.Second))
+	}
+	if !lastReady.IsZero() && len(provisionTimes) == total {
+		fmt.Fprintf(w, "Last ready:    %s  (%s after request)\n",
+			lastReady.Format(time.RFC3339), lastReady.Sub(requestedAt).Truncate(time.Second))
 	}
 }
 
