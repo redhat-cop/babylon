@@ -928,14 +928,14 @@ async def public_multiworkshop_get(request):
                 asset_url = asset.get('url', '')
                 parsed = urlparse(asset_url)
                 if parsed.hostname == 'zero.rhdp.net' and parsed.path:
-                    pool_name = parsed.path.rstrip('/').split('/')[-1]
+                    catalog_item_name = parsed.path.rstrip('/').split('/')[-1]
                     try:
                         handles_resp = await custom_objects_api.list_namespaced_custom_object(
                             group='poolboy.gpte.redhat.com',
                             version='v1',
                             namespace='poolboy',
                             plural='resourcehandles',
-                            label_selector=f"poolboy.gpte.redhat.com/resource-pool-name={pool_name}",
+                            label_selector=f"poolboy.gpte.redhat.com/resource-pool-name={catalog_item_name}",
                         )
                         available = sum(
                             1 for h in handles_resp.get('items', [])
@@ -946,7 +946,25 @@ async def public_multiworkshop_get(request):
                         asset['availableSeats'] = available
                     except Exception as e:
                         logging.error(f"Error getting available seats: {e}")
-                        pass
+                    
+                    catalog_item_namespace = "babylon-catalog-prod"
+                    try:
+                        catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                            group='babylon.gpte.redhat.com',
+                            version='v1',
+                            namespace=catalog_item_namespace,
+                            plural='catalogitems',
+                            name=catalog_item_name
+                        )
+                        catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
+                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
+                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
+                        if product_family:
+                            asset['productFamily'] = product_family
+                        if product:
+                            asset['product'] = product
+                    except Exception as e:
+                        logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
                 continue
 
             elif not workshop_name or not workshop_namespace:
@@ -962,6 +980,27 @@ async def public_multiworkshop_get(request):
                 available = workshop.get('status', {}).get('userCount', {}).get('available')
                 if available is not None:
                     asset['availableSeats'] = available
+
+                catalog_item_name = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+                catalog_item_namespace = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+                if catalog_item_name and catalog_item_namespace:
+                    try:
+                        catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                            group='babylon.gpte.redhat.com',
+                            version='v1',
+                            namespace=catalog_item_namespace,
+                            plural='catalogitems',
+                            name=catalog_item_name
+                        )
+                        catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
+                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
+                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
+                        if product_family:
+                            asset['productFamily'] = product_family
+                        if product:
+                            asset['product'] = product
+                    except Exception as e:
+                        logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
             except Exception as e:
                 logging.error(f"Error getting available seats: {e}")
                 pass

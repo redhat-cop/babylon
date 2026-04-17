@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-core';
 
 import { apiPaths, publicFetcher } from '@app/api';
-import { MultiWorkshop } from '@app/types';
+import { MultiWorkshop, MultiWorkshopAsset } from '@app/types';
 import Footer from '@app/components/Footer';
 import heroImg from './hero-img.jpeg';
 import LabIcon from './LabIcon';
@@ -15,16 +15,7 @@ import LabIcon from './LabIcon';
 import './multiworkshop-landing.css';
 
 interface WorkshopCardProps {
-  asset: {
-    key: string;
-    displayName?: string;
-    description?: string;
-    workshopId?: string;
-    name?: string;
-    url?: string;
-    type?: 'Workshop' | 'external';
-    availableSeats?: number;
-  };
+  asset: MultiWorkshopAsset & { availableSeats?: number };
   isAvailable: boolean;
 }
 
@@ -80,7 +71,11 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
           width={60}
           height={60}
         />
-        <div className="demo-card__badges"></div>
+        <div className="demo-card__badges">
+          {asset.product && (
+            <span className="demo-card__product-badge">{asset.product}</span>
+          )}
+        </div>
       </div>
       <div className="demo-card__body">
         <h3 className="demo-card__title">{displayName}</h3>
@@ -109,6 +104,37 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
         </p>
       </div>
     </a>
+  );
+};
+
+const FILTER_THRESHOLD = 6;
+
+const ProductFamilyFilter: React.FC<{
+  productFamilies: string[];
+  selectedFamilies: Set<string>;
+  onToggle: (family: string) => void;
+  assetCountByFamily: Map<string, number>;
+}> = ({ productFamilies, selectedFamilies, onToggle, assetCountByFamily }) => {
+  return (
+    <aside className="mwl-filter-sidebar">
+      <h3 className="mwl-filter-sidebar__title">Product Family</h3>
+      <ul className="mwl-filter-sidebar__list">
+        {productFamilies.map((family) => (
+          <li key={family} className="mwl-filter-sidebar__item">
+            <label className="mwl-filter-sidebar__label">
+              <input
+                type="checkbox"
+                className="mwl-filter-sidebar__checkbox"
+                checked={selectedFamilies.has(family)}
+                onChange={() => onToggle(family)}
+              />
+              <span className="mwl-filter-sidebar__text">{family}</span>
+              <span className="mwl-filter-sidebar__count">{assetCountByFamily.get(family) ?? 0}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </aside>
   );
 };
 
@@ -155,6 +181,42 @@ const MultiWorkshopLandingComponent: React.FC<{
 
   const displayName = multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
   const assets = multiworkshop.spec.assets || [];
+
+  const [selectedFamilies, setSelectedFamilies] = useState<Set<string>>(new Set());
+
+  const showFilter = assets.length >= FILTER_THRESHOLD;
+
+  const { productFamilies, assetCountByFamily } = useMemo(() => {
+    const countMap = new Map<string, number>();
+    for (const asset of assets) {
+      if (asset.productFamily) {
+        countMap.set(asset.productFamily, (countMap.get(asset.productFamily) ?? 0) + 1);
+      }
+    }
+    const families = Array.from(countMap.keys()).sort((a, b) => a.localeCompare(b));
+    return { productFamilies: families, assetCountByFamily: countMap };
+  }, [assets]);
+
+  const hasFilterableContent = showFilter && productFamilies.length > 1;
+
+  const filteredAssets = useMemo(() => {
+    if (selectedFamilies.size === 0) return assets;
+    return assets.filter(
+      (asset) => asset.productFamily && selectedFamilies.has(asset.productFamily),
+    );
+  }, [assets, selectedFamilies]);
+
+  const handleToggleFamily = (family: string) => {
+    setSelectedFamilies((prev) => {
+      const next = new Set(prev);
+      if (next.has(family)) {
+        next.delete(family);
+      } else {
+        next.add(family);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="multi-workshop-landing">
@@ -212,20 +274,30 @@ const MultiWorkshopLandingComponent: React.FC<{
               </Alert>
             </div>
           ) : (
-            <div className="demo-card-grid">
-              {assets.map((asset, index) => {
-                const isAvailable = asset.type === 'external'
-                  ? !!asset.url
-                  : !!asset.workshopId;
+            <div className={`mwl-cards-layout${hasFilterableContent ? ' mwl-cards-layout--with-filter' : ''}`}>
+              {hasFilterableContent && (
+                <ProductFamilyFilter
+                  productFamilies={productFamilies}
+                  selectedFamilies={selectedFamilies}
+                  onToggle={handleToggleFamily}
+                  assetCountByFamily={assetCountByFamily}
+                />
+              )}
+              <div className="demo-card-grid">
+                {filteredAssets.map((asset, index) => {
+                  const isAvailable = asset.type === 'external'
+                    ? !!asset.url
+                    : !!asset.workshopId;
 
-                return (
-                  <WorkshopCard
-                    key={asset.key || index}
-                    asset={asset}
-                    isAvailable={isAvailable}
-                  />
-                );
-              })}
+                  return (
+                    <WorkshopCard
+                      key={asset.key || index}
+                      asset={asset}
+                      isAvailable={isAvailable}
+                    />
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>
