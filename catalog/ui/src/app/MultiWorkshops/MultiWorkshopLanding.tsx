@@ -8,6 +8,7 @@ import {
 
 import { apiPaths, publicFetcher } from '@app/api';
 import { MultiWorkshop, MultiWorkshopAsset } from '@app/types';
+import { formatString } from '@app/Catalog/catalog-utils';
 import Footer from '@app/components/Footer';
 import heroImg from './hero-img.jpeg';
 import LabIcon from './LabIcon';
@@ -71,11 +72,7 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
           width={60}
           height={60}
         />
-        <div className="demo-card__badges">
-          {asset.product && (
-            <span className="demo-card__product-badge">{asset.product}</span>
-          )}
-        </div>
+        <div className="demo-card__badges"></div>
       </div>
       <div className="demo-card__body">
         <h3 className="demo-card__title">{displayName}</h3>
@@ -116,25 +113,25 @@ const ProductFamilyFilter: React.FC<{
   assetCountByFamily: Map<string, number>;
 }> = ({ productFamilies, selectedFamilies, onToggle, assetCountByFamily }) => {
   return (
-    <aside className="mwl-filter-sidebar">
-      <h3 className="mwl-filter-sidebar__title">Product Family</h3>
-      <ul className="mwl-filter-sidebar__list">
+    <div className="mwl-filter-bar">
+      <span className="mwl-filter-bar__title">Product Family</span>
+      <ul className="mwl-filter-bar__list">
         {productFamilies.map((family) => (
-          <li key={family} className="mwl-filter-sidebar__item">
-            <label className="mwl-filter-sidebar__label">
+          <li key={family} className="mwl-filter-bar__item">
+            <label className="mwl-filter-bar__label">
               <input
                 type="checkbox"
-                className="mwl-filter-sidebar__checkbox"
+                className="mwl-filter-bar__checkbox"
                 checked={selectedFamilies.has(family)}
                 onChange={() => onToggle(family)}
               />
-              <span className="mwl-filter-sidebar__text">{family}</span>
-              <span className="mwl-filter-sidebar__count">{assetCountByFamily.get(family) ?? 0}</span>
+              <span className="mwl-filter-bar__text">{formatString(family)}</span>
+              <span className="mwl-filter-bar__count">{assetCountByFamily.get(family) ?? 0}</span>
             </label>
           </li>
         ))}
       </ul>
-    </aside>
+    </div>
   );
 };
 
@@ -274,7 +271,7 @@ const MultiWorkshopLandingComponent: React.FC<{
               </Alert>
             </div>
           ) : (
-            <div className={`mwl-cards-layout${hasFilterableContent ? ' mwl-cards-layout--with-filter' : ''}`}>
+            <div className="mwl-cards-layout">
               {hasFilterableContent && (
                 <ProductFamilyFilter
                   productFamilies={productFamilies}
