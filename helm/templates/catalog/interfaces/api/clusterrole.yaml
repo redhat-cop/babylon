@@ -38,6 +38,13 @@ rules:
 - apiGroups:
   - babylon.gpte.redhat.com
   resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
   - workshops
   - workshopuserassignments
   - multiworkshops
