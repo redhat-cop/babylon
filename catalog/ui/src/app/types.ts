@@ -717,6 +717,8 @@ export interface MultiWorkshopAsset {
   workshopId?: string;
   url?: string; // For external workshops
   type?: 'Workshop' | 'external'; // Asset type
+  productFamily?: string;
+  product?: string;
 }
 
 export type Session = {

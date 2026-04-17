@@ -112,6 +112,91 @@
   width: 100%;
 }
 
+/* ── Cards Layout (with optional sidebar) ── */
+.mwl-cards-layout {
+  max-width: 920px;
+  width: 100%;
+}
+
+.mwl-cards-layout--with-filter {
+  display: flex;
+  gap: 32px;
+  max-width: 1160px;
+}
+
+/* ── Filter Sidebar ── */
+.mwl-filter-sidebar {
+  flex-shrink: 0;
+  width: 220px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 2px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  align-self: flex-start;
+  position: sticky;
+  top: 24px;
+}
+
+.mwl-filter-sidebar__title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #151515;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mwl-filter-sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mwl-filter-sidebar__item {
+  margin: 0;
+}
+
+.mwl-filter-sidebar__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: #151515;
+  line-height: 1.4;
+}
+
+.mwl-filter-sidebar__label:hover {
+  color: #0066cc;
+}
+
+.mwl-filter-sidebar__checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #0066cc;
+  cursor: pointer;
+}
+
+.mwl-filter-sidebar__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mwl-filter-sidebar__count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #6a6e73;
+  background: #f0f0f0;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 500;
+}
+
 /* ── Card Grid ── */
 .multi-workshop-landing .demo-card-grid {
   display: grid;
@@ -121,6 +206,11 @@
   width: 100%;
   justify-content: center;
   align-content: start;
+}
+
+.mwl-cards-layout--with-filter .demo-card-grid {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Demo Cards ── */
@@ -168,6 +258,18 @@
 
 .multi-workshop-landing .demo-card__badges {
   margin-left: auto;
+}
+
+.multi-workshop-landing .demo-card__product-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #004080;
+  background: #e7f1fa;
+  border-radius: 12px;
+  padding: 2px 10px;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .multi-workshop-landing .demo-card__body {
@@ -261,6 +363,16 @@
 
   .mwl-cards-section {
     padding: 24px 16px;
+  }
+
+  .mwl-cards-layout--with-filter {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .mwl-filter-sidebar {
+    width: 100%;
+    position: static;
   }
 
   .multi-workshop-landing .demo-card-grid {
