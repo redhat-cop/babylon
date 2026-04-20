@@ -24,6 +24,8 @@ import {
   NumberInput,
   Checkbox,
   SearchInput,
+  Switch,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -35,8 +37,10 @@ import {
 } from '@patternfly/react-table';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import { LockedIcon } from '@patternfly/react-icons';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import { apiPaths, fetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
 import { MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
@@ -53,7 +57,8 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import useSession from '@app/utils/useSession';
 import purposeOptions from './purposeOptions.json';
-import { BABYLON_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import ExternalWorkshopModal from './ExternalWorkshopModal';
 import Footer from '@app/components/Footer';
 
@@ -408,6 +413,28 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
+  const isLocked = multiworkshop?.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
+
+  async function handleLockedChange(_: unknown, isChecked: boolean): Promise<void> {
+    if (!multiworkshop) return;
+    const updatedMultiWorkshop = await patchMultiWorkshop({
+      name: multiworkshop.metadata.name,
+      namespace: multiworkshop.metadata.namespace,
+      patch: {
+        metadata: {
+          labels: {
+            [`${DEMO_DOMAIN}/lock-enabled`]: String(isChecked),
+          },
+        },
+      },
+    });
+    mutate(
+      apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }),
+      updatedMultiWorkshop,
+      false,
+    );
+  }
+
   // Combine local and shared workshops into a unified available list
   const allAvailableWorkshops = useMemo(() => {
     const seen = new Set<string>();
@@ -658,10 +685,17 @@ const MultiWorkshopDetail: React.FC = () => {
             </Title>
           </SplitItem>
           <SplitItem>
-            <ButtonCircleIcon
-              onClick={openModalDelete}
-              description="Delete Multi Asset Workshop"
-              icon={TrashIcon}
+            <ActionDropdown
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem
+                  key="delete"
+                  label="Delete"
+                  isDisabled={isLocked}
+                  onSelect={openModalDelete}
+                  icon={isLocked ? <LockedIcon /> : null}
+                />,
+              ]}
             />
           </SplitItem>
         </Split>
@@ -710,6 +744,27 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>
+                      Lock{' '}
+                      <Tooltip position="right" content={<p>When enabled, the start date, start now, and auto-destroy (end date) controls are disabled to prevent accidental changes.</p>}>
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Lock information"
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Switch
+                        id="multiworkshop-lock-switch"
+                        aria-label="Lock"
+                        isChecked={isLocked}
+                        hasCheckIcon
+                        onChange={handleLockedChange}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
                   {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
@@ -718,6 +773,7 @@ const MultiWorkshopDetail: React.FC = () => {
                           <SplitItem>
                             <DateTimePicker
                               defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
+                              isDisabled={isLocked}
                               onSelect={async (date) => {
                                 const apiDate = dateToApiString(date);
                                 const updatedMultiWorkshop = await patchMultiWorkshop({
@@ -733,6 +789,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             <Button
                               variant="link"
                               isInline
+                              isDisabled={isLocked}
                               onClick={openModalStartNow}
                             >
                               Start now
@@ -748,6 +805,7 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListDescription>
                       <DateTimePicker
                         defaultTimestamp={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate).getTime() : Date.now()}
+                        isDisabled={isLocked}
                         onSelect={async (date) => {
                           const apiDate = dateToApiString(date);
                           const updatedMultiWorkshop = await patchMultiWorkshop({
@@ -975,6 +1033,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             </div>
                             <div>
                               <ButtonCircleIcon
+                                isDisabled={isLocked}
                                 onClick={() => showDeleteAssetModal(index, asset)}
                                 description="Delete asset"
                                 icon={TrashIcon}
