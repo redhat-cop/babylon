@@ -20,6 +20,7 @@ import {
   Label,
   NumberInput,
   PageSection,
+  SearchInput,
   Select,
   SelectOption,
   SelectList,
@@ -163,6 +164,15 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
   { label: 'dev', value: 'dev', color: 'green' },
   { label: 'test', value: 'test', color: 'blue' },
 ];
+
+const PURPOSE_COLORS: Record<string, 'blue' | 'teal' | 'green' | 'orange' | 'purple' | 'red' | 'orangered' | 'grey' | 'yellow'> = {
+  'Customer Facing': 'red',
+  'Brand Event': 'yellow',
+  'Partner Facing': 'teal',
+  'Practice / Enablement': 'green',
+  'Asset Development': 'grey',
+  'Admin': 'blue',
+};
 
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -455,28 +465,60 @@ const Ops: React.FC = () => {
 
   // ---------- Workshop filter ----------
 
-  const workshopOptions = useMemo(() => {
-    const names = new Set(workshops.map(w => displayName(w)));
-    return Array.from(names).sort();
-  }, [workshops]);
-
+  const [nameSearch, setNameSearch] = useState('');
   const [workshopFilter, setWorkshopFilter] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const [purposeFilter, setPurposeFilter] = useState<string | null>(null);
   const [failedFilter, setFailedFilter] = useState(false);
+
+  const getWorkshopPurposeActivity = useCallback((ws: Workshop): string | null => {
+    const mwSource = ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+    if (!mwSource) return null;
+    const mw = multiWorkshopsByName.get(`${ws.metadata.namespace}/${mwSource}`);
+    return mw?.spec?.['purpose-activity'] || null;
+  }, [multiWorkshopsByName]);
+
+  const activePurposeOptions = useMemo(() => {
+    const activities = new Set<string>();
+    for (const ws of workshops) {
+      const activity = getWorkshopPurposeActivity(ws);
+      if (activity) activities.add(activity);
+    }
+    return Array.from(activities).sort();
+  }, [workshops, getWorkshopPurposeActivity]);
+
+  const workshopOptions = useMemo(() => {
+    let filtered = workshops;
+    if (nameSearch) {
+      const term = nameSearch.toLowerCase();
+      filtered = filtered.filter(w =>
+        displayName(w).toLowerCase().includes(term) || w.metadata.name.toLowerCase().includes(term),
+      );
+    }
+    const names = new Set(filtered.map(w => displayName(w)));
+    return Array.from(names).sort();
+  }, [workshops, nameSearch]);
 
   const targets = useMemo(() => {
     let list = workshops;
+    if (nameSearch) {
+      const term = nameSearch.toLowerCase();
+      list = list.filter(w =>
+        displayName(w).toLowerCase().includes(term) || w.metadata.name.toLowerCase().includes(term),
+      );
+    }
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+    if (purposeFilter) list = list.filter(w => getWorkshopPurposeActivity(w) === purposeFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     return list;
-  }, [workshops, workshopFilter, stageFilter, failedFilter, getFailedCount]);
+  }, [workshops, nameSearch, workshopFilter, stageFilter, purposeFilter, failedFilter, getFailedCount, getWorkshopPurposeActivity]);
 
   const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
 
   // Clear selection when filters change
-  useEffect(() => { setSelectedWs(new Set()); setFailedFilter(false); }, [workshopFilter, stageFilter, namespace]);
+  useEffect(() => { setSelectedWs(new Set()); setFailedFilter(false); }, [workshopFilter, stageFilter, purposeFilter, nameSearch, namespace]);
 
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
@@ -567,11 +609,15 @@ const Ops: React.FC = () => {
     if (hasSelection) {
       return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
     }
-    if (workshopFilter) {
-      return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
+    const parts: string[] = [];
+    if (nameSearch) parts.push(`matching "${nameSearch}"`);
+    if (workshopFilter) parts.push(`"${workshopFilter}"`);
+    if (purposeFilter) parts.push(`purpose: ${purposeFilter}`);
+    if (parts.length > 0) {
+      return <>{parts.join(', ')} ({targets.length}) in {nsLabel}</>;
     }
     return <>all {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
+  }, [workshopFilter, nameSearch, purposeFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -1224,6 +1270,14 @@ const Ops: React.FC = () => {
                   {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
                 </SelectList>
               </Select>
+              <SearchInput
+                className="ops-name-search"
+                placeholder="Filter by name..."
+                value={nameSearch}
+                onChange={(_e, val) => setNameSearch(val)}
+                onClear={() => setNameSearch('')}
+                aria-label="Filter workshops by name"
+              />
               <div className="ops-stage-filters">
                 {STAGE_FILTERS.map(f => (
                   <Label
@@ -1237,6 +1291,24 @@ const Ops: React.FC = () => {
                   </Label>
                 ))}
               </div>
+              {activePurposeOptions.length > 0 && (
+                <>
+                  <div className="ops-filter-divider" />
+                  <div className="ops-stage-filters">
+                    {activePurposeOptions.map(activity => (
+                      <Label
+                        key={activity}
+                        color={purposeFilter === activity ? (PURPOSE_COLORS[activity] || 'grey') : 'grey'}
+                        isCompact
+                        onClick={() => setPurposeFilter(purposeFilter === activity ? null : activity)}
+                        className="ops-stage-chip"
+                      >
+                        {activity}
+                      </Label>
+                    ))}
+                  </div>
+                </>
+              )}
               <span className="ops-scope-summary">
                 {scopeLabel}
                 {hasSelection && (

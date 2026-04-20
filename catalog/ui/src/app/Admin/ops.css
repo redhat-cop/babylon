@@ -129,6 +129,18 @@
   opacity: 0.85;
 }
 
+.ops-name-search {
+  max-width: 200px;
+  min-width: 140px;
+}
+
+.ops-filter-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--pf-t--global--border--color--default);
+  align-self: center;
+}
+
 /* ---- Summary stats bar ---- */
 
 .ops-summary-bar {
