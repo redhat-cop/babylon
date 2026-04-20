@@ -1,6 +1,7 @@
 import random
 
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 from kubernetes_asyncio.client.models import RbacV1Subject, V1ObjectMeta, V1PolicyRule, V1Role, V1RoleBinding, V1RoleRef
@@ -104,6 +105,16 @@ class Workshop(CachedKopfObject):
     def workshop_url(self):
         return self.status.get('workshopURL')
 
+    @property
+    def _effective_base_url(self):
+        if Babylon.workshop_base_url:
+            return Babylon.workshop_base_url
+        if self.service_url:
+            parsed = urlparse(self.service_url)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}"
+        return ''
+
     def get_workshop_provisions(self):
         return workshopprovision.WorkshopProvision.get_for_workshop(self)
 
@@ -185,7 +196,7 @@ class Workshop(CachedKopfObject):
         """
         if self.workshop_id:
             if not self.workshop_url:
-                workshop_url = f"{Babylon.workshop_base_url}/workshop/{self.workshop_id}"
+                workshop_url = f"{self._effective_base_url}/workshop/{self.workshop_id}"
                 await self.merge_patch_status({"workshopURL": workshop_url})
                 logger.info(f"Set workshopURL {workshop_url} for {self}")
             return
@@ -206,7 +217,7 @@ class Workshop(CachedKopfObject):
         })
         logger.info(f"Assigned workshop id {workshop_id} to {self}")
 
-        workshop_url = f"{Babylon.workshop_base_url}/workshop/{workshop_id}"
+        workshop_url = f"{self._effective_base_url}/workshop/{workshop_id}"
         await self.merge_patch_status({"workshopURL": workshop_url})
         logger.info(f"Set workshopURL {workshop_url} for {self}")
 
