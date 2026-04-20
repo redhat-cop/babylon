@@ -13,8 +13,8 @@ import {
   Button,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
-import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import { LockedIcon } from '@patternfly/react-icons';
 import { apiPaths, fetcher, deleteMultiWorkshop } from '@app/api';
 import { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
 import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
@@ -23,7 +23,7 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import SelectableTable from '@app/components/SelectableTable';
-import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSession from '@app/utils/useSession';
 
@@ -242,11 +242,16 @@ const MultiWorkshopList: React.FC = () => {
             />
           </SplitItem>
           <SplitItem>
-            <ButtonCircleIcon
+            <ActionDropdown
               isDisabled={selectedUids.length === 0}
-              onClick={() => showModal({ action: 'delete' })}
-              description="Delete Selected"
-              icon={TrashIcon}
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem
+                  key="delete"
+                  label="Delete Selected"
+                  onSelect={() => showModal({ action: 'delete' })}
+                />,
+              ]}
             />
           </SplitItem>
           <SplitItem>
@@ -336,23 +341,19 @@ const MultiWorkshopList: React.FC = () => {
                   // Created
                   <TimeInterval key="created" toTimestamp={multiworkshop.metadata.creationTimestamp} />,
                   // Actions
-                  <React.Fragment key="actions">
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                      }}
-                    >
-                      <ButtonCircleIcon
-                        key="actions__delete"
+                  <ActionDropdown
+                    key="actions"
+                    position="right"
+                    actionDropdownItems={[
+                      <ActionDropdownItem
+                        key="delete"
+                        label="Delete"
                         isDisabled={isLocked}
-                        onClick={actionHandlers.delete}
-                        description={isLocked ? 'Unlock to delete' : 'Delete'}
-                        icon={TrashIcon}
-                      />
-                    </div>
-                  </React.Fragment>,
+                        onSelect={actionHandlers.delete}
+                        icon={isLocked ? <LockedIcon /> : null}
+                      />,
+                    ]}
+                  />,
                 );
                 return {
                   cells: cells,

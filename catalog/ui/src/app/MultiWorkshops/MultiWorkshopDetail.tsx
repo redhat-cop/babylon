@@ -37,8 +37,10 @@ import {
 } from '@patternfly/react-table';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import { LockedIcon } from '@patternfly/react-icons';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import { apiPaths, fetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
 import { MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
@@ -683,11 +685,17 @@ const MultiWorkshopDetail: React.FC = () => {
             </Title>
           </SplitItem>
           <SplitItem>
-            <ButtonCircleIcon
-              isDisabled={isLocked}
-              onClick={openModalDelete}
-              description={isLocked ? 'Unlock to delete' : 'Delete Multi Asset Workshop'}
-              icon={TrashIcon}
+            <ActionDropdown
+              position="right"
+              actionDropdownItems={[
+                <ActionDropdownItem
+                  key="delete"
+                  label="Delete"
+                  isDisabled={isLocked}
+                  onSelect={openModalDelete}
+                  icon={isLocked ? <LockedIcon /> : null}
+                />,
+              ]}
             />
           </SplitItem>
         </Split>
@@ -1025,6 +1033,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             </div>
                             <div>
                               <ButtonCircleIcon
+                                isDisabled={isLocked}
                                 onClick={() => showDeleteAssetModal(index, asset)}
                                 description="Delete asset"
                                 icon={TrashIcon}
