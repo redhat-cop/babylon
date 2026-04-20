@@ -13,8 +13,8 @@ import {
   Button,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { LockedIcon } from '@patternfly/react-icons';
 import { apiPaths, fetcher, deleteMultiWorkshop } from '@app/api';
 import { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
 import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
@@ -23,6 +23,7 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import SelectableTable from '@app/components/SelectableTable';
+import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSession from '@app/utils/useSession';
@@ -341,18 +342,12 @@ const MultiWorkshopList: React.FC = () => {
                   // Created
                   <TimeInterval key="created" toTimestamp={multiworkshop.metadata.creationTimestamp} />,
                   // Actions
-                  <ActionDropdown
-                    key="actions"
-                    position="right"
-                    actionDropdownItems={[
-                      <ActionDropdownItem
-                        key="delete"
-                        label="Delete"
-                        isDisabled={isLocked}
-                        onSelect={actionHandlers.delete}
-                        icon={isLocked ? <LockedIcon /> : null}
-                      />,
-                    ]}
+                  <ButtonCircleIcon
+                    key="actions__delete"
+                    isDisabled={isLocked}
+                    onClick={actionHandlers.delete}
+                    description="Delete"
+                    icon={TrashIcon}
                   />,
                 );
                 return {

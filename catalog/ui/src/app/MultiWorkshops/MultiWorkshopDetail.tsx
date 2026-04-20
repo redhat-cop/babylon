@@ -115,7 +115,7 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; w
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, name } = useParams();
-  const { userNamespace } = useSession().getSession();
+  const { isAdmin, userNamespace } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalDeleteAsset, openModalDeleteAsset] = useModal();
@@ -744,27 +744,6 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>
-                      Lock{' '}
-                      <Tooltip position="right" content={<p>When enabled, the start date, start now, and auto-destroy (end date) controls are disabled to prevent accidental changes.</p>}>
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Lock information"
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <Switch
-                        id="multiworkshop-lock-switch"
-                        aria-label="Lock"
-                        isChecked={isLocked}
-                        hasCheckIcon
-                        onChange={handleLockedChange}
-                      />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-
                   {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
@@ -870,6 +849,29 @@ const MultiWorkshopDetail: React.FC = () => {
                       <TimeInterval toTimestamp={multiworkshop.metadata.creationTimestamp} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  {isAdmin ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>
+                        Lock{' '}
+                        <Tooltip position="right" content={<p>When enabled, the start date, start now, and auto-destroy (end date) controls are disabled to prevent accidental changes.</p>}>
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Lock information"
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
+                      </DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Switch
+                          id="multiworkshop-lock-switch"
+                          aria-label="Lock"
+                          isChecked={isLocked}
+                          hasCheckIcon
+                          onChange={handleLockedChange}
+                        />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
                 </DescriptionList>
 
                 <div className="multiworkshop-detail__defaults-section">
