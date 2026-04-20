@@ -17,7 +17,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, fetcher, deleteMultiWorkshop } from '@app/api';
 import { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
-import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -295,6 +295,7 @@ const MultiWorkshopList: React.FC = () => {
                 }
               }}
               rows={multiworkshops.map((multiworkshop: MultiWorkshop) => {
+                const isLocked = multiworkshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
                 const actionHandlers = {
                   delete: () => showModal({ action: 'delete', multiworkshop }),
                 };
@@ -345,8 +346,9 @@ const MultiWorkshopList: React.FC = () => {
                     >
                       <ButtonCircleIcon
                         key="actions__delete"
+                        isDisabled={isLocked}
                         onClick={actionHandlers.delete}
-                        description="Delete"
+                        description={isLocked ? 'Unlock to delete' : 'Delete'}
                         icon={TrashIcon}
                       />
                     </div>
@@ -354,6 +356,7 @@ const MultiWorkshopList: React.FC = () => {
                 );
                 return {
                   cells: cells,
+                  disableSelection: isLocked,
                   onSelect: (isSelected) =>
                     setSelectedUids((uids) => {
                       if (isSelected) {
