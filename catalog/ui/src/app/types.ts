@@ -597,6 +597,22 @@ export interface WorkshopProvisionSpec {
   };
 }
 
+export interface WorkshopSpecSeatsOnDemandResourcePool {
+  name?: string;
+  provider: {
+    apiVersion?: string;
+    kind?: string;
+    name: string;
+    namespace: string;
+  };
+  minAvailable?: number;
+}
+
+export interface WorkshopSpecSeatsOnDemand {
+  seatExpiration: string;
+  resourcePool: WorkshopSpecSeatsOnDemandResourcePool;
+}
+
 export interface WorkshopSpec {
   accessPassword?: string;
   description?: string;
@@ -616,6 +632,7 @@ export interface WorkshopSpec {
     maximum?: string;
     relativeMaximum?: string;
   };
+  seatsOnDemand?: WorkshopSpecSeatsOnDemand;
 }
 
 export interface WorkshopUserAssignmentList {

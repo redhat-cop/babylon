@@ -112,6 +112,72 @@ spec:
                   In this case the Workshop should also be set to be owned by the ResourceClaim for the service.
                 type: boolean
                 default: false
+              seatsOnDemand:
+                description: >-
+                  Configuration for on-demand seat provisioning. When configured, no instances are
+                  pre-provisioned at workshop creation. Instead, each seat is provisioned individually
+                  when a user attends the workshop. Seats are short-lived and expire after the
+                  configured duration. A dedicated ResourcePool is created for this workshop and
+                  destroyed when the workshop is deleted.
+                type: object
+                required:
+                - seatExpiration
+                - resourcePool
+                properties:
+                  seatExpiration:
+                    description: >-
+                      Duration for how long each on-demand seat should live after it is provisioned.
+                    type: string
+                    pattern: ^[0-9]+[dhms]$
+                  resourcePool:
+                    description: >-
+                      Configuration for the dedicated ResourcePool to be created for this workshop.
+                      This pool is used exclusively by this workshop and will be destroyed when the
+                      workshop is deleted.
+                    type: object
+                    required:
+                    - provider
+                    properties:
+                      name:
+                        description: >-
+                          Name of the dedicated ResourcePool to create in the poolboy namespace.
+                          If not specified, a name will be generated from the workshop name.
+                        type: string
+                      provider:
+                        description: >-
+                          Reference to the ResourceProvider that will be used to provision resources
+                          for on-demand seats.
+                        type: object
+                        required:
+                        - name
+                        - namespace
+                        properties:
+                          apiVersion:
+                            description: >-
+                              API version of the ResourceProvider.
+                            type: string
+                            default: poolboy.gpte.redhat.com/v1
+                          kind:
+                            description: >-
+                              Kind of the resource provider reference.
+                            type: string
+                            default: ResourceProvider
+                          name:
+                            description: >-
+                              Name of the ResourceProvider.
+                            type: string
+                          namespace:
+                            description: >-
+                              Namespace of the ResourceProvider.
+                            type: string
+                      minAvailable:
+                        description: >-
+                          Minimum number of pre-provisioned resources to keep available in the pool
+                          for faster seat assignment. Default is 0, meaning purely on-demand with no
+                          pre-warming.
+                        type: integer
+                        default: 0
+                        minimum: 0
               userAssignments:
                 description: >-
                   Users for multi-user workshop environments.
