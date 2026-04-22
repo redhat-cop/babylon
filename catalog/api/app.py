@@ -41,6 +41,25 @@ session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
 logging.basicConfig(level=os.environ.get('LOGGING_LEVEL', 'INFO'))
 
+audit_logger = logging.getLogger('audit')
+
+def audit_log(event, user, method=None, path=None, status=None, effective_user=None, **extra):
+    record = {
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'event': event,
+        'user': user,
+    }
+    if effective_user and effective_user != user:
+        record['effective_user'] = effective_user
+    if method:
+        record['method'] = method
+    if path:
+        record['path'] = path
+    if status is not None:
+        record['status'] = status
+    record.update(extra)
+    audit_logger.info(json.dumps(record))
+
 def proxy_api_client(session):
     api_client = HotfixKubeApiClient()
     if os.environ.get('ENVIRONMENT') == 'development':
@@ -408,6 +427,7 @@ async def get_auth_session(request):
         if interface_name:
             ret['interface'] = interface_name
 
+        audit_log('session_created', user=user['metadata']['name'], admin=user_is_admin)
         return web.json_response(ret)
     finally:
         await api_client.close()
@@ -1272,8 +1292,7 @@ async def update_system_status(request):
             else:
                 raise
 
-        # Log the change
-        logging.info(f"System status updated by {user['metadata']['name']}: {data}")
+        audit_log('system_status_updated', user=user['metadata']['name'], data=data)
 
         # Return updated status
         return web.json_response(await get_system_status_from_configmap())
@@ -1434,12 +1453,31 @@ async def openshift_api_proxy(request, api_client=None):
         headers['Content-Encoding'] = 'gzip'
         headers['Content-Type'] = 'application/json'
 
+        if request.method != 'GET':
+            audit_log(
+                'api_action',
+                user=session['user'],
+                effective_user=api_client.default_headers.get('Impersonate-User'),
+                method=request.method,
+                path=request.path,
+                status=response.status,
+            )
+
         return web.Response(
             body=data,
             headers=headers,
             status=response.status,
         )
     except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if request.method != 'GET':
+            audit_log(
+                'api_action',
+                user=session['user'],
+                effective_user=api_client.default_headers.get('Impersonate-User'),
+                method=request.method,
+                path=request.path,
+                status=exception.status,
+            )
         if exception.body:
             return web.Response(
                 body=exception.body,
