@@ -255,6 +255,7 @@ workshopManager:
     requests:
       cpu: 200m
       memory: 1Gi
+  workshopBaseUrl: ""
 
 admin:
   deploy: true

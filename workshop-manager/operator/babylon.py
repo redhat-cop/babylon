@@ -41,6 +41,7 @@ class Babylon():
     user_name_label = f"{babylon_domain}/user-name"
 
     workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))
+    workshop_base_url = os.environ.get('WORKSHOP_BASE_URL', '').rstrip('/')
 
     # Initialized on startup
     api_client = None
