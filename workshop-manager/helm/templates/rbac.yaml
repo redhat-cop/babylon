@@ -96,6 +96,18 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourcepools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 {{ if .Values.deploy }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

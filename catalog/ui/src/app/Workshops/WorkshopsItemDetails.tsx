@@ -565,6 +565,56 @@ const WorkshopsItemDetails: React.FC<{
           </Select>
         </DescriptionListDescription>
       </DescriptionListGroup>
+      {workshop.spec.seatsOnDemand ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>
+            Seats on Demand{' '}
+            <Tooltip
+              position="right"
+              content={
+                <p>
+                  Instances are provisioned on-the-fly when users attend. A dedicated resource pool is used exclusively
+                  for this workshop.
+                </p>
+              }
+            >
+              <OutlinedQuestionCircleIcon aria-label="Seats on demand information" className="tooltip-icon-only" />
+            </Tooltip>
+          </DescriptionListTerm>
+          <DescriptionListDescription>
+            <DescriptionList isHorizontal isCompact>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Seat Expiration</DescriptionListTerm>
+                <DescriptionListDescription>{workshop.spec.seatsOnDemand.seatExpiration}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Resource Pool</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {workshop.status?.resourcePool?.name || workshop.spec.seatsOnDemand.resourcePool?.name || 'Pending creation...'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Provider</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {workshop.spec.seatsOnDemand.resourcePool?.provider?.name}
+                  {workshop.spec.seatsOnDemand.resourcePool?.provider?.namespace
+                    ? ` (${workshop.spec.seatsOnDemand.resourcePool.provider.namespace})`
+                    : null}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              {workshop.spec.seatsOnDemand.resourcePool?.minAvailable > 0 ? (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Pre-warm</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {workshop.spec.seatsOnDemand.resourcePool.minAvailable}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              ) : null}
+            </DescriptionList>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
+
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop Users Assigned</DescriptionListTerm>
         {workshopUserAssignments ? (

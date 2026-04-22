@@ -337,7 +337,22 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           provisionConcurrency,
           provisionCount,
           provisionStartDelay,
+          seatsOnDemand: seatsOnDemandProps,
         } = formState.workshop;
+        const seatsOnDemandConfig =
+          seatsOnDemandProps?.enabled
+            ? {
+                seatExpiration: seatsOnDemandProps.seatExpiration,
+                resourcePool: {
+                  ...(seatsOnDemandProps.resourcePoolName ? { name: seatsOnDemandProps.resourcePoolName } : {}),
+                  provider: {
+                    name: seatsOnDemandProps.providerName,
+                    namespace: seatsOnDemandProps.providerNamespace,
+                  },
+                  ...(seatsOnDemandProps.minAvailable > 0 ? { minAvailable: seatsOnDemandProps.minAvailable } : {}),
+                },
+              }
+            : undefined;
         const workshop = await createWorkshop({
           accessPassword,
           description,
@@ -356,21 +371,24 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           skippedSfdc: formState.salesforceId.skip,
           whiteGloved: formState.whiteGloved,
           salesforceItems: formState.salesforceItems,
+          seatsOnDemand: seatsOnDemandConfig,
         });
         const redirectUrl = `/workshops/${workshop.metadata.namespace}/${workshop.metadata.name}`;
-        await createWorkshopProvision({
-          catalogItem: catalogItem,
-          concurrency: provisionConcurrency,
-          count: provisionCount,
-          parameters: {
-            ...parameterValues,
-            salesforce_items: JSON.stringify(formState.salesforceItems),
-          },
-          startDelay: provisionStartDelay,
-          workshop: workshop,
-          useAutoDetach: formState.useAutoDetach,
-          selectedResourcePool: formState.selectedResourcePool,
-        });
+        if (!seatsOnDemandProps?.enabled) {
+          await createWorkshopProvision({
+            catalogItem: catalogItem,
+            concurrency: provisionConcurrency,
+            count: provisionCount,
+            parameters: {
+              ...parameterValues,
+              salesforce_items: JSON.stringify(formState.salesforceItems),
+            },
+            startDelay: provisionStartDelay,
+            workshop: workshop,
+            useAutoDetach: formState.useAutoDetach,
+            selectedResourcePool: formState.selectedResourcePool,
+          });
+        }
         navigate(redirectUrl);
       } else {
         const resourceClaim = await createServiceRequest({
@@ -1064,7 +1082,180 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            {catalogItem.spec.workshopUserMode === 'multi' ? null : (
+            {isAdmin ? (
+              <FormGroup key="seats-on-demand-switch" fieldId="seats-on-demand-switch">
+                <div className="catalog-item-form__group-control--single">
+                  <Switch
+                    id="seats-on-demand-switch"
+                    aria-label="Seats on demand"
+                    label="Seats on demand"
+                    isChecked={!!formState.workshop.seatsOnDemand?.enabled}
+                    hasCheckIcon
+                    onChange={(_event, isChecked) => {
+                      dispatchFormState({
+                        type: 'workshop',
+                        workshop: {
+                          ...formState.workshop,
+                          seatsOnDemand: {
+                            enabled: isChecked,
+                            seatExpiration: formState.workshop.seatsOnDemand?.seatExpiration || '4h',
+                            resourcePoolName: formState.workshop.seatsOnDemand?.resourcePoolName || '',
+                            providerName: formState.workshop.seatsOnDemand?.providerName || catalogItem.metadata.name,
+                            providerNamespace: formState.workshop.seatsOnDemand?.providerNamespace || 'poolboy',
+                            minAvailable: formState.workshop.seatsOnDemand?.minAvailable || 0,
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <Tooltip
+                    position="right"
+                    isContentLeftAligned
+                    content={
+                      <p>
+                        When enabled, no instances are pre-provisioned. Each seat is provisioned on-the-fly when a user
+                        attends the workshop. A dedicated resource pool is created for this workshop.
+                      </p>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Seats on demand information"
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
+                </div>
+              </FormGroup>
+            ) : null}
+            {formState.workshop.seatsOnDemand?.enabled ? (
+              <>
+                <FormGroup fieldId="seatExpiration" isRequired label="Seat Expiration">
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      id="seatExpiration"
+                      placeholder="4h"
+                      onChange={(_event, v) =>
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            seatsOnDemand: { ...formState.workshop.seatsOnDemand, seatExpiration: v },
+                          },
+                        })
+                      }
+                      value={formState.workshop.seatsOnDemand.seatExpiration}
+                      validated={/^[0-9]+[dhms]$/.test(formState.workshop.seatsOnDemand.seatExpiration) ? 'success' : 'error'}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>How long each seat lives after provisioning (e.g. 4h, 1d, 30m).</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Seat expiration duration"
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="providerName" isRequired label="Resource Provider Name">
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      id="providerName"
+                      onChange={(_event, v) =>
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            seatsOnDemand: { ...formState.workshop.seatsOnDemand, providerName: v },
+                          },
+                        })
+                      }
+                      value={formState.workshop.seatsOnDemand.providerName}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>Name of the ResourceProvider to use for on-demand seats.</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Resource provider name"
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="providerNamespace" isRequired label="Resource Provider Namespace">
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      id="providerNamespace"
+                      onChange={(_event, v) =>
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            seatsOnDemand: { ...formState.workshop.seatsOnDemand, providerNamespace: v },
+                          },
+                        })
+                      }
+                      value={formState.workshop.seatsOnDemand.providerNamespace}
+                    />
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="resourcePoolName" label="Resource Pool Name">
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      id="resourcePoolName"
+                      placeholder="Auto-generated from workshop name"
+                      onChange={(_event, v) =>
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            seatsOnDemand: { ...formState.workshop.seatsOnDemand, resourcePoolName: v },
+                          },
+                        })
+                      }
+                      value={formState.workshop.seatsOnDemand.resourcePoolName}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>Optional custom name for the dedicated resource pool. If empty, a name will be generated from the workshop name.</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Resource pool name"
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="minAvailable" label="Min Available (Pre-warm)">
+                  <div className="catalog-item-form__group-control--single">
+                    <PatientNumberInput
+                      min={0}
+                      max={10}
+                      onChange={(v) =>
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            seatsOnDemand: { ...formState.workshop.seatsOnDemand, minAvailable: v },
+                          },
+                        })
+                      }
+                      value={formState.workshop.seatsOnDemand.minAvailable}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>Number of pre-provisioned resources to keep warm for faster seat assignment. 0 means purely on-demand.</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Minimum available pre-warm count"
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+              </>
+            ) : null}
+            {catalogItem.spec.workshopUserMode === 'multi' || formState.workshop.seatsOnDemand?.enabled ? null : (
               <>
                 <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
                   <div className="catalog-item-form__group-control--single">

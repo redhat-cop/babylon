@@ -13,6 +13,7 @@ import resourceclaim
 import workshopprovision
 import workshopuserassignment
 
+
 class Workshop(CachedKopfObject):
     api_group = Babylon.babylon_domain
     api_version = Babylon.babylon_api_version
@@ -95,6 +96,33 @@ class Workshop(CachedKopfObject):
     def workshop_user_assignment_names(self) -> list[str]:
         """Return names of WorkshopUserAssignment objects associated with this Workshop"""
         return list(self.status.get('userAssignments', {}).keys())
+
+    @property
+    def seats_on_demand(self):
+        return self.spec.get('seatsOnDemand')
+
+    @property
+    def seats_on_demand_enabled(self):
+        return self.seats_on_demand is not None
+
+    @property
+    def seat_expiration(self):
+        if not self.seats_on_demand:
+            return None
+        return self.seats_on_demand.get('seatExpiration')
+
+    @property
+    def seats_on_demand_resource_pool_config(self):
+        if not self.seats_on_demand:
+            return None
+        return self.seats_on_demand.get('resourcePool', {})
+
+    @property
+    def seats_on_demand_resource_pool_name(self):
+        config = self.seats_on_demand_resource_pool_config
+        if not config:
+            return None
+        return config.get('name', f"{self.name}-pool")
 
     @property
     def workshop_id(self):
