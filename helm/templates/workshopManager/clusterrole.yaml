@@ -101,6 +101,18 @@ rules:
   - get
   - list
 - apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourcepools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - roles

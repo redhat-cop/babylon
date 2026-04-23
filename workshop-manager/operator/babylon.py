@@ -35,6 +35,7 @@ class Babylon():
     workshop_label = f"{babylon_domain}/workshop"
     workshop_id_label = f"{babylon_domain}/workshop-id"
     workshop_uid_label = f"{babylon_domain}/workshop-uid"
+    workshop_namespace_annotation = f"{babylon_domain}/workshop-namespace"
     workshop_provision_label = f"{babylon_domain}/workshop-provision"
     salesforce_id_annotation = f"{demo_domain}/salesforce-id"
     salesforce_items_annotation = f"{demo_domain}/salesforce-items"

@@ -637,6 +637,7 @@ export async function createWorkshop({
   customAnnotations,
   customOwnerReferences,
   salesforceItems,
+  seatsOnDemand,
 }: {
   accessPassword?: string;
   catalogItem: CatalogItem;
@@ -657,6 +658,14 @@ export async function createWorkshop({
   customAnnotations?: Record<string, string>;
   customOwnerReferences?: K8sOwnerReference[];
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  seatsOnDemand?: {
+    seatExpiration: string;
+    resourcePool: {
+      name?: string;
+      provider: { name: string; namespace: string };
+      minAvailable?: number;
+    };
+  };
 }): Promise<Workshop> {
   const baseUrl = window.location.href.replace(/^([^/]+\/\/[^/]+)\/.*/, '$1');
   const session = await getApiSession();
@@ -711,6 +720,23 @@ export async function createWorkshop({
         ...(stopDate ? { stop: dateToApiString(stopDate) } : {}),
       },
       ...(catalogItem.spec.workshopLabUiRedirect === true ? { labUserInterface: { redirect: true } } : {}),
+      ...(seatsOnDemand
+        ? {
+            seatsOnDemand: {
+              seatExpiration: seatsOnDemand.seatExpiration,
+              resourcePool: {
+                ...(seatsOnDemand.resourcePool.name ? { name: seatsOnDemand.resourcePool.name } : {}),
+                provider: {
+                  name: seatsOnDemand.resourcePool.provider.name,
+                  namespace: seatsOnDemand.resourcePool.provider.namespace,
+                },
+                ...(seatsOnDemand.resourcePool.minAvailable != null
+                  ? { minAvailable: seatsOnDemand.resourcePool.minAvailable }
+                  : {}),
+              },
+            },
+          }
+        : {}),
     },
   };
   if (accessPassword) {

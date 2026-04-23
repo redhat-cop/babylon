@@ -1036,6 +1036,7 @@ async def workshop_get(request):
         "displayName": workshop['spec'].get('displayName'),
         "name": workshop['metadata']['name'],
         "namespace": workshop['metadata']['namespace'],
+        "seatsOnDemand": True if workshop['spec'].get('seatsOnDemand') else False,
         "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
             or workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
     }
@@ -1046,6 +1047,7 @@ async def workshop_get(request):
 async def workshop_post(request):
     """
     Access workshop as an attendee with login information.
+    For seats-on-demand workshops, creates a ResourceClaim and WorkshopUserAssignment on the fly.
     """
     workshop_id = request.match_info.get('workshop_id')
     if not request.can_read_body:
@@ -1079,16 +1081,7 @@ async def workshop_post(request):
     elif workshop_access_password:
         raise web.HTTPBadRequest()
 
-    workshop_user_assignments = await custom_objects_api.list_namespaced_custom_object(
-        group='babylon.gpte.redhat.com',
-        label_selector=f"babylon.gpte.redhat.com/workshop={workshop_name}",
-        namespace=workshop_namespace,
-        plural='workshopuserassignments',
-        version='v1',
-    )
-
-    if not workshop_user_assignments.get('items'):
-        raise web.HTTPNotFound()
+    seats_on_demand = workshop['spec'].get('seatsOnDemand')
 
     ret = {
         "accessPasswordRequired": True if workshop_access_password else False,
@@ -1100,6 +1093,22 @@ async def workshop_post(request):
         "template": workshop['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
             or workshop['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
     }
+
+    if seats_on_demand:
+        return await _workshop_post_seats_on_demand(
+            workshop=workshop, email=email, ret=ret,
+        )
+
+    workshop_user_assignments = await custom_objects_api.list_namespaced_custom_object(
+        group='babylon.gpte.redhat.com',
+        label_selector=f"babylon.gpte.redhat.com/workshop={workshop_name}",
+        namespace=workshop_namespace,
+        plural='workshopuserassignments',
+        version='v1',
+    )
+
+    if not workshop_user_assignments.get('items'):
+        raise web.HTTPNotFound()
 
     for user_assignment in workshop_user_assignments.get('items', []):
         if email == user_assignment['spec'].get('assignment', {}).get('email'):
@@ -1128,6 +1137,111 @@ async def workshop_post(request):
                     raise
 
     raise web.HTTPConflict()
+
+
+async def _workshop_post_seats_on_demand(workshop, email, ret):
+    """Handle attendee login for a seats-on-demand workshop.
+
+    If the user already has an assignment, return it.
+    Otherwise create a new ResourceClaim from the dedicated pool and a
+    WorkshopUserAssignment linking the user to that claim.
+    """
+    workshop_name = workshop['metadata']['name']
+    workshop_namespace = workshop['metadata']['namespace']
+    workshop_uid = workshop['metadata']['uid']
+    workshop_id = workshop['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/workshop-id', '')
+    catalog_item_name = workshop['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName', '')
+    catalog_item_namespace = workshop['metadata'].get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace', '')
+
+    seats_on_demand = workshop['spec']['seatsOnDemand']
+    pool_config = seats_on_demand.get('resourcePool', {})
+    pool_name = (
+        workshop.get('status', {}).get('resourcePool', {}).get('name')
+        or pool_config.get('name')
+        or f"__{workshop_name}-pool"
+    )
+
+    existing_assignments = await custom_objects_api.list_namespaced_custom_object(
+        group='babylon.gpte.redhat.com',
+        namespace=workshop_namespace,
+        plural='workshopuserassignments',
+        version='v1',
+        label_selector=f"babylon.gpte.redhat.com/workshop={workshop_name}",
+    )
+    for ua in existing_assignments.get('items', []):
+        if email == ua['spec'].get('assignment', {}).get('email'):
+            ret['assignment'] = ua['spec']
+            return web.json_response(ret)
+
+    resource_claim = await custom_objects_api.create_namespaced_custom_object(
+        group='poolboy.gpte.redhat.com',
+        namespace=workshop_namespace,
+        plural='resourceclaims',
+        version='v1',
+        body={
+            "apiVersion": "poolboy.gpte.redhat.com/v1",
+            "kind": "ResourceClaim",
+            "metadata": {
+                "generateName": f"{workshop_name}-",
+                "namespace": workshop_namespace,
+                "labels": {
+                    "babylon.gpte.redhat.com/catalogItemName": catalog_item_name,
+                    "babylon.gpte.redhat.com/catalogItemNamespace": catalog_item_namespace,
+                    "babylon.gpte.redhat.com/workshop": workshop_name,
+                    "babylon.gpte.redhat.com/workshop-id": workshop_id,
+                    "babylon.gpte.redhat.com/workshop-uid": workshop_uid,
+                },
+                "annotations": {
+                    "poolboy.gpte.redhat.com/resource-pool-name": pool_name,
+                    "babylon.gpte.redhat.com/notifier": "disable",
+                },
+            },
+            "spec": {
+                "provider": {
+                    "name": catalog_item_name,
+                },
+            },
+        },
+    )
+
+    claim_name = resource_claim['metadata']['name']
+    claim_uid = resource_claim['metadata']['uid']
+
+    user_assignment = await custom_objects_api.create_namespaced_custom_object(
+        group='babylon.gpte.redhat.com',
+        namespace=workshop_namespace,
+        plural='workshopuserassignments',
+        version='v1',
+        body={
+            "apiVersion": "babylon.gpte.redhat.com/v1",
+            "kind": "WorkshopUserAssignment",
+            "metadata": {
+                "generateName": f"{workshop_name}-",
+                "namespace": workshop_namespace,
+                "labels": {
+                    "babylon.gpte.redhat.com/workshop": workshop_name,
+                    "babylon.gpte.redhat.com/workshop-id": workshop_id,
+                    "poolboy.gpte.redhat.com/resource-claim": claim_name,
+                },
+                "ownerReferences": [{
+                    "apiVersion": "poolboy.gpte.redhat.com/v1",
+                    "controller": True,
+                    "kind": "ResourceClaim",
+                    "name": claim_name,
+                    "uid": claim_uid,
+                }],
+            },
+            "spec": {
+                "assignment": {"email": email},
+                "resourceClaimName": claim_name,
+                "workshopName": workshop_name,
+            },
+        },
+    )
+
+    ret['assignment'] = user_assignment['spec']
+    ret['provisioningStarted'] = True
+    return web.json_response(ret)
 
 
 

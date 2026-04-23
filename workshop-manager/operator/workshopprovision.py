@@ -121,6 +121,159 @@ class WorkshopProvision(CachedKopfObject):
     def workshop_namespace(self):
         return self.namespace
 
+    def _build_resource_pool_definition(self, workshop, resource_provider):
+        """Build the Poolboy ResourcePool definition using workshop seatsOnDemand config and provision parameters."""
+        seats_on_demand = workshop.seats_on_demand
+        pool_config = seats_on_demand.get('resourcePool', {})
+        pool_name = pool_config.get('name', f"__{workshop.name}-pool")
+        seat_expiration = seats_on_demand['seatExpiration']
+        provider_ref = pool_config['provider']
+        min_available = pool_config.get('minAvailable', 0)
+
+        parameter_values = {
+            key: value
+            for key, value in self.parameters.items()
+            if resource_provider.has_parameter(key)
+        }
+
+        annotations = {
+            Babylon.display_name_annotation: f"On-demand pool for workshop {workshop.name}",
+            Babylon.workshop_namespace_annotation: workshop.namespace,
+        }
+        if 'purpose' in self.parameters:
+            annotations[Babylon.purpose_annotation] = self.parameters['purpose']
+        if 'purpose_activity' in self.parameters:
+            annotations[Babylon.purpose_activity_annotation] = self.parameters['purpose_activity']
+        if 'salesforce_id' in self.parameters:
+            annotations[Babylon.salesforce_id_annotation] = self.parameters['salesforce_id']
+        if 'salesforce_items' in self.parameters:
+            annotations[Babylon.salesforce_items_annotation] = self.parameters['salesforce_items']
+
+        return {
+            "apiVersion": f"{Babylon.poolboy_domain}/{Babylon.poolboy_api_version}",
+            "kind": "ResourcePool",
+            "metadata": {
+                "name": pool_name,
+                "namespace": Babylon.poolboy_namespace,
+                "labels": {
+                    Babylon.workshop_label: workshop.name,
+                    Babylon.workshop_uid_label: workshop.uid,
+                },
+                "annotations": annotations,
+            },
+            "spec": {
+                "minAvailable": min_available,
+                "deleteUnhealthyResourceHandles": True,
+                "lifespan": {
+                    "default": seat_expiration,
+                    "maximum": seat_expiration,
+                    "relativeMaximum": seat_expiration,
+                    "unclaimed": seat_expiration,
+                },
+                "resources": [
+                    {
+                        "provider": {
+                            "apiVersion": provider_ref.get('apiVersion', f"{Babylon.poolboy_domain}/{Babylon.poolboy_api_version}"),
+                            "kind": provider_ref.get('kind', 'ResourceProvider'),
+                            "name": provider_ref['name'],
+                            "namespace": provider_ref['namespace'],
+                        },
+                        "template": {
+                            "spec": {
+                                "vars": {
+                                    "default_desired_state": "started",
+                                    "job_vars": parameter_values,
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        }
+
+    async def create_or_update_resource_pool(self, logger, workshop):
+        """Create or update the dedicated ResourcePool for seats on demand."""
+        if not workshop.seats_on_demand_enabled:
+            return
+
+        resource_provider = await resourceprovider.ResourceProvider.fetch(
+            name=self.catalog_item_name,
+            namespace=Babylon.poolboy_namespace,
+        )
+
+        pool_config = workshop.seats_on_demand.get('resourcePool', {})
+        pool_name = pool_config.get('name', f"__{workshop.name}-pool")
+        pool_definition = self._build_resource_pool_definition(workshop, resource_provider)
+
+        try:
+            await Babylon.custom_objects_api.get_namespaced_custom_object(
+                group=Babylon.poolboy_domain,
+                name=pool_name,
+                namespace=Babylon.poolboy_namespace,
+                plural='resourcepools',
+                version=Babylon.poolboy_api_version,
+            )
+            logger.info(f"ResourcePool {pool_name} already exists for {workshop}, updating")
+            updated_pool = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+                group=Babylon.poolboy_domain,
+                name=pool_name,
+                namespace=Babylon.poolboy_namespace,
+                plural='resourcepools',
+                version=Babylon.poolboy_api_version,
+                body={
+                    "metadata": pool_definition["metadata"],
+                    "spec": pool_definition["spec"],
+                },
+                _content_type='application/merge-patch+json',
+            )
+            await self._update_workshop_resource_pool_status(workshop, updated_pool, logger)
+        except k8sApiException as exception:
+            if exception.status == 404:
+                logger.info(f"Creating ResourcePool {pool_name} for {workshop}")
+                created_pool = await Babylon.custom_objects_api.create_namespaced_custom_object(
+                    group=Babylon.poolboy_domain,
+                    namespace=Babylon.poolboy_namespace,
+                    plural='resourcepools',
+                    version=Babylon.poolboy_api_version,
+                    body=pool_definition,
+                )
+                await self._update_workshop_resource_pool_status(workshop, created_pool, logger)
+            else:
+                raise
+
+    async def delete_resource_pool(self, logger, workshop):
+        """Delete the dedicated ResourcePool when the provision is deleted."""
+        if not workshop.seats_on_demand_enabled:
+            return
+
+        pool_config = workshop.seats_on_demand.get('resourcePool', {})
+        pool_name = pool_config.get('name', f"__{workshop.name}-pool")
+        try:
+            await Babylon.custom_objects_api.delete_namespaced_custom_object(
+                group=Babylon.poolboy_domain,
+                name=pool_name,
+                namespace=Babylon.poolboy_namespace,
+                plural='resourcepools',
+                version=Babylon.poolboy_api_version,
+            )
+            logger.info(f"Deleted ResourcePool {pool_name} for {workshop}")
+        except k8sApiException as exception:
+            if exception.status != 404:
+                raise
+            logger.info(f"ResourcePool {pool_name} already deleted for {workshop}")
+
+    async def _update_workshop_resource_pool_status(self, workshop, pool, logger):
+        """Update Workshop status.resourcePool with the created pool reference."""
+        pool_meta = pool['metadata']
+        await workshop.merge_patch_status({
+            "resourcePool": {
+                "name": pool_meta['name'],
+                "namespace": pool_meta['namespace'],
+                "uid": pool_meta['uid'],
+            }
+        })
+        logger.info(f"Updated resourcePool status for {workshop}")
+
     async def create_resource_claim(self, logger, workshop):
         logger.debug(
             f"Creating ResourceClaim for {self.name} in namespace {self.namespace}"
@@ -295,6 +448,7 @@ class WorkshopProvision(CachedKopfObject):
     async def handle_delete(self, logger):
         try:
             workshop = await self.get_workshop()
+            await self.delete_resource_pool(logger=logger, workshop=workshop)
             await workshop.remove_workshop_provision_from_status(self, logger=logger)
         except k8sApiException as exception:
             if exception.status != 404:
@@ -347,7 +501,10 @@ class WorkshopProvision(CachedKopfObject):
             await self.manage_action_schedule_and_lifespan(
                 logger=logger, workshop=workshop
             )
-            await self.manage_resource_claims(logger=logger, workshop=workshop)
+            if workshop.seats_on_demand_enabled:
+                await self.create_or_update_resource_pool(logger=logger, workshop=workshop)
+            else:
+                await self.manage_resource_claims(logger=logger, workshop=workshop)
 
     async def manage_action_schedule_and_lifespan(self, logger, workshop):
         patch = {}

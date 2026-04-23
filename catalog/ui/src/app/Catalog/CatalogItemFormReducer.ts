@@ -12,6 +12,14 @@ type UserProps = {
   isAdmin: boolean;
   roles: string[];
 };
+type SeatsOnDemandProps = {
+  enabled: boolean;
+  seatExpiration: string;
+  resourcePoolName: string;
+  providerName: string;
+  providerNamespace: string;
+  minAvailable: number;
+};
 type WorkshopProps = {
   userRegistration: string;
   accessPassword: string;
@@ -20,6 +28,7 @@ type WorkshopProps = {
   provisionCount: number;
   provisionConcurrency: number;
   provisionStartDelay: number;
+  seatsOnDemand?: SeatsOnDemandProps;
 };
 type FormState = {
   user: UserProps;
