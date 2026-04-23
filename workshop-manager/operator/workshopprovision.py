@@ -136,6 +136,19 @@ class WorkshopProvision(CachedKopfObject):
             if resource_provider.has_parameter(key)
         }
 
+        annotations = {
+            Babylon.display_name_annotation: f"On-demand pool for workshop {workshop.name}",
+            Babylon.workshop_namespace_annotation: workshop.namespace,
+        }
+        if 'purpose' in self.parameters:
+            annotations[Babylon.purpose_annotation] = self.parameters['purpose']
+        if 'purpose_activity' in self.parameters:
+            annotations[Babylon.purpose_activity_annotation] = self.parameters['purpose_activity']
+        if 'salesforce_id' in self.parameters:
+            annotations[Babylon.salesforce_id_annotation] = self.parameters['salesforce_id']
+        if 'salesforce_items' in self.parameters:
+            annotations[Babylon.salesforce_items_annotation] = self.parameters['salesforce_items']
+
         return {
             "apiVersion": f"{Babylon.poolboy_domain}/{Babylon.poolboy_api_version}",
             "kind": "ResourcePool",
@@ -146,10 +159,7 @@ class WorkshopProvision(CachedKopfObject):
                     Babylon.workshop_label: workshop.name,
                     Babylon.workshop_uid_label: workshop.uid,
                 },
-                "annotations": {
-                    Babylon.display_name_annotation: f"On-demand pool for workshop {workshop.name}",
-                    Babylon.workshop_namespace_annotation: workshop.namespace,
-                },
+                "annotations": annotations,
             },
             "spec": {
                 "minAvailable": min_available,
