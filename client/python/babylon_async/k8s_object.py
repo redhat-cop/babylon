@@ -43,6 +43,14 @@ class K8sObject:
             yield cls(client=client, definition=definition)
 
     @property
+    def creation_datetime(self) -> datetime:
+        return self.metadata.creation_datetime
+
+    @property
+    def creation_timestamp(self) -> str:
+        return self.metadata.creation_timestamp
+
+    @property
     def name(self) -> str:
         return self.metadata.name
 

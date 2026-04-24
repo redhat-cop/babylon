@@ -28,7 +28,7 @@ async def fix_runs(anarchy_subject, dry_run=False):
         elif anarchy_run.is_queued:
             if (
                 oldest_queued_run is None or
-                oldest_queued_run.metadata.creation_datetime > anarchy_run.metadata.creation_datetime
+                oldest_queued_run.creation_datetime > anarchy_run.creation_datetime
             ):
                 oldest_queued_run = anarchy_run
     if not has_active_run and oldest_queued_run is not None:
