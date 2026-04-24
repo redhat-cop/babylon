@@ -1,19 +1,16 @@
 import re
-
 from datetime import datetime, timezone
-from pydantic.utils import deep_update
 
 import kopf
-
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
-
-from babylon import Babylon
-from cachedkopfobject import CachedKopfObject
+from pydantic.utils import deep_update
 
 import catalogitem
 import resourceclaim
 import resourceprovider
 import workshop as workshop_import
+from babylon import Babylon
+from cachedkopfobject import CachedKopfObject
 
 
 class WorkshopProvision(CachedKopfObject):
@@ -300,7 +297,8 @@ class WorkshopProvision(CachedKopfObject):
             if exception.status != 404:
                 logger.exception(
                     "Failed to remove from workshop %s status while handling delete for %s",
-                    self.workshop_name, self
+                    self.workshop_name,
+                    self,
                 )
         async with self.lock:
             logger.info(f"Handling delete for {self}")
@@ -413,6 +411,7 @@ class WorkshopProvision(CachedKopfObject):
         resource_claim_count = 0
         provisioning_count = 0
         failed_count = 0
+        active_count = 0
 
         async for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
@@ -422,20 +421,26 @@ class WorkshopProvision(CachedKopfObject):
                 start_datetime=self.action_schedule_start,
                 stop_datetime=self.action_schedule_stop,
             )
-            if not resource_claim.provision_complete:
+            if resource_claim.provision_complete:
+                if resource_claim.is_failed:
+                    failed_count += 1
+                else:
+                    active_count += 1
+            else:
                 provisioning_count += 1
-
-            if resource_claim.is_failed:
-                failed_count += 1
 
         # Store counts in WorkshopProvision status
         # We don't know how many failed resourceclaims were deleted, so can't
         # accurately count retries
-        await self.merge_patch_status({
-            "resourceClaimCount": resource_claim_count,
-            "failedCount": failed_count,
-            "retryCount": failed_count,
-        })
+        await self.merge_patch_status(
+            {
+                "resourceClaimCount": resource_claim_count,
+                "failedCount": failed_count,
+                "retryCount": failed_count,
+                "activeCount": active_count,
+                "provisioningCount": provisioning_count,
+            }
+        )
 
         # Do not start any provisions if lifespan start is in the future
         if self.lifespan_start and self.lifespan_start > datetime.now(timezone.utc):
