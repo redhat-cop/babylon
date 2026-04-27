@@ -32,6 +32,7 @@ class Babylon():
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
     service_access_annotation = f"{babylon_domain}/service-access"
     url_annotation = f"{babylon_domain}/url"
+    multi_workshop_id_label = f"{babylon_domain}/multi-workshop-id"
     workshop_label = f"{babylon_domain}/workshop"
     workshop_id_label = f"{babylon_domain}/workshop-id"
     workshop_uid_label = f"{babylon_domain}/workshop-uid"

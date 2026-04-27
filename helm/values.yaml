@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.2.3
+        tag: v1.2.4
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -145,7 +145,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.34.3
+        tag: v0.34.4
       replicaCount: 1
       resources:
         requests:
@@ -244,7 +244,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.10.4
+    tag: v0.10.5
   namespace:
     create: true
     name: babylon-workshop-manager

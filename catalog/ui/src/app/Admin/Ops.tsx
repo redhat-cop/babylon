@@ -2184,8 +2184,8 @@ const Ops: React.FC = () => {
                           <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
                           <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
                           <td>
-                            {isMultiAsset && mw ? (
-                              <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
+                            {isMultiAsset && mw?.metadata?.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
+                              <a href={`${window.location.origin}/event/${mw.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
                                 target="_blank" rel="noopener noreferrer" className="ops-ws-link"
                                 onClick={e => e.stopPropagation()}>
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page

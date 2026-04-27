@@ -97,6 +97,20 @@ class MultiWorkshop(CachedKopfObject):
         return self.spec.get('readyByDate')
 
     @property
+    def multi_workshop_id(self):
+        return self.labels.get(Babylon.multi_workshop_id_label)
+
+    @property
+    def portal_url(self):
+        return self.status.get('portalURL')
+
+    @property
+    def _effective_base_url(self):
+        if Babylon.workshop_base_url:
+            return Babylon.workshop_base_url
+        return ''
+
+    @property
     def created_by(self):
         return self.annotations.get(f'{Babylon.babylon_domain}/created-by', '')
 
@@ -564,14 +578,49 @@ class MultiWorkshop(CachedKopfObject):
 
         return False
 
+    async def __manage_multi_workshop_id_label(self, logger):
+        """Generate a unique multi-workshop-id label to provide a short URL for the portal."""
+        if self.multi_workshop_id:
+            if not self.portal_url:
+                portal_url = f"{self._effective_base_url}/event/{self.multi_workshop_id}"
+                await self.merge_patch_status({"portalURL": portal_url})
+                logger.info(f"Set portalURL {portal_url} for {self}")
+            return
+
+        while True:
+            multi_workshop_id = ''.join(random.choice('23456789abcdefghjkmnpqrstuvwxyz') for i in range(6))
+            workshop_list = await Babylon.custom_objects_api.list_cluster_custom_object(
+                group=self.api_group,
+                version=self.api_version,
+                plural=self.plural,
+                label_selector=f"{Babylon.multi_workshop_id_label}={multi_workshop_id}",
+            )
+            if not workshop_list.get('items'):
+                break
+
+        await self.merge_patch({
+            "metadata": {
+                "labels": {
+                    Babylon.multi_workshop_id_label: multi_workshop_id,
+                }
+            }
+        })
+        logger.info(f"Assigned multi-workshop-id {multi_workshop_id} to {self}")
+
+        portal_url = f"{self._effective_base_url}/event/{multi_workshop_id}"
+        await self.merge_patch_status({"portalURL": portal_url})
+        logger.info(f"Set portalURL {portal_url} for {self}")
+
     async def handle_create(self, logger):
         """Handle MultiWorkshop creation."""
         logger.info(f"MultiWorkshop {self.name} created")
+        await self.__manage_multi_workshop_id_label(logger=logger)
         await self.create_workshops_for_assets(logger)
 
     async def handle_update(self, logger):
         """Handle MultiWorkshop updates."""
         logger.debug(f"MultiWorkshop {self.name} updated")
+        await self.__manage_multi_workshop_id_label(logger=logger)
         await self.sync_workshops_schedule(logger)
 
     async def handle_delete(self, logger):
@@ -581,6 +630,7 @@ class MultiWorkshop(CachedKopfObject):
     async def handle_resume(self, logger):
         """Handle MultiWorkshop resume."""
         logger.info(f"MultiWorkshop {self.name} resumed")
+        await self.__manage_multi_workshop_id_label(logger=logger)
 
     @property
     def end_datetime(self):
