@@ -731,18 +731,20 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
+                  {multiworkshop.metadata.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Portal URL</DescriptionListTerm>
                     <DescriptionListDescription>
                       <Link
-                        to={`/event/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                        to={`/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        {`${window.location.origin}/event/${multiworkshop.metadata.namespace}/${multiworkshop.metadata.name}`}
+                        {`${window.location.origin}/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
                       </Link>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  ) : null}
 
                   {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
                     <DescriptionListGroup>

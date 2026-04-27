@@ -136,17 +136,15 @@ const ProductFamilyFilter: React.FC<{
 };
 
 const MultiWorkshopLandingComponent: React.FC<{
-  namespace: string;
-  multiworkshopName: string;
-}> = ({ namespace, multiworkshopName }) => {
+  multiWorkshopId: string;
+}> = ({ multiWorkshopId }) => {
   const {
     data: multiworkshop,
     error,
     isLoading
   } = useSWR<MultiWorkshop>(
     apiPaths.PUBLIC_MULTIWORKSHOP({
-      namespace: namespace,
-      multiworkshopName: multiworkshopName,
+      multiWorkshopId: multiWorkshopId,
     }),
     publicFetcher,
     {
@@ -306,9 +304,9 @@ const MultiWorkshopLandingComponent: React.FC<{
 };
 
 const MultiWorkshopLanding: React.FC = () => {
-  const { namespace, name } = useParams<{ namespace: string; name: string }>();
+  const { multiWorkshopId } = useParams<{ multiWorkshopId: string }>();
 
-  if (!namespace || !name) {
+  if (!multiWorkshopId) {
     return (
       <div className="multi-workshop-landing">
         <div className="container" style={{ padding: '24px' }}>
@@ -322,8 +320,7 @@ const MultiWorkshopLanding: React.FC = () => {
 
   return (
     <MultiWorkshopLandingComponent
-      namespace={namespace}
-      multiworkshopName={name}
+      multiWorkshopId={multiWorkshopId}
     />
   );
 };
