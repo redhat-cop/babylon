@@ -925,7 +925,7 @@ async def public_multiworkshop_get(request):
             if asset_type == 'external':
                 asset_url = asset.get('url', '')
                 parsed = urlparse(asset_url)
-                if parsed.hostname == 'zero.rhdp.net' and parsed.path:
+                if parsed.path and parsed.path.strip('/').split('/')[0] == 'lab-event':
                     catalog_item_name = parsed.path.rstrip('/').split('/')[-1]
                     try:
                         handles_resp = await custom_objects_api.list_namespaced_custom_object(
