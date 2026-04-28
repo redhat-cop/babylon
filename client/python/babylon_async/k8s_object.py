@@ -74,6 +74,16 @@ class K8sObject:
             setattr(cls, '__cache__', {})
         cls.__cache__[(self.name, self.namespace)] = self
 
+    def as_reference(self) -> Mapping:
+        ret = {
+            "apiVersion": self.api_group_version,
+            "kind": self.kind,
+            "name": self.name,
+        }
+        if self.namespace is not None:
+            ret['namespace'] = self.namespace
+        return ret
+
     def update_definition(self, definition: Mapping) -> None:
         self.definition = definition
         self.metadata = K8sObjectMetadata(definition['metadata'])
