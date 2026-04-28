@@ -17,7 +17,10 @@ class K8sObject:
         return f"{self.kind} {self.name} in {self.namespace}"
 
     @classmethod
-    async def get(cls, client, name:str, namespace:str|None=None):
+    async def get(cls, client, name:str, namespace:str|None=None, cache:bool=False):
+        if cache and hasattr(cls, '__cache__') and (name, namespace) in cls.__cache__:
+            return cls.__cache__.get((name, namespace))
+
         definition = await client.get_object(
             group=cls.api_group,
             name=name,
@@ -25,7 +28,10 @@ class K8sObject:
             plural=cls.plural,
             version=cls.api_version,
         )
-        return cls(client=client, definition=definition)
+        obj = cls(client=client, definition=definition)
+        if cache:
+            obj.__cache_put()
+        return obj
 
     @classmethod
     async def list(cls,
@@ -61,6 +67,12 @@ class K8sObject:
     @property
     def uid(self) -> str:
         return self.metadata.uid
+
+    def __cache_put(self) -> None:
+        cls = self.__class__
+        if not hasattr(cls, '__cache__'):
+            setattr(cls, '__cache__', {})
+        cls.__cache__[(self.name, self.namespace)] = self
 
     def update_definition(self, definition: Mapping) -> None:
         self.definition = definition
