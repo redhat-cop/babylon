@@ -17,6 +17,8 @@ from .catalogitem import CatalogItem
 from .exceptions import BabylonApiException
 from .namespace import Namespace
 from .resourceclaim import ResourceClaim
+from .resourcepool import ResourcePool
+from .resourceprovider import ResourceProvider
 from .user import User
 
 class BabylonClient:
@@ -302,6 +304,16 @@ class BabylonClient:
     async def get_catalog_item(self, name:str, namespace:str) -> CatalogItem:
         return await CatalogItem.get(client=self, name=name, namespace=namespace)
 
+    async def list_catalog_items(self,
+        label_selector:str|None=None,
+        namespace:str|None=None,
+    ) -> Generator[CatalogItem, None, None]:
+        async for catalog_item in CatalogItem.list(
+            client=self,
+            label_selector=label_selector,
+        ):
+            yield catalog_item
+
     # Namespace methods
     async def get_namespace(self, name:str) -> Namespace:
         return await Namespace.get(client=self, name=name)
@@ -360,6 +372,34 @@ class BabylonClient:
             namespace=namespace,
         ):
             yield resource_claim
+
+    # ResourcePool methods
+    async def get_resource_pool(self, name:str) -> ResourcePool:
+        return await ResourcePool.get(client=self, name=name, namespace="poolboy")
+
+    async def list_resource_pools(self,
+        label_selector:str|None=None,
+    ) -> Generator[ResourcePool, None, None]:
+        async for resource_pool in ResourcePool.list(
+            client=self,
+            label_selector=label_selector,
+            namespace="poolboy",
+        ):
+            yield resource_pool
+
+    # ResourceProvider methods
+    async def get_resource_provider(self, name:str, cache:bool=False) -> ResourceProvider:
+        return await ResourceProvider.get(cache=cache, client=self, name=name, namespace="poolboy")
+
+    async def list_resource_providers(self,
+        label_selector:str|None=None,
+    ) -> Generator[ResourceProvider, None, None]:
+        async for resource_provider in ResourceProvider.list(
+            client=self,
+            label_selector=label_selector,
+            namespace="poolboy",
+        ):
+            yield resource_provider
 
     # User methods
     async def get_current_user(self) -> User:

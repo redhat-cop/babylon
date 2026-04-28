@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import pytimeparse
 
 from .k8s_object import K8sObject
+from .resourceprovider import ResourceProvider
 
 class CatalogItem(K8sObject):
     api_group = "babylon.gpte.redhat.com"
@@ -31,8 +32,18 @@ class CatalogItem(K8sObject):
         return self.spec.display_name
 
     @property
+    def parameters(self) -> list[CatalogItemSpecParameter]:
+        return self.spec.parameters
+
+    @property
     def provider(self) -> str:
         return self.metadata.labels.get('babylon.gpte.redhat.com/Provider')
+
+    async def get_resource_provider(self, cache:bool=False) -> ResourceProvider:
+        return await self.client.get_resource_provider(
+            cache=cache,
+            name=self.name,
+        )
 
 class CatalogItemSpec:
     def __init__(self, definition):
@@ -52,6 +63,10 @@ class CatalogItemSpec:
         self.lifespan = (
             CatalogItemSpecLifespan(definition['lifespan'])
             if 'lifespan' in definition else None
+        )
+        self.parameters = (
+            CatalogItemSpecParameter(item)
+            for item in definition.get('parameters', [])
         )
         self.runtime = (
             CatalogItemSpecLifespan(definition['runtime'])
@@ -169,6 +184,46 @@ class CatalogItemSpecLifespan:
     @property
     def relative_maximum(self) -> timedelta:
         return timedelta(seconds=pytimeparse.parse(self.definition['relativeMaximum']))
+
+class CatalogItemSpecParameter:
+    def __init__(self, definition):
+        self.definition = definition
+
+    @property
+    def annotation(self) -> str|None:
+        return self.definition.get('annotation')
+
+    @property
+    def description(self) -> str|None:
+        return self.definition.get('description')
+
+    @property
+    def default(self) -> Any:
+        return self.openapi_v3_schema.get('default')
+
+    @property
+    def form_label(self) -> str|None:
+        return self.definition.get('formLabel')
+
+    @property
+    def form_require_condition(self) -> str|None:
+        return self.definition.get('formRequireCondition')
+
+    @property
+    def name(self) -> str:
+        return self.definition['name']
+
+    @property
+    def openapi_v3_schema(self) -> Mapping|None:
+        return self.definition.get('openAPIV3Schema')
+
+    @property
+    def required(self) -> bool:
+        return self.definition.get('required', False)
+
+    @property
+    def validation(self) -> str|None:
+        return self.definition.get('validation')
 
 class CatalogItemSpecRuntime:
     def __init__(self, definition):
