@@ -84,9 +84,12 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 
 	if rc.Status != nil {
 		if len(rc.Status.Resources) > 0 {
-			fmt.Fprintf(w, "\nResources:\n")
-			t := output.NewTable("NAME", "STATE", "HEALTHY", "GOVERNOR", "GUID")
-			for _, r := range rc.Status.Resources {
+			for i, r := range rc.Status.Resources {
+				rName := r.Name
+				if rName == "" && r.Provider != nil {
+					rName = r.Provider.Name
+				}
+
 				state := ""
 				healthy := ""
 				governor := ""
@@ -107,36 +110,40 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 						}
 					}
 				}
-				rName := r.Name
-				if rName == "" && r.Provider != nil {
-					rName = r.Provider.Name
-				}
-				t.AddRow(rName, state, healthy, governor, guid)
-			}
-			t.Render(w)
 
-			// Print tower jobs per resource
-			for _, r := range rc.Status.Resources {
-				if r.State == nil || r.State.Status == nil || len(r.State.Status.TowerJobs) == 0 {
-					continue
+				if i > 0 {
+					fmt.Fprintln(w)
 				}
-				rName := r.Name
-				if rName == "" && r.State.Metadata.Name != "" {
-					rName = r.State.Metadata.Name
+				fmt.Fprintf(w, "\nResource:    %s\n", rName)
+				if state != "" {
+					fmt.Fprintf(w, "  State:     %s\n", state)
 				}
-				fmt.Fprintf(w, "\n  Tower Jobs (%s):\n", rName)
-				for action, job := range r.State.Status.TowerJobs {
-					status := "running"
-					if job.CompleteTimestamp != "" {
-						status = "completed " + job.CompleteTimestamp
-					}
-					fmt.Fprintf(w, "    %-12s %s (started %s)\n", action, status, job.StartTimestamp)
-					if job.TowerJobURL != "" {
-						jobURL := job.TowerJobURL
-						if !strings.HasPrefix(jobURL, "http://") && !strings.HasPrefix(jobURL, "https://") {
-							jobURL = "https://" + jobURL
+				if healthy != "" {
+					fmt.Fprintf(w, "  Healthy:   %s\n", healthy)
+				}
+				if governor != "" {
+					fmt.Fprintf(w, "  Governor:  %s\n", governor)
+				}
+				if guid != "" {
+					fmt.Fprintf(w, "  GUID:      %s\n", guid)
+				}
+
+				// Tower jobs for this resource
+				if r.State != nil && r.State.Status != nil && len(r.State.Status.TowerJobs) > 0 {
+					fmt.Fprintf(w, "  Jobs:\n")
+					for action, job := range r.State.Status.TowerJobs {
+						status := "running"
+						if job.CompleteTimestamp != "" {
+							status = "completed " + job.CompleteTimestamp
 						}
-						fmt.Fprintf(w, "%-16s %s\n", "", jobURL)
+						fmt.Fprintf(w, "    %-12s %s (started %s)\n", action, status, job.StartTimestamp)
+						if job.TowerJobURL != "" {
+							jobURL := job.TowerJobURL
+							if !strings.HasPrefix(jobURL, "http://") && !strings.HasPrefix(jobURL, "https://") {
+								jobURL = "https://" + jobURL
+							}
+							fmt.Fprintf(w, "                 %s\n", jobURL)
+						}
 					}
 				}
 			}
