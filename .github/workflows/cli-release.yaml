@@ -1,0 +1,69 @@
+---
+name: cli-release
+on:
+  push:
+    tags:
+      - "cli-v[0-9]*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. v0.1.0)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/cli-}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        working-directory: cli
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          EXT=""
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then EXT=".exe"; fi
+          OUTPUT="babylon-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          go build \
+            -ldflags="-X 'main.version=${{ steps.version.outputs.VERSION }}' -X 'main.buildCommit=${{ github.sha }}' -X 'main.buildTime=$(date -u)'" \
+            -o "../build/${OUTPUT}" .
+          cd ../build && sha256sum "${OUTPUT}" > "${OUTPUT}.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: babylon-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: build/babylon-*
+
