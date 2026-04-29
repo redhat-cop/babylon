@@ -130,12 +130,15 @@ func browserLogin(server string, insecure bool) error {
 		token := r.FormValue("token")
 		user := r.FormValue("user")
 
-		// Collect cookies (form fields prefixed with "cookie_")
+		// Collect only the OAuth proxy cookie — ignore browser
+		// tracking/analytics cookies that the callback also receives.
 		cookies := make(map[string]string)
 		for key, values := range r.Form {
 			if strings.HasPrefix(key, "cookie_") && len(values) > 0 {
 				cookieName := strings.TrimPrefix(key, "cookie_")
-				cookies[cookieName] = values[0]
+				if strings.HasPrefix(cookieName, "__oauth_proxy") {
+					cookies[cookieName] = values[0]
+				}
 			}
 		}
 
