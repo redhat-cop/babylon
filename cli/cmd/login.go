@@ -25,17 +25,27 @@ var (
 var loginCmd = &cobra.Command{
 	Use:   "login [server-url]",
 	Short: "Log in to a Babylon instance",
-	Long: `Log in to a Babylon instance. The server URL is the Babylon catalog URL.
+	Long: `Log in to a Babylon instance.
+
+The server URL is the Babylon web UI URL — the same URL you use
+in your browser to access the catalog (e.g. demo.redhat.com).
+You do not need a special API endpoint.
 
 Authentication opens your browser to the Babylon login page.
 After you log in, the CLI receives your session automatically.
 
 Examples:
-  # Login via browser (default)
+  # Login using the web UI URL
   babylon login demo.redhat.com
 
+  # Full URL works too
+  babylon login https://demo.redhat.com
+
   # Login and accept self-signed certificates
-  babylon login demo.redhat.com --insecure`,
+  babylon login demo.redhat.com --insecure
+
+  # Use --server flag instead of positional argument
+  babylon login --server demo.redhat.com`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Resolve server URL
