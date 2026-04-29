@@ -2,6 +2,8 @@
 name: cli-release
 on:
   push:
+    branches:
+      - cli  # temporary: remove after testing
     tags:
       - "cli-v[0-9]*"
   workflow_dispatch:
