@@ -21,7 +21,9 @@ var catalogDescribeCmd = &cobra.Command{
 		var ci *types.CatalogItem
 		var err error
 
-		if namespace != "" {
+		// Only use explicit -n flag for catalog lookups, not the default
+		// service namespace (which would always 403).
+		if cmd.Flags().Changed("namespace") {
 			ci, err = apiClient.GetCatalogItem(namespace, name)
 		} else {
 			ci, err = apiClient.FindCatalogItem(name)
