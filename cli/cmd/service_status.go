@@ -113,7 +113,11 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 					}
 					fmt.Fprintf(w, "    %-12s %s (started %s)\n", action, status, job.StartTimestamp)
 					if job.TowerJobURL != "" {
-						fmt.Fprintf(w, "%-16s %s\n", "", job.TowerJobURL)
+						jobURL := job.TowerJobURL
+						if !strings.HasPrefix(jobURL, "http://") && !strings.HasPrefix(jobURL, "https://") {
+							jobURL = "https://" + jobURL
+						}
+						fmt.Fprintf(w, "%-16s %s\n", "", jobURL)
 					}
 				}
 			}
