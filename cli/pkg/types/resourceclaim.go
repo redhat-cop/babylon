@@ -46,10 +46,11 @@ type ResourceClaimStatus struct {
 }
 
 type ResourceClaimSummary struct {
-	State          string `json:"state,omitempty" yaml:"state,omitempty"`
-	RuntimeDefault string `json:"runtime_default,omitempty" yaml:"runtime_default,omitempty"`
-	RuntimeMaximum string `json:"runtime_maximum,omitempty" yaml:"runtime_maximum,omitempty"`
-	ErrorMessage   string `json:"error_message,omitempty" yaml:"error_message,omitempty"`
+	State          string                 `json:"state,omitempty" yaml:"state,omitempty"`
+	RuntimeDefault string                 `json:"runtime_default,omitempty" yaml:"runtime_default,omitempty"`
+	RuntimeMaximum string                 `json:"runtime_maximum,omitempty" yaml:"runtime_maximum,omitempty"`
+	ErrorMessage   string                 `json:"error_message,omitempty" yaml:"error_message,omitempty"`
+	ProvisionData  map[string]interface{} `json:"provision_data,omitempty" yaml:"provision_data,omitempty"`
 }
 
 type ResourceClaimLifespanStatus struct {
@@ -80,10 +81,19 @@ type AnarchySubjectSpec struct {
 }
 
 type AnarchySubjectVars struct {
-	CurrentState   string                  `json:"current_state,omitempty" yaml:"current_state,omitempty"`
-	DesiredState   string                  `json:"desired_state,omitempty" yaml:"desired_state,omitempty"`
-	ActionSchedule *AnarchyActionSchedule  `json:"action_schedule,omitempty" yaml:"action_schedule,omitempty"`
-	Healthy        *bool                   `json:"healthy,omitempty" yaml:"healthy,omitempty"`
+	CurrentState      string                 `json:"current_state,omitempty" yaml:"current_state,omitempty"`
+	DesiredState      string                 `json:"desired_state,omitempty" yaml:"desired_state,omitempty"`
+	ActionSchedule    *AnarchyActionSchedule `json:"action_schedule,omitempty" yaml:"action_schedule,omitempty"`
+	Healthy           *bool                  `json:"healthy,omitempty" yaml:"healthy,omitempty"`
+	ProvisionData     map[string]interface{} `json:"provision_data,omitempty" yaml:"provision_data,omitempty"`
+	ProvisionMessages []string               `json:"provision_messages,omitempty" yaml:"provision_messages,omitempty"`
+	StatusMessages    []string               `json:"status_messages,omitempty" yaml:"status_messages,omitempty"`
+	JobVars           *JobVars               `json:"job_vars,omitempty" yaml:"job_vars,omitempty"`
+}
+
+type JobVars struct {
+	GUID string `json:"guid,omitempty" yaml:"guid,omitempty"`
+	UUID string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
 
 type AnarchyActionSchedule struct {
