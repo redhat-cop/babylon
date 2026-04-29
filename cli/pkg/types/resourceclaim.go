@@ -109,6 +109,7 @@ type AnarchySubjectStatus struct {
 }
 
 type AnarchyTowerJob struct {
+	TowerJobURL       string `json:"towerJobURL,omitempty" yaml:"towerJobURL,omitempty"`
 	StartTimestamp    string `json:"startTimestamp,omitempty" yaml:"startTimestamp,omitempty"`
 	CompleteTimestamp string `json:"completeTimestamp,omitempty" yaml:"completeTimestamp,omitempty"`
 }

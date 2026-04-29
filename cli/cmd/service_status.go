@@ -106,11 +106,16 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 					rName = r.State.Metadata.Name
 				}
 				fmt.Fprintf(w, "\n  Tower Jobs (%s):\n", rName)
-				jt := output.NewTable("ACTION", "STARTED", "COMPLETED")
 				for action, job := range r.State.Status.TowerJobs {
-					jt.AddRow(action, job.StartTimestamp, job.CompleteTimestamp)
+					status := "running"
+					if job.CompleteTimestamp != "" {
+						status = "completed " + job.CompleteTimestamp
+					}
+					fmt.Fprintf(w, "    %-12s %s (started %s)\n", action, status, job.StartTimestamp)
+					if job.TowerJobURL != "" {
+						fmt.Fprintf(w, "%-16s %s\n", "", job.TowerJobURL)
+					}
 				}
-				jt.Render(w)
 			}
 		}
 
