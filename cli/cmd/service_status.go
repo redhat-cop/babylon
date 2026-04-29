@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -71,7 +72,7 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 
 	if rc.Spec.Lifespan != nil {
 		if rc.Spec.Lifespan.End != "" {
-			fmt.Fprintf(w, "Lifespan End: %s\n", rc.Spec.Lifespan.End)
+			fmt.Fprintf(w, "Lifespan End: %s (%s)\n", rc.Spec.Lifespan.End, humanDuration(rc.Spec.Lifespan.End))
 		}
 	}
 
@@ -222,6 +223,52 @@ func sortedKeys(m map[string]interface{}) []string {
 func isURLKey(k string) bool {
 	lower := strings.ToLower(k)
 	return strings.Contains(lower, "url") || strings.Contains(lower, "endpoint") || strings.Contains(lower, "console")
+}
+
+// humanDuration parses an RFC3339 timestamp and returns a human-readable
+// relative duration like "in 23h", "2d ago", "in 5m".
+func humanDuration(ts string) string {
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		return ""
+	}
+	d := time.Until(t)
+	past := d < 0
+	if past {
+		d = -d
+	}
+
+	var s string
+	switch {
+	case d < time.Minute:
+		s = "now"
+	case d < time.Hour:
+		s = fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		h := int(d.Hours())
+		m := int(d.Minutes()) % 60
+		if m > 0 {
+			s = fmt.Sprintf("%dh%dm", h, m)
+		} else {
+			s = fmt.Sprintf("%dh", h)
+		}
+	default:
+		days := int(d.Hours()) / 24
+		h := int(d.Hours()) % 24
+		if h > 0 {
+			s = fmt.Sprintf("%dd%dh", days, h)
+		} else {
+			s = fmt.Sprintf("%dd", days)
+		}
+	}
+
+	if s == "now" {
+		return s
+	}
+	if past {
+		return s + " ago"
+	}
+	return "in " + s
 }
 
 func init() {
