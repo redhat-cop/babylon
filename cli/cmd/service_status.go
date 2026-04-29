@@ -43,6 +43,10 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 		}
 	}
 
+	if rc.Spec.Provider != nil {
+		fmt.Fprintf(w, "Provider:    %s\n", rc.Spec.Provider.Name)
+	}
+
 	if rc.Status != nil {
 		if rc.Status.Summary != nil {
 			fmt.Fprintf(w, "State:       %s\n", rc.Status.Summary.State)
@@ -63,7 +67,22 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 		if rc.Status.ResourceHandle != nil {
 			fmt.Fprintf(w, "Handle:      %s/%s\n", rc.Status.ResourceHandle.Namespace, rc.Status.ResourceHandle.Name)
 		}
+	}
 
+	if rc.Spec.Lifespan != nil {
+		if rc.Spec.Lifespan.End != "" {
+			fmt.Fprintf(w, "Lifespan End: %s\n", rc.Spec.Lifespan.End)
+		}
+	}
+
+	// URL from annotations
+	if rc.Metadata.Annotations != nil {
+		if url, ok := rc.Metadata.Annotations[types.BabylonDomain+"/url"]; ok {
+			fmt.Fprintf(w, "URL:         %s\n", url)
+		}
+	}
+
+	if rc.Status != nil {
 		if len(rc.Status.Resources) > 0 {
 			fmt.Fprintf(w, "\nResources:\n")
 			t := output.NewTable("NAME", "STATE", "HEALTHY", "GOVERNOR", "GUID")
@@ -141,23 +160,6 @@ func printServiceStatus(w io.Writer, rc *types.ResourceClaim) {
 					fmt.Fprintf(w, "  %s: %v\n", k, val)
 				}
 			}
-		}
-	}
-
-	if rc.Spec.Provider != nil {
-		fmt.Fprintf(w, "\nProvider:     %s\n", rc.Spec.Provider.Name)
-	}
-
-	if rc.Spec.Lifespan != nil {
-		if rc.Spec.Lifespan.End != "" {
-			fmt.Fprintf(w, "Lifespan End: %s\n", rc.Spec.Lifespan.End)
-		}
-	}
-
-	// URL from annotations
-	if rc.Metadata.Annotations != nil {
-		if url, ok := rc.Metadata.Annotations[types.BabylonDomain+"/url"]; ok {
-			fmt.Fprintf(w, "URL:         %s\n", url)
 		}
 	}
 }
