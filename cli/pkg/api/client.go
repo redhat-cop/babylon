@@ -86,6 +86,14 @@ func IsNotFound(err error) bool {
 	return false
 }
 
+// IsForbidden returns true for 403 errors.
+func IsForbidden(err error) bool {
+	if apiErr, ok := err.(*APIError); ok {
+		return apiErr.StatusCode == 403
+	}
+	return false
+}
+
 // IsConflict returns true for 409 errors.
 func IsConflict(err error) bool {
 	if apiErr, ok := err.(*APIError); ok {

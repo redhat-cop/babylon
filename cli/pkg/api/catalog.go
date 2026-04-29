@@ -75,7 +75,7 @@ func (c *Client) FindCatalogItem(name string) (*types.CatalogItem, error) {
 	for _, ns := range c.CatalogNamespaces() {
 		item, err := c.GetCatalogItem(ns, name)
 		if err != nil {
-			if IsNotFound(err) {
+			if IsNotFound(err) || IsForbidden(err) {
 				continue
 			}
 			return nil, err
