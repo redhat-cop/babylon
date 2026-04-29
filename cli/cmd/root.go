@@ -111,7 +111,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/babylon/config.yaml)")
-	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "", "Babylon API server URL")
+	rootCmd.PersistentFlags().StringVar(&serverURL, "server", "", "Babylon web UI URL (e.g. demo.redhat.com)")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "target namespace")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "", "output format: table, json, yaml (default: table)")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug output")
