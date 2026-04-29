@@ -152,13 +152,14 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 		return nil
 	}
 
+	reqStart := time.Now()
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot reach Babylon API at %s: %w", c.BaseURL, err)
 	}
 	defer resp.Body.Close()
 
-	c.debugf("Response: %d %s", resp.StatusCode, resp.Status)
+	c.debugf("Response: %d %s (%s)", resp.StatusCode, resp.Status, time.Since(reqStart).Round(time.Millisecond))
 	if len(redirectChain) > 0 {
 		c.debugf("Redirect chain:")
 		for i, r := range redirectChain {
