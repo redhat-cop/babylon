@@ -5,3 +5,4 @@ notifier/values.yaml
 __pycache__
 .vscode
 .worktrees
+/cli/build
