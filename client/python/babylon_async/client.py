@@ -11,6 +11,7 @@ from kubernetes_asyncio.client import (
     ApiException as KubernetesApiException
 )
 
+from .anarchygovernor import AnarchyGovernor
 from .anarchyrun import AnarchyRun
 from .anarchysubject import AnarchySubject
 from .catalogitem import CatalogItem
@@ -266,6 +267,14 @@ class BabylonClient:
             body=patch,
             _content_type=content_type,
         )
+
+    # AnarchyGovernor methods
+    async def get_anarchy_governor(self,
+        name:str,
+        namespace:str,
+    ) -> AnarchyGovernor:
+        return await AnarchyGovernor.get(client=self, name=name, namespace=namespace)
+
 
     # AnarchyRun methods
     async def list_anarchy_runs(self,

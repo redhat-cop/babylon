@@ -13,23 +13,21 @@ template_merger = deepmerge.Merger(
     ["override"],
 )
 
-async def find_useless_pools(dry_run:bool=False):
+async def find_useless_pools():
     async with BabylonClient() as babylon:
         all_catalog_items = []
         async for catalog_item in babylon.list_catalog_items():
             all_catalog_items.append(catalog_item)
 
         async for resource_pool in babylon.list_resource_pools():
-            await delete_resource_pool_if_no_catalog_item(
+            await report_resource_pool_if_no_catalog_item(
                 all_catalog_items=all_catalog_items,
-                dry_run=dry_run,
                 resource_pool=resource_pool,
             )
 
-async def delete_resource_pool_if_no_catalog_item(
+async def report_resource_pool_if_no_catalog_item(
     all_catalog_items:list[CatalogItem],
     resource_pool:ResourcePool,
-    dry_run:bool=False,
 ):
     all_job_vars = {}
     for resource in resource_pool.spec.resources:
@@ -43,6 +41,7 @@ async def delete_resource_pool_if_no_catalog_item(
         parameter_values = {}
         for parameter in catalog_item.parameters:
             if parameter.name in all_job_vars:
+                # FIXME - also check that parameter value is still valid against current schema
                 parameter_values[parameter.name] = all_job_vars[parameter.name]
             elif parameter.default is not None:
                 parameter_values[parameter.name] = parameter.default
@@ -82,47 +81,15 @@ async def delete_resource_pool_if_no_catalog_item(
     else:
         print(f"{resource_pool} is useless!")
 
-
-    #    resource_providers = [resource_provider]
-
-#        async for anarchy_subject in babylon.list_anarchy_subjects(namespace=namespace):
-#            await fix_subject(anarchy_subject, dry_run=dry_run)
-#
-#async def fix_subject(anarchy_subject, dry_run=False):
-#    await fix_runs(anarchy_subject, dry_run=dry_run)
-#
-#async def fix_runs(anarchy_subject, dry_run=False):
-#    oldest_queued_run = None
-#    has_active_run = False
-#    async for anarchy_run in anarchy_subject.list_anarchy_runs():
-#        if anarchy_run.is_active:
-#            has_active_run = True
-#            if not await anarchy_run.check_runner_pod_exists():
-#                if dry_run:
-#                    print(f"{anarchy_run} references missing runner pod {anarchy_run.runner_pod_name}")
-#                else:
-#                    print(f"Resetting {anarchy_run} to pending due to reference missing runner pod {anarchy_run.runner_pod_name}")
-#                    await anarchy_run.set_runner_state('pending')
-#        elif anarchy_run.is_queued:
-#            if (
-#                oldest_queued_run is None or
-#                oldest_queued_run.creation_datetime > anarchy_run.creation_datetime
-#            ):
-#                oldest_queued_run = anarchy_run
-#    if not has_active_run and oldest_queued_run is not None:
-#        print(f"{oldest_queued_run} is queued but there are no active runs for {anarchy_subject}")
-
-
 async def main():
     from argparse import ArgumentParser
     argparser = ArgumentParser(
         prog="find-useless-pools.py",
         description="Find resource pools that cannot match any catalog items",
     )
-    argparser.add_argument("-d", "--dry-run", action='store_true')
     args = argparser.parse_args()
 
-    await find_useless_pools(dry_run=args.dry_run)
+    await find_useless_pools()
 
 if __name__ == '__main__':
     asyncio.run(main())
