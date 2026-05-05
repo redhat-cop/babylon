@@ -67,40 +67,26 @@ function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[], 
 async function fetchServices(namespace: string): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
-      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.RESOURCE_CLAIMS({
+        namespace,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
+        labelSelector: `!${BABYLON_DOMAIN}/workshop`,
+      }),
     )) as ResourceClaim[];
   }
   async function fetchWorkshops(namespace: string) {
-    return await fetcherItemsInAllPages((continueId) =>
+    return (await fetcherItemsInAllPages((continueId) =>
       apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
-    ).then(async (workshops: Workshop[]) => {
-      const workshopsEnrichedPromise: Promise<WorkshopWithResourceClaims>[] = [];
-      const workshopsEnriched: WorkshopWithResourceClaims[] = [];
-      for (const workshop of workshops) {
-        const _workshopEnriched: WorkshopWithResourceClaims = workshop;
-        workshopsEnrichedPromise.push(
-          fetcherItemsInAllPages((continueId) =>
-            apiPaths.RESOURCE_CLAIMS({
-              namespace: workshop.metadata.namespace,
-              labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-              limit: FETCH_BATCH_LIMIT,
-              continueId,
-            }),
-          ).then((r) => setResourceClaims(workshop, r, false)),
-        );
-        workshopsEnriched.push(_workshopEnriched);
-      }
-      await Promise.all(workshopsEnrichedPromise);
-      return workshopsEnriched;
-    });
+    )) as Workshop[];
   }
   async function fetchSharedServices(namespace: string) {
     const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
       apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     )) as ServiceAccess[];
-    
+
     const sharedServices: Service[] = [];
-    
+
     for (const serviceAccess of serviceAccesses) {
       try {
         if (serviceAccess.spec.kind === 'Workshop') {
@@ -110,17 +96,10 @@ async function fetchServices(namespace: string): Promise<Service[]> {
               workshopName: serviceAccess.spec.name,
             }),
           )) as Workshop;
-          
-          const resourceClaims = (await fetcherItemsInAllPages((continueId) =>
-            apiPaths.RESOURCE_CLAIMS({
-              namespace: workshop.metadata.namespace,
-              labelSelector: `${BABYLON_DOMAIN}/workshop=${workshop.metadata.name}`,
-              limit: FETCH_BATCH_LIMIT,
-              continueId,
-            }),
-          )) as ResourceClaim[];
-          
-          sharedServices.push(setResourceClaims(workshop, resourceClaims, true));
+
+          const workshopWithCollaborator: WorkshopWithResourceClaims = workshop;
+          workshopWithCollaborator.isCollaborator = true;
+          sharedServices.push(workshopWithCollaborator);
         } else if (serviceAccess.spec.kind === 'ResourceClaim') {
           const resourceClaim = (await fetcher(
             apiPaths.RESOURCE_CLAIM({
@@ -128,19 +107,19 @@ async function fetchServices(namespace: string): Promise<Service[]> {
               resourceClaimName: serviceAccess.spec.name,
             }),
           )) as ResourceClaim;
-          
+
           const resourceClaimWithCollaborator: ResourceClaimWithCollaborator = {
             ...resourceClaim,
             isCollaborator: true,
           };
-          
+
           sharedServices.push(resourceClaimWithCollaborator);
         }
       } catch (error) {
         console.warn(`Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`, error);
       }
     }
-    
+
     return sharedServices;
   }
   const services: Service[] = [];
@@ -150,6 +129,32 @@ async function fetchServices(namespace: string): Promise<Service[]> {
   promises.push(fetchSharedServices(namespace).then((s) => services.push(...s)));
   await Promise.all(promises);
   return services;
+}
+
+async function fetchWorkshopResourceClaims(
+  workshopNamespaces: string[],
+): Promise<Record<string, ResourceClaim[]>> {
+  const result: Record<string, ResourceClaim[]> = {};
+  const promises = workshopNamespaces.map(async (namespace) => {
+    const rcs = (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.RESOURCE_CLAIMS({
+        namespace,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
+        labelSelector: `${BABYLON_DOMAIN}/workshop`,
+      }),
+    )) as ResourceClaim[];
+    for (const rc of rcs) {
+      const wsName = rc.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`];
+      if (wsName) {
+        const key = `${namespace}/${wsName}`;
+        if (!result[key]) result[key] = [];
+        result[key].push(rc);
+      }
+    }
+  });
+  await Promise.all(promises);
+  return result;
 }
 
 const ServicesList: React.FC<{
@@ -188,16 +193,30 @@ const ServicesList: React.FC<{
     {
       refreshInterval: 8000,
       revalidateOnMount: true,
+      compare: (currentData, newData) => compareK8sObjectsArr(currentData, newData),
+    },
+  );
+
+  const workshopNamespaces = useMemo(() => {
+    if (!_services) return [];
+    return [...new Set(
+      _services
+        .filter((s) => s.kind === 'Workshop')
+        .map((s) => s.metadata.namespace),
+    )].sort();
+  }, [_services]);
+
+  const { data: workshopRCsMap } = useSWR<Record<string, ResourceClaim[]>>(
+    workshopNamespaces.length > 0 ? `workshop-rcs/${workshopNamespaces.join(',')}` : null,
+    () => fetchWorkshopResourceClaims(workshopNamespaces),
+    {
+      refreshInterval: 8000,
+      revalidateOnMount: true,
       compare: (currentData, newData) => {
-        const servicesEquals = compareK8sObjectsArr(currentData, newData);
-        const currentWorkshops = (currentData ?? []).filter(
-          (x) => x.kind === 'Workshop',
-        ) as WorkshopWithResourceClaims[];
-        const newWorkshops = (newData ?? []).filter((x) => x.kind === 'Workshop') as WorkshopWithResourceClaims[];
-        const currentWorkshopsResourceClaims = currentWorkshops.flatMap((x) => x.resourceClaims);
-        const newWorkshopsResourceClaims = newWorkshops.flatMap((x) => x.resourceClaims);
-        const instancesEquals = compareK8sObjectsArr(currentWorkshopsResourceClaims, newWorkshopsResourceClaims);
-        return servicesEquals && instancesEquals;
+        if (!currentData || !newData) return currentData === newData;
+        const allCurrentRCs = Object.values(currentData).flat();
+        const allNewRCs = Object.values(newData).flat();
+        return compareK8sObjectsArr(allCurrentRCs, allNewRCs);
       },
     },
   );
@@ -250,13 +269,26 @@ const ServicesList: React.FC<{
   );
 
   const services = useMemo(
-    () =>
-      _services
+    () => {
+      const enriched = (_services ?? []).map((service) => {
+        if (service.kind === 'Workshop') {
+          const ws = service as WorkshopWithResourceClaims;
+          const key = `${ws.metadata.namespace}/${ws.metadata.name}`;
+          const rcs = workshopRCsMap?.[key];
+          if (rcs !== undefined) {
+            return { ...ws, resourceClaims: rcs } as WorkshopWithResourceClaims;
+          }
+          return ws;
+        }
+        return service;
+      });
+      return enriched
         .filter(filterFn)
         .sort(
           (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
-        ),
-    [filterFn, _services],
+        );
+    },
+    [filterFn, _services, workshopRCsMap],
   );
 
   const revalidate = useCallback(

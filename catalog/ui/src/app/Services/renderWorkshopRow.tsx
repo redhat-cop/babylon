@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from '@patternfly/react-core';
 import { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
@@ -24,7 +25,6 @@ const renderWorkshopRow = ({
   workshop,
   showModal,
   isAdmin,
-  light = false,
 }: {
   workshop: WorkshopWithResourceClaims;
   showModal: ({
@@ -37,7 +37,6 @@ const renderWorkshopRow = ({
     workshop?: Workshop;
   }) => void;
   isAdmin: boolean;
-  light?: boolean;
 }) => {
   const isLocked = isWorkshopLocked(workshop);
   const actionHandlers = {
@@ -93,10 +92,13 @@ const renderWorkshopRow = ({
     </>
   );
   const guidCell = <span key="workshop-guid">-</span>;
+  const resourceClaimsLoaded = workshop.resourceClaims !== undefined;
   const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
   const statusCell = (
     <>
-      {activeResourceClaim ? (
+      {!resourceClaimsLoaded ? (
+        <Spinner size="md" />
+      ) : activeResourceClaim ? (
         <ServiceStatus resourceClaim={activeResourceClaim} />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
@@ -173,12 +175,8 @@ const renderWorkshopRow = ({
 
   return {
     cells: isAdmin
-      ? light
-        ? [nameCell, guidCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-        : [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-      : light
-        ? [nameCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-        : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
+      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };
 

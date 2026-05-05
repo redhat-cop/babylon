@@ -29,7 +29,6 @@ const renderResourceClaimRow = ({
   showModal,
   isAdmin,
   navigate,
-  light = false,
 }: {
   resourceClaim: ResourceClaimWithCollaborator;
   showModal: ({
@@ -43,7 +42,6 @@ const renderResourceClaimRow = ({
   }) => void;
   isAdmin: boolean;
   navigate: (n: string) => void;
-  light?: boolean;
 }) => {
   const resourceHandle = resourceClaim.status?.resourceHandle;
   const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
@@ -251,12 +249,8 @@ const renderResourceClaimRow = ({
 
   return {
     cells: isAdmin
-      ? light
-        ? [nameCell, guidCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-        : [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-      : light
-        ? [nameCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-        : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
+      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };
 
