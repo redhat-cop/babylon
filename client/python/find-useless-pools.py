@@ -41,8 +41,8 @@ async def report_resource_pool_if_no_catalog_item(
         parameter_values = {}
         for parameter in catalog_item.parameters:
             if parameter.name in all_job_vars:
-                # FIXME - also check that parameter value is still valid against current schema
-                parameter_values[parameter.name] = all_job_vars[parameter.name]
+                if parameter.validate(all_job_vars[parameter.name]):
+                    parameter_values[parameter.name] = all_job_vars[parameter.name]
             elif parameter.default is not None:
                 parameter_values[parameter.name] = parameter.default
         resource_provider = await catalog_item.get_resource_provider(cache=True)
