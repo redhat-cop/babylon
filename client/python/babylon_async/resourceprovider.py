@@ -46,16 +46,12 @@ class ResourceProvider(K8sObject):
     def get_parameter_defaults(self, parameter_values:Mapping) -> Mapping:
         ret = {}
         for parameter in self.parameters:
-            if parameter.default is None:
-                continue
-            if parameter.default.template is not None:
-                ret[parameter.name] = recursive_process_template_strings(
-                    parameter.default.template,
-                    variables=parameter_values,
-                    template_variables=self.vars,
-                )
-            elif parameter.default.value is not None:
-                ret[parameter.name] = parameter.value
+            value = parameter.get_default(
+                variables=parameter_values,
+                template_variables=self.vars,
+            )
+            if value is not None:
+                ret[parameter.name] = value
         return ret
 
     def processed_template(self,
@@ -94,7 +90,21 @@ class ResourceProvider(K8sObject):
             resources.extend(
                 await resource_provider.get_resources(
                     cache=cache,
-                    parameter_values=parameter_values,
+                    parameter_values={
+                        key: recursive_process_template_strings(
+                            value,
+                            variables={
+                                **resource_provider.get_parameter_defaults(parameter_values=parameter_values),
+                                **parameter_values,
+                            },
+                            template_variables={
+                                "resources": [],
+                                "resource_claim": {},
+                                **self.vars,
+                            }
+                        )
+                        for key, value in linked_resource_provider.parameter_values.items()
+                    }
                 )
             )
 
@@ -222,6 +232,10 @@ class ResourceProviderSpecParameter:
             ResourceProviderSpecParameterDefault(definition['default'])
             if 'default' in definition else None
         )
+        self.validation = (
+            ResourceProviderSpecParameterValidation(definition['validation'])
+            if 'validation' in definition else None
+        )
 
     @property
     def allow_update(self) -> bool:
@@ -235,6 +249,22 @@ class ResourceProviderSpecParameter:
     def required(self) -> bool:
         return self.__definition.get('required', False)
 
+    def get_default(self, variables:Mapping, template_variables:Mapping) -> Any:
+        if self.default is not None:
+            if self.default.template is not None:
+                return recursive_process_template_strings(
+                    self.default.template,
+                    variables=variables,
+                    template_variables=template_variables,
+                )
+            elif self.default.value is not None:
+                return self.default.value
+
+        if self.validation is not None and self.validation.openapi_v3_schema is not None:
+            return self.validation.openapi_v3_schema.get('default')
+
+        return None
+
 class ResourceProviderSpecParameterDefault:
     def __init__(self, definition):
         self.__definition = definition
@@ -246,6 +276,14 @@ class ResourceProviderSpecParameterDefault:
     @property
     def value(self) -> Any:
         return self.__definition.get('value')
+
+class ResourceProviderSpecParameterValidation:
+    def __init__(self, definition):
+        self.__definition = definition
+
+    @property
+    def openapi_v3_schema(self) -> Mapping|None:
+        return self.__definition.get('openAPIV3Schema')
 
 class ResourceProviderSpecTemplate:
     def __init__(self, definition):
