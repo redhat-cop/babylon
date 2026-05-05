@@ -1,0 +1,583 @@
+import React, { useCallback, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import useSWR, { useSWRConfig } from 'swr';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  EmptyState,
+  EmptyStateBody,
+  PageSection,
+  Split,
+  SplitItem,
+  EmptyStateFooter,
+} from '@patternfly/react-core';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import {
+  apiPaths,
+  deleteResourceClaim,
+  deleteWorkshop,
+  fetcherItemsInAllPages,
+  scheduleStartResourceClaim,
+  scheduleStopForAllResourcesInResourceClaim,
+  scheduleStopResourceClaim,
+  setLifespanEndForResourceClaim,
+  setProvisionRating,
+  setWorkshopLifespanEnd,
+  startAllResourcesInResourceClaim,
+  startWorkshopServices,
+  stopAllResourcesInResourceClaim,
+  stopWorkshop,
+} from '@app/api';
+import { ResourceClaim, ResourceClaimWithCollaborator, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import { fetcher } from '@app/api';
+import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import {
+  checkResourceClaimCanStart,
+  checkResourceClaimCanStop,
+  BABYLON_DOMAIN,
+  keywordMatch,
+  compareK8sObjectsArr,
+  FETCH_BATCH_LIMIT,
+  isResourceClaimPartOfWorkshop,
+  isWorkshopPartOfResourceClaim,
+} from '@app/util';
+import SelectableTable from '@app/components/SelectableTable';
+import Modal, { useModal } from '@app/Modal/Modal';
+import useSession from '@app/utils/useSession';
+import Footer from '@app/components/Footer';
+import ProjectSelector from '@app/components/ProjectSelector';
+import ServicesAction from './ServicesAction';
+import ServiceActions from './ServiceActions';
+import ServicesScheduleAction from './ServicesScheduleAction';
+import renderResourceClaimRow from './renderResourceClaimRow';
+import renderWorkshopRow from './renderWorkshopRow';
+import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
+import { isResourceClaimLocked } from './service-utils';
+
+import './services-list.css';
+
+function setResourceClaims(workshop: Workshop, resourceClaims: ResourceClaim[], isCollaborator = false) {
+  const workshopWithResourceClaims: WorkshopWithResourceClaims = workshop;
+  workshopWithResourceClaims.resourceClaims = resourceClaims;
+  workshopWithResourceClaims.isCollaborator = isCollaborator;
+  return workshopWithResourceClaims;
+}
+
+const SERVICES_LIGHT_KEY = ({ namespace }: { namespace: string }) => `services-light/${namespace}`;
+
+async function fetchServicesLight(namespace: string): Promise<Service[]> {
+  async function fetchResourceClaims(namespace: string) {
+    return (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+    )) as ResourceClaim[];
+  }
+  async function fetchWorkshops(namespace: string) {
+    return await fetcherItemsInAllPages((continueId) =>
+      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+    ).then((workshops: Workshop[]) => {
+      return workshops.map((workshop) => setResourceClaims(workshop, [], false));
+    });
+  }
+  async function fetchSharedServices(namespace: string) {
+    const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+    )) as ServiceAccess[];
+
+    const sharedServices: Service[] = [];
+
+    for (const serviceAccess of serviceAccesses) {
+      try {
+        if (serviceAccess.spec.kind === 'Workshop') {
+          const workshop = (await fetcher(
+            apiPaths.WORKSHOP({
+              namespace: serviceAccess.spec.namespace,
+              workshopName: serviceAccess.spec.name,
+            }),
+          )) as Workshop;
+
+          sharedServices.push(setResourceClaims(workshop, [], true));
+        } else if (serviceAccess.spec.kind === 'ResourceClaim') {
+          const resourceClaim = (await fetcher(
+            apiPaths.RESOURCE_CLAIM({
+              namespace: serviceAccess.spec.namespace,
+              resourceClaimName: serviceAccess.spec.name,
+            }),
+          )) as ResourceClaim;
+
+          const resourceClaimWithCollaborator: ResourceClaimWithCollaborator = {
+            ...resourceClaim,
+            isCollaborator: true,
+          };
+
+          sharedServices.push(resourceClaimWithCollaborator);
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`, error);
+      }
+    }
+
+    return sharedServices;
+  }
+  const services: Service[] = [];
+  const promises = [];
+  promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
+  promises.push(fetchWorkshops(namespace).then((w) => services.push(...w)));
+  promises.push(fetchSharedServices(namespace).then((s) => services.push(...s)));
+  await Promise.all(promises);
+  return services;
+}
+
+const ServicesListLight: React.FC<{
+  serviceNamespaceName: string;
+}> = ({ serviceNamespaceName }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { mutate: globalMutate, cache } = useSWRConfig();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const hasSearch = searchParams.has('search');
+  const searchValue = searchParams.get('search');
+  const keywordFilter = useMemo(
+    () =>
+      hasSearch
+        ? searchValue
+            .trim()
+            .split(/ +/)
+            .filter((w) => w != '')
+        : null,
+    [hasSearch, searchValue],
+  );
+  const [modalState, setModalState] = useState<{
+    action: ServiceActionActions;
+    resourceClaim?: ResourceClaim;
+    workshop?: WorkshopWithResourceClaims;
+    rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
+    submitDisabled: boolean;
+  }>({ action: null, submitDisabled: false });
+  const [modalAction, openModalAction] = useModal();
+  const [modalScheduleAction, openModalScheduleAction] = useModal();
+  const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const { data: _services, mutate } = useSWR<Service[]>(
+    SERVICES_LIGHT_KEY({ namespace: serviceNamespaceName }),
+    () => fetchServicesLight(serviceNamespaceName),
+    {
+      refreshInterval: 8000,
+      revalidateOnMount: true,
+      compare: (currentData, newData) => {
+        return compareK8sObjectsArr(currentData, newData);
+      },
+    },
+  );
+
+  const filterFn = useCallback(
+    (service: Service) => {
+      if (service.kind === 'ResourceClaim') {
+        if (service.metadata.deletionTimestamp) {
+          return false;
+        }
+        const resourceClaim = service as ResourceClaim;
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+        if (isPartOfWorkshop) {
+          return false;
+        }
+        if (!isAdmin && resourceClaim.spec.provider?.name === 'babylon-service-request-configmap') {
+          return false;
+        }
+        if (!keywordFilter) {
+          return true;
+        }
+        for (const keyword of keywordFilter) {
+          if (!keywordMatch(resourceClaim, keyword)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      if (service.kind === 'Workshop') {
+        const workshop = service as Workshop;
+        const isPartOfResourceClaim = isWorkshopPartOfResourceClaim(workshop);
+        if (isPartOfResourceClaim) {
+          return false;
+        }
+        if (workshop.metadata.deletionTimestamp) {
+          return false;
+        }
+        if (keywordFilter) {
+          for (const keyword of keywordFilter) {
+            if (!keywordMatch(workshop, keyword)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      return false;
+    },
+    [keywordFilter, isAdmin],
+  );
+
+  const services = useMemo(
+    () =>
+      _services
+        .filter(filterFn)
+        .sort(
+          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
+        ),
+    [filterFn, _services],
+  );
+
+  const revalidate = useCallback(
+    ({ updatedItems, action }: { updatedItems: Service[]; action: 'update' | 'delete' }) => {
+      const servicesCpy = JSON.parse(JSON.stringify(services));
+      for (const updatedItem of updatedItems) {
+        const foundIndex = services.findIndex((r) => r.metadata.uid === updatedItem.metadata.uid);
+        if (foundIndex > -1) {
+          if (action === 'update') {
+            servicesCpy[foundIndex] = updatedItem;
+          } else if (action === 'delete') {
+            servicesCpy.splice(foundIndex, 1);
+          }
+          mutate(servicesCpy);
+        }
+      }
+    },
+    [mutate, services],
+  );
+
+  const onModalScheduleAction = useCallback(
+    async (date: Date): Promise<void> => {
+      let updatedItems: Service[] = [];
+      if (modalState.resourceClaim) {
+        updatedItems.push(
+          modalState.action === 'retirement'
+            ? await setLifespanEndForResourceClaim(modalState.resourceClaim, date)
+            : modalState.resourceClaim.status?.summary
+              ? await scheduleStopResourceClaim(modalState.resourceClaim, date)
+              : await scheduleStopForAllResourcesInResourceClaim(modalState.resourceClaim, date),
+        );
+      } else if (modalState.workshop) {
+        updatedItems.push(
+          setResourceClaims(
+            modalState.action === 'retirement'
+              ? await setWorkshopLifespanEnd(modalState.workshop, date)
+              : await stopWorkshop(modalState.workshop, date),
+            modalState.workshop.resourceClaims,
+          ),
+        );
+      }
+      revalidate({ updatedItems, action: 'update' });
+    },
+    [modalState.action, modalState.resourceClaim, modalState.workshop, revalidate],
+  );
+
+  const performModalActionForResourceClaim = useCallback(
+    async (resourceClaim: ResourceClaim): Promise<ResourceClaim> => {
+      if (modalState.action === 'delete') {
+        cache.delete(
+          apiPaths.RESOURCE_CLAIM({
+            namespace: resourceClaim.metadata.namespace,
+            resourceClaimName: resourceClaim.metadata.name,
+          }),
+        );
+        try {
+          return await deleteResourceClaim(resourceClaim);
+        } catch (error: unknown) {
+          if ((error as { status?: number })?.status === 404) {
+            return resourceClaim;
+          }
+          throw error;
+        }
+      } else {
+        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+        if (isPartOfWorkshop) return resourceClaim;
+        if (modalState.action === 'start' && checkResourceClaimCanStart(resourceClaim)) {
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStartResourceClaim(modalState.resourceClaim)
+            : await startAllResourcesInResourceClaim(resourceClaim);
+        } else if (modalState.action === 'stop' && checkResourceClaimCanStop(resourceClaim)) {
+          return modalState.resourceClaim.status?.summary
+            ? await scheduleStopResourceClaim(resourceClaim)
+            : await stopAllResourcesInResourceClaim(resourceClaim);
+        }
+      }
+
+      console.warn(`Unkown action ${modalState.action}`);
+      return resourceClaim;
+    },
+    [cache, modalState.action, modalState.resourceClaim],
+  );
+
+  const performModalActionForWorkshop = useCallback(
+    async (workshop: WorkshopWithResourceClaims): Promise<WorkshopWithResourceClaims> => {
+      if (modalState.action === 'delete') {
+        try {
+          return await deleteWorkshop(workshop);
+        } catch (error: unknown) {
+          if ((error as { status?: number })?.status === 404) {
+            return workshop;
+          }
+          throw error;
+        }
+      } else {
+        if (Array.isArray(workshop.resourceClaims)) {
+          if (modalState.action === 'start') {
+            return await startWorkshopServices(workshop, workshop.resourceClaims);
+          } else if (modalState.action === 'stop') {
+            return await stopWorkshop(workshop);
+          }
+        }
+        return Promise.resolve(null);
+      }
+    },
+    [cache, modalState.action, modalState.workshop, revalidate, mutate],
+  );
+
+  const onModalAction = useCallback(async (): Promise<void> => {
+    const serviceUpdates: Service[] = [];
+    if (modalState.resourceClaim) {
+      serviceUpdates.push(await performModalActionForResourceClaim(modalState.resourceClaim));
+    } else if (modalState.workshop) {
+      serviceUpdates.push(
+        setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims),
+      );
+    } else if (selectedUids.length > 0) {
+      for (const service of services) {
+        if (selectedUids.includes(service.metadata.uid)) {
+          if (service.kind === 'ResourceClaim') {
+            serviceUpdates.push(await performModalActionForResourceClaim(service as ResourceClaim));
+          }
+          if (service.kind === 'Workshop') {
+            const _workshop = service as WorkshopWithResourceClaims;
+            serviceUpdates.push(
+              setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims),
+            );
+          }
+        }
+      }
+    }
+    if (modalState.action === 'rate' || modalState.action === 'delete') {
+      if (
+        modalState.resourceClaim &&
+        modalState.rating &&
+        (modalState.rating.rate !== null || modalState.rating.comment?.trim())
+      ) {
+        await setProvisionRating(
+          modalState.resourceClaim.metadata.uid,
+          modalState.rating.rate,
+          modalState.rating.comment,
+          modalState.rating.useful,
+        );
+        globalMutate(apiPaths.USER_RATING({ requestUid: modalState.resourceClaim.metadata.uid }));
+      }
+      if (modalState.action === 'delete') {
+        revalidate({ updatedItems: serviceUpdates, action: 'delete' });
+      }
+    } else {
+      revalidate({ updatedItems: serviceUpdates, action: 'update' });
+    }
+  }, [
+    modalState.resourceClaim,
+    modalState.workshop,
+    modalState.action,
+    modalState.rating,
+    selectedUids,
+    performModalActionForResourceClaim,
+    performModalActionForWorkshop,
+    services,
+    globalMutate,
+    revalidate,
+  ]);
+
+  const showModal = useCallback(
+    ({
+      modal,
+      action,
+      resourceClaim,
+      workshop,
+    }: {
+      modal: string;
+      action?: ServiceActionActions;
+      resourceClaim?: ResourceClaim;
+      workshop?: Workshop;
+    }) => {
+      if (modal === 'action') {
+        setModalState({ ...modalState, action, resourceClaim, workshop });
+        openModalAction();
+      }
+      if (modal === 'scheduleAction') {
+        setModalState({ ...modalState, action, resourceClaim, workshop });
+        openModalScheduleAction();
+      }
+    },
+    [openModalAction, openModalScheduleAction],
+  );
+
+  if (sessionServiceNamespaces.length === 0) {
+    return (
+      <>
+        <PageSection hasBodyWrapper={false}>
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Service Access" variant="full">
+            <EmptyStateBody>Your account has no access to services.</EmptyStateBody>
+          </EmptyState>
+        </PageSection>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!serviceNamespaceName) {
+    if (sessionServiceNamespaces.length >= 1) {
+      return <Navigate to={`/services-light/${sessionServiceNamespaces[0].name}`} />;
+    }
+  }
+
+  const selectedHasCollaborator = selectedUids.length > 0 && services.some(
+    (service) => selectedUids.includes(service.metadata.uid) && service.isCollaborator
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
+      <Modal ref={modalAction} onConfirm={onModalAction} passModifiers={true} isDisabled={modalState.submitDisabled}>
+        <ServicesAction actionState={modalState} setActionState={setModalState} />
+      </Modal>
+      <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
+        <ServicesScheduleAction
+          action={modalState.action === 'retirement' ? 'retirement' : 'stop'}
+          resourceClaim={modalState.resourceClaim}
+          workshop={modalState.workshop}
+        />
+      </Modal>
+      {isAdmin || sessionServiceNamespaces.length > 1 ? (
+        <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
+          <ProjectSelector
+            currentNamespaceName={serviceNamespaceName}
+            onSelect={(namespace) => {
+              if (namespace) {
+                navigate(`/services-light/${namespace.name}${location.search}`);
+              }
+            }}
+          />
+        </PageSection>
+      ) : null}
+      <PageSection hasBodyWrapper={false} key="head" className="services-list__head">
+        <Split hasGutter>
+          <SplitItem isFilled>
+            <Breadcrumb>
+              <BreadcrumbItem>My Services (Light)</BreadcrumbItem>
+            </Breadcrumb>
+          </SplitItem>
+          <SplitItem>
+            <KeywordSearchInput
+              initialValue={keywordFilter}
+              placeholder="Search..."
+              onSearch={(value) => {
+                if (value && Array.isArray(value)) {
+                  searchParams.set('search', value.join(' '));
+                } else if (searchParams.has('search')) {
+                  searchParams.delete('search');
+                }
+                setSearchParams(searchParams);
+              }}
+            />
+          </SplitItem>
+          <SplitItem>
+            <ServiceActions
+              isDisabled={selectedUids.length === 0}
+              position="right"
+              serviceName="Selected"
+              canManageCollaborators={!selectedHasCollaborator}
+              actionHandlers={{
+                delete: () => showModal({ modal: 'action', action: 'delete' }),
+                start: () => showModal({ modal: 'action', action: 'start' }),
+                stop: () => showModal({ modal: 'action', action: 'stop' }),
+              }}
+            />
+          </SplitItem>
+        </Split>
+      </PageSection>
+      {services.length === 0 ? (
+        <PageSection hasBodyWrapper={false} key="body-empty">
+          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services found" variant="full">
+            <EmptyStateFooter>
+              {keywordFilter ? (
+                <EmptyStateBody>No services matched search.</EmptyStateBody>
+              ) : (
+                <EmptyStateBody>
+                  Request services using the <Link to="/catalog">catalog</Link>.
+                </EmptyStateBody>
+              )}
+            </EmptyStateFooter>
+          </EmptyState>
+        </PageSection>
+      ) : (
+        <PageSection hasBodyWrapper={false} key="body" className="services-list">
+          <SelectableTable
+            columns={
+              isAdmin
+                ? ['Name', 'GUID', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
+                : ['Name', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
+            }
+            onSelectAll={(isSelected) => {
+              if (isSelected) {
+                setSelectedUids(
+                  services
+                    .filter((s) => {
+                      if (s.kind === 'Workshop' && isWorkshopLocked(s as Workshop)) return false;
+                      if (s.kind === 'ResourceClaim' && isResourceClaimLocked(s as ResourceClaim)) return false;
+                      return true;
+                    })
+                    .map((s) => s.metadata.uid)
+                );
+              } else {
+                setSelectedUids([]);
+              }
+            }}
+            rows={services.map((service: Service) => {
+              const isLocked =
+                (service.kind === 'Workshop' && isWorkshopLocked(service as Workshop)) ||
+                (service.kind === 'ResourceClaim' && isResourceClaimLocked(service as ResourceClaim));
+              const selectObj = {
+                onSelect: (isSelected: boolean) =>
+                  setSelectedUids((uids: string[]) => {
+                    if (isSelected) {
+                      if (uids.includes(service.metadata.uid)) {
+                        return uids;
+                      } else {
+                        return [...uids, service.metadata.uid];
+                      }
+                    } else {
+                      return uids.filter((uid) => uid !== service.metadata.uid);
+                    }
+                  }),
+                selected: selectedUids.includes(service.metadata.uid),
+                disableSelection: isLocked,
+              };
+              if (service.kind === 'ResourceClaim') {
+                return Object.assign(
+                  selectObj,
+                  renderResourceClaimRow({
+                    resourceClaim: service as ResourceClaim,
+                    showModal,
+                    isAdmin,
+                    navigate,
+                    light: true,
+                  }),
+                );
+              }
+              if (service.kind === 'Workshop') {
+                return Object.assign(
+                  selectObj,
+                  renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin, light: true }),
+                );
+              }
+              return null;
+            })}
+          />
+        </PageSection>
+      )}
+      <Footer />
+    </div>
+  );
+};
+
+export default ServicesListLight;

@@ -9,6 +9,7 @@ const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
+const ServicesLight = React.lazy(() => import('@app/Services/ServicesLight'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
@@ -92,6 +93,16 @@ const appRoutes: IAppRoute[] = [
     component: Services,
     path: '/services',
     title: 'Babylon | My Services',
+  },
+  {
+    component: ServicesLight,
+    path: '/services-light/:namespace',
+    title: 'Babylon | My Services (Light)',
+  },
+  {
+    component: ServicesLight,
+    path: '/services-light',
+    title: 'Babylon | My Services (Light)',
   },
   {
     component: Activity,

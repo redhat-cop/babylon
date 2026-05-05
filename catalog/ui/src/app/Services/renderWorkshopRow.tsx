@@ -24,6 +24,7 @@ const renderWorkshopRow = ({
   workshop,
   showModal,
   isAdmin,
+  light = false,
 }: {
   workshop: WorkshopWithResourceClaims;
   showModal: ({
@@ -36,6 +37,7 @@ const renderWorkshopRow = ({
     workshop?: Workshop;
   }) => void;
   isAdmin: boolean;
+  light?: boolean;
 }) => {
   const isLocked = isWorkshopLocked(workshop);
   const actionHandlers = {
@@ -171,8 +173,12 @@ const renderWorkshopRow = ({
 
   return {
     cells: isAdmin
-      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
-      : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
+      ? light
+        ? [nameCell, guidCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+        : [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      : light
+        ? [nameCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+        : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };
 
