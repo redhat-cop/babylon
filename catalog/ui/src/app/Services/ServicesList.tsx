@@ -210,6 +210,7 @@ const ServicesList: React.FC<{
     workshopNamespaces.length > 0 ? `workshop-rcs/${workshopNamespaces.join(',')}` : null,
     () => fetchWorkshopResourceClaims(workshopNamespaces),
     {
+      suspense: false,
       refreshInterval: 8000,
       revalidateOnMount: true,
       compare: (currentData, newData) => {
@@ -474,7 +475,7 @@ const ServicesList: React.FC<{
         openModalScheduleAction();
       }
     },
-    [openModalAction, openModalScheduleAction],
+    [modalState, openModalAction, openModalScheduleAction],
   );
 
   if (sessionServiceNamespaces.length === 0) {
