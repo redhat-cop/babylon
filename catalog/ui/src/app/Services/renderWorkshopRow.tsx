@@ -91,10 +91,11 @@ const renderWorkshopRow = ({
     </>
   );
   const guidCell = <span key="workshop-guid">-</span>;
+  const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
   const statusCell = (
     <>
-      {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
-        <ServiceStatus resourceClaim={workshop.resourceClaims.filter((r) => !r.metadata.deletionTimestamp)[0]} />
+      {activeResourceClaim ? (
+        <ServiceStatus resourceClaim={activeResourceClaim} />
       ) : autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled
