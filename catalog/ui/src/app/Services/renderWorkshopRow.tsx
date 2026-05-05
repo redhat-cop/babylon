@@ -96,14 +96,14 @@ const renderWorkshopRow = ({
   const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
   const statusCell = (
     <>
-      {!resourceClaimsLoaded ? (
-        <Spinner size="md" />
-      ) : activeResourceClaim ? (
-        <ServiceStatus resourceClaim={activeResourceClaim} />
-      ) : autoStartTime && autoStartTime > Date.now() ? (
+      {autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled
         </span>
+      ) : !resourceClaimsLoaded ? (
+        <Spinner size="md" />
+      ) : activeResourceClaim ? (
+        <ServiceStatus resourceClaim={activeResourceClaim} />
       ) : (
         <p>...</p>
       )}
