@@ -68,7 +68,12 @@ const SERVICES_LIGHT_KEY = ({ namespace }: { namespace: string }) => `services-l
 async function fetchServicesLight(namespace: string): Promise<Service[]> {
   async function fetchResourceClaims(namespace: string) {
     return (await fetcherItemsInAllPages((continueId) =>
-      apiPaths.RESOURCE_CLAIMS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      apiPaths.RESOURCE_CLAIMS({
+        namespace,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
+        labelSelector: `!${BABYLON_DOMAIN}/workshop`,
+      }),
     )) as ResourceClaim[];
   }
   async function fetchWorkshops(namespace: string) {
