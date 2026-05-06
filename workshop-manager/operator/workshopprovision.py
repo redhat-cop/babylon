@@ -77,7 +77,7 @@ class WorkshopProvision(CachedKopfObject):
         return self.spec.get('count', 0)
 
     @property
-    def resource_pool(self):
+    def resource_pool(self) -> str|None:
         return self.spec.get('resourcePool')
 
     @property
@@ -177,14 +177,10 @@ class WorkshopProvision(CachedKopfObject):
                 "when": self.auto_detach_condition
             }
 
-        if self.resource_pool:
+        if self.resource_pool is not None:
             resource_claim_definition['metadata']['annotations'][
                 Babylon.resource_pool_annotation
             ] = self.resource_pool
-        else:
-            resource_claim_definition['metadata']['annotations'][
-                Babylon.resource_pool_annotation
-            ] = "disabled"
 
         if workshop.asset_uuid:
             resource_claim_definition['metadata']['labels'][
