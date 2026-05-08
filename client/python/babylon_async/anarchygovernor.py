@@ -21,6 +21,12 @@ class AnarchyGovernor(K8sObject):
         super().__init__(client, definition)
         self.spec = AnarchyGovernorSpec(definition['spec'])
 
+    def get_sandboxes(self) -> List[Mapping]:
+        return [
+            SandboxSpec(item)
+            for item in self.spec.job_vars['__meta__'].get('sandboxes', [])
+        ]
+
     @property
     def job_vars(self) -> Mapping:
         return self.spec.job_vars
@@ -40,3 +46,10 @@ class AnarchyGovernorSpec:
     @property
     def vars(self) -> Mapping:
         return self.__definition.get('vars', {})
+
+class SandboxSpec:
+    def __init__(self, definition):
+        self.cloud_selector = definition.get('cloud_selector')
+        self.kind = definition.get('kind')
+        self.namespace_suffix = definition.get('namespace_suffix')
+        self.quota = definition.get('quota')
