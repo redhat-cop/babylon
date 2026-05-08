@@ -21,6 +21,8 @@ from .resourceclaim import ResourceClaim
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
 from .user import User
+from .workshop import Workshop
+from .workshopprovision import WorkshopProvision
 
 class BabylonClient:
     @classmethod
@@ -152,7 +154,7 @@ class BabylonClient:
         label_selector:str|None=None,
         group:str|None=None,
         namespace:str|None=None,
-    ) -> Mapping:
+    ) -> Generator[Mapping, None, None]:
         # FIXME - wrap with a try/except
         _continue = None
         method = None
@@ -358,6 +360,11 @@ class BabylonClient:
         pass
 
     # Namespace methods
+    async def get_namespace(self,
+        name:str,
+    ) -> Namespace:
+        return await Namespace.get(client=self, name=name)
+
     async def list_namespaces(self,
         label_selector:str|None=None,
     ) -> Generator[Namespace, None, None]:
@@ -416,3 +423,27 @@ class BabylonClient:
 
     async def get_user(self, name:str) -> User:
         return await User.get(client=self, name=name)
+
+    # Workshop methods
+    async def list_workshops(self,
+        label_selector:str=None,
+        namespace:str=None,
+    ) -> Generator[Workshop, None, None]:
+        async for workshop in Workshop.list(
+            client=self,
+            label_selector=label_selector,
+            namespace=namespace
+        ):
+            yield workshop
+
+    # WorkshopProvision methods
+    async def list_workshop_provisions(self,
+        label_selector:str=None,
+        namespace:str=None,
+    ) -> Generator[WorkshopProvision, None, None]:
+        async for workshop_provision in WorkshopProvision.list(
+            client=self,
+            label_selector=label_selector,
+            namespace=namespace
+        ):
+            yield workshop_provision
