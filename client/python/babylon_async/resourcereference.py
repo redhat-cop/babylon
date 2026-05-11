@@ -17,3 +17,7 @@ class ResourceReference:
     @property
     def namespace(self) -> str|None:
         return self.definition.get('namespace')
+
+    @property
+    def uid(self) -> str|None:
+        return self.definition.get('uid')

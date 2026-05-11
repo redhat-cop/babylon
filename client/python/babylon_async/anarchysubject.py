@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Mapping
+from typing import Any, Generator, Mapping
 
 from .k8s_object import K8sObject
 from .resourcereference import ResourceReference
@@ -19,7 +19,13 @@ class AnarchySubject(K8sObject):
             if 'status' in definition else None
         )
 
-    async def list_anarchy_runs(self):
+    async def get_anarchy_run(self, name:str) -> AnarchyRun:
+        return await self.client.get_anarchy_run(
+            name=name,
+            namespace=self.namespace,
+        )
+
+    async def list_anarchy_runs(self) -> Generator[AnarchyRun, None, None]:
         async for anarchy_run in self.client.list_anarchy_runs_for_anarchy_subject(self):
             yield anarchy_run
 
@@ -29,4 +35,18 @@ class AnarchySubjectSpec:
 
 class AnarchySubjectStatus:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
+
+    @property
+    def runs(self) -> AnarchySubjectStatusRuns:
+        return AnarchySubjectStatusRuns(self.__definition.get('runs', {}))
+
+class AnarchySubjectStatusRuns:
+    def __init__(self, definition):
+        self.__definition = definition
+
+    @property
+    def active(self) -> list[AnarchySubjectStatusRunsActive]:
+        return [
+            ResourceReference(item) for item in self.__definition.get('active', [])
+        ]

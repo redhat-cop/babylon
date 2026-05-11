@@ -5,6 +5,8 @@ from datetime import datetime
 from copy import deepcopy
 from typing import List, TypedDict
 
+from .exceptions import BabylonApiException
+
 class K8sObject:
     def __init__(self, client, definition):
         self.client = client

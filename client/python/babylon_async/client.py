@@ -279,6 +279,16 @@ class BabylonClient:
 
 
     # AnarchyRun methods
+    async def get_anarchy_run(self,
+        name:str,
+        namespace:str,
+    ) -> AnarchyRun:
+        return await AnarchyRun.get(
+            client=self,
+            name=name,
+            namespace=namespace,
+        )
+
     async def list_anarchy_runs(self,
         label_selector:str=None,
         namespace:str=None,
