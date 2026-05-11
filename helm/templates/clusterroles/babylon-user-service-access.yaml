@@ -42,8 +42,19 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - serviceaccesses
-  - serviceaccessconfigs
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - serviceaccessconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
