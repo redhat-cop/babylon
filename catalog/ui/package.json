@@ -43,7 +43,7 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
-    "@typescript-eslint/parser": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.4",
     "babel-core": "^6.26.3",
     "babel-loader": "^10.1.1",
     "babel-plugin-transform-imports": "^2.0.0",
