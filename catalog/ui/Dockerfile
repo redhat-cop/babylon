@@ -18,10 +18,11 @@ ARG OPTIONAL_FLAGS
 COPY --from=previous /tmp/previous ./dist
 
 ENV KEEP_ASSETS=true
-COPY package.json package-lock.json ./
-RUN npm ci && npm cache clean --force
+RUN npm install -g pnpm@11.1.2
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
 COPY ./ ./
-RUN npm run build
+RUN pnpm run build
 
 # Server image
 FROM registry.access.redhat.com/ubi8/nginx-118:latest
