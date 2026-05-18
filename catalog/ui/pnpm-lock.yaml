@@ -8,9 +8,36 @@ importers:
 
   .:
     dependencies:
+      '@lexical/code':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/html':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/link':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/list':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/markdown':
+        specifier: ^0.11.1
+        version: 0.11.3(@lexical/clipboard@0.11.3(lexical@0.11.3))(@lexical/selection@0.11.3(lexical@0.11.3))(lexical@0.11.3)
       '@lexical/react':
         specifier: ^0.11.1
         version: 0.11.3(lexical@0.11.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.30)
+      '@lexical/rich-text':
+        specifier: ^0.11.1
+        version: 0.11.3(@lexical/clipboard@0.11.3(lexical@0.11.3))(@lexical/selection@0.11.3(lexical@0.11.3))(@lexical/utils@0.11.3(lexical@0.11.3))(lexical@0.11.3)
+      '@lexical/selection':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/table':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
+      '@lexical/utils':
+        specifier: ^0.11.1
+        version: 0.11.3(lexical@0.11.3)
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
