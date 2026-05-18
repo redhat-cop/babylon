@@ -1006,11 +1006,11 @@ const ServicesItemComponent: React.FC<{
                       <AutoStopDestroy
                         type="auto-stop"
                         onClick={() => {
-                          if (!isLocked) {
+                          if (!isLocked && !isPartOfWorkshop) {
                             showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
                           }
                         }}
-                        isDisabled={isLocked}
+                        isDisabled={isLocked || isPartOfWorkshop}
                         resourceClaim={resourceClaim}
                         className="services-item__schedule-btn"
                         time={autoStopTime}
