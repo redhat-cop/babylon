@@ -88,7 +88,7 @@
     "@lexical/code": "^0.11.1",
     "@lexical/html": "^0.11.1",
     "@lexical/link": "^0.11.1",
-    "@lexical/list": "^0.11.1",
+    "@lexical/list": "^0.44.0",
     "@lexical/markdown": "^0.11.1",
     "@lexical/react": "^0.11.1",
     "@lexical/rich-text": "^0.11.1",
