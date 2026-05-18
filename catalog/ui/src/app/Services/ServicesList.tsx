@@ -40,7 +40,6 @@ import {
   compareK8sObjectsArr,
   FETCH_BATCH_LIMIT,
   isResourceClaimPartOfWorkshop,
-  isWorkshopPartOfResourceClaim,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -122,12 +121,46 @@ async function fetchServices(namespace: string): Promise<Service[]> {
 
     return sharedServices;
   }
+
+  async function resolveWorkshopToResourceClaim(workshop: Workshop): Promise<Service> {
+    const rcOwnerRef = workshop.metadata?.ownerReferences?.find((ref) => ref.kind === 'ResourceClaim');
+    if (!rcOwnerRef) return workshop;
+    try {
+      return (await fetcher(
+        apiPaths.RESOURCE_CLAIM({
+          namespace: workshop.metadata.namespace,
+          resourceClaimName: rcOwnerRef.name,
+        }),
+      )) as ResourceClaim;
+    } catch (error) {
+      console.warn(
+        `Failed to fetch parent ResourceClaim ${rcOwnerRef.name} for Workshop ${workshop.metadata.namespace}/${workshop.metadata.name}:`,
+        error,
+      );
+      return workshop;
+    }
+  }
+
+  const resourceClaims: ResourceClaim[] = [];
+  const workshops: Workshop[] = [];
+  const sharedServices: Service[] = [];
+  await Promise.all([
+    fetchResourceClaims(namespace).then((r) => resourceClaims.push(...r)),
+    fetchWorkshops(namespace).then((w) => workshops.push(...w)),
+    fetchSharedServices(namespace).then((s) => sharedServices.push(...s)),
+  ]);
+
+  const resolvedWorkshops = await Promise.all(workshops.map(resolveWorkshopToResourceClaim));
+
+  const seen = new Set<string>();
   const services: Service[] = [];
-  const promises = [];
-  promises.push(fetchResourceClaims(namespace).then((r) => services.push(...r)));
-  promises.push(fetchWorkshops(namespace).then((w) => services.push(...w)));
-  promises.push(fetchSharedServices(namespace).then((s) => services.push(...s)));
-  await Promise.all(promises);
+  for (const service of [...resourceClaims, ...resolvedWorkshops, ...sharedServices]) {
+    const uid = service.metadata.uid;
+    if (!seen.has(uid)) {
+      seen.add(uid);
+      services.push(service);
+    }
+  }
   return services;
 }
 
@@ -248,10 +281,6 @@ const ServicesList: React.FC<{
       }
       if (service.kind === 'Workshop') {
         const workshop = service as Workshop;
-        const isPartOfResourceClaim = isWorkshopPartOfResourceClaim(workshop);
-        if (isPartOfResourceClaim) {
-          return false;
-        }
         if (workshop.metadata.deletionTimestamp) {
           return false;
         }
