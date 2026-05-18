@@ -120,7 +120,7 @@
     "react-router-dom": "^6.28.0",
     "react-window": "^1.8.11",
     "redux": "^4.2.1",
-    "reselect": "^4.1.8",
+    "reselect": "^5.2.0",
     "swr": "^2.3.4",
     "yjs": "^13.6.30"
   }
