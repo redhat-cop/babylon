@@ -103,11 +103,8 @@ spec:
               diffBase:
                 description: Kopf diffbase
                 type: string
-              resourceClaimCount:
-                description: Total number of ResourceClaims managed by this item.
-                type: integer
               readyCount:
-                description: Number of unused ResourceClaims ready for users.
+                description: Number of unassigned ResourceClaims ready for users.
                 type: integer
               provisioningCount:
                 description: Number of ResourceClaims currently being provisioned.
@@ -117,9 +114,6 @@ spec:
                 type: integer
               failedCount:
                 description: Number of ResourceClaims that have failed provisioning.
-                type: integer
-              recycledCount:
-                description: Total number of ResourceClaims recycled due to unassigned lifespan expiry.
                 type: integer
         required:
         - apiVersion

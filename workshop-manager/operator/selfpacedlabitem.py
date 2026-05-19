@@ -312,18 +312,14 @@ class SelfPacedLabItem(CachedKopfObject):
         now = datetime.now(timezone.utc)
         unassigned_lifespan_delta = self.unassigned_lifespan_delta
 
-        resource_claim_count = 0
         unclaimed_ready_count = 0
         provisioning_count = 0
         assigned_count = 0
         failed_count = 0
-        recycled_count = self.status.get('recycledCount', 0)
 
         assigned_lifespan_delta = self.assigned_lifespan_delta
 
         async for resource_claim_obj in self.list_resource_claims():
-            resource_claim_count += 1
-
             is_claimed = resource_claim_obj.labels.get(Babylon.selfpacedlab_claimed_label) == 'true'
 
             if is_claimed:
@@ -366,19 +362,16 @@ class SelfPacedLabItem(CachedKopfObject):
                 )
                 await resource_claim_obj.delete()
                 await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
-                recycled_count += 1
                 continue
 
             unclaimed_ready_count += 1
 
         await self.merge_patch_status(
             {
-                "resourceClaimCount": resource_claim_count,
                 "readyCount": unclaimed_ready_count,
                 "provisioningCount": provisioning_count,
                 "assignedCount": assigned_count,
                 "failedCount": failed_count,
-                "recycledCount": recycled_count,
             }
         )
 

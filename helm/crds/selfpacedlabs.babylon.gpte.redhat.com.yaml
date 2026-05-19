@@ -69,11 +69,6 @@ spec:
                   If set to true then users will not need to be pre-registered and can self-register via the portal.
                 type: boolean
                 default: true
-              provisionDisabled:
-                description: >-
-                  If set then SelfPacedLabItems are disabled for this SelfPacedLab.
-                type: boolean
-                default: false
           status:
             description: Status of SelfPacedLab
             type: object
