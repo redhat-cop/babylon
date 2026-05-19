@@ -45,7 +45,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
   const Sidebar = (
-    <PageSidebar isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} style={{ margin: 0, zIndex: 999 }}>
+    <PageSidebar isSidebarOpen={isMobileView ? isNavOpenMobile : isNavOpen} style={{ margin: 0, zIndex: 998 }}>
       <PageSidebarBody>
         <Navigation />
       </PageSidebarBody>
