@@ -1,0 +1,42 @@
+deploy: true
+replicaCount: 1
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  create: true
+  name:
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name:
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+babylon:
+  domain: babylon.gpte.redhat.com
+
+selfpacedlabBaseUrl: ""
+
+poolboy:
+  domain: poolboy.gpte.redhat.com
+
+image:
+  repository: quay.io/redhat-gpte/babylon-selfpacedlab-manager
+  pullPolicy: Always
+  tagOverride: ""

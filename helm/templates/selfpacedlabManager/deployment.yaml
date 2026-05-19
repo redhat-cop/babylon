@@ -1,0 +1,64 @@
+{{- $selfpacedlabManager := .Values.selfpacedlabManager }}
+{{ if $selfpacedlabManager.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-selfpacedlab-manager
+  namespace: {{ $selfpacedlabManager.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: selfpacedlab-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: selfpacedlab-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: selfpacedlab-manager
+    spec:
+      containers:
+      - name: selfpacedlab-manager
+        env:
+        - name: KOPF_OPTIONS
+          value: "--log-format=json"
+        - name: KOPF_PEERING
+          value: babylon-selfpacedlab-manager
+        {{- if $selfpacedlabManager.selfpacedlabBaseUrl }}
+        - name: SELFPACEDLAB_BASE_URL
+          value: {{ $selfpacedlabManager.selfpacedlabBaseUrl | quote }}
+        {{- end }}
+        image: "{{ $selfpacedlabManager.image.repository }}:{{ $selfpacedlabManager.image.tag }}"
+        imagePullPolicy: {{ $selfpacedlabManager.image.pullPolicy }}
+        resources:
+          {{- toYaml $selfpacedlabManager.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $selfpacedlabManager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $selfpacedlabManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-selfpacedlab-manager
+      terminationGracePeriodSeconds: 30
+      {{- with $selfpacedlabManager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $selfpacedlabManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

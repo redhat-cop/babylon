@@ -1,0 +1,66 @@
+import kubernetes_asyncio
+import os
+
+class Babylon():
+    babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
+    babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
+    poolboy_domain = os.environ.get('POOLBOY_DOMAIN', 'poolboy.gpte.redhat.com')
+    poolboy_api_version = os.environ.get('POOLBOY_API_VERSION', 'v1')
+    poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
+    demo_domain = os.environ.get('DEMO_DOMAIN', 'demo.redhat.com')
+    gpte_domain = os.environ.get('GPTE_DOMAIN', 'gpte.redhat.com')
+
+    asset_uuid_label = f"{gpte_domain}/asset-uuid"
+    babylon_ignore_label = f"{babylon_domain}/ignore"
+    catalog_display_name_annotation = f"{babylon_domain}/catalogDisplayName"
+    catalog_item_display_name_annotation = f"{babylon_domain}/catalogItemDisplayName"
+    catalog_item_name_label = f"{babylon_domain}/catalogItemName"
+    catalog_item_namespace_label = f"{babylon_domain}/catalogItemNamespace"
+    display_name_annotation = f"{babylon_domain}/displayName"
+    finalizer_value = f"{babylon_domain}/selfpacedlab-manager"
+    lab_ui_label = f"{babylon_domain}/labUserInterface"
+    lab_ui_url_annotation = f"{babylon_domain}/labUserInterfaceUrl"
+    lab_ui_urls_annotation = f"{babylon_domain}/labUserInterfaceUrls"
+    notifier_annotation = f"{babylon_domain}/notifier"
+    ordered_by_annotation = f"{demo_domain}/orderedBy"
+    white_glove_label = f"{demo_domain}/white-glove"
+    purpose_annotation = f"{demo_domain}/purpose"
+    purpose_activity_annotation = f"{demo_domain}/purpose-activity"
+    requester_annotation = f"{demo_domain}/requester"
+    resource_broker_ignore_label = f"{poolboy_domain}/ignore"
+    resource_claim_label = f"{poolboy_domain}/resource-claim"
+    resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
+    selfpacedlab_label = f"{babylon_domain}/selfpacedlab"
+    selfpacedlab_id_label = f"{babylon_domain}/selfpacedlab-id"
+    selfpacedlab_uid_label = f"{babylon_domain}/selfpacedlab-uid"
+    selfpacedlab_item_label = f"{babylon_domain}/selfpacedlab-item"
+    selfpacedlab_assigned_label = f"{babylon_domain}/assigned"
+    selfpacedlab_assigned_at_annotation = f"{babylon_domain}/assigned-at"
+    service_access_annotation = f"{babylon_domain}/service-access"
+    url_annotation = f"{babylon_domain}/url"
+    salesforce_id_annotation = f"{demo_domain}/salesforce-id"
+    salesforce_items_annotation = f"{demo_domain}/salesforce-items"
+    user_name_label = f"{babylon_domain}/user-name"
+
+    selfpacedlab_fail_percentage_threshold = int(os.environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60))
+    selfpacedlab_base_url = os.environ.get('SELFPACEDLAB_BASE_URL', '').rstrip('/')
+
+    # Initialized on startup
+    api_client = None
+    core_v1_api = None
+    custom_objects_api = None
+
+    @classmethod
+    async def on_cleanup(cls):
+        await cls.api_client.close()
+
+    @classmethod
+    async def on_startup(cls):
+        if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
+            kubernetes_asyncio.config.load_incluster_config()
+        else:
+            await kubernetes_asyncio.config.load_kube_config()
+
+        cls.api_client = kubernetes_asyncio.client.ApiClient()
+        cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api(cls.api_client)
+        cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi(cls.api_client)

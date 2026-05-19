@@ -1,0 +1,6 @@
+apiVersion: v2
+name: babylon-selfpacedlab-manager
+description: A Helm chart for the babylon self-paced lab manager component.
+type: application
+version: v0.1.0
+appVersion: v0.1.0

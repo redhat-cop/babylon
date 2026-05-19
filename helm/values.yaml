@@ -257,6 +257,27 @@ workshopManager:
       memory: 1Gi
   workshopBaseUrl: ""
 
+selfpacedlabManager:
+  api:
+    group: babylon.gpte.redhat.com
+    version: v1
+  deploy: true
+  image:
+    repository: quay.io/rhpds/babylon-selfpacedlab-manager
+    pullPolicy: IfNotPresent
+    tag: v0.1.0
+  namespace:
+    create: true
+    name: babylon-selfpacedlab-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 512Mi
+  selfpacedlabBaseUrl: ""
+
 admin:
   deploy: true
   namespace:
