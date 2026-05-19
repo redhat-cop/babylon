@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { ResourceClaim, Workshop } from '@app/types';
-import { compareK8sObjectsArr, FETCH_BATCH_LIMIT, isResourceClaimPartOfWorkshop } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 
 const SERVICE_QUOTA_LIMIT = 5;
 
@@ -39,12 +39,15 @@ export default function useServiceQuota({
   namespace,
   isAdmin = false,
 }: UseServiceQuotaOptions): UseServiceQuotaResult {
-  // Fetch user's existing services
+  const standaloneRCLabelSelector = `!${BABYLON_DOMAIN}/workshop`;
+
+  // Fetch user's existing services (excluding ResourceClaims that belong to a workshop)
   const { data: userResourceClaims, isLoading: isLoadingResourceClaims } = useSWR<ResourceClaim[]>(
     namespace
       ? apiPaths.RESOURCE_CLAIMS({
           namespace,
           limit: 'ALL',
+          labelSelector: standaloneRCLabelSelector,
         })
       : null,
     () =>
@@ -53,6 +56,7 @@ export default function useServiceQuota({
           namespace,
           limit: FETCH_BATCH_LIMIT,
           continueId,
+          labelSelector: standaloneRCLabelSelector,
         }),
       ),
     {
@@ -83,11 +87,10 @@ export default function useServiceQuota({
     },
   );
 
-  // Calculate current standalone services (not part of a workshop)
   const standaloneServicesCount = useMemo(
     () =>
       Array.isArray(userResourceClaims)
-        ? userResourceClaims.filter((r) => !isResourceClaimPartOfWorkshop(r) && !r.metadata.deletionTimestamp).length
+        ? userResourceClaims.filter((r) => !r.metadata.deletionTimestamp).length
         : 0,
     [userResourceClaims],
   );
