@@ -10,7 +10,7 @@ import kopf
 from babylon import Babylon
 from resourceclaim import ResourceClaim
 from selfpacedlab import SelfPacedLab
-from selfpacedlabprovision import SelfPacedLabProvision
+from selfpacedlabitem import SelfPacedLabItem
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
@@ -46,7 +46,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     await WorkshopProvision.preload()
     await MultiWorkshop.preload()
     await SelfPacedLab.preload()
-    await SelfPacedLabProvision.preload()
+    await SelfPacedLabItem.preload()
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
@@ -306,52 +306,52 @@ async def selfpacedlab_daemon(logger, stopped, **kwargs):
 
 
 @kopf.on.create(
-    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_provision_create(logger, **kwargs):
-    provision = SelfPacedLabProvision.load(**kwargs)
-    await provision.handle_create(logger=logger)
+async def selfpacedlab_item_create(logger, **kwargs):
+    item = SelfPacedLabItem.load(**kwargs)
+    await item.handle_create(logger=logger)
 
 @kopf.on.delete(
-    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_provision_delete(logger, **kwargs):
-    provision = SelfPacedLabProvision.load(**kwargs)
-    await provision.handle_delete(logger=logger)
+async def selfpacedlab_item_delete(logger, **kwargs):
+    item = SelfPacedLabItem.load(**kwargs)
+    await item.handle_delete(logger=logger)
 
 @kopf.on.resume(
-    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_provision_resume(logger, **kwargs):
-    provision = SelfPacedLabProvision.load(**kwargs)
-    await provision.handle_resume(logger=logger)
+async def selfpacedlab_item_resume(logger, **kwargs):
+    item = SelfPacedLabItem.load(**kwargs)
+    await item.handle_resume(logger=logger)
 
 @kopf.on.update(
-    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_provision_update(logger, **kwargs):
-    provision = SelfPacedLabProvision.load(**kwargs)
-    await provision.handle_update(logger=logger)
+async def selfpacedlab_item_update(logger, **kwargs):
+    item = SelfPacedLabItem.load(**kwargs)
+    await item.handle_update(logger=logger)
 
 @kopf.daemon(
-    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
     cancellation_timeout = 1,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_provision_daemon(logger, stopped, **kwargs):
-    provision = SelfPacedLabProvision.load(**kwargs)
+async def selfpacedlab_item_daemon(logger, stopped, **kwargs):
+    item = SelfPacedLabItem.load(**kwargs)
     try:
         while not stopped:
-            if provision.lifespan_end \
-            and provision.lifespan_end < datetime.now(timezone.utc):
-                logger.info(f"Deleting {provision} for lifespan end")
-                await provision.delete()
+            if item.lifespan_end \
+            and item.lifespan_end < datetime.now(timezone.utc):
+                logger.info(f"Deleting {item} for lifespan end")
+                await item.delete()
                 return
-            await provision.manage(logger=logger)
-            await asyncio.sleep(provision.start_delay)
+            await item.manage(logger=logger)
+            await asyncio.sleep(item.start_delay)
     except asyncio.CancelledError:
         pass

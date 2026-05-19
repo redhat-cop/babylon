@@ -61,8 +61,8 @@ rules:
   - multiworkshops/status
   - selfpacedlabs
   - selfpacedlabs/status
-  - selfpacedlabprovisions
-  - selfpacedlabprovisions/status
+  - selfpacedlabitems
+  - selfpacedlabitems/status
   verbs:
   - create
   - delete

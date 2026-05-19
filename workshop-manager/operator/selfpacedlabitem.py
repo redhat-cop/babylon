@@ -29,21 +29,21 @@ def parse_duration(duration_str):
         return timedelta(seconds=value)
 
 
-class SelfPacedLabProvision(CachedKopfObject):
+class SelfPacedLabItem(CachedKopfObject):
     api_group = Babylon.babylon_domain
     api_version = Babylon.babylon_api_version
-    kind = 'SelfPacedLabProvision'
-    plural = 'selfpacedlabprovisions'
+    kind = 'SelfPacedLabItem'
+    plural = 'selfpacedlabitems'
 
     cache = {}
 
     @classmethod
     def get_for_selfpacedlab(cls, lab):
         return [
-            provision
-            for provision in cls.cache.values()
-            if provision.selfpacedlab_namespace == lab.namespace
-            and provision.selfpacedlab_name == lab.name
+            item
+            for item in cls.cache.values()
+            if item.selfpacedlab_namespace == lab.namespace
+            and item.selfpacedlab_name == lab.name
         ]
 
     @property
@@ -159,7 +159,7 @@ class SelfPacedLabProvision(CachedKopfObject):
                     Babylon.selfpacedlab_label: lab.name,
                     Babylon.selfpacedlab_id_label: lab.selfpacedlab_id,
                     Babylon.selfpacedlab_uid_label: lab.uid,
-                    Babylon.selfpacedlab_provision_label: self.name,
+                    Babylon.selfpacedlab_item_label: self.name,
                 },
                 "namespace": f"{self.namespace}",
                 "ownerReferences": [self.as_owner_ref()],
@@ -282,7 +282,7 @@ class SelfPacedLabProvision(CachedKopfObject):
     async def handle_delete(self, logger):
         try:
             lab = await self.get_selfpacedlab()
-            await lab.remove_selfpacedlab_provision_from_status(self, logger=logger)
+            await lab.remove_selfpacedlab_item_from_status(self, logger=logger)
         except k8sApiException as exception:
             if exception.status != 404:
                 logger.exception(
@@ -307,7 +307,7 @@ class SelfPacedLabProvision(CachedKopfObject):
     async def list_resource_claims(self):
         async for resource_claim_obj in resourceclaim.ResourceClaim.list(
             label_selector=f"{Babylon.selfpacedlab_label}={self.selfpacedlab_name},"
-            f"{Babylon.selfpacedlab_provision_label}={self.name}",
+            f"{Babylon.selfpacedlab_item_label}={self.name}",
             namespace=self.namespace,
         ):
             if resource_claim_obj.deletion_timestamp is not None:
@@ -324,7 +324,7 @@ class SelfPacedLabProvision(CachedKopfObject):
                 )
             raise
 
-        await lab.add_selfpacedlab_provision_to_status(self, logger=logger)
+        await lab.add_selfpacedlab_item_to_status(self, logger=logger)
 
         if not lab.selfpacedlab_id:
             logger.info(f"Waiting for selfpacedlab id assignment for {lab}")

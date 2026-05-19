@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 import resourceclaim
-import selfpacedlabprovision
+import selfpacedlabitem
 from babylon import Babylon
 from cachedkopfobject import CachedKopfObject
 
@@ -69,8 +69,8 @@ class SelfPacedLab(CachedKopfObject):
         return self.labels.get(Babylon.white_glove_label)
 
     @property
-    def selfpacedlab_provision_names(self) -> list[str]:
-        return list(self.status.get('selfPacedLabProvisions', {}).keys())
+    def selfpacedlab_item_names(self) -> list[str]:
+        return list(self.status.get('selfPacedLabItems', {}).keys())
 
     @property
     def selfpacedlab_id(self):
@@ -90,8 +90,8 @@ class SelfPacedLab(CachedKopfObject):
                 return f"{parsed.scheme}://{parsed.netloc}"
         return ''
 
-    def get_selfpacedlab_provisions(self):
-        return selfpacedlabprovision.SelfPacedLabProvision.get_for_selfpacedlab(self)
+    def get_selfpacedlab_items(self):
+        return selfpacedlabitem.SelfPacedLabItem.get_for_selfpacedlab(self)
 
     async def delete_all_resource_claims(self, logger):
         logger.info(f"Deleting all ResourceClaims for {self}")
@@ -99,36 +99,36 @@ class SelfPacedLab(CachedKopfObject):
             logger.info(f"Deleting {resource_claim_obj}")
             await resource_claim_obj.delete()
 
-    async def delete_all_selfpacedlab_provisions(self, logger):
-        logger.info(f"Deleting all SelfPacedLabProvisions for {self}")
-        for provision in self.get_selfpacedlab_provisions():
-            logger.info(f"Deleting {provision}")
-            await provision.delete()
+    async def delete_all_selfpacedlab_items(self, logger):
+        logger.info(f"Deleting all SelfPacedLabItems for {self}")
+        for item in self.get_selfpacedlab_items():
+            logger.info(f"Deleting {item}")
+            await item.delete()
 
     async def handle_create(self, logger):
         async with self.lock:
             logger.info(f"Handling create for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_provisions(logger=logger)
+            await self.manage_selfpacedlab_items(logger=logger)
 
     async def handle_delete(self, logger):
         async with self.lock:
             logger.info(f"Handling delete for {self}")
-            await self.delete_all_selfpacedlab_provisions(logger=logger)
+            await self.delete_all_selfpacedlab_items(logger=logger)
             await self.delete_all_resource_claims(logger=logger)
 
     async def handle_resume(self, logger):
         async with self.lock:
             logger.info(f"Handling resume for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_provisions(logger=logger)
+            await self.manage_selfpacedlab_items(logger=logger)
             await self.update_status()
 
     async def handle_update(self, logger):
         async with self.lock:
             logger.info(f"Handling update for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_provisions(logger=logger)
+            await self.manage_selfpacedlab_items(logger=logger)
             await self.update_status()
 
     async def list_resource_claims(self):
@@ -185,25 +185,25 @@ class SelfPacedLab(CachedKopfObject):
         )
         logger.info("Added %s to %s status", resource_claim_obj, self)
 
-    async def add_selfpacedlab_provision_to_status(self, provision, logger):
-        if provision.name in self.status.get('selfPacedLabProvisions', {}):
+    async def add_selfpacedlab_item_to_status(self, item, logger):
+        if item.name in self.status.get('selfPacedLabItems', {}):
             return
         await self.merge_patch_status(
             {
-                "selfPacedLabProvisions": {
-                    provision.name: {"uid": provision.uid}
+                "selfPacedLabItems": {
+                    item.name: {"uid": item.uid}
                 }
             }
         )
-        logger.info("Added %s to %s status", provision, self)
+        logger.info("Added %s to %s status", item, self)
 
-    async def manage_selfpacedlab_provisions(self, logger):
-        for provision in self.get_selfpacedlab_provisions():
-            async with provision.lock:
+    async def manage_selfpacedlab_items(self, logger):
+        for item in self.get_selfpacedlab_items():
+            async with item.lock:
                 patch = {}
                 if (
                     self.lifespan_end
-                    and self.lifespan_end != provision.lifespan_end
+                    and self.lifespan_end != item.lifespan_end
                 ):
                     patch = {
                         "spec": {
@@ -215,13 +215,13 @@ class SelfPacedLab(CachedKopfObject):
 
                 if (
                     self.lifespan_start
-                    and self.lifespan_start != provision.lifespan_start
+                    and self.lifespan_start != item.lifespan_start
                 ):
                     patch.setdefault("spec", {}).setdefault("lifespan", {})
                     patch["spec"]["lifespan"]["start"] = self.lifespan_start.strftime('%FT%TZ')
 
                 if patch:
-                    await provision.merge_patch(patch)
+                    await item.merge_patch(patch)
 
     async def remove_resource_claim_from_status(self, resource_claim_obj, logger):
         if resource_claim_obj.name not in self.status.get('resourceClaims', {}):
@@ -229,13 +229,13 @@ class SelfPacedLab(CachedKopfObject):
         await self.merge_patch_status({"resourceClaims": {resource_claim_obj.name: None}})
         logger.info("Removed %s from %s status", resource_claim_obj, self)
 
-    async def remove_selfpacedlab_provision_from_status(self, provision, logger):
-        if provision.name not in self.status.get('selfPacedLabProvisions', {}):
+    async def remove_selfpacedlab_item_from_status(self, item, logger):
+        if item.name not in self.status.get('selfPacedLabItems', {}):
             return
         await self.merge_patch_status(
-            {"selfPacedLabProvisions": {provision.name: None}}
+            {"selfPacedLabItems": {item.name: None}}
         )
-        logger.info("Removed %s from %s status", provision, self)
+        logger.info("Removed %s from %s status", item, self)
 
     async def update_status(self):
         assigned_user_count = 0
@@ -253,11 +253,11 @@ class SelfPacedLab(CachedKopfObject):
         total_provisioning_count = 0
         total_assigned_count = 0
 
-        for provision in self.get_selfpacedlab_provisions():
-            provision_status = provision.status or {}
-            total_ready_count += provision_status.get('readyCount', 0)
-            total_provisioning_count += provision_status.get('provisioningCount', 0)
-            total_assigned_count += provision_status.get('assignedCount', 0)
+        for item in self.get_selfpacedlab_items():
+            item_status = item.status or {}
+            total_ready_count += item_status.get('readyCount', 0)
+            total_provisioning_count += item_status.get('provisioningCount', 0)
+            total_assigned_count += item_status.get('assignedCount', 0)
 
         await self.merge_patch_status(
             {

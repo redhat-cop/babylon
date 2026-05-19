@@ -1,23 +1,23 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: selfpacedlabprovisions.babylon.gpte.redhat.com
+  name: selfpacedlabitems.babylon.gpte.redhat.com
 spec:
   conversion:
     strategy: None
   group: babylon.gpte.redhat.com
   names:
-    kind: SelfPacedLabProvision
-    listKind: SelfPacedLabProvisionList
-    plural: selfpacedlabprovisions
-    singular: selfpacedlabprovision
+    kind: SelfPacedLabItem
+    listKind: SelfPacedLabItemList
+    plural: selfpacedlabitems
+    singular: selfpacedlabitem
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
         description: >-
-          Provision configuration for a self-paced lab. Maintains a warm pool of
+          Item configuration for a self-paced lab. Maintains a warm pool of
           ResourceClaims that auto-replenishes as users claim instances.
         properties:
           apiVersion:
@@ -33,7 +33,7 @@ spec:
             type: object
           spec:
             description: >-
-              Specification of SelfPacedLabProvision.
+              Specification of SelfPacedLabItem.
             type: object
             required:
             - catalogItem
@@ -49,12 +49,19 @@ spec:
                   when:
                     description: >
                       Condition to check that is transferred to the ResourceClaim
-                      that belongs to this SelfPacedLabProvision which triggers detach of
+                      that belongs to this SelfPacedLabItem which triggers detach of
                       ResourceHandle from the ResourceClaim.
 
                       Condition is given in Jinja2 syntax similar to ansible
                       "when" clauses.
                     type: string
+              assignedLifespan:
+                description: >-
+                  How long a ResourceClaim should live once assigned to a user (i.e. the user's
+                  session duration). After this time the ResourceClaim is destroyed.
+                  Format is a duration string, e.g. "4h", "1d", "8h".
+                type: string
+                pattern: ^[0-9]+[dhms]$
               catalogItem:
                 description: >-
                   CatalogItem for the self-paced lab.
@@ -75,12 +82,12 @@ spec:
                 minimum: 1
               lifespan:
                 description: >-
-                  Lifespan settings for this self-paced lab provision.
+                  Lifespan settings for this self-paced lab item.
                 type: object
                 properties:
                   end:
                     description: >-
-                      End of lifespan for self-paced lab provision and provisioned ResourceClaims.
+                      End of lifespan for self-paced lab item and provisioned ResourceClaims.
                     type: string
                     format: date-time
                   start:
@@ -95,7 +102,7 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               poolSize:
                 description: >-
-                  Number of unclaimed ResourceClaims to keep ready in the warm pool at all times.
+                  Number of unused ResourceClaims to keep ready in the warm pool at all times.
                   When a user claims an instance, a new one is provisioned to maintain this count.
                 type: integer
                 minimum: 1
@@ -109,13 +116,6 @@ spec:
                   Default: 10.
                 type: integer
                 minimum: 1
-              assignedLifespan:
-                description: >-
-                  How long a ResourceClaim should live once assigned to a user (i.e. the user's
-                  session duration). After this time the ResourceClaim is destroyed.
-                  Format is a duration string, e.g. "4h", "1d", "8h".
-                type: string
-                pattern: ^[0-9]+[dhms]$
               unusedLifespan:
                 description: >-
                   How long an unused ResourceClaim should live before being destroyed and replaced
@@ -124,7 +124,7 @@ spec:
                 type: string
                 pattern: ^[0-9]+[dhms]$
           status:
-            description: Status of SelfPacedLabProvision
+            description: Status of SelfPacedLabItem
             type: object
             x-kubernetes-preserve-unknown-fields: true
             properties:
@@ -132,10 +132,10 @@ spec:
                 description: Kopf diffbase
                 type: string
               resourceClaimCount:
-                description: Total number of ResourceClaims managed by this provision.
+                description: Total number of ResourceClaims managed by this item.
                 type: integer
               readyCount:
-                description: Number of unclaimed ResourceClaims ready for users.
+                description: Number of unused ResourceClaims ready for users.
                 type: integer
               provisioningCount:
                 description: Number of ResourceClaims currently being provisioned.
@@ -147,7 +147,7 @@ spec:
                 description: Number of ResourceClaims that have failed provisioning.
                 type: integer
               recycledCount:
-                description: Total number of ResourceClaims recycled due to unclaimed lifespan expiry.
+                description: Total number of ResourceClaims recycled due to unused lifespan expiry.
                 type: integer
         required:
         - apiVersion
