@@ -320,22 +320,22 @@ class SelfPacedLabItem(CachedKopfObject):
         assigned_lifespan_delta = self.assigned_lifespan_delta
 
         async for resource_claim_obj in self.list_resource_claims():
-            is_claimed = resource_claim_obj.labels.get(Babylon.selfpacedlab_claimed_label) == 'true'
+            is_assigned = resource_claim_obj.labels.get(Babylon.selfpacedlab_assigned_label) == 'true'
 
-            if is_claimed:
+            if is_assigned:
                 # Enforce assigned (per-user session) lifespan
                 if assigned_lifespan_delta:
-                    claimed_at_str = resource_claim_obj.annotations.get(
-                        Babylon.selfpacedlab_claimed_at_annotation
+                    assigned_at_str = resource_claim_obj.annotations.get(
+                        Babylon.selfpacedlab_assigned_at_annotation
                     )
-                    if claimed_at_str:
-                        claimed_at = datetime.strptime(
-                            claimed_at_str, '%Y-%m-%dT%H:%M:%SZ'
+                    if assigned_at_str:
+                        assigned_at = datetime.strptime(
+                            assigned_at_str, '%Y-%m-%dT%H:%M:%SZ'
                         ).replace(tzinfo=timezone.utc)
-                        if claimed_at + assigned_lifespan_delta < now:
+                        if assigned_at + assigned_lifespan_delta < now:
                             logger.info(
                                 f"Deleting {resource_claim_obj} - assigned lifespan expired "
-                                f"(claimed at {claimed_at_str}, TTL {self.assigned_lifespan})"
+                                f"(assigned at {assigned_at_str}, TTL {self.assigned_lifespan})"
                             )
                             await resource_claim_obj.delete()
                             await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)

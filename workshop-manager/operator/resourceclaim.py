@@ -99,10 +99,10 @@ class ResourceClaim(K8sObject):
 
         # For SelfPacedLab, user assignment happens when a user claims the instance
         # via the portal (not automatically on provision complete like Workshop).
-        # The operator only needs to create WorkshopUserAssignments for already-claimed
-        # ResourceClaims (those with the claimed label).
-        is_claimed = resource_claim.labels.get(Babylon.selfpacedlab_claimed_label) == 'true'
-        if not is_claimed:
+        # The operator only needs to create WorkshopUserAssignments for already-assigned
+        # ResourceClaims (those with the assigned label).
+        is_assigned = resource_claim.labels.get(Babylon.selfpacedlab_assigned_label) == 'true'
+        if not is_assigned:
             return
 
         async with lab.lock:
