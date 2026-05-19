@@ -206,17 +206,6 @@ class SelfPacedLab(CachedKopfObject):
         logger.info("Removed %s from %s status", item, self)
 
     async def update_status(self):
-        assigned_user_count = 0
-        available_user_count = 0
-        total_user_count = 0
-
-        for user_assignment in self.status.get('userAssignments', {}).values():
-            total_user_count += 1
-            if 'assignment' in user_assignment:
-                assigned_user_count += 1
-            else:
-                available_user_count += 1
-
         total_ready_count = 0
         total_provisioning_count = 0
         total_assigned_count = 0
@@ -229,11 +218,6 @@ class SelfPacedLab(CachedKopfObject):
 
         await self.merge_patch_status(
             {
-                "userCount": {
-                    "assigned": assigned_user_count,
-                    "available": available_user_count,
-                    "total": total_user_count,
-                },
                 "poolCount": {
                     "ready": total_ready_count,
                     "provisioning": total_provisioning_count,

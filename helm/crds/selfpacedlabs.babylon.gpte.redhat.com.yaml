@@ -116,44 +116,6 @@ spec:
                 description: >-
                   URL for accessing this self-paced lab portal.
                 type: string
-              userAssignments:
-                description: >-
-                  References to WorkshopUserAssignments.
-                type: object
-                additionalProperties:
-                  type: object
-                  properties:
-                    assignment:
-                      description: >-
-                        Assignment for lab participant.
-                      type: object
-                      required:
-                      - email
-                      properties:
-                        email:
-                          description: >-
-                            Email address used to identify lab participant.
-                          type: string
-                    resourceClaimName:
-                      description: >-
-                        ResourceClaim name.
-                      type: string
-                    userName:
-                      description: >-
-                        User name for lab as reported from the service provisioning.
-                      type: string
-              userCount:
-                type: object
-                properties:
-                  assigned:
-                    description: Assigned users for self-paced lab.
-                    type: integer
-                  available:
-                    description: Available user assignments for self-paced lab.
-                    type: integer
-                  total:
-                    description: Total user assignments for self-paced lab.
-                    type: integer
         required:
         - apiVersion
         - kind
