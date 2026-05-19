@@ -6,6 +6,8 @@ on:
     - '*'
     tags:
     - 'selfpacedlab-manager-v[0-9]*'
+permissions:
+  contents: read
 jobs:
   publish:
     env:
@@ -13,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout source
-      uses: actions/checkout@master
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Get image tags
       id: image_tags
@@ -31,7 +33,7 @@ jobs:
     - name: Buildah Action
       id: buildah-build
       if: steps.image_tags.outputs.IMAGE_TAGS
-      uses: redhat-actions/buildah-build@v2
+      uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
       with:
         image: ${{ env.IMAGE_NAME }}
         tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
@@ -41,7 +43,7 @@ jobs:
     - name: Push image to registry
       id: push-to-registry
       if: steps.image_tags.outputs.IMAGE_TAGS
-      uses: redhat-actions/push-to-registry@v2
+      uses: redhat-actions/push-to-registry@3916dcf329473955be3059ef62c9c062ea1b9054 # v2
       with:
         image: ${{ steps.buildah-build.outputs.image }}
         tags: ${{ steps.buildah-build.outputs.tags }}
