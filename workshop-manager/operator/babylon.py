@@ -30,6 +30,11 @@ class Babylon():
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
+    selfpacedlab_label = f"{babylon_domain}/selfpacedlab"
+    selfpacedlab_id_label = f"{babylon_domain}/selfpacedlab-id"
+    selfpacedlab_uid_label = f"{babylon_domain}/selfpacedlab-uid"
+    selfpacedlab_provision_label = f"{babylon_domain}/selfpacedlab-provision"
+    selfpacedlab_claimed_label = f"{babylon_domain}/claimed"
     service_access_annotation = f"{babylon_domain}/service-access"
     url_annotation = f"{babylon_domain}/url"
     multi_workshop_id_label = f"{babylon_domain}/multi-workshop-id"
@@ -41,6 +46,7 @@ class Babylon():
     salesforce_items_annotation = f"{demo_domain}/salesforce-items"
     user_name_label = f"{babylon_domain}/user-name"
 
+    selfpacedlab_fail_percentage_threshold = int(os.environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60))
     workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))
     workshop_base_url = os.environ.get('WORKSHOP_BASE_URL', '').rstrip('/')
 

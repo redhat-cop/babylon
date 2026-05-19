@@ -10,6 +10,7 @@ from k8sobject import K8sObject
 from labuserinterface import LabUserInterface
 from userassignment import UserAssignment
 
+import selfpacedlab as selfpacedlab_import
 import workshop as workshop_import
 import workshopuserassignment
 
@@ -22,7 +23,7 @@ class ResourceClaim(K8sObject):
     lab_ui_url_keys = ('bookbag_url', 'lab_ui_url', 'labUserInterfaceUrl', 'showroom_primary_view_url')
 
     @classmethod
-    async def handle_event(cls, event, logger):
+    async def handle_workshop_event(cls, event, logger):
         definition = event.get('object')
         if not definition or definition.get('kind') != 'ResourceClaim':
             logger.warning(event)
@@ -60,6 +61,54 @@ class ResourceClaim(K8sObject):
             await resource_claim.manage_workshop_user_assignments(
                 logger = logger,
                 workshop = workshop,
+            )
+
+    @classmethod
+    async def handle_selfpacedlab_event(cls, event, logger):
+        definition = event.get('object')
+        if not definition or definition.get('kind') != 'ResourceClaim':
+            logger.warning(event)
+            return
+
+        resource_claim = cls(definition=definition)
+        logger.debug(f"Handling selfpacedlab {resource_claim} {event.get('type') or 'EVENT'}")
+
+        lab = None
+        try:
+            lab = await resource_claim.get_selfpacedlab()
+        except k8sApiException as exception:
+            if exception.status != 404:
+                logger.exception("Failed to get selfpacedlab %s", resource_claim.selfpacedlab_name)
+
+        if event.get('type') == 'DELETED' or resource_claim.deletion_timestamp is not None:
+            if lab is not None:
+                await lab.remove_resource_claim_from_status(resource_claim, logger=logger)
+            await resource_claim.delete_workshop_user_assignments(logger=logger)
+            return
+
+        if lab is None:
+            logger.warning(
+                f"{resource_claim} references missing SelfPacedLab {resource_claim.selfpacedlab_name}"
+            )
+            return
+
+        await lab.add_resource_claim_to_status(resource_claim, logger=logger)
+
+        if not resource_claim.provision_complete or resource_claim.is_failed:
+            return
+
+        # For SelfPacedLab, user assignment happens when a user claims the instance
+        # via the portal (not automatically on provision complete like Workshop).
+        # The operator only needs to create WorkshopUserAssignments for already-claimed
+        # ResourceClaims (those with the claimed label).
+        is_claimed = resource_claim.labels.get(Babylon.selfpacedlab_claimed_label) == 'true'
+        if not is_claimed:
+            return
+
+        async with lab.lock:
+            await resource_claim.manage_selfpacedlab_user_assignments(
+                logger=logger,
+                lab=lab,
             )
 
     @property
@@ -159,6 +208,10 @@ class ResourceClaim(K8sObject):
                 if 'stop' in resource['template']['spec']['vars'].get('action_schedule', {}):
                     return resource['template']['spec']['vars']['action_schedule']['stop']
         return self.definition['spec'].get('provider', {}).get('parameterValues', {}).get('stop_timestamp')
+
+    @property
+    def selfpacedlab_name(self):
+        return self.labels.get(Babylon.selfpacedlab_label)
 
     @property
     def workshop_name(self):
@@ -353,8 +406,55 @@ class ResourceClaim(K8sObject):
             resource_claim_name = self.name,
         )
 
+    async def get_selfpacedlab(self):
+        return await selfpacedlab_import.SelfPacedLab.get(
+            name=self.selfpacedlab_name, namespace=self.namespace
+        )
+
     async def get_workshop(self):
         return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
+
+    async def manage_selfpacedlab_user_assignments(self, logger, lab):
+        user_assignments = (
+            self.get_user_assignments(logger=logger)
+            if lab.multiuser_services else
+            [self.as_user_assignment()]
+        )
+
+        for user_assignment in user_assignments:
+            workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.find(
+                namespace=self.namespace,
+                resource_claim_name=self.name,
+                user_name=user_assignment.user_name,
+                workshop_name=lab.name,
+            )
+            lab_user_interface = (
+                user_assignment.lab_user_interface.serialize()
+                if user_assignment.lab_user_interface else None
+            )
+            if workshop_user_assignment:
+                if (
+                    workshop_user_assignment.data != user_assignment.data or
+                    workshop_user_assignment.spec.get('labUserInterface') != lab_user_interface or
+                    workshop_user_assignment.messages != user_assignment.messages
+                ):
+                    await workshop_user_assignment.merge_patch({
+                        "data": user_assignment.data,
+                        "labUserInterface": lab_user_interface,
+                        "messages": user_assignment.messages,
+                    })
+            else:
+                workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.create(
+                    data=user_assignment.data,
+                    lab_user_interface=user_assignment.lab_user_interface,
+                    messages=user_assignment.messages,
+                    namespace=self.namespace,
+                    resource_claim=self,
+                    user_name=user_assignment.user_name,
+                    workshop_name=lab.name,
+                    workshop_id=lab.selfpacedlab_id,
+                )
+                logger.info(f"Created {workshop_user_assignment} for {lab} {self}")
 
     async def manage_workshop_user_assignments(self, logger, workshop):
         user_assignments = (

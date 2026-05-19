@@ -9,6 +9,8 @@ import kopf
 
 from babylon import Babylon
 from resourceclaim import ResourceClaim
+from selfpacedlab import SelfPacedLab
+from selfpacedlabprovision import SelfPacedLabProvision
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
@@ -43,6 +45,8 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     await Workshop.preload()
     await WorkshopProvision.preload()
     await MultiWorkshop.preload()
+    await SelfPacedLab.preload()
+    await SelfPacedLabProvision.preload()
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
@@ -57,7 +61,18 @@ async def on_cleanup(**_):
     },
 )
 async def resource_claim_event(event, logger, **_):
-    await ResourceClaim.handle_event(event, logger=logger)
+    await ResourceClaim.handle_workshop_event(event, logger=logger)
+
+
+@kopf.on.event(
+    ResourceClaim.api_group, ResourceClaim.api_version, ResourceClaim.plural,
+    labels={
+        Babylon.selfpacedlab_label: kopf.PRESENT,
+        Babylon.resource_broker_ignore_label: kopf.ABSENT,
+    },
+)
+async def resource_claim_selfpacedlab_event(event, logger, **_):
+    await ResourceClaim.handle_selfpacedlab_event(event, logger=logger)
 
 
 @kopf.on.create(
@@ -235,5 +250,108 @@ async def multiworkshop_daemon(logger, stopped, **kwargs):
                 return
             await multiworkshop.manage(logger=logger)
             await asyncio.sleep(30)
+    except asyncio.CancelledError:
+        pass
+
+
+@kopf.on.create(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_create(logger, **kwargs):
+    selfpacedlab = SelfPacedLab.load(**kwargs)
+    await selfpacedlab.handle_create(logger=logger)
+
+@kopf.on.delete(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_delete(logger, **kwargs):
+    selfpacedlab = SelfPacedLab.load(**kwargs)
+    await selfpacedlab.handle_delete(logger=logger)
+
+@kopf.on.resume(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_resume(logger, **kwargs):
+    selfpacedlab = SelfPacedLab.load(**kwargs)
+    await selfpacedlab.handle_resume(logger=logger)
+
+@kopf.on.update(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_update(logger, **kwargs):
+    selfpacedlab = SelfPacedLab.load(**kwargs)
+    await selfpacedlab.handle_update(logger=logger)
+
+@kopf.daemon(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    cancellation_timeout = 1,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_daemon(logger, stopped, **kwargs):
+    selfpacedlab = SelfPacedLab.load(**kwargs)
+    try:
+        while not stopped:
+            if selfpacedlab.lifespan_end and selfpacedlab.lifespan_end < datetime.now(timezone.utc):
+                logger.info(f"Deleting {selfpacedlab} for lifespan end")
+                await selfpacedlab.delete()
+                return
+            await selfpacedlab.manage(logger=logger)
+            await asyncio.sleep(300)
+    except asyncio.CancelledError:
+        pass
+
+
+@kopf.on.create(
+    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_provision_create(logger, **kwargs):
+    provision = SelfPacedLabProvision.load(**kwargs)
+    await provision.handle_create(logger=logger)
+
+@kopf.on.delete(
+    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_provision_delete(logger, **kwargs):
+    provision = SelfPacedLabProvision.load(**kwargs)
+    await provision.handle_delete(logger=logger)
+
+@kopf.on.resume(
+    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_provision_resume(logger, **kwargs):
+    provision = SelfPacedLabProvision.load(**kwargs)
+    await provision.handle_resume(logger=logger)
+
+@kopf.on.update(
+    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_provision_update(logger, **kwargs):
+    provision = SelfPacedLabProvision.load(**kwargs)
+    await provision.handle_update(logger=logger)
+
+@kopf.daemon(
+    SelfPacedLabProvision.api_group, SelfPacedLabProvision.api_version, SelfPacedLabProvision.plural,
+    cancellation_timeout = 1,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_provision_daemon(logger, stopped, **kwargs):
+    provision = SelfPacedLabProvision.load(**kwargs)
+    try:
+        while not stopped:
+            if provision.lifespan_end \
+            and provision.lifespan_end < datetime.now(timezone.utc):
+                logger.info(f"Deleting {provision} for lifespan end")
+                await provision.delete()
+                return
+            await provision.manage(logger=logger)
+            await asyncio.sleep(provision.start_delay)
     except asyncio.CancelledError:
         pass
