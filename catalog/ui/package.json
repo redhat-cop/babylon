@@ -73,7 +73,7 @@
     "style-loader": "^3.3.4",
     "svg-url-loader": "^8.0.0",
     "terser-webpack-plugin": "^5.5.0",
-    "ts-jest": "^29.4.9",
+    "ts-jest": "^29.4.10",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "tslib": "^2.8.1",
     "typescript": "^6.0.3",
