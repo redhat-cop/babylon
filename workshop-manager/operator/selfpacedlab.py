@@ -45,10 +45,6 @@ class SelfPacedLab(CachedKopfObject):
         )
 
     @property
-    def multiuser_services(self):
-        return self.spec.get('multiuserServices', False)
-
-    @property
     def ordered_by(self):
         return self.annotations.get(Babylon.ordered_by_annotation)
 
@@ -109,7 +105,6 @@ class SelfPacedLab(CachedKopfObject):
         async with self.lock:
             logger.info(f"Handling create for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_items(logger=logger)
 
     async def handle_delete(self, logger):
         async with self.lock:
@@ -121,14 +116,12 @@ class SelfPacedLab(CachedKopfObject):
         async with self.lock:
             logger.info(f"Handling resume for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_items(logger=logger)
             await self.update_status()
 
     async def handle_update(self, logger):
         async with self.lock:
             logger.info(f"Handling update for {self}")
             await self.__manage_selfpacedlab_id_label(logger=logger)
-            await self.manage_selfpacedlab_items(logger=logger)
             await self.update_status()
 
     async def list_resource_claims(self):
@@ -197,31 +190,6 @@ class SelfPacedLab(CachedKopfObject):
         )
         logger.info("Added %s to %s status", item, self)
 
-    async def manage_selfpacedlab_items(self, logger):
-        for item in self.get_selfpacedlab_items():
-            async with item.lock:
-                patch = {}
-                if (
-                    self.lifespan_end
-                    and self.lifespan_end != item.lifespan_end
-                ):
-                    patch = {
-                        "spec": {
-                            "lifespan": {
-                                "end": self.lifespan_end.strftime('%FT%TZ')
-                            }
-                        }
-                    }
-
-                if (
-                    self.lifespan_start
-                    and self.lifespan_start != item.lifespan_start
-                ):
-                    patch.setdefault("spec", {}).setdefault("lifespan", {})
-                    patch["spec"]["lifespan"]["start"] = self.lifespan_start.strftime('%FT%TZ')
-
-                if patch:
-                    await item.merge_patch(patch)
 
     async def remove_resource_claim_from_status(self, resource_claim_obj, logger):
         if resource_claim_obj.name not in self.status.get('resourceClaims', {}):

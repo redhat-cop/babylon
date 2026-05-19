@@ -71,24 +71,6 @@ class SelfPacedLabItem(CachedKopfObject):
         return Babylon.babylon_ignore_label in self.labels
 
     @property
-    def lifespan_end(self):
-        end_timestamp = self.spec.get('lifespan', {}).get('end')
-        if not end_timestamp:
-            return None
-        return datetime.strptime(end_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
-            tzinfo=timezone.utc
-        )
-
-    @property
-    def lifespan_start(self):
-        start_timestamp = self.spec.get('lifespan', {}).get('start')
-        if not start_timestamp:
-            return None
-        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
-            tzinfo=timezone.utc
-        )
-
-    @property
     def parameters(self):
         return self.spec.get('parameters', {})
 
@@ -115,12 +97,12 @@ class SelfPacedLabItem(CachedKopfObject):
         return None
 
     @property
-    def unused_lifespan(self):
-        return self.spec.get('unusedLifespan', '24h')
+    def unassigned_lifespan(self):
+        return self.spec.get('unassignedLifespan', '24h')
 
     @property
-    def unused_lifespan_delta(self):
-        return parse_duration(self.unused_lifespan)
+    def unassigned_lifespan_delta(self):
+        return parse_duration(self.unassigned_lifespan)
 
     async def create_resource_claim(self, logger, lab):
         logger.debug(
@@ -331,28 +313,13 @@ class SelfPacedLabItem(CachedKopfObject):
             return
 
         async with self.lock:
-            await self.manage_lifespan(logger=logger, lab=lab)
             await self.manage_resource_claims(logger=logger, lab=lab)
-
-    async def manage_lifespan(self, logger, lab):
-        patch = {}
-
-        if lab.lifespan_end and lab.lifespan_end != self.lifespan_end:
-            patch.setdefault("spec", {}).setdefault("lifespan", {})
-            patch["spec"]["lifespan"]["end"] = lab.lifespan_end.strftime('%FT%TZ')
-
-        if lab.lifespan_start and lab.lifespan_start != self.lifespan_start:
-            patch.setdefault("spec", {}).setdefault("lifespan", {})
-            patch["spec"]["lifespan"]["start"] = lab.lifespan_start.strftime('%FT%TZ')
-
-        if patch:
-            await self.merge_patch(patch)
 
     async def manage_resource_claims(self, logger, lab):
         logger.debug(f"Manage ResourceClaims for {self}")
 
         now = datetime.now(timezone.utc)
-        unused_lifespan_delta = self.unused_lifespan_delta
+        unassigned_lifespan_delta = self.unassigned_lifespan_delta
 
         resource_claim_count = 0
         unclaimed_ready_count = 0
@@ -400,11 +367,11 @@ class SelfPacedLabItem(CachedKopfObject):
                 failed_count += 1
                 continue
 
-            # Check unused lifespan TTL
-            if resource_claim_obj.creation_datetime + unused_lifespan_delta < now:
+            # Check unassigned lifespan TTL
+            if resource_claim_obj.creation_datetime + unassigned_lifespan_delta < now:
                 logger.info(
-                    f"Recycling {resource_claim_obj} - unused lifespan expired "
-                    f"(created {resource_claim_obj.creation_timestamp}, TTL {self.unused_lifespan})"
+                    f"Recycling {resource_claim_obj} - unassigned lifespan expired "
+                    f"(created {resource_claim_obj.creation_timestamp}, TTL {self.unassigned_lifespan})"
                 )
                 await resource_claim_obj.delete()
                 await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
@@ -425,7 +392,7 @@ class SelfPacedLabItem(CachedKopfObject):
         )
 
         # Do not provision if lifespan start is in the future
-        if self.lifespan_start and self.lifespan_start > now:
+        if lab.lifespan_start and lab.lifespan_start > now:
             return
 
         # Do not provision if failure threshold is exceeded

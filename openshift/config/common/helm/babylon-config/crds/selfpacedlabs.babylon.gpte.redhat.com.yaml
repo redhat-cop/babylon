@@ -73,21 +73,6 @@ spec:
                       and no provisioning occurs.
                     type: string
                     format: date-time
-                  maximum:
-                    description: >-
-                      Maximum lifespan which may be requested for a self-paced lab relative to its creation.
-                    type: string
-                    pattern: ^[0-9]+[dhms]$
-                  relativeMaximum:
-                    description: >-
-                      Maximum lifespan which may be requested for a self-paced lab relative to the present date and time.
-                    type: string
-                    pattern: ^[0-9]+[dhms]$
-              multiuserServices:
-                description: >-
-                  Flag to indicate that services for this self-paced lab are multi-user.
-                type: boolean
-                default: false
               openRegistration:
                 description: >-
                   If set to true then users will not need to be pre-registered and can self-register via the portal.

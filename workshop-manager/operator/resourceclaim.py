@@ -415,11 +415,7 @@ class ResourceClaim(K8sObject):
         return await workshop_import.Workshop.get(name=self.workshop_name, namespace=self.namespace)
 
     async def manage_selfpacedlab_user_assignments(self, logger, lab):
-        user_assignments = (
-            self.get_user_assignments(logger=logger)
-            if lab.multiuser_services else
-            [self.as_user_assignment()]
-        )
+        user_assignments = [self.as_user_assignment()]
 
         for user_assignment in user_assignments:
             workshop_user_assignment = await workshopuserassignment.WorkshopUserAssignment.find(

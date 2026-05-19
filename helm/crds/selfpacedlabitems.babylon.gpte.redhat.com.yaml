@@ -38,7 +38,7 @@ spec:
             required:
             - catalogItem
             - poolSize
-            - unusedLifespan
+            - unassignedLifespan
             - selfPacedLabName
             properties:
               autoDetach:
@@ -80,21 +80,6 @@ spec:
                   Default: poolSize.
                 type: integer
                 minimum: 1
-              lifespan:
-                description: >-
-                  Lifespan settings for this self-paced lab item.
-                type: object
-                properties:
-                  end:
-                    description: >-
-                      End of lifespan for self-paced lab item and provisioned ResourceClaims.
-                    type: string
-                    format: date-time
-                  start:
-                    description: >-
-                      Scheduled start for provisioning to begin for self-paced lab.
-                    type: string
-                    format: date-time
               parameters:
                 description: >-
                   Parameter values to use with catalog item provisioning.
@@ -116,9 +101,9 @@ spec:
                   Default: 10.
                 type: integer
                 minimum: 1
-              unusedLifespan:
+              unassignedLifespan:
                 description: >-
-                  How long an unused ResourceClaim should live before being destroyed and replaced
+                  How long an unassigned ResourceClaim should live before being destroyed and replaced
                   with a fresh instance. This prevents stale environments from accumulating.
                   Format is a duration string, e.g. "24h", "2d", "30m".
                 type: string
@@ -147,7 +132,7 @@ spec:
                 description: Number of ResourceClaims that have failed provisioning.
                 type: integer
               recycledCount:
-                description: Total number of ResourceClaims recycled due to unused lifespan expiry.
+                description: Total number of ResourceClaims recycled due to unassigned lifespan expiry.
                 type: integer
         required:
         - apiVersion

@@ -346,11 +346,6 @@ async def selfpacedlab_item_daemon(logger, stopped, **kwargs):
     item = SelfPacedLabItem.load(**kwargs)
     try:
         while not stopped:
-            if item.lifespan_end \
-            and item.lifespan_end < datetime.now(timezone.utc):
-                logger.info(f"Deleting {item} for lifespan end")
-                await item.delete()
-                return
             await item.manage(logger=logger)
             await asyncio.sleep(item.start_delay)
     except asyncio.CancelledError:
