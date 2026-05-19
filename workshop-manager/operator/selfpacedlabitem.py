@@ -47,10 +47,6 @@ class SelfPacedLabItem(CachedKopfObject):
         ]
 
     @property
-    def auto_detach_condition(self):
-        return self.spec.get('autoDetach', {}).get('when')
-
-    @property
     def catalog_item_name(self):
         return self.spec['catalogItem']['name']
 
@@ -157,11 +153,6 @@ class SelfPacedLabItem(CachedKopfObject):
                 }
             },
         }
-
-        if self.auto_detach_condition:
-            resource_claim_definition['spec']['autoDetach'] = {
-                "when": self.auto_detach_condition
-            }
 
         # SelfPacedLab manages its own warm pool; disable Poolboy ResourcePool
         resource_claim_definition['metadata']['annotations'][

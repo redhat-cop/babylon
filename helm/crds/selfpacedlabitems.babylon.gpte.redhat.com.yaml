@@ -36,25 +36,12 @@ spec:
               Specification of SelfPacedLabItem.
             type: object
             required:
+            - assignedLifespan
             - catalogItem
             - poolSize
             - unassignedLifespan
             - selfPacedLabName
             properties:
-              autoDetach:
-                description: |
-                  Configuration for auto-detach of the ResourceClaim.
-                type: object
-                properties:
-                  when:
-                    description: >
-                      Condition to check that is transferred to the ResourceClaim
-                      that belongs to this SelfPacedLabItem which triggers detach of
-                      ResourceHandle from the ResourceClaim.
-
-                      Condition is given in Jinja2 syntax similar to ansible
-                      "when" clauses.
-                    type: string
               assignedLifespan:
                 description: >-
                   How long a ResourceClaim should live once assigned to a user (i.e. the user's
