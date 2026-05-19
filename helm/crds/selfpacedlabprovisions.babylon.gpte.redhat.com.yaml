@@ -38,7 +38,7 @@ spec:
             required:
             - catalogItem
             - poolSize
-            - unclaimedLifespan
+            - unusedLifespan
             - selfPacedLabName
             properties:
               autoDetach:
@@ -114,9 +114,16 @@ spec:
                   Default: 10.
                 type: integer
                 minimum: 1
-              unclaimedLifespan:
+              assignedLifespan:
                 description: >-
-                  How long an unclaimed ResourceClaim should live before being destroyed and replaced
+                  How long a ResourceClaim should live once assigned to a user (i.e. the user's
+                  session duration). After this time the ResourceClaim is destroyed.
+                  Format is a duration string, e.g. "4h", "1d", "8h".
+                type: string
+                pattern: ^[0-9]+[dhms]$
+              unusedLifespan:
+                description: >-
+                  How long an unused ResourceClaim should live before being destroyed and replaced
                   with a fresh instance. This prevents stale environments from accumulating.
                   Format is a duration string, e.g. "24h", "2d", "30m".
                 type: string

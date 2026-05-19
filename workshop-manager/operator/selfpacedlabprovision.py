@@ -109,12 +109,22 @@ class SelfPacedLabProvision(CachedKopfObject):
         return self.spec.get('startDelay', 10)
 
     @property
-    def unclaimed_lifespan(self):
-        return self.spec.get('unclaimedLifespan', '24h')
+    def assigned_lifespan(self):
+        return self.spec.get('assignedLifespan')
 
     @property
-    def unclaimed_lifespan_delta(self):
-        return parse_duration(self.unclaimed_lifespan)
+    def assigned_lifespan_delta(self):
+        if self.assigned_lifespan:
+            return parse_duration(self.assigned_lifespan)
+        return None
+
+    @property
+    def unused_lifespan(self):
+        return self.spec.get('unusedLifespan', '24h')
+
+    @property
+    def unused_lifespan_delta(self):
+        return parse_duration(self.unused_lifespan)
 
     async def create_resource_claim(self, logger, lab):
         logger.debug(
@@ -346,7 +356,7 @@ class SelfPacedLabProvision(CachedKopfObject):
         logger.debug(f"Manage ResourceClaims for {self}")
 
         now = datetime.now(timezone.utc)
-        unclaimed_lifespan_delta = self.unclaimed_lifespan_delta
+        unused_lifespan_delta = self.unused_lifespan_delta
 
         resource_claim_count = 0
         unclaimed_ready_count = 0
@@ -355,12 +365,31 @@ class SelfPacedLabProvision(CachedKopfObject):
         failed_count = 0
         recycled_count = self.status.get('recycledCount', 0)
 
+        assigned_lifespan_delta = self.assigned_lifespan_delta
+
         async for resource_claim_obj in self.list_resource_claims():
             resource_claim_count += 1
 
             is_claimed = resource_claim_obj.labels.get(Babylon.selfpacedlab_claimed_label) == 'true'
 
             if is_claimed:
+                # Enforce assigned (per-user session) lifespan
+                if assigned_lifespan_delta:
+                    claimed_at_str = resource_claim_obj.annotations.get(
+                        Babylon.selfpacedlab_claimed_at_annotation
+                    )
+                    if claimed_at_str:
+                        claimed_at = datetime.strptime(
+                            claimed_at_str, '%Y-%m-%dT%H:%M:%SZ'
+                        ).replace(tzinfo=timezone.utc)
+                        if claimed_at + assigned_lifespan_delta < now:
+                            logger.info(
+                                f"Deleting {resource_claim_obj} - assigned lifespan expired "
+                                f"(claimed at {claimed_at_str}, TTL {self.assigned_lifespan})"
+                            )
+                            await resource_claim_obj.delete()
+                            await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
+                            continue
                 assigned_count += 1
                 continue
 
@@ -375,11 +404,11 @@ class SelfPacedLabProvision(CachedKopfObject):
                 failed_count += 1
                 continue
 
-            # Check unclaimed lifespan TTL
-            if resource_claim_obj.creation_datetime + unclaimed_lifespan_delta < now:
+            # Check unused lifespan TTL
+            if resource_claim_obj.creation_datetime + unused_lifespan_delta < now:
                 logger.info(
-                    f"Recycling {resource_claim_obj} - unclaimed lifespan expired "
-                    f"(created {resource_claim_obj.creation_timestamp}, TTL {self.unclaimed_lifespan})"
+                    f"Recycling {resource_claim_obj} - unused lifespan expired "
+                    f"(created {resource_claim_obj.creation_timestamp}, TTL {self.unused_lifespan})"
                 )
                 await resource_claim_obj.delete()
                 await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
