@@ -1,0 +1,50 @@
+---
+name: selfpacedlab-manager-publish
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - 'selfpacedlab-manager-v[0-9]*'
+jobs:
+  publish:
+    env:
+      IMAGE_NAME: babylon-selfpacedlab-manager
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@master
+
+    - name: Get image tags
+      id: image_tags
+      run: |
+        # Version is a semantic version tag or semantic version with release number
+        # GITHUB_REF will be of the form "refs/tags/selfpacedlab-manager-v0.1.0" or "refs/tags/selfpacedlab-manager-v0.1.0-1"
+        RELEASE=${GITHUB_REF#refs/tags/selfpacedlab-manager-}
+        VERSION=${RELEASE/-*/}
+
+        # Only build image if version tag without release number
+        if [[ "${VERSION}" == "${RELEASE}" ]]; then
+          echo "IMAGE_TAGS=latest ${VERSION%.*} ${VERSION}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Buildah Action
+      id: buildah-build
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
+        context: selfpacedlab-manager
+        containerfiles: selfpacedlab-manager/Containerfile
+
+    - name: Push image to registry
+      id: push-to-registry
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.buildah-build.outputs.image }}
+        tags: ${{ steps.buildah-build.outputs.tags }}
+        registry: ${{ vars.BABYLON_IMAGE_REGISTRY }}/${{ vars.BABYLON_IMAGE_REPOSITORY }}
+        username: ${{ secrets.BABYLON_IMAGE_REGISTRY_USERNAME }}
+        password: ${{ secrets.BABYLON_IMAGE_REGISTRY_PASSWORD }}

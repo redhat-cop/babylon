@@ -1,16 +1,16 @@
-{{- $workshopManager := .Values.workshopManager }}
-{{- if and $workshopManager.deploy }}
+{{- $selfpacedlabManager := .Values.selfpacedlabManager }}
+{{- if and $selfpacedlabManager.deploy }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: babylon-workshop-manager
+  name: babylon-selfpacedlab-manager
   annotations:
     description: >-
-      Access read cluster resources for babylon workshop-manager
+      Access cluster resources for babylon selfpacedlab-manager
   labels:
     {{- include "babylon.labels" . | nindent 4 }}
-    app.kubernetes.io/component: workshop-manager
+    app.kubernetes.io/component: selfpacedlab-manager
 rules:
 - apiGroups:
   - ""
@@ -53,16 +53,12 @@ rules:
   - list
   - watch
 - apiGroups:
-  - {{ $workshopManager.api.group }}
+  - {{ $selfpacedlabManager.api.group }}
   resources:
-  - workshops
-  - workshops/status
-  - workshopprovisions
-  - workshopprovisions/status
-  - workshopuserassignments
-  - workshopuserassignments/status
-  - multiworkshops
-  - multiworkshops/status
+  - selfpacedlabs
+  - selfpacedlabs/status
+  - selfpacedlabitems
+  - selfpacedlabitems/status
   verbs:
   - create
   - delete
@@ -86,31 +82,8 @@ rules:
 - apiGroups:
   - {{ .Values.resourceBroker.api.group }}
   resources:
-  - resourcehandles
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - {{ .Values.resourceBroker.api.group }}
-  resources:
   - resourceproviders
   verbs:
   - get
   - list
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 {{- end }}

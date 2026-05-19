@@ -1,0 +1,19 @@
+{{- $selfpacedlabManager := .Values.selfpacedlabManager }}
+{{- if and $selfpacedlabManager.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-selfpacedlab-manager
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: selfpacedlab-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon-selfpacedlab-manager
+subjects:
+- kind: ServiceAccount
+  name: babylon-selfpacedlab-manager
+  namespace: {{ $selfpacedlabManager.namespace.name }}
+{{- end }}

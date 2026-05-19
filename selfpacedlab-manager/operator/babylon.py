@@ -17,7 +17,7 @@ class Babylon():
     catalog_item_name_label = f"{babylon_domain}/catalogItemName"
     catalog_item_namespace_label = f"{babylon_domain}/catalogItemNamespace"
     display_name_annotation = f"{babylon_domain}/displayName"
-    finalizer_value = f"{babylon_domain}/workshop-manager"
+    finalizer_value = f"{babylon_domain}/selfpacedlab-manager"
     lab_ui_label = f"{babylon_domain}/labUserInterface"
     lab_ui_url_annotation = f"{babylon_domain}/labUserInterfaceUrl"
     lab_ui_urls_annotation = f"{babylon_domain}/labUserInterfaceUrls"
@@ -30,24 +30,25 @@ class Babylon():
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
+    selfpacedlab_label = f"{babylon_domain}/selfpacedlab"
+    selfpacedlab_id_label = f"{babylon_domain}/selfpacedlab-id"
+    selfpacedlab_uid_label = f"{babylon_domain}/selfpacedlab-uid"
+    selfpacedlab_item_label = f"{babylon_domain}/selfpacedlab-item"
+    selfpacedlab_assigned_label = f"{babylon_domain}/assigned"
+    selfpacedlab_assigned_at_annotation = f"{babylon_domain}/assigned-at"
     service_access_annotation = f"{babylon_domain}/service-access"
     url_annotation = f"{babylon_domain}/url"
-    multi_workshop_id_label = f"{babylon_domain}/multi-workshop-id"
-    workshop_label = f"{babylon_domain}/workshop"
-    workshop_id_label = f"{babylon_domain}/workshop-id"
-    workshop_uid_label = f"{babylon_domain}/workshop-uid"
-    workshop_provision_label = f"{babylon_domain}/workshop-provision"
     salesforce_id_annotation = f"{demo_domain}/salesforce-id"
     salesforce_items_annotation = f"{demo_domain}/salesforce-items"
     user_name_label = f"{babylon_domain}/user-name"
 
-    workshop_fail_percentage_threshold = int(os.environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60))
-    workshop_base_url = os.environ.get('WORKSHOP_BASE_URL', '').rstrip('/')
+    selfpacedlab_fail_percentage_threshold = int(os.environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60))
+    selfpacedlab_base_url = os.environ.get('SELFPACEDLAB_BASE_URL', '').rstrip('/')
 
     # Initialized on startup
     api_client = None
     core_v1_api = None
-    rbac_authorization_api = None
+    custom_objects_api = None
 
     @classmethod
     async def on_cleanup(cls):
@@ -62,5 +63,4 @@ class Babylon():
 
         cls.api_client = kubernetes_asyncio.client.ApiClient()
         cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api(cls.api_client)
-        cls.rbac_authorization_api = kubernetes_asyncio.client.RbacAuthorizationV1Api(cls.api_client)
         cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi(cls.api_client)

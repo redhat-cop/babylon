@@ -78,8 +78,8 @@ class SelfPacedLab(CachedKopfObject):
 
     @property
     def _effective_base_url(self):
-        if Babylon.workshop_base_url:
-            return Babylon.workshop_base_url
+        if Babylon.selfpacedlab_base_url:
+            return Babylon.selfpacedlab_base_url
         if self.service_url:
             parsed = urlparse(self.service_url)
             if parsed.scheme and parsed.netloc:
@@ -189,7 +189,6 @@ class SelfPacedLab(CachedKopfObject):
             }
         )
         logger.info("Added %s to %s status", item, self)
-
 
     async def remove_resource_claim_from_status(self, resource_claim_obj, logger):
         if resource_claim_obj.name not in self.status.get('resourceClaims', {}):
