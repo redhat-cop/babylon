@@ -99,11 +99,6 @@ spec:
                   When a user claims an instance, a new one is provisioned to maintain this count.
                 type: integer
                 minimum: 1
-              resourcePool:
-                description: >-
-                  Resource pool name for assigning ResourceClaims. Set to "disabled" to explicitly
-                  disable pool assignment. If not set, no pool annotation is created on ResourceClaims.
-                type: string
               selfPacedLabName:
                 description: >-
                   SelfPacedLab name reference.

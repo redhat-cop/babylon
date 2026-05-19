@@ -67,10 +67,6 @@ class SelfPacedLabProvision(CachedKopfObject):
         return self.spec.get('poolSize', 1)
 
     @property
-    def resource_pool(self) -> str | None:
-        return self.spec.get('resourcePool')
-
-    @property
     def ignore(self):
         return Babylon.babylon_ignore_label in self.labels
 
@@ -185,10 +181,10 @@ class SelfPacedLabProvision(CachedKopfObject):
                 "when": self.auto_detach_condition
             }
 
-        if self.resource_pool is not None:
-            resource_claim_definition['metadata']['annotations'][
-                Babylon.resource_pool_annotation
-            ] = self.resource_pool
+        # SelfPacedLab manages its own warm pool; disable Poolboy ResourcePool
+        resource_claim_definition['metadata']['annotations'][
+            Babylon.resource_pool_annotation
+        ] = 'disabled'
 
         if lab.asset_uuid:
             resource_claim_definition['metadata']['labels'][
