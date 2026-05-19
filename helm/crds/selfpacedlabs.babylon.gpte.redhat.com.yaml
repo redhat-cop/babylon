@@ -47,15 +47,6 @@ spec:
                 description: >-
                   Display name for the self-paced lab.
                 type: string
-              labUserInterface:
-                description: >-
-                  Default settings for labUserInterface under userAssignments.
-                type: object
-                properties:
-                  redirect:
-                    description: >-
-                      Configure that users should be automatically redirected to the lab user interface.
-                    type: boolean
               lifespan:
                 description: >-
                   Lifespan settings for this SelfPacedLab.
