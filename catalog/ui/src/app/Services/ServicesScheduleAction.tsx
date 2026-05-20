@@ -91,6 +91,13 @@ const ServicesScheduleAction: React.FC<{
           forceUpdateTimestamp={forceUpdateTimestamp}
         />
       </FormGroup>
+      {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
+        <Alert
+          variant="warning"
+          isInline
+          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
+        />
+      ) : null}
       {noAutoStopSwitchIsVisible ? (
         <Switch
           id="services-schedule-action__no-auto-stop"
