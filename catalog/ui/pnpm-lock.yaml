@@ -63,8 +63,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.4(chokidar@3.6.0)
       dompurify:
-        specifier: ^3.4.3
-        version: 3.4.3
+        specifier: ^3.4.5
+        version: 3.4.5
       fuse.js:
         specifier: ^7.3.0
         version: 7.3.0
@@ -2655,8 +2655,8 @@ packages:
   dompurify@3.2.7:
     resolution: {integrity: sha512-WhL/YuveyGXJaerVlMYGWhvQswa7myDG17P7Vu65EWC05o8vfeNbvNf4d/BOvH99+ZW+LlQsc1GDKMa1vNK6dw==}
 
-  dompurify@3.4.3:
-    resolution: {integrity: sha512-VVwJidIJcp1hpg2OMXML3ZVRPYSZiq4aX7qBh83BSIpOaRDqI+qxhXjjIWnpzkOXhmp0L81lnoME1mnCc9H48A==}
+  dompurify@3.4.5:
+    resolution: {integrity: sha512-OrwIBKsdNSVEeubdJ1HBv/wNENRM9ytAVCv7YXt//A3vPdVMNuACRqK9mXCGCBW2ln7BT/A4X0jXHo2Gu89miA==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -7378,7 +7378,7 @@ snapshots:
 
   '@types/dompurify@3.2.0':
     dependencies:
-      dompurify: 3.4.3
+      dompurify: 3.4.5
 
   '@types/eslint-scope@3.7.7':
     dependencies:
@@ -8631,7 +8631,7 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dompurify@3.4.3:
+  dompurify@3.4.5:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
