@@ -33,6 +33,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
 }) => {
   const helpLink = useHelpLink();
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useModal();
+  const [now] = useState(() => Date.now());
   const [dates, setDates] = useState<TDates>({
     stopDate: null,
     endDate: null,
@@ -57,12 +58,12 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 <DateTimePicker
                   defaultTimestamp={autoStopDate ? autoStopDate.getTime() : null}
                   onSelect={(d) => setDates({ ...dates, stopDate: d })}
-                  minDate={Date.now()}
-                  maxDate={Date.now() + maxRuntimeTimestamp}
+                  minDate={now}
+                  maxDate={now + maxRuntimeTimestamp}
                   isDisabled={noAutoStopChecked}
                 />
               </FormGroup>
-              {Date.now() + maxRuntimeTimestamp >= _endDate.getTime() ? (
+              {now + maxRuntimeTimestamp >= _endDate.getTime() ? (
                 <Switch
                   id="no-auto-stop-switch"
                   aria-label="No auto-stop"
@@ -78,6 +79,13 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                       }else { setDates({ ...dates, stopDate: new Date(Date.now() + defaultRuntimeTimestamp) });
                     }
                   }}
+                />
+              ) : null}
+              {_stopDate && _stopDate.getTime() <= now ? (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="The selected auto-stop date and time is in the past."
                 />
               ) : null}
               <AlertGroup>
@@ -109,11 +117,18 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
               <DateTimePicker
                 defaultTimestamp={autoDestroyDate.getTime()}
                 onSelect={(d) => setDates({ ...dates, endDate: d })}
-                maxDate={maxDestroyTimestamp ? Date.now() + maxDestroyTimestamp : null}
-                minDate={Date.now()}
+                maxDate={maxDestroyTimestamp ? now + maxDestroyTimestamp : null}
+                minDate={now}
                 forceUpdateTimestamp={dates.endDate?.getTime()}
               />
             </FormGroup>
+            {_endDate && _endDate.getTime() <= now ? (
+              <Alert
+                variant="warning"
+                isInline
+                title="The selected auto-destroy date and time is in the past."
+              />
+            ) : null}
             <AlertGroup>
               <Alert
                 title={

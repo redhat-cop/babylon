@@ -31,7 +31,6 @@ function getDateTime(dateStr: string, timeStr: string): Date {
   return valueDateTime;
 }
 function formatAmPm(timeStr: string): string {
-  // eslint-disable-next-line prefer-const
   let { hours, minutes } = getHoursMinutes(timeStr);
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours %= 12;
@@ -212,6 +211,8 @@ const DateTimePicker: React.FC<{
     ></Button>
   );
 
+  const selectedDateTime = getDateTime(valueDate, valueTime);
+
   return (
     <div style={{ width: '320px' }}>
       <Popover
@@ -228,7 +229,7 @@ const DateTimePicker: React.FC<{
               type="text"
               id="date-time"
               aria-label="Date and time picker"
-              value={dateFormat(getDateTime(valueDate, valueTime), true)}
+              value={dateFormat(selectedDateTime, true)}
               className="date-time-picker__text"
               onClick={onToggleCalendar}
               isDisabled={isDisabled}

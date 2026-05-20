@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, FormGroup, Switch } from '@patternfly/react-core';
+import { Alert, Form, FormGroup, Switch } from '@patternfly/react-core';
 import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import useSession from '@app/utils/useSession';
@@ -101,6 +101,13 @@ const WorkshopScheduleAction: React.FC<{
           forceUpdateTimestamp={forceUpdateTimestamp}
         />
       </FormGroup>
+      {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
+        <Alert
+          variant="warning"
+          isInline
+          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
+        />
+      ) : null}
       {noAutoStopSwitchIsVisible ? (
         <Switch
           id="services-schedule-action__no-auto-stop"
