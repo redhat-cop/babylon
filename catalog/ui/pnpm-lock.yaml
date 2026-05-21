@@ -48,8 +48,8 @@ importers:
         specifier: ^6.4.3
         version: 6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6.3.0
-        version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.5.0
+        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
         specifier: ^6.3.0
         version: 6.4.0
@@ -1460,6 +1460,12 @@ packages:
 
   '@patternfly/react-icons@6.4.0':
     resolution: {integrity: sha512-SPjzatm73NUYv/BL6A/cjRA5sFQ15NkiyPAcT8gmklI7HY+ptd6/eg49uBDFmxTQcSwbb5ISW/R6wwCQBY2M+Q==}
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+
+  '@patternfly/react-icons@6.5.0':
+    resolution: {integrity: sha512-Y4CWTKR9mMwBd3Ogh+6O5kJSOt9pbrDPWXK1mz25d41bDX87VPJMtgyYQX3A2+MvXiKn3YOc4i9ZsnXVqSx6Kw==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -7155,6 +7161,11 @@ snapshots:
       resize-observer-polyfill: 1.5.1
 
   '@patternfly/react-icons@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@patternfly/react-icons@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
