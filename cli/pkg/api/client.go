@@ -2,11 +2,13 @@ package api
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -142,12 +144,34 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 		c.debugf("Cookie: %s=<set>", name)
 	}
 
-	// Track redirects
+	// Track redirects and preserve HTTP method.
+	// Without this, Go downgrades POST/PATCH/DELETE to GET on 301/302/303
+	// redirects, which breaks mutating API calls when the server redirects
+	// to a different hostname (e.g. demo.redhat.com → catalog.demo.redhat.com).
 	var redirectChain []string
-	c.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		redirectChain = append(redirectChain, fmt.Sprintf("%s %s", req.Method, req.URL.String()))
+	c.HTTPClient.CheckRedirect = func(redirectReq *http.Request, via []*http.Request) error {
+		redirectChain = append(redirectChain, fmt.Sprintf("%s %s", via[0].Method, redirectReq.URL.String()))
 		if len(via) >= 10 {
 			return fmt.Errorf("too many redirects")
+		}
+		// Preserve original method (don't downgrade POST→GET)
+		redirectReq.Method = via[0].Method
+		// Carry over body for non-GET methods
+		if via[0].GetBody != nil {
+			body, err := via[0].GetBody()
+			if err == nil {
+				redirectReq.Body = body
+			}
+		}
+		// Carry over custom headers stripped during redirect
+		for _, h := range []string{"Authentication", "Content-Type"} {
+			if v := via[0].Header.Get(h); v != "" {
+				redirectReq.Header.Set(h, v)
+			}
+		}
+		// Carry over cookies
+		for _, cookie := range via[0].Cookies() {
+			redirectReq.AddCookie(cookie)
 		}
 		return nil
 	}
@@ -159,6 +183,18 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	}
 	defer resp.Body.Close()
 
+	// If we were redirected to a different host, update BaseURL so subsequent
+	// requests go directly to the correct server and skip the redirect.
+	if resp.Request != nil && resp.Request.URL != nil {
+		finalURL := resp.Request.URL
+		origURL, _ := url.Parse(fullURL)
+		if origURL != nil && finalURL.Host != origURL.Host {
+			newBase := finalURL.Scheme + "://" + finalURL.Host
+			c.debugf("Updating BaseURL: %s → %s", c.BaseURL, newBase)
+			c.BaseURL = newBase
+		}
+	}
+
 	c.debugf("Response: %d %s (%s)", resp.StatusCode, resp.Status, time.Since(reqStart).Round(time.Millisecond))
 	if len(redirectChain) > 0 {
 		c.debugf("Redirect chain:")
@@ -166,7 +202,7 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 			c.debugf("  %d. %s", i+1, r)
 		}
 	}
-	for _, name := range []string{"Content-Type", "Location", "Set-Cookie", "Www-Authenticate"} {
+	for _, name := range []string{"Content-Type", "Content-Encoding", "Location", "Set-Cookie", "Www-Authenticate"} {
 		if v := resp.Header.Get(name); v != "" {
 			c.debugf("  %s: %s", name, v)
 		}
@@ -175,6 +211,24 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	// Handle gzip-compressed responses that were not automatically decompressed.
+	// The Python backend always gzip-compresses K8s API proxy responses. Go's
+	// http.Transport normally auto-decompresses, but the oauth2-proxy reverse
+	// proxy chain can interfere (e.g. stripping Content-Encoding while keeping
+	// the compressed body, or double-wrapping). Detect and decompress manually.
+	if len(respBody) >= 2 && respBody[0] == 0x1f && respBody[1] == 0x8b {
+		c.debugf("Response body is gzip-compressed, decompressing manually")
+		gr, err := gzip.NewReader(bytes.NewReader(respBody))
+		if err != nil {
+			return nil, fmt.Errorf("decompressing response: %w", err)
+		}
+		respBody, err = io.ReadAll(gr)
+		gr.Close()
+		if err != nil {
+			return nil, fmt.Errorf("reading decompressed response: %w", err)
+		}
 	}
 
 	if c.Debug {
