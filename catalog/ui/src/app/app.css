@@ -1,6 +1,10 @@
 :root {
   --babylon-form-width: 360px;
   --babylon-form-width--wider: 560px;
+  --pf-t--global--text-decoration--link--line--default: none;
+  --pf-t--global--text-decoration--link--style--default: solid;
+  --pf-t--global--text-decoration--link--line--hover: underline;
+  --pf-t--global--text-decoration--link--style--hover: solid;
 }
 
 html,
