@@ -47,7 +47,7 @@ import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
@@ -167,7 +167,12 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       compare: compareK8sObjects,
     },
   );
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: resourceHandles, mutate: mutateResourceHandles } = useSWR<ResourceHandle[]>(
     resourcePool

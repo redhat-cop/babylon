@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -24,7 +24,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import useSWR from 'swr';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import { compareK8sObjects, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -48,7 +48,12 @@ const ResourceProviderInstanceComponent: React.FC<{ resourceProviderName: string
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   function mutateResourceProvidersList(data: ResourceProviderList) {
     matchMutate([{ name: 'RESOURCE_PROVIDERS', arguments: { limit: FETCH_BATCH_LIMIT }, data }]);

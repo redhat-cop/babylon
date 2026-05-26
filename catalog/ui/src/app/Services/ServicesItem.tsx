@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import yaml from 'js-yaml';
@@ -335,8 +335,13 @@ const ServicesItemComponent: React.FC<{
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
+  const { showBoundary } = useErrorBoundary();
   // Show 404 when resourceClaim is not found or is being deleted
-  useErrorHandler(error?.status === 404 || resourceClaim?.metadata?.deletionTimestamp ? { status: 404 } : null);
+  useEffect(() => {
+    if (error?.status === 404 || resourceClaim?.metadata?.deletionTimestamp) {
+      showBoundary({ status: 404 });
+    }
+  }, [error, resourceClaim?.metadata?.deletionTimestamp, showBoundary]);
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
       ? apiPaths.CATALOG_ITEM({
