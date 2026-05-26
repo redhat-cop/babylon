@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -27,7 +27,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyRunsTable from './AnarchyRunsTable';
 import useSession from '@app/utils/useSession';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
@@ -52,7 +52,12 @@ const AnarchyActionInstanceComponent: React.FC<{ anarchyActionName: string; name
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: anarchyRunsList } = useSWR<AnarchyRunList>(
     apiPaths.ANARCHY_RUNS({ labelSelector: `anarchy.gpte.redhat.com/action=${anarchyActionName}`, namespace }),

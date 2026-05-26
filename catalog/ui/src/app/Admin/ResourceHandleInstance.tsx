@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -29,7 +29,7 @@ import TimeInterval from '@app/components/TimeInterval';
 import CreateResourcePoolFromResourceHandleModal from './CreateResourcePoolFromResourceHandleModal';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import useSession from '@app/utils/useSession';
 
@@ -60,7 +60,12 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
       compare: compareK8sObjects,
     },
   );
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: resourceClaim } = useSWR<ResourceClaim>(
     resourceHandle.spec.resourceClaim
