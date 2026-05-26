@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
-import { EditorState } from 'lexical/LexicalEditorState';
-import { LexicalEditor } from 'lexical/LexicalEditor';
+import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,

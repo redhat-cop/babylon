@@ -14,7 +14,7 @@ import {
   $getNodeByKey,
 } from 'lexical';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
-import { $isParentElementRTL, $wrapNodes, $isAtNodeEnd } from '@lexical/selection';
+import { $isParentElementRTL, $setBlocksType, $isAtNodeEnd } from '@lexical/selection';
 import { $getNearestNodeOfType, mergeRegister } from '@lexical/utils';
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -129,7 +129,7 @@ function FloatingLinkEditor({ editor }) {
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
           updateLinkEditor();
-        });
+        }, { editor });
       }),
 
       editor.registerCommand(
@@ -146,7 +146,7 @@ function FloatingLinkEditor({ editor }) {
   useEffect(() => {
     editor.getEditorState().read(() => {
       updateLinkEditor();
-    });
+    }, { editor });
   }, [editor, updateLinkEditor]);
 
   useEffect(() => {
@@ -273,7 +273,7 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          $wrapNodes(selection, () => $createParagraphNode());
+          $setBlocksType(selection, () => $createParagraphNode());
         }
       });
     }
@@ -286,7 +286,7 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          $wrapNodes(selection, () => $createHeadingNode('h1'));
+          $setBlocksType(selection, () => $createHeadingNode('h1'));
         }
       });
     }
@@ -299,7 +299,7 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          $wrapNodes(selection, () => $createHeadingNode('h2'));
+          $setBlocksType(selection, () => $createHeadingNode('h2'));
         }
       });
     }
@@ -330,7 +330,7 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          $wrapNodes(selection, () => $createQuoteNode());
+          $setBlocksType(selection, () => $createQuoteNode());
         }
       });
     }
@@ -343,7 +343,7 @@ function BlockOptionsDropdownList({ editor, blockType, toolbarRef, setShowBlockO
         const selection = $getSelection();
 
         if ($isRangeSelection(selection)) {
-          $wrapNodes(selection, () => $createCodeNode());
+          $setBlocksType(selection, () => $createCodeNode());
         }
       });
     }
@@ -495,7 +495,7 @@ const ToolbarPlugin: React.FC = () => {
       editor.registerUpdateListener(({ editorState }) => {
         editorState.read(() => {
           updateToolbar();
-        });
+        }, { editor });
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
