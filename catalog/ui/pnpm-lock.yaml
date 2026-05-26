@@ -42,20 +42,20 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-core':
-        specifier: ^6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-drag-drop':
-        specifier: ^6.4.3
-        version: 6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-icons':
-        specifier: ^6.5.0
-        version: 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-styles':
-        specifier: ^6.5.0
-        version: 6.5.0
+        specifier: ^6.5.1
+        version: 6.5.1
       '@patternfly/react-table':
-        specifier: ^6.4.3
-        version: 6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^6.5.1
+        version: 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@reduxjs/toolkit':
         specifier: ^1.9.7
         version: 1.9.7(react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)
@@ -1446,53 +1446,35 @@ packages:
     resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
     engines: {node: '>= 16'}
 
-  '@patternfly/react-core@6.4.3':
-    resolution: {integrity: sha512-CYf+DFmcV5LCTQh7ZNBhHgqaEbDKwKOxBB/3Si6xFn8fIH8h/Wj3ZHSm6rYslQS7dJUusqyv5gJ2dR9LixT3TA==}
+  '@patternfly/react-core@6.5.1':
+    resolution: {integrity: sha512-fFZ0hcIyHJO27hxbf53W3m2R11l0O9WxR7CusJXuCEaNMP31ULrhf5Pv6ROdTrrs39Kl/yPv+2QuxQfe/4e72g==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-core@6.5.0':
-    resolution: {integrity: sha512-gnnWPMiw4lcWCMPCvZ5r0wzNrrRBbs3cXioj7G/ejiQMm6kUdqf+4QJwtghH7m6JCZM2zimpoI4UlnZ+2AEjmg==}
+  '@patternfly/react-drag-drop@6.5.1':
+    resolution: {integrity: sha512-10mo7ETrD4voyIUpzjtX8Z+cuQYnXPOHV5vuqhInArgSUiVi7OOqSJFG6iBnn7OCSKAMMakHdHkHRtOLiOO1Mw==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-drag-drop@6.4.3':
-    resolution: {integrity: sha512-O8W4KPc3AGIATXpDPirkSr5D25ajDikFvalOlIBCDmWG7CE4E+LLe+x/t2UmQFY59JeoALFMIzrNJtHlozBuTQ==}
+  '@patternfly/react-icons@6.5.1':
+    resolution: {integrity: sha512-CnuPvTTs4MMWx8CAUkmnY690ouN1bbHjunsyXu3QxvGOmzbztP+wS4BdiLS8TIXOIH80Yb7KPhnF8VkA+CduOA==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-icons@6.4.0':
-    resolution: {integrity: sha512-SPjzatm73NUYv/BL6A/cjRA5sFQ15NkiyPAcT8gmklI7HY+ptd6/eg49uBDFmxTQcSwbb5ISW/R6wwCQBY2M+Q==}
+  '@patternfly/react-styles@6.5.1':
+    resolution: {integrity: sha512-yQMzUbbf6qYM/v3JbPvaCJTgxRbOKoEw229XZmnnM8gDvp8ECiI7LqihrAOK/NA6T6M3DDgsRMd2JurUBhPDEw==}
+
+  '@patternfly/react-table@6.5.1':
+    resolution: {integrity: sha512-JpX66ctLsg5snRRheDhuF2fHvXDG4UDKYfP5403kCAQ4Dz2dPu3PhlHi4AJol+egEBD2HfS/U37j7noQ1Y7mpA==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
 
-  '@patternfly/react-icons@6.5.0':
-    resolution: {integrity: sha512-Y4CWTKR9mMwBd3Ogh+6O5kJSOt9pbrDPWXK1mz25d41bDX87VPJMtgyYQX3A2+MvXiKn3YOc4i9ZsnXVqSx6Kw==}
-    peerDependencies:
-      react: ^17 || ^18 || ^19
-      react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-styles@6.4.0':
-    resolution: {integrity: sha512-EXmHA67s5sy+Wy/0uxWoUQ52jr9lsH2wV3QcgtvVc5zxpyBX89gShpqv4jfVqaowznHGDoL6fVBBrSe9BYOliQ==}
-
-  '@patternfly/react-styles@6.5.0':
-    resolution: {integrity: sha512-N5iw6W+BfMBDpY++OSXQ6j0ocSNOVCuRUK9mPYni6Sqi/ibXqUCsj7RbCalpCZi3WoMp9ARdjjKTWedtaOJ+1Q==}
-
-  '@patternfly/react-table@6.4.3':
-    resolution: {integrity: sha512-lPHjVOEkJpCtXMtE48pLGwMmLsCgYJvoiZpuW2/Vlg0y0pmg0nfYUVDBBTXfQ3dgskn/zb5SAgZr158VQQoBtw==}
-    peerDependencies:
-      react: ^17 || ^18 || ^19
-      react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-tokens@6.4.0':
-    resolution: {integrity: sha512-iZthBoXSGQ/+PfGTdPFJVulaJZI3rwE+7A/whOXPGp3Jyq3k6X52pr1+5nlO6WHasbZ9FyeZGqXf4fazUZNjbw==}
-
-  '@patternfly/react-tokens@6.5.0':
-    resolution: {integrity: sha512-rHNg8rvWJO12vHq1N32lxwPfXOlJ0KNd0HP4LhFJ9yJFsBxjQeZkcKZLAgeJyxXfT8kjScYkA7vqCmdY/o1mLQ==}
+  '@patternfly/react-tokens@6.5.1':
+    resolution: {integrity: sha512-zwepLsIQTL0Lf4R2/PIBOk1m+pm0hYVT3lktf2H4+Y87eRIifwMRb19c+pr4hj4ckGvHs+WxwjTfTj2Qqwn5rw==}
 
   '@peculiar/asn1-cms@2.7.0':
     resolution: {integrity: sha512-hew63shtzzvBcSHbhm+cyAmKe6AIfinT9hzEqSPjDC6opTTMKmTkQ0gHuN2KsWlvqiKw1S/fS94fhag/FJkioQ==}
@@ -2980,9 +2962,6 @@ packages:
 
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
-
-  focus-trap@7.6.4:
-    resolution: {integrity: sha512-xx560wGBk7seZ6y933idtjJQc1l+ck+pI3sKvhKozdBV1dRZoKhkW5xoCaFv9tQiX5RH1xfSxjuNu6g+lmN/gw==}
 
   focus-trap@7.6.6:
     resolution: {integrity: sha512-v/Z8bvMCajtx4mEXmOo7QEsIzlIOqRXTIwgUfsFOF9gEsespdbD0AkPIka1bSXZ8Y8oZ+2IVDQZePkTfEHZl7Q==}
@@ -7150,68 +7129,48 @@ snapshots:
 
   '@noble/hashes@1.4.0': {}
 
-  '@patternfly/react-core@6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-core@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@patternfly/react-icons': 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.4.0
-      '@patternfly/react-tokens': 6.4.0
-      focus-trap: 7.6.4
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-dropzone: 14.4.1(react@18.3.1)
-      tslib: 2.8.1
-
-  '@patternfly/react-core@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@patternfly/react-icons': 6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.5.0
-      '@patternfly/react-tokens': 6.5.0
+      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-tokens': 6.5.1
       focus-trap: 7.6.6
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-dropzone: 14.4.1(react@18.3.1)
       tslib: 2.8.1
 
-  '@patternfly/react-drag-drop@6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-drag-drop@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-core': 6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.4.0
+      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.5.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       resize-observer-polyfill: 1.5.1
 
-  '@patternfly/react-icons@6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-icons@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@patternfly/react-icons@6.5.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@patternfly/react-styles@6.5.1': {}
+
+  '@patternfly/react-table@6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
-  '@patternfly/react-styles@6.4.0': {}
-
-  '@patternfly/react-styles@6.5.0': {}
-
-  '@patternfly/react-table@6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@patternfly/react-core': 6.4.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-icons': 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@patternfly/react-styles': 6.4.0
-      '@patternfly/react-tokens': 6.4.0
+      '@patternfly/react-core': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-icons': 6.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-tokens': 6.5.1
       lodash: 4.18.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       tslib: 2.8.1
 
-  '@patternfly/react-tokens@6.4.0': {}
-
-  '@patternfly/react-tokens@6.5.0': {}
+  '@patternfly/react-tokens@6.5.1': {}
 
   '@peculiar/asn1-cms@2.7.0':
     dependencies:
@@ -9105,10 +9064,6 @@ snapshots:
   flat@5.0.2: {}
 
   flatted@3.4.2: {}
-
-  focus-trap@7.6.4:
-    dependencies:
-      tabbable: 6.4.0
 
   focus-trap@7.6.6:
     dependencies:
