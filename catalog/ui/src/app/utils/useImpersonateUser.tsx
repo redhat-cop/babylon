@@ -1,12 +1,17 @@
 import { useCallback } from 'react';
 import { getUserInfo } from '@app/api';
-import { actionClearImpersonation, actionSetImpersonation, selectImpersonationUser } from '@app/store';
-import { useDispatch, useSelector } from 'react-redux';
-import { AnyAction, Dispatch } from 'redux';
+import {
+  actionClearImpersonation,
+  actionSetImpersonation,
+  selectImpersonationUser,
+  useAppDispatch,
+  useAppSelector,
+  AppDispatch,
+} from '@app/store';
 
 const KEY = 'impersonateUser';
 
-async function setImpersonateUserFn(dispatch: Dispatch<AnyAction>, impersonateUserName: string) {
+async function setImpersonateUserFn(dispatch: AppDispatch, impersonateUserName: string) {
   if (sessionStorage.getItem(KEY) !== impersonateUserName) {
     sessionStorage.setItem(KEY, impersonateUserName);
     window.location.reload(); // Reload full page to refresh caches
@@ -28,8 +33,8 @@ const useImpersonateUser = (): {
   userImpersonated: string | null;
   clearImpersonation: () => void;
 } => {
-  const dispatch = useDispatch();
-  const userImpersonated = useSelector(selectImpersonationUser);
+  const dispatch = useAppDispatch();
+  const userImpersonated = useAppSelector(selectImpersonationUser);
   const setImpersonation = useCallback(
     (impersonateUser: string) => setImpersonateUserFn(dispatch, impersonateUser),
     [dispatch],

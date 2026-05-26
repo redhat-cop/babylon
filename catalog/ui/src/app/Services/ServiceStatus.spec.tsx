@@ -5,10 +5,13 @@ import { render, waitFor } from '@app/utils/test-utils';
 import { ResourceClaim } from '@app/types';
 import ServiceStatus from './ServiceStatus';
 
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn().mockReturnValue(true),
-}));
+jest.mock('react-redux', () => {
+  const actual = jest.requireActual('react-redux');
+  const mockUseSelector = Object.assign(jest.fn().mockReturnValue(true), {
+    withTypes: function () { return mockUseSelector; },
+  });
+  return { ...actual, useSelector: mockUseSelector };
+});
 
 describe('ServiceStatus', () => {
   test('When ServiceStatus layout renders with stopped, should display ServiceStatus', async () => {
