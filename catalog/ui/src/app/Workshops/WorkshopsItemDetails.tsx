@@ -101,7 +101,7 @@ const WorkshopsItemDetails: React.FC<{
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
-  const supportLink = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/support-link`];
+  const supportLink = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/support-link`];
   const multiworkshopSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
   
   const {

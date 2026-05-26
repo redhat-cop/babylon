@@ -531,7 +531,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
-        ...(catalogItem.spec.supportLink ? { [`${DEMO_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
+        ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -691,7 +691,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
-        ...(catalogItem.spec.supportLink ? { [`${DEMO_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
+        ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
         ...(customAnnotations || {}),
       },
       ...(customOwnerReferences && customOwnerReferences.length > 0
