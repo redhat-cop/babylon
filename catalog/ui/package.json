@@ -119,7 +119,7 @@
     "react-redux": "^9.0.0",
     "react-router-dom": "^6.28.0",
     "react-window": "^1.8.11",
-    "swr": "^2.3.4",
+    "swr": "^2.4.1",
     "yjs": "^13.6.30"
   }
 }
