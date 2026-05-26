@@ -101,6 +101,7 @@ const WorkshopsItemDetails: React.FC<{
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
+  const supportLink = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/support-link`];
   const multiworkshopSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
   
   const {
@@ -379,6 +380,16 @@ const WorkshopsItemDetails: React.FC<{
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
+      {supportLink ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Support</DescriptionListTerm>
+          <DescriptionListDescription>
+            <a href={supportLink} target="_blank" rel="noopener noreferrer">
+              {supportLink}
+            </a>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
       {multiworkshopSource ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Multi Asset Workshop</DescriptionListTerm>

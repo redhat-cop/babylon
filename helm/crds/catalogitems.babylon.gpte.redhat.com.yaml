@@ -518,6 +518,10 @@ spec:
                     type: string
                   maximum:
                     type: string
+              supportLink:
+                description: >-
+                  URL link to a support page or resource for this catalog item.
+                type: string
               termsOfService:
                 description:
                   HTML content for terms of service to appear on the service request form.

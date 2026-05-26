@@ -187,6 +187,7 @@ export interface CatalogItemSpec {
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];
+  supportLink?: string;
   termsOfService?: string;
   userData?: any;
   lifespan?: CatalogItemSpecLifespan;
