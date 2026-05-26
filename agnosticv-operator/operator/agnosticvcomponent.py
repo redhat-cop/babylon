@@ -190,6 +190,10 @@ class AgnosticVComponent(KopfObject):
         return self.catalog_meta.get('externalUrl')
 
     @property
+    def catalog_support_link(self):
+        return self.catalog_meta.get('supportLink')
+
+    @property
     def catalog_icon(self):
         # FIXME - default icon dict?
         return self.catalog_meta.get('icon', {})
@@ -613,6 +617,9 @@ class AgnosticVComponent(KopfObject):
 
         if self.zerotouch_access is not None:
             definition['spec']['zerotouchAccess'] = self.zerotouch_access
+
+        if self.catalog_support_link:
+            definition['spec']['supportLink'] = self.catalog_support_link
 
         if self.catalog_external_url:
             definition['spec']['externalUrl'] = self.catalog_external_url
