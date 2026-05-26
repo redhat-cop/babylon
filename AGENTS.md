@@ -6,12 +6,12 @@ This file provides context for AI coding assistants working in the Babylon repos
 
 Babylon is Red Hat GPTE's self-service platform for catalog items, workshops, and lab environments on OpenShift. The main user-facing stack lives under `catalog/` (React UI + aiohttp API). Operators, Helm charts, and deployment docs cover the rest of the platform.
 
-## Development guides
+## Development skills
 
-Follow these guides when working on catalog components:
+Follow these skills when working on catalog components:
 
-- **Catalog UI** (`catalog/ui`): [docs/dev-guides/catalog-ui-dev.md](docs/dev-guides/catalog-ui-dev.md)
-- **Catalog API** (`catalog/api`): [docs/dev-guides/catalog-api-dev.md](docs/dev-guides/catalog-api-dev.md)
+- **Catalog UI** (`catalog/ui`): [.agents/skills/catalog-ui-dev/SKILL.md](.agents/skills/catalog-ui-dev/SKILL.md)
+- **Catalog API** (`catalog/api`): [.agents/skills/catalog-api-dev/SKILL.md](.agents/skills/catalog-api-dev/SKILL.md)
 
 ## Local development quick start
 
@@ -28,6 +28,6 @@ Follow these guides when working on catalog components:
 
 ## Further reading
 
-- [docs/dev-guides/](docs/dev-guides/) — component development guides
+- [.agents/skills/](.agents/skills/) — component development skills
 - [catalog/Development.adoc](catalog/Development.adoc) — catalog build and deploy
 - [docs/Deploying_Babylon.adoc](docs/Deploying_Babylon.adoc) — platform deployment

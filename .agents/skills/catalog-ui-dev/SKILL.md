@@ -17,7 +17,7 @@ pnpm install
 pnpm run start:dev    # webpack-dev-server → http://localhost:9000
 ```
 
-The catalog API must be running separately (see [catalog-api-dev.md](catalog-api-dev.md)). Webpack proxies `/api`, `/apis`, and `/auth` to `http://localhost:8080` (see `webpack.dev.js`).
+The catalog API must be running separately (see [catalog-api-dev](../catalog-api-dev/SKILL.md)). Webpack proxies `/api`, `/apis`, and `/auth` to `http://localhost:8080` (see `webpack.dev.js`).
 
 ## Commands
 

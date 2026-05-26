@@ -9,4 +9,4 @@ description: >-
 
 # Catalog UI Development
 
-Read and follow [docs/dev-guides/catalog-ui-dev.md](../../../docs/dev-guides/catalog-ui-dev.md).
+Read and follow [.agents/skills/catalog-ui-dev/SKILL.md](../../../.agents/skills/catalog-ui-dev/SKILL.md).

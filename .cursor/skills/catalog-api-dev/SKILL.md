@@ -9,4 +9,4 @@ description: >-
 
 # Catalog API Development
 
-Read and follow [docs/dev-guides/catalog-api-dev.md](../../../docs/dev-guides/catalog-api-dev.md).
+Read and follow [.agents/skills/catalog-api-dev/SKILL.md](../../../.agents/skills/catalog-api-dev/SKILL.md).
