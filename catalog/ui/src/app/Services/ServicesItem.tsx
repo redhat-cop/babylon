@@ -550,6 +550,7 @@ const ServicesItemComponent: React.FC<{
   const isCollaborator = !isAdmin && !sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName);
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
+  const supportLink = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/support-link`];
   const whiteGloved = getWhiteGloved(resourceClaim);
   const isLocked = isResourceClaimLocked(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
@@ -959,6 +960,16 @@ const ServicesItemComponent: React.FC<{
                           data={labUserInterfaceData}
                           method={labUserInterfaceMethod}
                         />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+                  {supportLink ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Support</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <a href={supportLink} target="_blank" rel="noopener noreferrer">
+                          {supportLink}
+                        </a>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
