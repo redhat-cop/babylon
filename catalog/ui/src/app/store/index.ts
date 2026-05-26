@@ -20,7 +20,7 @@ export interface ActionStartSession {
   interface: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
-  userNamespace: ServiceNamespace;
+  userNamespace: UserNamespace;
 }
 
 // Action creators
