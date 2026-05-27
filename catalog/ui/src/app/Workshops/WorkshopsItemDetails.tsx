@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
   apiPaths,
@@ -384,9 +385,18 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Support</DescriptionListTerm>
           <DescriptionListDescription>
-            <a href={supportLink} target="_blank" rel="noopener noreferrer">
-              {supportLink}
-            </a>
+            <Button
+              component="a"
+              href={supportLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="link"
+              isInline
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="end"
+            >
+              {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink) ? 'Slack Channel' : 'Get Support'}
+            </Button>
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}
