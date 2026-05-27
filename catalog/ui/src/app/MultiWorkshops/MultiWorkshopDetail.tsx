@@ -37,7 +37,7 @@ import {
 } from '@patternfly/react-table';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { LockedIcon } from '@patternfly/react-icons';
+import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';

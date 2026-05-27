@@ -8,7 +8,7 @@ import { Incident } from '@app/types';
 import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import EditIcon from '@patternfly/react-icons/dist/js/icons/edit-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
-import PlusCircleIcon from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import TimeInterval from '@app/components/TimeInterval';
 import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
