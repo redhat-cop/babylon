@@ -79,6 +79,7 @@ Add routes in `src/app/routes.tsx` as `IAppRoute` entries. Use `React.lazy()` fo
 - **PatternFly 6** (`@patternfly/react-core`, `@patternfly/react-table`, etc.)
 - Co-locate `.spec.tsx` tests with components
 - Use existing shared components in `src/app/components/` before creating new ones
+- For PF coding standards, imports, structure audits, and unit tests, use the vendored **react** plugin from [patternfly/ai-helpers](https://github.com/patternfly/ai-helpers) (see repo [AGENTS.md](../../../AGENTS.md#patternfly-ai-helpers))
 
 ## Troubleshooting
 
