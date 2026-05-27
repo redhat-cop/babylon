@@ -13,15 +13,30 @@ Follow these skills when working on catalog components:
 - **Catalog UI** (`catalog/ui`): [.agents/skills/catalog-ui-dev/SKILL.md](.agents/skills/catalog-ui-dev/SKILL.md)
 - **Catalog API** (`catalog/api`): [.agents/skills/catalog-api-dev/SKILL.md](.agents/skills/catalog-api-dev/SKILL.md)
 
-## PatternFly AI helpers
+## AI layout in this repo
 
-This repo vendors [patternfly/ai-helpers](https://github.com/patternfly/ai-helpers) under `vendor/patternfly-ai-helpers/`. After clone, run `git submodule update --init vendor/patternfly-ai-helpers`.
+| Path | Purpose |
+|------|---------|
+| [AGENTS.md](AGENTS.md) | Entry point for any coding agent |
+| [.agents/skills/](.agents/skills/) | Project skills (tool-agnostic; Cursor, Claude Code, and others load this) |
+| [.cursor/commands/](.cursor/commands/) | Optional Cursor-only slash commands |
 
-**Cursor** discovers plugins from [.cursor-plugin/marketplace.json](.cursor-plugin/marketplace.json) (all six upstream plugins: react, migration, design-to-code, a11y, code-review, pf-workshop). Enable them in Cursor plugin settings for this workspace.
+Do not duplicate skills under `.cursor/skills/` — Cursor discovers `.agents/skills/` directly.
 
-**Claude Code** can use the same vendored plugins or install from upstream: `/plugin marketplace add patternfly/ai-helpers` then `/plugin install react@ai-helpers`.
+## PatternFly AI helpers (install locally)
 
-For richer component documentation in the editor, also install the [PatternFly MCP server](https://github.com/patternfly/patternfly-mcp). See [vendor/README.md](vendor/README.md) for submodule updates.
+For `catalog/ui` work, install [patternfly/ai-helpers](https://github.com/patternfly/ai-helpers) from upstream (not vendored in this repo). Prioritize the **react** and **migration** plugins.
+
+**Cursor:** add the `patternfly/ai-helpers` plugin marketplace in Cursor settings, then enable the plugins you need.
+
+**Claude Code:**
+
+```text
+/plugin marketplace add patternfly/ai-helpers
+/plugin install react@ai-helpers
+```
+
+Optional: [PatternFly MCP server](https://github.com/patternfly/patternfly-mcp) for component docs in the editor.
 
 ## Local development quick start
 
