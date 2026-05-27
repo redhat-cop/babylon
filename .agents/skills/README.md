@@ -8,6 +8,7 @@ Canonical, tool-agnostic skills for the Babylon project. Cursor loads `.agents/s
 |-------|-------|
 | [catalog-ui-dev](catalog-ui-dev/SKILL.md) | React/PatternFly UI in `catalog/ui` |
 | [catalog-api-dev](catalog-api-dev/SKILL.md) | aiohttp API in `catalog/api` |
+| [autocommit](autocommit/SKILL.md) | Semantic conventional commits (`/autocommit` in Cursor) |
 
 ## PatternFly AI helpers
 

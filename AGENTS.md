@@ -19,9 +19,8 @@ Follow these skills when working on catalog components:
 |------|---------|
 | [AGENTS.md](AGENTS.md) | Entry point for any coding agent |
 | [.agents/skills/](.agents/skills/) | Project skills (tool-agnostic; Cursor, Claude Code, and others load this) |
-| [.cursor/commands/](.cursor/commands/) | Optional Cursor-only slash commands |
 
-Do not duplicate skills under `.cursor/skills/` — Cursor discovers `.agents/skills/` directly.
+Do not duplicate skills under `.cursor/skills/` — Cursor discovers `.agents/skills/` directly. Invoke [/autocommit](.agents/skills/autocommit/SKILL.md) for grouped conventional commits.
 
 ## PatternFly AI helpers (install locally)
 
