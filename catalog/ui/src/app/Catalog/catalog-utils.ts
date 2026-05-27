@@ -107,6 +107,10 @@ export function getStatusFromCatalogItem(
 }
 
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
+  const sa = catalogItem.spec.supportedActions;
+  if (sa !== undefined && !('stop' in sa)) {
+    return true;
+  }
   if (catalogItem.spec.runtime?.default) {
     return catalogItem.spec.runtime.default.includes('999h');
   }
