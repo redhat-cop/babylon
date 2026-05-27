@@ -20,6 +20,7 @@ const ServiceActions: React.FC<{
     stop?: () => void;
     manageWorkshop?: () => void;
     rate?: () => void;
+    reorder?: () => void;
   };
   canManageCollaborators?: boolean;
   className?: string;
@@ -98,6 +99,11 @@ const ServiceActions: React.FC<{
   if (actionHandlers.manageWorkshop) {
     actionDropdownItems.push(
       <ActionDropdownItem key="manageWorkshop" label="Manage Workshop" onSelect={actionHandlers.manageWorkshop} />,
+    );
+  }
+  if (actionHandlers.reorder) {
+    actionDropdownItems.push(
+      <ActionDropdownItem key="reorder" label="Reorder" onSelect={actionHandlers.reorder} />,
     );
   }
   if (!isPartOfWorkshop && actionHandlers.rate) {
