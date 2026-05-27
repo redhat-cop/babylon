@@ -1039,7 +1039,7 @@ const ServicesItemComponent: React.FC<{
                           icon={<ExternalLinkAltIcon />}
                           iconPosition="end"
                         >
-                          {supportLink.includes('slack.com') ? 'Slack Channel' : 'Get Support'}
+                          {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink) ? 'Slack Channel' : 'Get Support'}
                         </Button>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
