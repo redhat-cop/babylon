@@ -112,6 +112,7 @@ import ServiceStatus from './ServiceStatus';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
@@ -1003,16 +1004,6 @@ const ServicesItemComponent: React.FC<{
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
-                  {supportLink ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Support</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <a href={supportLink} target="_blank" rel="noopener noreferrer">
-                          {supportLink}
-                        </a>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
                   <DescriptionListGroup>
                     <DescriptionListTerm>GUID</DescriptionListTerm>
                     <DescriptionListDescription>
@@ -1034,6 +1025,25 @@ const ServicesItemComponent: React.FC<{
                       <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  {supportLink ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Support</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Button
+                          component="a"
+                          href={supportLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="link"
+                          isInline
+                          icon={<ExternalLinkAltIcon />}
+                          iconPosition="end"
+                        >
+                          {supportLink.includes('slack.com') ? 'Slack Channel' : 'Get Support'}
+                        </Button>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
                   {startTime && startTime > Date.now() ? (
                     <DescriptionListGroup>
