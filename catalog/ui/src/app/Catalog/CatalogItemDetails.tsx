@@ -58,6 +58,7 @@ import {
   getLastSuccessfulProvisionTime,
   convertToGitHubUrl,
   getStatus,
+  isAutoStopDisabled,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
@@ -151,7 +152,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const incident = getStatus(catalogItemIncident);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
-  let autoStopTime = catalogItem.spec.runtime?.default;
+  let autoStopTime = isAutoStopDisabled(catalogItem) ? null : catalogItem.spec.runtime?.default;
   const autoDestroyTime = catalogItem.spec.lifespan?.default;
   if (autoStopTime && autoDestroyTime) {
     const autoStopTimeValue = parseDuration(autoStopTime);

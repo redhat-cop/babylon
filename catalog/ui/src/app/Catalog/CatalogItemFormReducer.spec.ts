@@ -77,6 +77,48 @@ describe('CatalogItemFormReducer', () => {
 
         expect(initialState.selectedResourcePool).toBeUndefined();
       });
+
+      it('should set stopDate to null when stop action is not supported', () => {
+        const catalogItemNoStop: CatalogItem = {
+          ...mockCatalogItem,
+          spec: {
+            ...mockCatalogItem.spec,
+            runtime: { default: '4h', maximum: '8h' },
+            supportedActions: { start: {}, provision: {}, destroy: {} },
+          },
+        };
+        const initialState = reduceFormState(undefined as any, {
+          type: 'init',
+          catalogItem: catalogItemNoStop,
+          serviceNamespace: mockServiceNamespace,
+          user: mockUserProps,
+          purposeOpts: mockPurposeOpts,
+          sfdc_enabled: false,
+        });
+
+        expect(initialState.stopDate).toBeNull();
+      });
+
+      it('should set stopDate when stop action is supported', () => {
+        const catalogItemWithStop: CatalogItem = {
+          ...mockCatalogItem,
+          spec: {
+            ...mockCatalogItem.spec,
+            runtime: { default: '4h', maximum: '8h' },
+            supportedActions: { start: {}, stop: {}, provision: {}, destroy: {} },
+          },
+        };
+        const initialState = reduceFormState(undefined as any, {
+          type: 'init',
+          catalogItem: catalogItemWithStop,
+          serviceNamespace: mockServiceNamespace,
+          user: mockUserProps,
+          purposeOpts: mockPurposeOpts,
+          sfdc_enabled: false,
+        });
+
+        expect(initialState.stopDate).toBeTruthy();
+      });
     });
 
     describe('selectedResourcePool action', () => {

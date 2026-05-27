@@ -56,6 +56,41 @@ jinja2env = jinja2.Environment(
 jinja2env.filters['bool'] = lambda x: bool(str2bool(x)) if isinstance(x, str) else bool(x)
 jinja2env.filters['uuid2int'] = lambda x: int(UUID(x))
 
+CATALOG_ACTION_NAMES = ('destroy', 'provision', 'start', 'status', 'stop')
+
+def action_enabled_in_meta(meta, action_name):
+    deployer_action_config = meta.get('deployer', {}).get('actions', {}).get(action_name, {})
+    sandbox_action_config = meta.get('sandbox_api', {}).get('actions', {}).get(action_name, {})
+    if deployer_action_config.get('disable', False) and not sandbox_action_config.get('enable', False):
+        return False
+    return True
+
+def catalog_supported_actions_from_meta(meta):
+    supported_actions = {}
+    for action_name in CATALOG_ACTION_NAMES:
+        if not action_enabled_in_meta(meta, action_name):
+            continue
+        deployer_action_config = meta.get('deployer', {}).get('actions', {}).get(action_name, {})
+        action_entry = {}
+        if 'time_estimate' in deployer_action_config:
+            action_entry['timeEstimate'] = deployer_action_config['time_estimate']
+        supported_actions[action_name] = action_entry
+    return supported_actions
+
+def intersect_catalog_supported_actions(action_maps):
+    if not action_maps:
+        return {}
+    common_actions = set(action_maps[0].keys())
+    for action_map in action_maps[1:]:
+        common_actions &= set(action_map.keys())
+    supported_actions = {}
+    for action_name in CATALOG_ACTION_NAMES:
+        if action_name not in common_actions:
+            continue
+        action_entry = dict(action_maps[0][action_name])
+        supported_actions[action_name] = action_entry
+    return supported_actions
+
 class AgnosticVComponent(KopfObject):
     api_group = Babylon.agnosticv_api_group
     api_version = f"{Babylon.agnosticv_api_group}/{Babylon.agnosticv_version}"
@@ -491,15 +526,10 @@ class AgnosticVComponent(KopfObject):
         # FIXME - more should be removed from __meta__, really __meta__ should not be passed at all
         definition['spec']['vars']['job_vars']['__meta__'] = pruned_meta
 
-        sandbox_api_actions = pruned_meta.get('sandbox_api', {}).get('actions', {})
-
-        for action_name in ('destroy', 'provision', 'start', 'status', 'stop'):
-            deployer_action_config = self.deployer_actions.get(action_name)
-            sandbox_action_config = sandbox_api_actions.get(action_name, {})
-
-            # Action is disabled only if sandbox_api is not enabled and deployer is disabled
-            if deployer_action_config.get('disable', False) and not sandbox_action_config.get('enable', False):
+        for action_name in CATALOG_ACTION_NAMES:
+            if not action_enabled_in_meta(pruned_meta, action_name):
                 continue
+            deployer_action_config = self.deployer_actions.get(action_name)
 
             action_def = {
                 "roles": [ {"role": role['name']} for role in self.anarchy_roles ],
@@ -543,7 +573,63 @@ class AgnosticVComponent(KopfObject):
         return definition
 
 
-    def __catalog_item_definition(self, agnosticv_repo):
+    async def __linked_component_definition(self, linked_component, agnosticv_repo, logger):
+        try:
+            component = await AgnosticVComponent.fetch(
+                name=linked_component.component_name,
+                namespace=self.namespace,
+            )
+            return component.definition
+        except kubernetes_asyncio.client.rest.ApiException as e:
+            if e.status != 404:
+                raise
+
+        from agnosticvrepo import AgnosticVProcessingError, ComponentSource
+
+        path = linked_component.item
+        if not path:
+            logger.warning(
+                f"Linked component {linked_component.component_name} has no item path; "
+                "treating as supporting no actions for catalog item supportedActions"
+            )
+            return {}
+
+        ref = (
+            f"refs/pull/{self.pull_request_number}/head"
+            if self.pull_request_number
+            else agnosticv_repo.git_ref
+        )
+        hexsha = self.pull_request_commit_hash or agnosticv_repo.git_hexsha
+        source = ComponentSource(
+            path=path,
+            ref=ref,
+            hexsha=hexsha,
+            pull_request_number=self.pull_request_number,
+        )
+        try:
+            return await agnosticv_repo.get_component_definition(source, logger)
+        except AgnosticVProcessingError as e:
+            logger.warning(
+                f"Unable to load linked component {linked_component.component_name} "
+                f"definition from {path}: {e}"
+            )
+            return {}
+
+    async def __catalog_supported_actions(self, agnosticv_repo, logger):
+        if self.catalog_external_url:
+            return {}
+
+        component_action_maps = [catalog_supported_actions_from_meta(self.__meta__)]
+        for linked_component in self.linked_components:
+            linked_definition = await self.__linked_component_definition(
+                linked_component, agnosticv_repo, logger,
+            )
+            component_action_maps.append(
+                catalog_supported_actions_from_meta(linked_definition.get('__meta__', {}))
+            )
+        return intersect_catalog_supported_actions(component_action_maps)
+
+    def __catalog_item_definition(self, supported_actions):
         namespace = self.catalog_item_namespace
 
         definition = {
@@ -633,6 +719,8 @@ class AgnosticVComponent(KopfObject):
                 "default": self.runtime_default,
                 "maximum": self.runtime_maximum,
             }
+            if supported_actions:
+                definition['spec']['supportedActions'] = supported_actions
             definition['spec']['resources'] = []
 
             for idx, linked_component in enumerate(self.linked_components):
@@ -1224,7 +1312,8 @@ class AgnosticVComponent(KopfObject):
             return
 
         agnosticv_repo = await agnosticvrepo.AgnosticVRepo.get(self.agnosticv_repo)
-        definition = self.__catalog_item_definition(agnosticv_repo)
+        supported_actions = await self.__catalog_supported_actions(agnosticv_repo, logger)
+        definition = self.__catalog_item_definition(supported_actions)
         current_state = None
         try:
             current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
