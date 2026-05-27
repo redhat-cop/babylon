@@ -11,16 +11,29 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, {
   TDatesTypes,
 } from '@app/Catalog/CatalogItemFormAutoStopDestroyModal';
+import ReorderScheduleStartModal from '@app/components/ReorderScheduleStartModal';
 import { isAutoStopDisabled } from '@app/Catalog/catalog-utils';
 import { CatalogItem } from '@app/types';
 import {
   getInitialReorderSchedule,
-  getStopMaxDate,
-  getStopMinDate,
   isValidReorderSchedule,
   parseCatalogDuration,
   ReorderSchedule,
 } from '@app/reorder-utils';
+
+type ScheduleModalType = 'start' | TDatesTypes | null;
+
+function getConfirmedStopDate(
+  stopDate: Date | undefined,
+  endDate: Date,
+  previousStopDate?: Date,
+): Date | undefined {
+  const resolvedStopDate = stopDate ?? previousStopDate;
+  if (!resolvedStopDate || resolvedStopDate.getTime() >= endDate.getTime()) {
+    return undefined;
+  }
+  return resolvedStopDate;
+}
 
 const ReorderModal: React.FC<{
   catalogItem: CatalogItem;
@@ -46,7 +59,7 @@ const ReorderModal: React.FC<{
   const [scheduleDates, setScheduleDates] = useState<ReorderSchedule>(() =>
     getInitialReorderSchedule(schedule, catalogItem),
   );
-  const [scheduleModal, setScheduleModal] = useState<TDatesTypes | null>(null);
+  const [scheduleModal, setScheduleModal] = useState<ScheduleModalType>(null);
 
   const maxAutoDestroyTime = Math.min(
     parseCatalogDuration(catalogItem.spec.lifespan?.maximum) ?? parseDuration('14d'),
@@ -94,19 +107,29 @@ const ReorderModal: React.FC<{
     setScheduleDates((current) => ({ ...current, [field]: date }));
   };
 
+  const stopDestroyModalType =
+    scheduleModal === 'auto-stop' || scheduleModal === 'auto-destroy' ? scheduleModal : null;
+
   return (
     <>
       <p>
         You are about to reorder <strong>{displayName}</strong> with the same parameters as the original order. Adjust
         the schedule below if needed.
       </p>
-      <DescriptionList isHorizontal compact>
+      <DescriptionList
+        isHorizontal
+        compact
+        style={{
+          marginTop: 'var(--pf-t--global--spacer--md)',
+          marginBottom: 'var(--pf-t--global--spacer--md)',
+        }}
+      >
         <DescriptionListGroup>
           <DescriptionListTerm>Start</DescriptionListTerm>
           <DescriptionListDescription>
             <AutoStopDestroy
               type="auto-start"
-              onClick={() => setScheduleModal('auto-start')}
+              onClick={() => setScheduleModal('start')}
               time={scheduleDates.startDate.getTime()}
               variant="extended"
             />
@@ -146,16 +169,21 @@ const ReorderModal: React.FC<{
         ) : null}
       </DescriptionList>
       {validationMessage ? <Alert variant="warning" isInline title={validationMessage} /> : null}
+      <ReorderScheduleStartModal
+        isOpen={scheduleModal === 'start'}
+        startDate={scheduleDates.startDate}
+        title={displayName}
+        onConfirm={(startDate) => {
+          updateSchedule('startDate', startDate);
+          setScheduleModal(null);
+        }}
+        onClose={() => setScheduleModal(null)}
+      />
       <CatalogItemFormAutoStopDestroyModal
-        type={scheduleModal}
-        autoStartDate={scheduleDates.startDate}
+        type={stopDestroyModalType}
         autoStopDate={scheduleDates.stopDate}
         autoDestroyDate={scheduleDates.endDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
-        stopMaxDate={isAdmin ? null : getStopMaxDate(scheduleDates, maxAutoStopTime)}
-        stopMaxDateExclusive={true}
-        showNoAutoStopSwitch={true}
-        stopMinDate={getStopMinDate(scheduleDates)}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime ?? undefined}
         defaultRuntimeTimestamp={defaultRuntimeTimestamp}
         maxDestroyTimestamp={
@@ -166,10 +194,11 @@ const ReorderModal: React.FC<{
               : maxAutoDestroyTime
         }
         onConfirm={(dates) => {
-          if (scheduleModal === 'auto-start') {
-            updateSchedule('startDate', dates.startDate || scheduleDates.startDate);
-          } else if (scheduleModal === 'auto-stop') {
-            setScheduleDates((current) => ({ ...current, stopDate: dates.stopDate }));
+          if (scheduleModal === 'auto-stop') {
+            setScheduleDates((current) => ({
+              ...current,
+              stopDate: getConfirmedStopDate(dates.stopDate, current.endDate, current.stopDate),
+            }));
           } else if (scheduleModal === 'auto-destroy') {
             updateSchedule('endDate', dates.endDate || scheduleDates.endDate);
           }

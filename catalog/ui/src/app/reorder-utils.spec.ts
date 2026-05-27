@@ -3,13 +3,10 @@ import {
   getResourceClaimReorderSchedule,
   getWorkshopReorderSchedule,
   getInitialReorderSchedule,
-  getStopMaxDate,
-  getStopMinDate,
   isNoAutoStop,
   isValidReorderSchedule,
 } from './reorder-utils';
 import { CatalogItem, ResourceClaim, Workshop } from '@app/types';
-import parseDuration from 'parse-duration';
 
 const catalogItem: CatalogItem = {
   apiVersion: 'babylon.gpte.redhat.com/v1',
@@ -119,20 +116,6 @@ describe('reorder-utils', () => {
     expect(schedule.endDate.getTime()).toBeGreaterThan(now);
     expect(schedule.stopDate.getTime()).toBeGreaterThan(now);
     expect(schedule.stopDate.getTime()).toBeLessThan(schedule.endDate.getTime());
-  });
-
-  test('getStopMaxDate uses start plus runtime capped by destroy', () => {
-    const startDate = new Date('2026-05-28T10:00:00Z');
-    const endDate = new Date('2026-05-31T10:00:00Z');
-    const maxRuntime = parseDuration('4h');
-    expect(getStopMaxDate({ startDate, endDate }, maxRuntime)).toBe(startDate.getTime() + maxRuntime);
-    expect(getStopMaxDate({ startDate, endDate }, parseDuration('7d'))).toBe(endDate.getTime() - 60000);
-  });
-
-  test('getStopMinDate is after start time', () => {
-    const now = Date.parse('2026-05-27T12:00:00Z');
-    const startDate = new Date('2026-05-28T10:00:00Z');
-    expect(getStopMinDate({ startDate }, now)).toBe(startDate.getTime() + 60000);
   });
 
   test('isValidReorderSchedule validates date ordering', () => {

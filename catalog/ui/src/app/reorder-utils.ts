@@ -95,33 +95,12 @@ export function isNoAutoStop(schedule: ReorderSchedule): boolean {
   return !schedule.stopDate;
 }
 
-export function getStopMaxDate(
-  schedule: ReorderSchedule,
-  maxRuntimeMs: number | null | undefined,
-): number | null {
-  if (!schedule.endDate || !schedule.startDate) {
-    return null;
-  }
-  const destroyLimit = schedule.endDate.getTime() - 60000;
-  if (!maxRuntimeMs || Number.isNaN(maxRuntimeMs)) {
-    return destroyLimit;
-  }
-  return Math.min(destroyLimit, schedule.startDate.getTime() + maxRuntimeMs);
-}
-
 export function parseCatalogDuration(value?: string): number | null {
   if (!value) {
     return null;
   }
   const ms = parseDuration(value);
   return ms && !Number.isNaN(ms) ? ms : null;
-}
-
-export function getStopMinDate(schedule: ReorderSchedule, now = Date.now()): number {
-  if (!schedule.startDate) {
-    return now;
-  }
-  return Math.max(now, schedule.startDate.getTime() + 60000);
 }
 
 export function isValidReorderSchedule(schedule: ReorderSchedule, now = Date.now()): boolean {
