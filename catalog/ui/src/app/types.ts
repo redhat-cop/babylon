@@ -193,6 +193,7 @@ export interface CatalogItemSpec {
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  supportedActions?: CatalogItemSpecSupportedActions;
   workshopLabUiRedirect?: boolean;
   externalUrl?: string;
   category?: string;
@@ -525,6 +526,14 @@ export type CatalogItemSpecLastUpdate = {
     when_author: string;
     when_committer: string;
   };
+};
+
+export type CatalogItemSpecSupportedActions = {
+  start?: { timeEstimate?: string };
+  stop?: { timeEstimate?: string };
+  status?: { timeEstimate?: string };
+  destroy?: { timeEstimate?: string };
+  provision?: { timeEstimate?: string };
 };
 
 export type CatalogItemSpecRuntime = {

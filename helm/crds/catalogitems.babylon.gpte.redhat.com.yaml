@@ -518,6 +518,17 @@ spec:
                     type: string
                   maximum:
                     type: string
+              supportedActions:
+                description: >-
+                  Lifecycle actions supported when ordering this catalog item.
+                  For items with linked components, an action is present only if every component supports it.
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    timeEstimate:
+                      description: Estimated time to complete the action.
+                      type: string
               supportLink:
                 description: >-
                   URL link to a support page or resource for this catalog item.
