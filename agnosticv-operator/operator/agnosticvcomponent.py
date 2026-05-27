@@ -604,7 +604,7 @@ class AgnosticVComponent(KopfObject):
                 )
         return intersect_catalog_supported_actions(component_action_maps)
 
-    def __catalog_item_definition(self, supported_actions):
+    def __catalog_item_definition(self, agnosticv_repo, supported_actions):
         namespace = self.catalog_item_namespace
 
         definition = {
@@ -1288,7 +1288,7 @@ class AgnosticVComponent(KopfObject):
 
         agnosticv_repo = await agnosticvrepo.AgnosticVRepo.get(self.agnosticv_repo)
         supported_actions = await self.__catalog_supported_actions(logger)
-        definition = self.__catalog_item_definition(supported_actions)
+        definition = self.__catalog_item_definition(agnosticv_repo, supported_actions)
         current_state = None
         try:
             current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
