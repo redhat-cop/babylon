@@ -120,6 +120,12 @@ import useSWRImmutable from 'swr/immutable';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
+import ReorderModal from '@app/components/ReorderModal';
+import {
+  canReorderResourceClaim,
+  getResourceClaimReorderSchedule,
+  reorderResourceClaim,
+} from '@app/reorder-utils';
 
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -324,7 +330,7 @@ const ServicesItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { sfdc_enabled } = useInterfaceConfig();
-  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
   const {
@@ -366,6 +372,7 @@ const ServicesItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
+  const [modalReorder, openModalReorder] = useModal();
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
@@ -575,6 +582,7 @@ const ServicesItemComponent: React.FC<{
     stop?: () => void;
     manageWorkshop?: () => void;
     rate?: () => void;
+    reorder?: () => void;
   } = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
@@ -591,6 +599,9 @@ const ServicesItemComponent: React.FC<{
     actionHandlers.manageWorkshop = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
   } else {
     actionHandlers.rate = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
+  }
+  if (canReorderResourceClaim(resourceClaim, catalogItem, groups, isAdmin)) {
+    actionHandlers.reorder = () => openModalReorder();
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -795,6 +806,32 @@ const ServicesItemComponent: React.FC<{
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
       />
+      <Modal
+        ref={modalReorder}
+        onConfirm={() => undefined}
+        passModifiers={true}
+        confirmText="Reorder"
+        onError={(error: unknown) => {
+          if ((error as Response).status === 403) {
+            setIsUserDisabledModalOpen(true);
+          }
+        }}
+      >
+        <ReorderModal
+          displayName={displayName(resourceClaim)}
+          schedule={getResourceClaimReorderSchedule(resourceClaim)}
+          onReorder={async () => {
+            const newResourceClaim = await reorderResourceClaim({
+              resourceClaim,
+              catalogItem,
+              groups,
+              isAdmin,
+              email,
+            });
+            navigate(`/services/${newResourceClaim.metadata.namespace}/${newResourceClaim.metadata.name}`);
+          }}
+        />
+      </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
           action={

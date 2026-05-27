@@ -36,6 +36,7 @@ import {
 } from '@app/api';
 import {
   NamespaceList,
+  CatalogItem,
   RequestUsageCost,
   ResourceClaim,
   ServiceAccessConfig,
@@ -70,6 +71,14 @@ import Label from '@app/components/Label';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import UserDisabledModal from '@app/components/UserDisabledModal';
+import ReorderModal from '@app/components/ReorderModal';
+import {
+  canReorderWorkshop,
+  getWorkshopReorderSchedule,
+  reorderWorkshop,
+} from '@app/reorder-utils';
+import useSWRImmutable from 'swr/immutable';
 import parseDuration from 'parse-duration';
 
 import './workshops-item.css';
@@ -98,11 +107,13 @@ const WorkshopsItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { mutate } = useSWRConfig();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalSchedule, openModalSchedule] = useModal();
+  const [modalReorder, openModalReorder] = useModal();
+  const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const [highlightAutoDestroy, setHighlightAutoDestroy] = useState(false);
@@ -163,6 +174,16 @@ const WorkshopsItemComponent: React.FC<{
 
   const stage = getStageFromK8sObject(workshop);
 
+  const { data: catalogItem } = useSWRImmutable<CatalogItem>(
+    workshop?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
+      ? apiPaths.CATALOG_ITEM({
+          namespace: workshop.metadata.labels[`${BABYLON_DOMAIN}/catalogItemNamespace`],
+          name: workshop.metadata.labels[`${BABYLON_DOMAIN}/catalogItemName`],
+        })
+      : null,
+    silentFetcher,
+  );
+
   const { data: usageCost } = useSWR<RequestUsageCost>(
     workshop?.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
       ? apiPaths.USAGE_COST_WORKSHOP({ workshopId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
@@ -199,6 +220,11 @@ const WorkshopsItemComponent: React.FC<{
       revalidateIfStale: false, // Don't auto-revalidate stale data
       dedupingInterval: 3000, // Dedupe requests
     },
+  );
+
+  const workshopProvision = useMemo(
+    () => workshopProvisions?.find((provision) => provision.metadata.name === workshop?.metadata.name) || workshopProvisions?.[0],
+    [workshop?.metadata.name, workshopProvisions],
   );
 
   const { data: resourceClaims, mutate: mutateRC } = useSWR<ResourceClaim[]>(
@@ -497,6 +523,35 @@ const WorkshopsItemComponent: React.FC<{
           workshopProvisions={workshopProvisions}
         />
       </Modal>
+      <Modal
+        ref={modalReorder}
+        onConfirm={() => undefined}
+        passModifiers={true}
+        confirmText="Reorder"
+        onError={(error: unknown) => {
+          if ((error as Response).status === 403) {
+            setIsUserDisabledModalOpen(true);
+          }
+        }}
+      >
+        <ReorderModal
+          displayName={displayName(workshop)}
+          schedule={getWorkshopReorderSchedule(workshop)}
+          onReorder={async () => {
+            const newWorkshop = await reorderWorkshop({
+              workshop,
+              workshopProvision,
+              catalogItem,
+              email,
+            });
+            navigate(`/workshops/${newWorkshop.metadata.namespace}/${newWorkshop.metadata.name}`);
+          }}
+        />
+      </Modal>
+      <UserDisabledModal
+        isOpen={isUserDisabledModalOpen}
+        onClose={() => setIsUserDisabledModalOpen(false)}
+      />
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="workshops-item__topbar">
           <ProjectSelector
@@ -566,6 +621,9 @@ const WorkshopsItemComponent: React.FC<{
                         : null,
                   stop: checkWorkshopCanStop(resourceClaims)
                     ? () => showModal({ action: 'stopServices', resourceClaims })
+                    : null,
+                  reorder: canReorderWorkshop(workshop, catalogItem, workshopProvision, groups, isAdmin)
+                    ? () => openModalReorder()
                     : null,
                 }}
                 canManageCollaborators={canManageCollaborators}

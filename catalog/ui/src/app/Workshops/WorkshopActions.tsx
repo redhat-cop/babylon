@@ -9,6 +9,7 @@ const WorkshopActions: React.FC<{
     deleteService?: () => void | null;
     start?: () => void | null;
     stop?: () => void | null;
+    reorder?: () => void | null;
   };
   canManageCollaborators?: boolean;
   className?: string;
@@ -64,6 +65,16 @@ const WorkshopActions: React.FC<{
         label="Stop Workshop instances"
         onSelect={actionHandlers.stop}
         icon={isLocked ? <LockedIcon /> : null}
+      />,
+    );
+  }
+  if (actionHandlers.reorder) {
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="reorder"
+        isDisabled={!actionHandlers.reorder}
+        label="Reorder"
+        onSelect={actionHandlers.reorder}
       />,
     );
   }
