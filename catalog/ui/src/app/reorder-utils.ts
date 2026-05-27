@@ -1,3 +1,4 @@
+import parseDuration from 'parse-duration';
 import {
   createServiceRequest,
   createWorkshop,
@@ -51,6 +52,97 @@ export function getWorkshopReorderSchedule(workshop: Workshop): ReorderSchedule 
     stopDate: parseOptionalDate(workshop.spec.actionSchedule?.stop),
     endDate: parseOptionalDate(workshop.spec.lifespan?.end),
   };
+}
+
+export function getInitialReorderSchedule(schedule: ReorderSchedule, catalogItem: CatalogItem): ReorderSchedule {
+  const now = Date.now();
+  const defaultRuntime = parseDuration(catalogItem.spec.runtime?.default || '4h');
+  const defaultLifespan = parseDuration(catalogItem.spec.lifespan?.default || '72h');
+
+  let endDate = schedule.endDate;
+  let stopDate = schedule.stopDate;
+  let startDate = schedule.startDate ?? new Date(now);
+
+  if (!endDate || endDate.getTime() <= now) {
+    startDate = new Date(now);
+    endDate = new Date(now + defaultLifespan);
+    if (schedule.stopDate) {
+      stopDate = new Date(Math.min(startDate.getTime() + defaultRuntime, endDate.getTime() - 60000));
+    }
+  } else {
+    if (startDate.getTime() < now) {
+      startDate = new Date(now);
+    }
+    if (stopDate && stopDate.getTime() <= now) {
+      if (endDate && stopDate.getTime() >= endDate.getTime()) {
+        stopDate = undefined;
+      } else {
+        stopDate = new Date(Math.min(startDate.getTime() + defaultRuntime, endDate.getTime() - 60000));
+      }
+    }
+    if (stopDate && endDate && stopDate.getTime() >= endDate.getTime()) {
+      stopDate = undefined;
+    }
+    if (stopDate && stopDate.getTime() <= startDate.getTime()) {
+      stopDate = new Date(Math.min(startDate.getTime() + defaultRuntime, endDate.getTime() - 60000));
+    }
+  }
+
+  return { startDate, stopDate, endDate };
+}
+
+export function isNoAutoStop(schedule: ReorderSchedule): boolean {
+  return !schedule.stopDate;
+}
+
+export function getStopMaxDate(
+  schedule: ReorderSchedule,
+  maxRuntimeMs: number | null | undefined,
+): number | null {
+  if (!schedule.endDate || !schedule.startDate) {
+    return null;
+  }
+  const destroyLimit = schedule.endDate.getTime() - 60000;
+  if (!maxRuntimeMs || Number.isNaN(maxRuntimeMs)) {
+    return destroyLimit;
+  }
+  return Math.min(destroyLimit, schedule.startDate.getTime() + maxRuntimeMs);
+}
+
+export function parseCatalogDuration(value?: string): number | null {
+  if (!value) {
+    return null;
+  }
+  const ms = parseDuration(value);
+  return ms && !Number.isNaN(ms) ? ms : null;
+}
+
+export function getStopMinDate(schedule: ReorderSchedule, now = Date.now()): number {
+  if (!schedule.startDate) {
+    return now;
+  }
+  return Math.max(now, schedule.startDate.getTime() + 60000);
+}
+
+export function isValidReorderSchedule(schedule: ReorderSchedule, now = Date.now()): boolean {
+  if (!schedule.endDate || schedule.endDate.getTime() <= now) {
+    return false;
+  }
+  if (!schedule.startDate) {
+    return false;
+  }
+  if (schedule.stopDate) {
+    if (schedule.stopDate.getTime() <= now) {
+      return false;
+    }
+    if (schedule.startDate.getTime() >= schedule.stopDate.getTime()) {
+      return false;
+    }
+  }
+  if (schedule.startDate.getTime() >= schedule.endDate.getTime()) {
+    return false;
+  }
+  return true;
 }
 
 function getSkippedSfdc(annotations: Record<string, string>): boolean {
@@ -166,16 +258,21 @@ export async function reorderResourceClaim({
   groups,
   isAdmin,
   email,
+  schedule: scheduleOverride,
 }: {
   resourceClaim: ResourceClaim;
   catalogItem: CatalogItem;
   groups: string[];
   isAdmin: boolean;
   email: string;
+  schedule?: ReorderSchedule;
 }): Promise<ResourceClaim> {
-  const schedule = getResourceClaimReorderSchedule(resourceClaim);
+  const schedule = scheduleOverride ?? getResourceClaimReorderSchedule(resourceClaim);
   if (!schedule.endDate) {
     throw new Error('Cannot reorder: auto-destroy date is missing from the original service.');
+  }
+  if (!isValidReorderSchedule(schedule)) {
+    throw new Error('Cannot reorder: schedule dates are invalid.');
   }
   const annotations = resourceClaim.metadata.annotations || {};
   const serviceNamespace = getServiceNamespaceFromObject(resourceClaim.metadata.namespace, annotations);
@@ -207,13 +304,21 @@ export async function reorderWorkshop({
   workshopProvision,
   catalogItem,
   email,
+  schedule: scheduleOverride,
 }: {
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
   catalogItem: CatalogItem;
   email: string;
+  schedule?: ReorderSchedule;
 }): Promise<Workshop> {
-  const schedule = getWorkshopReorderSchedule(workshop);
+  const schedule = scheduleOverride ?? getWorkshopReorderSchedule(workshop);
+  if (!schedule.endDate) {
+    throw new Error('Cannot reorder: auto-destroy date is missing from the original workshop.');
+  }
+  if (!isValidReorderSchedule(schedule)) {
+    throw new Error('Cannot reorder: schedule dates are invalid.');
+  }
   const annotations = workshop.metadata.annotations || {};
   const serviceNamespace = getServiceNamespaceFromObject(workshop.metadata.namespace, annotations);
   const parameterValues = getParameterValuesFromWorkshopProvision(workshopProvision);

@@ -818,15 +818,18 @@ const ServicesItemComponent: React.FC<{
         }}
       >
         <ReorderModal
+          catalogItem={catalogItem}
           displayName={displayName(resourceClaim)}
+          isAdmin={isAdmin}
           schedule={getResourceClaimReorderSchedule(resourceClaim)}
-          onReorder={async () => {
+          onReorder={async (schedule) => {
             const newResourceClaim = await reorderResourceClaim({
               resourceClaim,
               catalogItem,
               groups,
               isAdmin,
               email,
+              schedule,
             });
             navigate(`/services/${newResourceClaim.metadata.namespace}/${newResourceClaim.metadata.name}`);
           }}

@@ -535,14 +535,18 @@ const WorkshopsItemComponent: React.FC<{
         }}
       >
         <ReorderModal
+          catalogItem={catalogItem}
           displayName={displayName(workshop)}
+          isAdmin={isAdmin}
+          isWorkshop={true}
           schedule={getWorkshopReorderSchedule(workshop)}
-          onReorder={async () => {
+          onReorder={async (schedule) => {
             const newWorkshop = await reorderWorkshop({
               workshop,
               workshopProvision,
               catalogItem,
               email,
+              schedule,
             });
             navigate(`/workshops/${newWorkshop.metadata.namespace}/${newWorkshop.metadata.name}`);
           }}
