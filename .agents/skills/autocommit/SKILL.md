@@ -1,3 +1,11 @@
+---
+name: autocommit
+description: >-
+  Create semantic conventional commits from the working tree, grouped by purpose.
+  Use when committing changes, organizing git history, or the user invokes autocommit.
+disable-model-invocation: true
+---
+
 # Git Create Semantic Commits
 
 Create semantic commits from all available changes.
