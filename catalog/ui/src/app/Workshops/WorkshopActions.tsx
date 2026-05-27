@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { LockedIcon } from '@patternfly/react-icons';
+import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
 
 const WorkshopActions: React.FC<{
   actionHandlers: {

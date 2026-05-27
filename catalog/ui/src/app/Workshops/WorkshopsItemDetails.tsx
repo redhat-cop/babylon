@@ -57,7 +57,7 @@ import WorkshopStatus from './WorkshopStatus';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
