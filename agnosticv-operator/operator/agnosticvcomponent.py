@@ -573,7 +573,7 @@ class AgnosticVComponent(KopfObject):
         return definition
 
 
-    async def __linked_component_definition(self, linked_component, agnosticv_repo, logger):
+    async def __linked_component_definition(self, linked_component, logger):
         try:
             component = await AgnosticVComponent.fetch(
                 name=linked_component.component_name,
@@ -583,50 +583,25 @@ class AgnosticVComponent(KopfObject):
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status != 404:
                 raise
-
-        from agnosticvrepo import AgnosticVProcessingError, ComponentSource
-
-        path = linked_component.item
-        if not path:
-            logger.warning(
-                f"Linked component {linked_component.component_name} has no item path; "
-                "treating as supporting no actions for catalog item supportedActions"
-            )
-            return {}
-
-        ref = (
-            f"refs/pull/{self.pull_request_number}/head"
-            if self.pull_request_number
-            else agnosticv_repo.git_ref
+        logger.debug(
+            f"Linked component {linked_component.component_name} not found; "
+            "assuming all actions supported for catalog item supportedActions"
         )
-        hexsha = self.pull_request_commit_hash or agnosticv_repo.git_hexsha
-        source = ComponentSource(
-            path=path,
-            ref=ref,
-            hexsha=hexsha,
-            pull_request_number=self.pull_request_number,
-        )
-        try:
-            return await agnosticv_repo.get_component_definition(source, logger)
-        except AgnosticVProcessingError as e:
-            logger.warning(
-                f"Unable to load linked component {linked_component.component_name} "
-                f"definition from {path}: {e}"
-            )
-            return {}
+        return None
 
-    async def __catalog_supported_actions(self, agnosticv_repo, logger):
+    async def __catalog_supported_actions(self, logger):
         if self.catalog_external_url:
             return {}
 
         component_action_maps = [catalog_supported_actions_from_meta(self.__meta__)]
         for linked_component in self.linked_components:
             linked_definition = await self.__linked_component_definition(
-                linked_component, agnosticv_repo, logger,
+                linked_component, logger,
             )
-            component_action_maps.append(
-                catalog_supported_actions_from_meta(linked_definition.get('__meta__', {}))
-            )
+            if linked_definition is not None:
+                component_action_maps.append(
+                    catalog_supported_actions_from_meta(linked_definition.get('__meta__', {}))
+                )
         return intersect_catalog_supported_actions(component_action_maps)
 
     def __catalog_item_definition(self, supported_actions):
@@ -1312,7 +1287,7 @@ class AgnosticVComponent(KopfObject):
             return
 
         agnosticv_repo = await agnosticvrepo.AgnosticVRepo.get(self.agnosticv_repo)
-        supported_actions = await self.__catalog_supported_actions(agnosticv_repo, logger)
+        supported_actions = await self.__catalog_supported_actions(logger)
         definition = self.__catalog_item_definition(supported_actions)
         current_state = None
         try:
