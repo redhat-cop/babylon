@@ -90,7 +90,7 @@
     "@lexical/link": "^0.44.0",
     "@lexical/list": "^0.44.0",
     "@lexical/markdown": "^0.44.0",
-    "@lexical/react": "^0.44.0",
+    "@lexical/react": "^0.45.0",
     "@lexical/rich-text": "^0.44.0",
     "@lexical/selection": "^0.44.0",
     "@lexical/table": "^0.44.0",
