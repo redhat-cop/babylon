@@ -27,7 +27,7 @@ sonarqube-check:
       - "${SONAR_USER_HOME}/cache"
   script: 
     - >
-      set -x; sonar-scanner -Dsonar.python.version="3.7, 3.8, 3.9"
+      set -x; sonar-scanner -Dsonar.python.version="3.9, 3.11, 3.12"
       ${SONAR_SETTINGS:+-Dproject.settings="$SONAR_SETTINGS"}
       ${SONAR_QUALITY_GATE_WAIT:+-Dsonar.qualitygate.wait="$SONAR_QUALITY_GATE_WAIT"}
       ${SONAR_SOURCE_ENCODING:+-Dsonar.sourceEncoding="$SONAR_SOURCE_ENCODING"}
@@ -43,4 +43,4 @@ sonarqube-check:
   timeout: 15 minutes
   allow_failure: true
   tags:
-    - shared
+    - itup-alm-x86
