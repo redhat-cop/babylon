@@ -484,7 +484,9 @@ const Ops: React.FC = () => {
   );
   const workshops = useMemo(() => {
     if (!allWsData) return [];
-    return allWsData.flatMap(d => d?.items ?? []);
+    return allWsData
+      .flatMap(d => d?.items ?? [])
+      .filter(ws => !ws.metadata.deletionTimestamp); // Filter out ghost workshops being deleted
   }, [allWsData]);
 
   // Fetch MultiWorkshop resources for multi-asset parent info
@@ -504,7 +506,9 @@ const Ops: React.FC = () => {
     if (allMwData) {
       for (const list of allMwData) {
         for (const mw of list?.items ?? []) {
-          map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+          if (!mw.metadata.deletionTimestamp) { // Filter out deleted MultiWorkshops
+            map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+          }
         }
       }
     }
