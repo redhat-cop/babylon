@@ -629,6 +629,7 @@ const Ops: React.FC = () => {
   }, [workshops]);
 
   const [workshopFilter, setWorkshopFilter] = useState('');
+  const [workshopSearchText, setWorkshopSearchText] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [failedFilter, setFailedFilter] = useState(false);
@@ -642,7 +643,21 @@ const Ops: React.FC = () => {
 
   const targets = useMemo(() => {
     let list = workshops;
+
+    // Free-text search (partial match) - use when in multi-namespace/platform mode or when no exact filter set
+    if (workshopSearchText && !workshopFilter) {
+      const searchLower = workshopSearchText.toLowerCase().trim();
+      list = list.filter(w => {
+        const name = displayName(w).toLowerCase();
+        const wsName = w.metadata.name.toLowerCase();
+        const ns = w.metadata.namespace.toLowerCase();
+        return name.includes(searchLower) || wsName.includes(searchLower) || ns.includes(searchLower);
+      });
+    }
+
+    // Exact match dropdown filter (legacy single-namespace behavior)
     if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
+
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
@@ -653,6 +668,7 @@ const Ops: React.FC = () => {
   }, [
     workshops,
     workshopFilter,
+    workshopSearchText,
     stageFilter,
     failedFilter,
     whiteGloveMode,
@@ -675,7 +691,7 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopFilter, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+  }, [workshopFilter, workshopSearchText, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
@@ -764,7 +780,10 @@ const Ops: React.FC = () => {
     if (tablePage > maxTablePage) setTablePage(maxTablePage);
   }, [tablePage, maxTablePage]);
 
-  const allSelected = workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k));
+  const allSelected = useMemo(
+    () => workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k)),
+    [workshopKeysOnPage, selectedWs]
+  );
 
   const toggleSelectAll = useCallback(() => {
     if (allSelected) {
@@ -798,12 +817,15 @@ const Ops: React.FC = () => {
     if (hasSelection) {
       return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
     }
+    if (workshopSearchText && !workshopFilter) {
+      return <>Search &ldquo;{workshopSearchText}&rdquo; ({targets.length}) in {nsLabel}</>;
+    }
     if (workshopFilter) {
       return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
     const modePrefix = whiteGloveMode ? 'White glove' : 'All';
     return <>{modePrefix} · {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
+  }, [workshopFilter, workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -815,17 +837,18 @@ const Ops: React.FC = () => {
     return counts;
   }, [operationTargets]);
 
-  const isUnfiltered = !workshopFilter && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
+  const isUnfiltered = !workshopFilter && !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
 
   const modalScopeDescription = useMemo(() => {
+    const filterText = workshopSearchText && !workshopFilter ? workshopSearchText : workshopFilter;
     if (!isMultiNs) {
-      return workshopFilter
-        ? <> matching &ldquo;{workshopFilter}&rdquo; in <code>{namespace}</code></>
+      return filterText
+        ? <> matching &ldquo;{filterText}&rdquo; in <code>{namespace}</code></>
         : <> in <code>{namespace}</code></>;
     }
     return (
       <>
-        {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : null}
+        {filterText ? <> matching &ldquo;{filterText}&rdquo;</> : null}
         {' across '}
         <strong>{namespaceCounts.size} namespace{namespaceCounts.size !== 1 ? 's' : ''}</strong>
         :
@@ -836,7 +859,7 @@ const Ops: React.FC = () => {
         </ul>
       </>
     );
-  }, [isMultiNs, workshopFilter, namespace, namespaceCounts]);
+  }, [isMultiNs, workshopFilter, workshopSearchText, namespace, namespaceCounts]);
 
   // ---------- Summary stats ----------
 
@@ -1359,7 +1382,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => { setWorkshopFilter(''); navigate(`/admin/ops/${n.name}`); }}
+              onSelect={(n) => { setWorkshopFilter(''); setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -1553,24 +1576,35 @@ const Ops: React.FC = () => {
                 <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   Workshop
                 </label>
-                <Select
-                  id="ops-scope"
-                  isOpen={filterOpen}
-                  selected={workshopFilter}
-                  onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
-                  onOpenChange={setFilterOpen}
-                  toggle={(toggleRef) => (
-                    <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
-                      {workshopFilter || 'All Workshops'}
-                    </MenuToggle>
-                  )}
-                  shouldFocusToggleOnSelect
-                >
-                  <SelectList>
-                    <SelectOption value="">All Workshops</SelectOption>
-                    {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-                  </SelectList>
-                </Select>
+                {isMultiNs || platformMode ? (
+                  <SearchInput
+                    placeholder="Search by name or namespace..."
+                    value={workshopSearchText}
+                    onChange={(_e, val) => setWorkshopSearchText(val)}
+                    onClear={() => setWorkshopSearchText('')}
+                    style={{ minWidth: 280 }}
+                    aria-label="Search workshops"
+                  />
+                ) : (
+                  <Select
+                    id="ops-scope"
+                    isOpen={filterOpen}
+                    selected={workshopFilter}
+                    onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
+                    onOpenChange={setFilterOpen}
+                    toggle={(toggleRef) => (
+                      <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
+                        {workshopFilter || 'All Workshops'}
+                      </MenuToggle>
+                    )}
+                    shouldFocusToggleOnSelect
+                  >
+                    <SelectList>
+                      <SelectOption value="">All Workshops</SelectOption>
+                      {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
+                    </SelectList>
+                  </Select>
+                )}
                 <div className="ops-stage-filters">
                   {STAGE_FILTERS.map(f => (
                     <Label
@@ -2122,11 +2156,33 @@ const Ops: React.FC = () => {
                               <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
                             ) : (() => {
                               const grpClaims = group.items.flatMap(ws => resourceClaimsByWorkshop.get(wsKey(ws)) ?? []);
-                              return grpClaims.length > 0
-                                ? <WorkshopStatus resourceClaims={grpClaims} />
-                                : grpDesired > 0
-                                  ? <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {grpClaimed}/{grpDesired}</span></>
-                                  : <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
+                              if (grpClaims.length > 0) {
+                                return <WorkshopStatus resourceClaims={grpClaims} />;
+                              }
+                              if (grpDesired > 0) {
+                                const startMs = getWorkshopScheduleStartMs(firstWs);
+                                const isScheduled = startMs && startMs > Date.now();
+                                return (
+                                  <>
+                                    <Icon status="info"><InProgressIcon /></Icon>
+                                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                      {grpClaimed > 0 ? 'Provisioning' : 'Scheduled'} {grpClaimed}/{grpDesired}
+                                      {isScheduled && grpClaimed === 0 && (
+                                        <>
+                                          {' · '}
+                                          <Tooltip content={`Start: ${fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}`}>
+                                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                              <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                              {fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}
+                                            </span>
+                                          </Tooltip>
+                                        </>
+                                      )}
+                                    </span>
+                                  </>
+                                );
+                              }
+                              return <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
                             })()}
                           </td>
                           <td>
@@ -2261,7 +2317,29 @@ const Ops: React.FC = () => {
                               ) : wsClaims.length > 0 ? (
                                 <WorkshopStatus resourceClaims={wsClaims} />
                               ) : progress && progress.desired > 0 ? (
-                                <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {progress.claimed}/{progress.desired}</span></>
+                                (() => {
+                                  const startMs = getWorkshopScheduleStartMs(ws);
+                                  const isScheduled = startMs && startMs > Date.now();
+                                  return (
+                                    <>
+                                      <Icon status="info"><InProgressIcon /></Icon>
+                                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                        {progress.claimed > 0 ? 'Provisioning' : 'Scheduled'} {progress.claimed}/{progress.desired}
+                                        {isScheduled && progress.claimed === 0 && (
+                                          <>
+                                            {' · '}
+                                            <Tooltip content={`Start: ${fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}`}>
+                                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                                {fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}
+                                              </span>
+                                            </Tooltip>
+                                          </>
+                                        )}
+                                      </span>
+                                    </>
+                                  );
+                                })()
                               ) : (
                                 <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
                               )}
