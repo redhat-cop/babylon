@@ -58,7 +58,7 @@ const PublicHeader: React.FC = () => {
     ...(feedback_link
       ? [
           <DropdownItem key="feedback" value={feedback_link}>
-            Provide Feedback
+            RHDP Support - Feedback/Feature Request
           </DropdownItem>,
         ]
       : []),
