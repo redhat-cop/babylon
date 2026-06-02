@@ -118,7 +118,7 @@ const ReorderModal: React.FC<{
       </p>
       <DescriptionList
         isHorizontal
-        compact
+        isCompact
         style={{
           marginTop: 'var(--pf-t--global--spacer--md)',
           marginBottom: 'var(--pf-t--global--spacer--md)',
