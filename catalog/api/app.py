@@ -1220,7 +1220,7 @@ async def selfpacedlab_post(request):
 
     ret = {
         "accessPasswordRequired": True if selfpacedlab_access_password else False,
-        "labUserInterfaceRedirect": selfpacedlab['spec'].get('labUserInterface', {}).get('redirect'),
+        "labUserInterfaceRedirect": selfpacedlab['spec'].get('labUserInterface', {}).get('redirect', True),
         "description": selfpacedlab['spec'].get('description'),
         "displayName": selfpacedlab['spec'].get('displayName'),
         "name": selfpacedlab_name,
