@@ -265,7 +265,7 @@ selfpacedlabManager:
   image:
     repository: quay.io/rhpds/babylon-selfpacedlab-manager
     pullPolicy: IfNotPresent
-    tag: v0.1.0
+    tag: v0.0.1
   namespace:
     create: true
     name: babylon-selfpacedlab-manager
