@@ -26,6 +26,7 @@ import {
   Session,
   Nullable,
   WorkshopUserAssignment,
+  SelfPacedLabUserAssignment,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -322,6 +323,103 @@ export async function assignWorkshopUser({
   });
   workshopUserAssignments[userAssignmentIdx] = updatedWorkshopUserAssignment;
   return workshopUserAssignments;
+}
+
+export async function assignSelfPacedLabUser({
+  resourceClaimName,
+  userName,
+  email,
+  selfPacedLabUserAssignments,
+}: {
+  resourceClaimName: string;
+  userName: string;
+  email: string;
+  selfPacedLabUserAssignments: SelfPacedLabUserAssignment[];
+}) {
+  const userAssignmentIdx: number = selfPacedLabUserAssignments.findIndex(
+    (item) => resourceClaimName === item.spec.resourceClaimName && userName === item.spec.userName,
+  );
+  const userAssignment = selfPacedLabUserAssignments[userAssignmentIdx];
+  if (!userAssignment) {
+    console.error(`Unable to assign, ${resourceClaimName} ${userName} not found.`);
+    return selfPacedLabUserAssignments;
+  } else if (userAssignment.spec.assignment?.email === email || (!userAssignment.spec.assignment?.email && !email)) {
+    return selfPacedLabUserAssignments;
+  }
+
+  const jsonPatch: JSONPatch = [];
+  if (resourceClaimName) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/resourceClaimName`,
+      value: resourceClaimName,
+    });
+  }
+  if (userName) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/userName`,
+      value: userName,
+    });
+  }
+  if (userAssignment.spec.assignment) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/assignment/email`,
+      value: userAssignment.spec.assignment.email,
+    });
+    if (email) {
+      jsonPatch.push({
+        op: 'replace',
+        path: `/spec/assignment/email`,
+        value: email,
+      });
+    } else {
+      jsonPatch.push({
+        op: 'remove',
+        path: `/spec/assignment`,
+      });
+    }
+  } else if (email) {
+    jsonPatch.push({
+      op: 'add',
+      path: `/spec/assignment`,
+      value: { email: email },
+    });
+  } else {
+    return selfPacedLabUserAssignments;
+  }
+
+  const updatedSelfPacedLabUserAssignment = await patchK8sObject<SelfPacedLabUserAssignment>({
+    name: userAssignment.metadata.name,
+    namespace: userAssignment.metadata.namespace,
+    jsonPatch: jsonPatch,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    plural: 'selfpacedlabuserassignments',
+  });
+  selfPacedLabUserAssignments[userAssignmentIdx] = updatedSelfPacedLabUserAssignment;
+  return selfPacedLabUserAssignments;
+}
+
+export async function patchSelfPacedLabUserAssignment({
+  name,
+  namespace,
+  jsonPatch,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  jsonPatch?: JSONPatch;
+  patch?: Record<string, unknown>;
+}) {
+  return await patchK8sObject<SelfPacedLabUserAssignment>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    jsonPatch,
+    name,
+    namespace,
+    plural: 'selfpacedlabuserassignments',
+    patch,
+  });
 }
 
 export function dateToApiString(date: Date) {
@@ -2525,6 +2623,8 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabitems?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  SELF_PACED_LAB_USER_ASSIGNMENTS: ({ namespace, selfPacedLabName }: { namespace: string; selfPacedLabName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabuserassignments?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}`,
   WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
   WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number | string; continueId?: string }) =>

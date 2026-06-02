@@ -1,10 +1,10 @@
-import { WorkshopUserAssignmentSpec } from '@app/types';
+import { SelfPacedLabUserAssignmentSpec } from '@app/types';
 
 class SelfPacedLabLoginFailedError extends Error {}
 
 export type SelfPacedLabDetails = {
   accessPasswordRequired: boolean;
-  assignment?: WorkshopUserAssignmentSpec;
+  assignment?: SelfPacedLabUserAssignmentSpec;
   description?: string;
   displayName?: string;
   labUserInterfaceRedirect?: boolean;

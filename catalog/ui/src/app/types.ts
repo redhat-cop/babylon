@@ -680,6 +680,33 @@ export interface SelfPacedLabItemSpec {
   unassignedLifespan: string;
 }
 
+export interface SelfPacedLabUserAssignmentSpec {
+  data?: any;
+  messages?: string;
+  resourceClaimName?: string;
+  userName?: string;
+  selfPacedLabName: string;
+  labUserInterface?: {
+    data?: object;
+    method?: string;
+    url: string;
+    redirect?: boolean;
+  };
+  assignment?: {
+    email: string;
+  };
+}
+
+export interface SelfPacedLabUserAssignment extends K8sObject {
+  spec: SelfPacedLabUserAssignmentSpec;
+  status?: any;
+}
+
+export interface SelfPacedLabUserAssignmentList {
+  metadata: K8sObjectListMeta;
+  items: SelfPacedLabUserAssignment[];
+}
+
 export interface WorkshopUserAssignmentList {
   metadata: K8sObjectListMeta;
   items: WorkshopUserAssignment[];
