@@ -1,0 +1,116 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "babylon-selfpacedlab-manager.name" . }}
+  annotations:
+    description: >-
+      Access cluster resources for babylon selfpacedlab-manager
+  labels:
+    {{- include "babylon-selfpacedlab-manager.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kopf.dev
+  resources:
+  - clusterkopfpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.babylon.domain }}
+  resources:
+  - catalogitems
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - {{ .Values.babylon.domain }}
+  resources:
+  - selfpacedlabs
+  - selfpacedlabs/status
+  - selfpacedlabitems
+  - selfpacedlabitems/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourceclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.poolboy.domain }}
+  resources:
+  - resourceproviders
+  verbs:
+  - get
+  - list
+{{ if .Values.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylon-selfpacedlab-manager.name" . }}
+  labels:
+    {{- include "babylon-selfpacedlab-manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "babylon-selfpacedlab-manager.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylon-selfpacedlab-manager.serviceAccountName" . }}
+  namespace: {{ include "babylon-selfpacedlab-manager.namespaceName" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "babylon-selfpacedlab-manager.name" . }}:admin
+  labels:
+    {{- include "babylon-selfpacedlab-manager.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+- kind: ServiceAccount
+  name: {{ include "babylon-selfpacedlab-manager.serviceAccountName" . }}
+  namespace: {{ include "babylon-selfpacedlab-manager.namespaceName" . }}
+{{ end }}

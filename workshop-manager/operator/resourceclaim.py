@@ -22,7 +22,7 @@ class ResourceClaim(K8sObject):
     lab_ui_url_keys = ('bookbag_url', 'lab_ui_url', 'labUserInterfaceUrl', 'showroom_primary_view_url')
 
     @classmethod
-    async def handle_event(cls, event, logger):
+    async def handle_workshop_event(cls, event, logger):
         definition = event.get('object')
         if not definition or definition.get('kind') != 'ResourceClaim':
             logger.warning(event)

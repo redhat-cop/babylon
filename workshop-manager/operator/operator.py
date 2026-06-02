@@ -57,7 +57,9 @@ async def on_cleanup(**_):
     },
 )
 async def resource_claim_event(event, logger, **_):
-    await ResourceClaim.handle_event(event, logger=logger)
+    await ResourceClaim.handle_workshop_event(event, logger=logger)
+
+
 
 
 @kopf.on.create(
