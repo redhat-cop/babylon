@@ -11,6 +11,7 @@ const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'))
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
+const SelfPacedLabsList = React.lazy(() => import('@app/Admin/SelfPacedLabs'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
 const MultiWorkshopList = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopList'));
 
@@ -18,7 +19,9 @@ const MultiWorkshopCreate = React.lazy(() => import('@app/MultiWorkshops/MultiWo
 const MultiWorkshopDetail = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopDetail'));
 const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
+const SelfPacedLabItem = React.lazy(() => import('@app/SelfPacedLabs/SelfPacedLabItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
+const SelfPacedLab = React.lazy(() => import('@app/SelfPacedLab/SelfPacedLab'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const IncidentsPage = React.lazy(() => import('@app/Admin/IncidentsPage'));
@@ -129,6 +132,16 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Workshops',
   },
   {
+    component: SelfPacedLabItem,
+    path: '/selfpacedlabs/:namespace/:name/:tab',
+    title: 'Babylon | Self-Paced Labs',
+  },
+  {
+    component: SelfPacedLabItem,
+    path: '/selfpacedlabs/:namespace/:name',
+    title: 'Babylon | Self-Paced Labs',
+  },
+  {
     component: ResourceClaims,
     path: '/admin/resourceclaims/:namespace',
     title: 'Babylon | ResourceClaims',
@@ -149,6 +162,18 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Workshops',
   },
 
+  {
+    component: SelfPacedLabsList,
+    path: '/admin/selfpacedlabs/:namespace',
+    title: 'Babylon | Self-Paced Labs',
+    accessControl: 'admin',
+  },
+  {
+    component: SelfPacedLabsList,
+    path: '/admin/selfpacedlabs',
+    title: 'Babylon | Self-Paced Labs',
+    accessControl: 'admin',
+  },
   {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops/:namespace',
@@ -354,6 +379,11 @@ const publicRoutes: IAppRoute[] = [
     component: Workshop,
     path: '/workshop/:workshopId',
     title: 'Workshop | Babylon',
+  },
+  {
+    component: SelfPacedLab,
+    path: '/selfpacedlab/:selfPacedLabId',
+    title: 'Self-Paced Lab | Babylon',
   },
   {
     component: MultiWorkshopLanding,

@@ -1,0 +1,79 @@
+.selfpacedlab-item__body.pf-v6-c-page__main-section {
+  padding-top: 0px;
+  flex-grow: 1;
+}
+
+.selfpacedlab-item__body.pf-v6-c-page__main-section .pf-v6-c-tabs {
+  margin-left: -100px;
+  padding-left: 100px;
+  margin-right: -100px;
+  padding-right: 100px;
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.selfpacedlab-item__body .pf-v6-c-tab-content {
+  padding: var(--pf-t--global--spacer--sm) 0;
+}
+
+.selfpacedlab-item__body.pf-v6-c-page__main-section .pf-v6-c-description-list {
+  row-gap: var(--pf-t--global--spacer--sm);
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.selfpacedlab-item__body .pf-v6-c-description-list__group {
+  align-items: center;
+}
+
+.selfpacedlab-item__head.pf-v6-c-page__main-section {
+  padding-top: var(--pf-t--global--spacer--md);
+  padding-bottom: var(--pf-t--global--spacer--md);
+  border-bottom: 1px solid var(--pf-t--chart--color--black--300);
+}
+
+.selfpacedlab-item__head.pf-v6-c-page__main-section .pf-v6-c-title {
+  margin-top: var(--pf-t--global--spacer--lg);
+}
+
+.selfpacedlab-item__topbar.pf-v6-c-page__main-section .pf-c-dropdown__menu {
+  max-height: 25em;
+  overflow-y: scroll;
+}
+
+.selfpacedlab-item__body .pf-v6-c-table tbody > tr > * {
+  vertical-align: middle !important;
+}
+
+.selfpacedlab-item-details.pf-v6-c-description-list[class*='pf-m-horizontal'] {
+  --pf-v6-c-description-list__term--width: 142px !important;
+}
+
+.selfpacedlab-item-details__admin-section.pf-v6-c-description-list__group {
+  border-top: 2px solid var(--pf-t--chart--color--black--400) !important;
+  margin-top: var(--pf-t--global--spacer--md) !important;
+  margin-bottom: var(--pf-t--global--spacer--md) !important;
+}
+
+.selfpacedlab-item-details__admin-description.pf-v6-c-description-list__description {
+  border-left: 3px solid var(--pf-t--chart--color--black--300) !important;
+  background-color: var(--pf-t--color--background--disabled, #f5f5f5) !important;
+  padding: var(--pf-t--global--spacer--md) !important;
+  border-radius: var(--pf-t--global--border--radius--sm, 4px) !important;
+}
+
+.selfpacedlab-item-details__admin-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+.selfpacedlab-item-details__admin-field {
+  display: flex;
+  align-items: center;
+}
+
+.selfpacedlab-item-details__group-control--single {
+  display: flex;
+  flex-direction: row;
+  gap: var(--pf-t--global--spacer--md);
+  align-items: center;
+}

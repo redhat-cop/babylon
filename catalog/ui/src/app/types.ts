@@ -628,6 +628,58 @@ export interface WorkshopSpec {
   };
 }
 
+export interface SelfPacedLab extends K8sObject {
+  spec: SelfPacedLabSpec;
+  status?: {
+    poolCount?: {
+      ready?: number;
+      provisioning?: number;
+      assigned?: number;
+    };
+    selfPacedLabURL?: string;
+  };
+}
+
+export interface SelfPacedLabList {
+  items: SelfPacedLab[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface SelfPacedLabSpec {
+  accessPassword?: string;
+  description?: string;
+  displayName?: string;
+  lifespan?: {
+    start?: string;
+    end?: string;
+  };
+  openRegistration?: boolean;
+}
+
+export interface SelfPacedLabItem extends K8sObject {
+  spec: SelfPacedLabItemSpec;
+  status?: {
+    readyCount?: number;
+    provisioningCount?: number;
+    assignedCount?: number;
+    failedCount?: number;
+  };
+}
+
+export interface SelfPacedLabItemSpec {
+  assignedLifespan: string;
+  catalogItem: {
+    name: string;
+    namespace: string;
+  };
+  concurrency?: number;
+  parameters?: any;
+  poolSize: number;
+  selfPacedLabName: string;
+  startDelay?: number;
+  unassignedLifespan: string;
+}
+
 export interface WorkshopUserAssignmentList {
   metadata: K8sObjectListMeta;
   items: WorkshopUserAssignment[];
@@ -818,7 +870,10 @@ export type WorkshopWithResourceClaims = Workshop & {
   resourceClaims?: ResourceClaim[];
   isCollaborator?: boolean;
 };
-export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims;
+export type SelfPacedLabWithResourceClaims = SelfPacedLab & {
+  resourceClaims?: ResourceClaim[];
+};
+export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims | SelfPacedLabWithResourceClaims;
 
 export type Incident = {
   id: number;

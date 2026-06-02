@@ -37,6 +37,6 @@ poolboy:
   domain: poolboy.gpte.redhat.com
 
 image:
-  repository: quay.io/redhat-gpte/babylon-selfpacedlab-manager
+  repository: quay.io/rhpds/babylon-selfpacedlab-manager
   pullPolicy: Always
   tagOverride: ""

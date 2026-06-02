@@ -21,6 +21,13 @@ type WorkshopProps = {
   provisionConcurrency: number;
   provisionStartDelay: number;
 };
+type SelfPacedLabProps = {
+  poolSize: number;
+  assignedLifespan: string;
+  unassignedLifespan: string;
+  concurrency: number;
+  startDelay: number;
+};
 type FormState = {
   user: UserProps;
   conditionChecks: {
@@ -33,6 +40,7 @@ type FormState = {
   termsOfServiceRequired: boolean;
   whiteGloved: boolean;
   workshop?: WorkshopProps;
+  selfPacedLab?: SelfPacedLabProps;
   error: string;
   useAutoDetach: boolean;
   selectedResourcePool?: string;
@@ -67,6 +75,7 @@ export type FormStateAction = {
     | 'termsOfServiceAgreed'
     | 'dates'
     | 'workshop'
+    | 'selfPacedLab'
     | 'useAutoDetach'
     | 'selectedResourcePool'
     | 'purpose'
@@ -96,6 +105,7 @@ export type FormStateAction = {
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
+  selfPacedLab?: SelfPacedLabProps;
   useAutoDetach?: boolean;
   selectedResourcePool?: string;
   startDate?: Date;
@@ -332,6 +342,7 @@ function reduceFormStateInit(
     termsOfServiceAgreed: false,
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
     workshop: null,
+    selfPacedLab: null,
     error: '',
     useAutoDetach: true,
     selectedResourcePool: undefined,
@@ -411,6 +422,13 @@ function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProp
     salesforceId,
     salesforceItems,
     workshop,
+  };
+}
+
+function reduceFormStateSelfPacedLab(initialState: FormState, selfPacedLab: SelfPacedLabProps = null): FormState {
+  return {
+    ...initialState,
+    selfPacedLab,
   };
 }
 
@@ -536,6 +554,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormWhiteGloved(state, action.whiteGloved);
     case 'workshop':
       return reduceFormStateWorkshop(state, action.workshop);
+    case 'selfPacedLab':
+      return reduceFormStateSelfPacedLab(state, action.selfPacedLab);
     case 'useAutoDetach':
       return reduceFormStateUseAutoDetach(state, action.useAutoDetach);
     case 'selectedResourcePool':
@@ -591,6 +611,17 @@ export function checkEnableSubmit(state: FormState): boolean {
   }
   if (state.workshop) {
     if (!state.workshop.displayName) {
+      return false;
+    }
+  }
+  if (state.selfPacedLab) {
+    if (state.selfPacedLab.poolSize < 1) {
+      return false;
+    }
+    if (!state.selfPacedLab.assignedLifespan) {
+      return false;
+    }
+    if (!state.selfPacedLab.unassignedLifespan) {
       return false;
     }
   }
