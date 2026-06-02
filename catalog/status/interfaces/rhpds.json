@@ -5,5 +5,6 @@
     "help_text": "Open Support Case",
     "help_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69",
     "internal_help_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69",
-    "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
+    "feedback_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69/group/75/create/165",
+    "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html"
 }
