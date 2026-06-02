@@ -10,6 +10,7 @@ import {
   Nullable,
   ResourceClaim,
   SalesforceItem,
+  SelfPacedLab,
   Service,
   ServiceNamespace,
   Workshop,
@@ -83,6 +84,9 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
   } else if (k8sObject.kind === 'CatalogItem') {
     const _item = k8sObject as CatalogItem;
     return _item.spec.displayName;
+  } else if (k8sObject.kind === 'SelfPacedLab') {
+    const _item = k8sObject as SelfPacedLab;
+    return _item.spec?.displayName || _item.metadata.name;
   } else {
     return (
       k8sObject.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
@@ -238,6 +242,11 @@ export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
   if (!resourceClaim || !resourceClaim.metadata?.ownerReferences) return false;
   return resourceClaim.metadata.ownerReferences.filter((x) => x.kind === 'WorkshopProvision' || x.kind === 'Workshop')
     .length > 0;
+}
+
+export function isResourceClaimPartOfSelfPacedLab(resourceClaim: ResourceClaim) {
+  if (!resourceClaim || !resourceClaim.metadata?.labels) return false;
+  return !!resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/selfpacedlab`];
 }
 
 export function isWorkshopPartOfResourceClaim(workshop: Workshop) {

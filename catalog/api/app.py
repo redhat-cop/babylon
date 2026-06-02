@@ -1142,6 +1142,120 @@ async def workshop_post(request):
     raise web.HTTPConflict()
 
 
+@routes.get("/api/selfpacedlab/{selfpacedlab_id}")
+async def selfpacedlab_get(request):
+    """
+    Fetch self-paced lab for an attendee in order to present overview.
+    """
+    selfpacedlab_id = request.match_info.get('selfpacedlab_id')
+    selfpacedlab_list = await custom_objects_api.list_cluster_custom_object(
+        group='babylon.gpte.redhat.com',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab-id={selfpacedlab_id}",
+        plural='selfpacedlabs',
+        version='v1',
+    )
+    if not selfpacedlab_list.get('items'):
+        raise web.HTTPNotFound()
+    selfpacedlab = selfpacedlab_list['items'][0]
+    ret = {
+        "accessPasswordRequired": True if selfpacedlab['spec'].get('accessPassword') else False,
+        "description": selfpacedlab['spec'].get('description'),
+        "displayName": selfpacedlab['spec'].get('displayName'),
+        "name": selfpacedlab['metadata']['name'],
+        "namespace": selfpacedlab['metadata']['namespace'],
+        "template": selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
+            or selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+    }
+    return web.json_response(ret)
+
+
+@routes.post("/api/selfpacedlab/{selfpacedlab_id}")
+@routes.put("/api/selfpacedlab/{selfpacedlab_id}")
+async def selfpacedlab_post(request):
+    """
+    Access self-paced lab as an attendee with login information.
+    """
+    selfpacedlab_id = request.match_info.get('selfpacedlab_id')
+    if not request.can_read_body:
+        raise web.HTTPBadRequest()
+
+    data = await request.json()
+    if not data:
+        raise web.HTTPBadRequest()
+
+    access_password = data.get('accessPassword')
+    email = data.get('email')
+    if not email:
+        raise web.HTTPBadRequest()
+
+    selfpacedlab_list = await custom_objects_api.list_cluster_custom_object(
+        'babylon.gpte.redhat.com', 'v1', 'selfpacedlabs',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab-id={selfpacedlab_id}"
+    )
+    if not selfpacedlab_list.get('items'):
+        raise web.HTTPConflict()
+
+    selfpacedlab = selfpacedlab_list['items'][0]
+    selfpacedlab_access_password = selfpacedlab['spec'].get('accessPassword')
+    selfpacedlab_name = selfpacedlab['metadata']['name']
+    selfpacedlab_namespace = selfpacedlab['metadata']['namespace']
+    selfpacedlab_open_registration = selfpacedlab['spec'].get('openRegistration', True)
+
+    if access_password:
+        if access_password != selfpacedlab_access_password:
+            raise web.HTTPForbidden()
+    elif selfpacedlab_access_password:
+        raise web.HTTPBadRequest()
+
+    selfpacedlab_user_assignments = await custom_objects_api.list_namespaced_custom_object(
+        group='babylon.gpte.redhat.com',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab={selfpacedlab_name}",
+        namespace=selfpacedlab_namespace,
+        plural='selfpacedlabuserassignments',
+        version='v1',
+    )
+
+    if not selfpacedlab_user_assignments.get('items'):
+        raise web.HTTPNotFound()
+
+    ret = {
+        "accessPasswordRequired": True if selfpacedlab_access_password else False,
+        "labUserInterfaceRedirect": selfpacedlab['spec'].get('labUserInterface', {}).get('redirect', True),
+        "description": selfpacedlab['spec'].get('description'),
+        "displayName": selfpacedlab['spec'].get('displayName'),
+        "name": selfpacedlab_name,
+        "namespace": selfpacedlab_namespace,
+        "template": selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
+            or selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+    }
+
+    for user_assignment in selfpacedlab_user_assignments.get('items', []):
+        if email == user_assignment['spec'].get('assignment', {}).get('email'):
+            ret['assignment'] = user_assignment['spec']
+            return web.json_response(ret)
+
+    if not selfpacedlab_open_registration:
+        raise web.HTTPConflict()
+
+    for user_assignment in selfpacedlab_user_assignments.get('items', []):
+        if not 'assignment' in user_assignment['spec']:
+            try:
+                user_assignment['spec']['assignment'] = {"email": email}
+                await custom_objects_api.replace_namespaced_custom_object(
+                    body=user_assignment,
+                    group='babylon.gpte.redhat.com',
+                    name=user_assignment['metadata']['name'],
+                    namespace=user_assignment['metadata']['namespace'],
+                    plural='selfpacedlabuserassignments',
+                    version='v1',
+                )
+                ret['assignment'] = user_assignment['spec']
+                return web.json_response(ret)
+            except kubernetes_asyncio.client.exceptions.ApiException as exception:
+                if exception.status != 409:
+                    raise
+
+    raise web.HTTPConflict()
 
 
 
@@ -1296,7 +1410,7 @@ async def update_system_status(request):
         logging.error(f"Unexpected error updating system status: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
-@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments}")
+@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabitems|selfpacedlabuserassignments}")
 @routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
 async def openshift_api_list_by_get_rbac(request):
     """List items with special handling so that users can list items in a

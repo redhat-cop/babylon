@@ -15,6 +15,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import {
   apiPaths,
   deleteResourceClaim,
+  deleteSelfPacedLab,
   deleteWorkshop,
   fetcherItemsInAllPages,
   scheduleStartResourceClaim,
@@ -29,7 +30,7 @@ import {
   stopAllResourcesInResourceClaim,
   stopWorkshop,
 } from '@app/api';
-import { ResourceClaim, ResourceClaimWithCollaborator, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import { ResourceClaim, ResourceClaimWithCollaborator, SelfPacedLab, SelfPacedLabWithResourceClaims, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import { fetcher } from '@app/api';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
@@ -40,6 +41,7 @@ import {
   compareK8sObjectsArr,
   FETCH_BATCH_LIMIT,
   isResourceClaimPartOfWorkshop,
+  isResourceClaimPartOfSelfPacedLab,
 } from '@app/util';
 import SelectableTable from '@app/components/SelectableTable';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -50,6 +52,7 @@ import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import renderResourceClaimRow from './renderResourceClaimRow';
+import renderSelfPacedLabRow from './renderSelfPacedLabRow';
 import renderWorkshopRow from './renderWorkshopRow';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
 import { isResourceClaimLocked } from './service-utils';
@@ -70,7 +73,7 @@ async function fetchServices(namespace: string): Promise<Service[]> {
         namespace,
         limit: FETCH_BATCH_LIMIT,
         continueId,
-        labelSelector: `!${BABYLON_DOMAIN}/workshop`,
+        labelSelector: `!${BABYLON_DOMAIN}/workshop,!${BABYLON_DOMAIN}/selfpacedlab`,
       }),
     )) as ResourceClaim[];
   }
@@ -78,6 +81,11 @@ async function fetchServices(namespace: string): Promise<Service[]> {
     return (await fetcherItemsInAllPages((continueId) =>
       apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
     )) as Workshop[];
+  }
+  async function fetchSelfPacedLabs(namespace: string) {
+    return (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.SELF_PACED_LABS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+    )) as SelfPacedLab[];
   }
   async function fetchSharedServices(namespace: string) {
     const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
@@ -143,10 +151,12 @@ async function fetchServices(namespace: string): Promise<Service[]> {
 
   const resourceClaims: ResourceClaim[] = [];
   const workshops: Workshop[] = [];
+  const selfPacedLabs: SelfPacedLab[] = [];
   const sharedServices: Service[] = [];
   await Promise.all([
     fetchResourceClaims(namespace).then((r) => resourceClaims.push(...r)),
     fetchWorkshops(namespace).then((w) => workshops.push(...w)),
+    fetchSelfPacedLabs(namespace).then((s) => selfPacedLabs.push(...s)),
     fetchSharedServices(namespace).then((s) => sharedServices.push(...s)),
   ]);
 
@@ -154,7 +164,7 @@ async function fetchServices(namespace: string): Promise<Service[]> {
 
   const seen = new Set<string>();
   const services: Service[] = [];
-  for (const service of [...resourceClaims, ...resolvedWorkshops, ...sharedServices]) {
+  for (const service of [...resourceClaims, ...resolvedWorkshops, ...selfPacedLabs, ...sharedServices]) {
     const uid = service.metadata.uid;
     if (!seen.has(uid)) {
       seen.add(uid);
@@ -190,6 +200,32 @@ async function fetchWorkshopResourceClaims(
   return result;
 }
 
+async function fetchSelfPacedLabResourceClaims(
+  namespaces: string[],
+): Promise<Record<string, ResourceClaim[]>> {
+  const result: Record<string, ResourceClaim[]> = {};
+  const promises = namespaces.map(async (namespace) => {
+    const rcs = (await fetcherItemsInAllPages((continueId) =>
+      apiPaths.RESOURCE_CLAIMS({
+        namespace,
+        limit: FETCH_BATCH_LIMIT,
+        continueId,
+        labelSelector: `${BABYLON_DOMAIN}/selfpacedlab`,
+      }),
+    )) as ResourceClaim[];
+    for (const rc of rcs) {
+      const splName = rc.metadata.labels?.[`${BABYLON_DOMAIN}/selfpacedlab`];
+      if (splName) {
+        const key = `${namespace}/${splName}`;
+        if (!result[key]) result[key] = [];
+        result[key].push(rc);
+      }
+    }
+  });
+  await Promise.all(promises);
+  return result;
+}
+
 const ServicesList: React.FC<{
   serviceNamespaceName: string;
 }> = ({ serviceNamespaceName }) => {
@@ -214,6 +250,7 @@ const ServicesList: React.FC<{
     action: ServiceActionActions;
     resourceClaim?: ResourceClaim;
     workshop?: WorkshopWithResourceClaims;
+    selfPacedLab?: SelfPacedLab;
     rating?: { rate: number; useful: 'yes' | 'no' | 'not applicable'; comment: string };
     submitDisabled: boolean;
   }>({ action: null, submitDisabled: false });
@@ -255,6 +292,31 @@ const ServicesList: React.FC<{
     },
   );
 
+  const selfPacedLabNamespaces = useMemo(() => {
+    if (!_services) return [];
+    return [...new Set(
+      _services
+        .filter((s) => s.kind === 'SelfPacedLab')
+        .map((s) => s.metadata.namespace),
+    )].sort();
+  }, [_services]);
+
+  const { data: selfPacedLabRCsMap } = useSWR<Record<string, ResourceClaim[]>>(
+    selfPacedLabNamespaces.length > 0 ? `selfpacedlab-rcs/${selfPacedLabNamespaces.join(',')}` : null,
+    () => fetchSelfPacedLabResourceClaims(selfPacedLabNamespaces),
+    {
+      suspense: false,
+      refreshInterval: 8000,
+      revalidateOnMount: true,
+      compare: (currentData, newData) => {
+        if (!currentData || !newData) return currentData === newData;
+        const allCurrentRCs = Object.values(currentData).flat();
+        const allNewRCs = Object.values(newData).flat();
+        return compareK8sObjectsArr(allCurrentRCs, allNewRCs);
+      },
+    },
+  );
+
   const filterFn = useCallback(
     (service: Service) => {
       if (service.kind === 'ResourceClaim') {
@@ -262,8 +324,7 @@ const ServicesList: React.FC<{
           return false;
         }
         const resourceClaim = service as ResourceClaim;
-        const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
-        if (isPartOfWorkshop) {
+        if (isResourceClaimPartOfWorkshop(resourceClaim) || isResourceClaimPartOfSelfPacedLab(resourceClaim)) {
           return false;
         }
         if (!isAdmin && resourceClaim.spec.provider?.name === 'babylon-service-request-configmap') {
@@ -293,6 +354,20 @@ const ServicesList: React.FC<{
         }
         return true;
       }
+      if (service.kind === 'SelfPacedLab') {
+        const selfPacedLab = service as SelfPacedLab;
+        if (selfPacedLab.metadata.deletionTimestamp) {
+          return false;
+        }
+        if (keywordFilter) {
+          for (const keyword of keywordFilter) {
+            if (!keywordMatch(selfPacedLab, keyword)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
       return false;
     },
     [keywordFilter, isAdmin],
@@ -310,6 +385,15 @@ const ServicesList: React.FC<{
           }
           return ws;
         }
+        if (service.kind === 'SelfPacedLab') {
+          const spl = service as SelfPacedLabWithResourceClaims;
+          const key = `${spl.metadata.namespace}/${spl.metadata.name}`;
+          const rcs = selfPacedLabRCsMap?.[key];
+          if (rcs !== undefined) {
+            return { ...spl, resourceClaims: rcs } as SelfPacedLabWithResourceClaims;
+          }
+          return spl;
+        }
         return service;
       });
       return enriched
@@ -318,7 +402,7 @@ const ServicesList: React.FC<{
           (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
         );
     },
-    [filterFn, _services, workshopRCsMap],
+    [filterFn, _services, workshopRCsMap, selfPacedLabRCsMap],
   );
 
   const revalidate = useCallback(
@@ -427,6 +511,23 @@ const ServicesList: React.FC<{
     [cache, modalState.action, modalState.workshop, revalidate, mutate],
   );
 
+  const performModalActionForSelfPacedLab = useCallback(
+    async (selfPacedLab: SelfPacedLab): Promise<SelfPacedLab> => {
+      if (modalState.action === 'delete') {
+        try {
+          return await deleteSelfPacedLab(selfPacedLab);
+        } catch (error: unknown) {
+          if ((error as { status?: number })?.status === 404) {
+            return selfPacedLab;
+          }
+          throw error;
+        }
+      }
+      return selfPacedLab;
+    },
+    [modalState.action],
+  );
+
   const onModalAction = useCallback(async (): Promise<void> => {
     const serviceUpdates: Service[] = [];
     if (modalState.resourceClaim) {
@@ -435,6 +536,8 @@ const ServicesList: React.FC<{
       serviceUpdates.push(
         setResourceClaims(await performModalActionForWorkshop(modalState.workshop), modalState.workshop.resourceClaims),
       );
+    } else if (modalState.selfPacedLab) {
+      serviceUpdates.push(await performModalActionForSelfPacedLab(modalState.selfPacedLab));
     } else if (selectedUids.length > 0) {
       for (const service of services) {
         if (selectedUids.includes(service.metadata.uid)) {
@@ -446,6 +549,9 @@ const ServicesList: React.FC<{
             serviceUpdates.push(
               setResourceClaims(await performModalActionForWorkshop(_workshop), _workshop.resourceClaims),
             );
+          }
+          if (service.kind === 'SelfPacedLab') {
+            serviceUpdates.push(await performModalActionForSelfPacedLab(service as SelfPacedLab));
           }
         }
       }
@@ -473,11 +579,13 @@ const ServicesList: React.FC<{
   }, [
     modalState.resourceClaim,
     modalState.workshop,
+    modalState.selfPacedLab,
     modalState.action,
     modalState.rating,
     selectedUids,
     performModalActionForResourceClaim,
     performModalActionForWorkshop,
+    performModalActionForSelfPacedLab,
     services,
     globalMutate,
     revalidate,
@@ -489,18 +597,20 @@ const ServicesList: React.FC<{
       action,
       resourceClaim,
       workshop,
+      selfPacedLab,
     }: {
       modal: string;
       action?: ServiceActionActions;
       resourceClaim?: ResourceClaim;
       workshop?: Workshop;
+      selfPacedLab?: SelfPacedLab;
     }) => {
       if (modal === 'action') {
-        setModalState({ ...modalState, action, resourceClaim, workshop });
+        setModalState({ ...modalState, action, resourceClaim, workshop, selfPacedLab });
         openModalAction();
       }
       if (modal === 'scheduleAction') {
-        setModalState({ ...modalState, action, resourceClaim, workshop });
+        setModalState({ ...modalState, action, resourceClaim, workshop, selfPacedLab });
         openModalScheduleAction();
       }
     },
@@ -528,7 +638,7 @@ const ServicesList: React.FC<{
 
   // Check if any selected service is a collaborator service (can't delete those)
   const selectedHasCollaborator = selectedUids.length > 0 && services.some(
-    (service) => selectedUids.includes(service.metadata.uid) && service.isCollaborator
+    (service) => selectedUids.includes(service.metadata.uid) && 'isCollaborator' in service && service.isCollaborator
   );
 
   return (
@@ -663,6 +773,12 @@ const ServicesList: React.FC<{
                 return Object.assign(
                   selectObj,
                   renderWorkshopRow({ workshop: service as Workshop, showModal, isAdmin }),
+                );
+              }
+              if (service.kind === 'SelfPacedLab') {
+                return Object.assign(
+                  selectObj,
+                  renderSelfPacedLabRow({ selfPacedLab: service as SelfPacedLab, showModal, isAdmin }),
                 );
               }
               return null;

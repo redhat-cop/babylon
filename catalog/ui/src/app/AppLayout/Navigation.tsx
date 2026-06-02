@@ -78,7 +78,8 @@ const Navigation: React.FC = () => {
         to={`/services/${userNamespace.name}`}
         className={
           location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
             ? 'pf-m-current'
             : ''
         }
@@ -185,6 +186,11 @@ const Navigation: React.FC = () => {
       <NavItem>
         <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">
           Workshops
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/selfpacedlabs') ? 'pf-m-current' : ''} to="/admin/selfpacedlabs">
+          Self-Paced Labs
         </ExactNavLink>
       </NavItem>
       <NavItem>
