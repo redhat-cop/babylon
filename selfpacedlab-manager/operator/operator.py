@@ -11,6 +11,7 @@ from babylon import Babylon
 from resourceclaim import ResourceClaim
 from selfpacedlab import SelfPacedLab
 from selfpacedlabitem import SelfPacedLabItem
+from selfpacedlabuserassignment import SelfPacedLabUserAssignment
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 
@@ -29,6 +30,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     await Babylon.on_startup()
     await SelfPacedLab.preload()
     await SelfPacedLabItem.preload()
+    await SelfPacedLabUserAssignment.preload()
 
 
 @kopf.on.cleanup()
@@ -151,3 +153,30 @@ async def selfpacedlab_item_daemon(logger, stopped, **kwargs):
             await asyncio.sleep(item.start_delay)
     except asyncio.CancelledError:
         pass
+
+
+@kopf.on.create(
+    SelfPacedLabUserAssignment.api_group, SelfPacedLabUserAssignment.api_version, SelfPacedLabUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_user_assignment_create(logger, **kwargs):
+    assignment = SelfPacedLabUserAssignment.load(**kwargs)
+    await assignment.handle_create(logger=logger)
+
+
+@kopf.on.delete(
+    SelfPacedLabUserAssignment.api_group, SelfPacedLabUserAssignment.api_version, SelfPacedLabUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_user_assignment_delete(logger, **kwargs):
+    assignment = SelfPacedLabUserAssignment.load(**kwargs)
+    await assignment.handle_delete(logger=logger)
+
+
+@kopf.on.update(
+    SelfPacedLabUserAssignment.api_group, SelfPacedLabUserAssignment.api_version, SelfPacedLabUserAssignment.plural,
+    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+)
+async def selfpacedlab_user_assignment_update(logger, **kwargs):
+    assignment = SelfPacedLabUserAssignment.load(**kwargs)
+    await assignment.handle_update(logger=logger)
