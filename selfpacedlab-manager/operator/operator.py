@@ -10,7 +10,7 @@ import kopf
 from babylon import Babylon
 from resourceclaim import ResourceClaim
 from selfpacedlab import SelfPacedLab
-from selfpacedlabitem import SelfPacedLabItem
+from selfpacedlabprovisionitem import SelfPacedLabProvisionItem
 from selfpacedlabuserassignment import SelfPacedLabUserAssignment
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
@@ -29,7 +29,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 
     await Babylon.on_startup()
     await SelfPacedLab.preload()
-    await SelfPacedLabItem.preload()
+    await SelfPacedLabProvisionItem.preload()
     await SelfPacedLabUserAssignment.preload()
 
 
@@ -105,48 +105,48 @@ async def selfpacedlab_daemon(logger, stopped, **kwargs):
 
 
 @kopf.on.create(
-    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
+    SelfPacedLabProvisionItem.api_group, SelfPacedLabProvisionItem.api_version, SelfPacedLabProvisionItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_item_create(logger, **kwargs):
-    item = SelfPacedLabItem.load(**kwargs)
+async def selfpacedlab_provision_item_create(logger, **kwargs):
+    item = SelfPacedLabProvisionItem.load(**kwargs)
     await item.handle_create(logger=logger)
 
 
 @kopf.on.delete(
-    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
+    SelfPacedLabProvisionItem.api_group, SelfPacedLabProvisionItem.api_version, SelfPacedLabProvisionItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_item_delete(logger, **kwargs):
-    item = SelfPacedLabItem.load(**kwargs)
+async def selfpacedlab_provision_item_delete(logger, **kwargs):
+    item = SelfPacedLabProvisionItem.load(**kwargs)
     await item.handle_delete(logger=logger)
 
 
 @kopf.on.resume(
-    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
+    SelfPacedLabProvisionItem.api_group, SelfPacedLabProvisionItem.api_version, SelfPacedLabProvisionItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_item_resume(logger, **kwargs):
-    item = SelfPacedLabItem.load(**kwargs)
+async def selfpacedlab_provision_item_resume(logger, **kwargs):
+    item = SelfPacedLabProvisionItem.load(**kwargs)
     await item.handle_resume(logger=logger)
 
 
 @kopf.on.update(
-    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
+    SelfPacedLabProvisionItem.api_group, SelfPacedLabProvisionItem.api_version, SelfPacedLabProvisionItem.plural,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_item_update(logger, **kwargs):
-    item = SelfPacedLabItem.load(**kwargs)
+async def selfpacedlab_provision_item_update(logger, **kwargs):
+    item = SelfPacedLabProvisionItem.load(**kwargs)
     await item.handle_update(logger=logger)
 
 
 @kopf.daemon(
-    SelfPacedLabItem.api_group, SelfPacedLabItem.api_version, SelfPacedLabItem.plural,
+    SelfPacedLabProvisionItem.api_group, SelfPacedLabProvisionItem.api_version, SelfPacedLabProvisionItem.plural,
     cancellation_timeout=1,
     labels={Babylon.babylon_ignore_label: kopf.ABSENT},
 )
-async def selfpacedlab_item_daemon(logger, stopped, **kwargs):
-    item = SelfPacedLabItem.load(**kwargs)
+async def selfpacedlab_provision_item_daemon(logger, stopped, **kwargs):
+    item = SelfPacedLabProvisionItem.load(**kwargs)
     try:
         while not stopped:
             await item.manage(logger=logger)

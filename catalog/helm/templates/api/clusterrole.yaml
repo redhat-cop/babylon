@@ -37,7 +37,7 @@ rules:
   - babylon.gpte.redhat.com
   resources:
   - selfpacedlabs
-  - selfpacedlabitems
+  - selfpacedlabprovisionitems
   verbs:
   - get
   - list

@@ -18,7 +18,7 @@ import {
   ServiceAccessConfig,
   ServiceNamespace,
   SelfPacedLab,
-  SelfPacedLabItem,
+  SelfPacedLabProvisionItem,
   Workshop,
   WorkshopProvision,
   MultiWorkshop,
@@ -1284,7 +1284,7 @@ export async function createSelfPacedLab({
   throw new Error('Failed to create self-paced lab after maximum retries');
 }
 
-export async function createSelfPacedLabItem({
+export async function createSelfPacedLabProvisionItem({
   catalogItem,
   poolSize,
   assignedLifespan,
@@ -1303,9 +1303,9 @@ export async function createSelfPacedLabItem({
   parameters: Record<string, unknown>;
   selfPacedLab: SelfPacedLab;
 }) {
-  const definition: SelfPacedLabItem = {
+  const definition: SelfPacedLabProvisionItem = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
-    kind: 'SelfPacedLabItem',
+    kind: 'SelfPacedLabProvisionItem',
     metadata: {
       name: selfPacedLab.metadata.name,
       namespace: selfPacedLab.metadata.namespace,
@@ -1372,7 +1372,7 @@ export async function patchSelfPacedLab({
   });
 }
 
-export async function patchSelfPacedLabItem({
+export async function patchSelfPacedLabProvisionItem({
   name,
   namespace,
   jsonPatch,
@@ -1382,13 +1382,13 @@ export async function patchSelfPacedLabItem({
   namespace: string;
   jsonPatch?: JSONPatch;
   patch?: Record<string, unknown>;
-}): Promise<SelfPacedLabItem> {
+}): Promise<SelfPacedLabProvisionItem> {
   return await patchK8sObject({
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     jsonPatch,
     name,
     namespace,
-    plural: 'selfpacedlabitems',
+    plural: 'selfpacedlabprovisionitems',
     patch,
   });
 }
@@ -2610,7 +2610,7 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/selfpacedlabs?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
-  SELF_PACED_LAB_ITEMS: ({
+  SELF_PACED_LAB_PROVISION_ITEMS: ({
     namespace,
     selfPacedLabName,
     limit,
@@ -2621,7 +2621,7 @@ export const apiPaths = {
     limit?: number | string;
     continueId?: string;
   }) =>
-    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabitems?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}${
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabprovisionitems?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
   SELF_PACED_LAB_USER_ASSIGNMENTS: ({ namespace, selfPacedLabName }: { namespace: string; selfPacedLabName: string }) =>

@@ -54,7 +54,7 @@ spec:
                 properties:
                   end:
                     description: >-
-                      End of lifespan for SelfPacedLab and any SelfPacedLabItems that belong to it.
+                      End of lifespan for SelfPacedLab and any SelfPacedLabProvisionItems that belong to it.
                       After this time the lab is no longer available and resources are cleaned up.
                     type: string
                     format: date-time
@@ -98,9 +98,9 @@ spec:
                   properties:
                     uid:
                       type: string
-              selfPacedLabItems:
+              selfPacedLabProvisionItems:
                 description: >-
-                  References to SelfPacedLabItems associated with this SelfPacedLab.
+                  References to SelfPacedLabProvisionItems associated with this SelfPacedLab.
                 type: object
                 additionalProperties:
                   type: object

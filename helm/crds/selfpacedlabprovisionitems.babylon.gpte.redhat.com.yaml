@@ -1,16 +1,16 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: selfpacedlabitems.babylon.gpte.redhat.com
+  name: selfpacedlabprovisionitems.babylon.gpte.redhat.com
 spec:
   conversion:
     strategy: None
   group: babylon.gpte.redhat.com
   names:
-    kind: SelfPacedLabItem
-    listKind: SelfPacedLabItemList
-    plural: selfpacedlabitems
-    singular: selfpacedlabitem
+    kind: SelfPacedLabProvisionItem
+    listKind: SelfPacedLabProvisionItemList
+    plural: selfpacedlabprovisionitems
+    singular: selfpacedlabprovisionitem
   scope: Namespaced
   versions:
   - name: v1
@@ -33,7 +33,7 @@ spec:
             type: object
           spec:
             description: >-
-              Specification of SelfPacedLabItem.
+              Specification of SelfPacedLabProvisionItem.
             type: object
             required:
             - assignedLifespan
@@ -96,7 +96,7 @@ spec:
                 type: string
                 pattern: ^[0-9]+[dhms]$
           status:
-            description: Status of SelfPacedLabItem
+            description: Status of SelfPacedLabProvisionItem
             type: object
             x-kubernetes-preserve-unknown-fields: true
             properties:

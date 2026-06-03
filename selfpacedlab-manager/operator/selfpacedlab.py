@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 import resourceclaim
-import selfpacedlabitem
+import selfpacedlabprovisionitem
 from babylon import Babylon
 from cachedkopfobject import CachedKopfObject
 
@@ -65,8 +65,8 @@ class SelfPacedLab(CachedKopfObject):
         return self.labels.get(Babylon.white_glove_label)
 
     @property
-    def selfpacedlab_item_names(self) -> list[str]:
-        return list(self.status.get('selfPacedLabItems', {}).keys())
+    def selfpacedlab_provision_item_names(self) -> list[str]:
+        return list(self.status.get('selfPacedLabProvisionItems', {}).keys())
 
     @property
     def selfpacedlab_id(self):
@@ -86,8 +86,8 @@ class SelfPacedLab(CachedKopfObject):
                 return f"{parsed.scheme}://{parsed.netloc}"
         return ''
 
-    def get_selfpacedlab_items(self):
-        return selfpacedlabitem.SelfPacedLabItem.get_for_selfpacedlab(self)
+    def get_selfpacedlab_provision_items(self):
+        return selfpacedlabprovisionitem.SelfPacedLabProvisionItem.get_for_selfpacedlab(self)
 
     async def delete_all_resource_claims(self, logger):
         logger.info(f"Deleting all ResourceClaims for {self}")
@@ -95,9 +95,9 @@ class SelfPacedLab(CachedKopfObject):
             logger.info(f"Deleting {resource_claim_obj}")
             await resource_claim_obj.delete()
 
-    async def delete_all_selfpacedlab_items(self, logger):
-        logger.info(f"Deleting all SelfPacedLabItems for {self}")
-        for item in self.get_selfpacedlab_items():
+    async def delete_all_selfpacedlab_provision_items(self, logger):
+        logger.info(f"Deleting all SelfPacedLabProvisionItems for {self}")
+        for item in self.get_selfpacedlab_provision_items():
             logger.info(f"Deleting {item}")
             await item.delete()
 
@@ -109,7 +109,7 @@ class SelfPacedLab(CachedKopfObject):
     async def handle_delete(self, logger):
         async with self.lock:
             logger.info(f"Handling delete for {self}")
-            await self.delete_all_selfpacedlab_items(logger=logger)
+            await self.delete_all_selfpacedlab_provision_items(logger=logger)
             await self.delete_all_resource_claims(logger=logger)
 
     async def handle_resume(self, logger):
@@ -178,12 +178,12 @@ class SelfPacedLab(CachedKopfObject):
         )
         logger.info("Added %s to %s status", resource_claim_obj, self)
 
-    async def add_selfpacedlab_item_to_status(self, item, logger):
-        if item.name in self.status.get('selfPacedLabItems', {}):
+    async def add_selfpacedlab_provision_item_to_status(self, item, logger):
+        if item.name in self.status.get('selfPacedLabProvisionItems', {}):
             return
         await self.merge_patch_status(
             {
-                "selfPacedLabItems": {
+                "selfPacedLabProvisionItems": {
                     item.name: {"uid": item.uid}
                 }
             }
@@ -196,11 +196,11 @@ class SelfPacedLab(CachedKopfObject):
         await self.merge_patch_status({"resourceClaims": {resource_claim_obj.name: None}})
         logger.info("Removed %s from %s status", resource_claim_obj, self)
 
-    async def remove_selfpacedlab_item_from_status(self, item, logger):
-        if item.name not in self.status.get('selfPacedLabItems', {}):
+    async def remove_selfpacedlab_provision_item_from_status(self, item, logger):
+        if item.name not in self.status.get('selfPacedLabProvisionItems', {}):
             return
         await self.merge_patch_status(
-            {"selfPacedLabItems": {item.name: None}}
+            {"selfPacedLabProvisionItems": {item.name: None}}
         )
         logger.info("Removed %s from %s status", item, self)
 
@@ -209,7 +209,7 @@ class SelfPacedLab(CachedKopfObject):
         total_provisioning_count = 0
         total_assigned_count = 0
 
-        for item in self.get_selfpacedlab_items():
+        for item in self.get_selfpacedlab_provision_items():
             item_status = item.status or {}
             total_ready_count += item_status.get('readyCount', 0)
             total_provisioning_count += item_status.get('provisioningCount', 0)

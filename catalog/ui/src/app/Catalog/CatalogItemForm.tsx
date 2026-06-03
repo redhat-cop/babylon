@@ -33,7 +33,7 @@ import {
   createServiceRequest,
   CreateServiceRequestParameterValues,
   createSelfPacedLab,
-  createSelfPacedLabItem,
+  createSelfPacedLabProvisionItem,
   createWorkshop,
   createWorkshopProvision,
   fetcher,
@@ -357,7 +357,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           whiteGloved: formState.whiteGloved,
           salesforceItems: formState.salesforceItems,
         });
-        await createSelfPacedLabItem({
+        await createSelfPacedLabProvisionItem({
           catalogItem: catalogItem,
           poolSize: formState.selfPacedLab.poolSize,
           assignedLifespan: formState.selfPacedLab.assignedLifespan,
