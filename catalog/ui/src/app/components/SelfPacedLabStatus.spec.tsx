@@ -31,7 +31,7 @@ describe('SelfPacedLabStatus', () => {
   });
 
   describe('with resourceClaims prop', () => {
-    const assignmentLabel = 'babylon.gpte.redhat.com/selfpacedlab-assignment';
+    const assignmentLabel = 'babylon.gpte.redhat.com/assigned';
 
     const makeResourceClaim = (overrides: {
       labels?: Record<string, string>;

@@ -493,8 +493,8 @@ const SelfPacedLabItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {resourceClaims ? (
-                      <SelfPacedLabStatus resourceClaims={resourceClaims} />
+                    {selfPacedLab.status?.poolCount ? (
+                      <SelfPacedLabStatus poolCount={selfPacedLab.status.poolCount} />
                     ) : (
                       <Spinner size="md" />
                     )}

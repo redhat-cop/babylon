@@ -9,7 +9,7 @@ const SelfPacedLabStatus: React.FC<{
   resourceClaims?: ResourceClaim[];
   poolCount?: { ready?: number; assigned?: number; provisioning?: number };
   assignmentLabel?: string;
-}> = ({ resourceClaims, poolCount, assignmentLabel = `${BABYLON_DOMAIN}/selfpacedlab-assignment` }) => {
+}> = ({ resourceClaims, poolCount, assignmentLabel = `${BABYLON_DOMAIN}/assigned` }) => {
   const status = useMemo(() => {
     if (poolCount) {
       return {
