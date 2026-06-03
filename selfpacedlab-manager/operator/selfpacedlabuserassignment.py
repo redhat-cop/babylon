@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 
-import kopf
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 from babylon import Babylon
@@ -8,7 +7,6 @@ from cachedkopfobject import CachedKopfObject
 from labuserinterface import LabUserInterface
 
 import resourceclaim as resourceclaim_import
-import selfpacedlab as selfpacedlab_import
 
 
 class SelfPacedLabUserAssignment(CachedKopfObject):
@@ -77,7 +75,7 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
         selfpacedlab_name,
         selfpacedlab_id,
         assignment=None,
-        data={},
+        data=None,
         lab_user_interface=None,
         messages=None,
         user_name=None,
@@ -95,7 +93,7 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
                 "ownerReferences": [resource_claim.as_owner_ref()],
             },
             "spec": {
-                "data": data,
+                "data": data if data is not None else {},
                 "resourceClaimName": resource_claim.name,
                 "selfPacedLabName": selfpacedlab_name,
             },
@@ -163,49 +161,18 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
     def selfpacedlab_name(self):
         return self.spec.get('selfPacedLabName')
 
-    async def copy_to_selfpacedlab(self):
-        try:
-            selfpacedlab = await self.get_selfpacedlab()
-        except k8sApiException as exception:
-            if exception.status == 404:
-                raise kopf.TemporaryError(
-                    f"SelfPacedLab {self.selfpacedlab_name} was not found.", delay=60
-                )
-            raise
-
-        async with selfpacedlab.lock:
-            await selfpacedlab.merge_patch_status(
-                {
-                    "userAssignments": {
-                        self.name: {
-                            "assignment": self.assignment,
-                            "resourceClaimName": self.resource_claim_name,
-                            "userName": self.user_name,
-                        }
-                    }
-                }
-            )
-
-    async def get_selfpacedlab(self):
-        return await selfpacedlab_import.SelfPacedLab.get(
-            name=self.selfpacedlab_name, namespace=self.namespace
-        )
-
     async def handle_create(self, logger):
         async with self.lock:
             logger.info(f"Handling create for {self}")
-            await self.copy_to_selfpacedlab()
             await self.sync_resource_claim_assigned(logger=logger)
 
     async def handle_delete(self, logger):
         async with self.lock:
             logger.info(f"Handling delete for {self}")
-            await self.remove_from_selfpacedlab()
 
     async def handle_update(self, logger):
         async with self.lock:
             logger.info(f"Handling update for {self}")
-            await self.copy_to_selfpacedlab()
             await self.sync_resource_claim_assigned(logger=logger)
 
     async def sync_resource_claim_assigned(self, logger):
@@ -237,13 +204,3 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
             }
         })
 
-    async def remove_from_selfpacedlab(self):
-        try:
-            selfpacedlab = await self.get_selfpacedlab()
-            async with selfpacedlab.lock:
-                await selfpacedlab.merge_patch_status(
-                    {"userAssignments": {self.name: None}}
-                )
-        except k8sApiException as exception:
-            if exception.status != 404:
-                raise
