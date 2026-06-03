@@ -309,6 +309,8 @@ class SelfPacedLabProvisionItem(CachedKopfObject):
         async with self.lock:
             await self.manage_resource_claims(logger=logger, lab=lab)
 
+        await lab.update_status()
+
     async def manage_resource_claims(self, logger, lab):
         logger.debug(f"Manage ResourceClaims for {self}")
 

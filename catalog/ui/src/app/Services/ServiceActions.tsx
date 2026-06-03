@@ -8,6 +8,7 @@ import {
   checkResourceClaimCanStart,
   checkResourceClaimCanStop,
   isResourceClaimPartOfWorkshop,
+  isResourceClaimPartOfSelfPacedLab,
 } from '@app/util';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
@@ -35,11 +36,12 @@ const ServiceActions: React.FC<{
   const actionDropdownItems = [];
   const { ratings_enabled } = useInterfaceConfig();
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const isManagedInstance = isPartOfWorkshop || isResourceClaimPartOfSelfPacedLab(resourceClaim);
   const canStart = resourceClaim ? checkResourceClaimCanStart(resourceClaim) : false;
   const canStop = resourceClaim ? checkResourceClaimCanStop(resourceClaim) : false;
   const canRate = resourceClaim && ratings_enabled ? checkResourceClaimCanRate(resourceClaim) : false;
 
-  if (!isPartOfWorkshop && actionHandlers.runtime) {
+  if (!isManagedInstance && actionHandlers.runtime) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="runtime"
@@ -52,7 +54,7 @@ const ServiceActions: React.FC<{
       />,
     );
   }
-  if (!isPartOfWorkshop && actionHandlers.lifespan) {
+  if (!isManagedInstance && actionHandlers.lifespan) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="lifespan"
@@ -83,7 +85,7 @@ const ServiceActions: React.FC<{
       />,
     );
   }
-  if (!isPartOfWorkshop && actionHandlers.start) {
+  if (!isManagedInstance && actionHandlers.start) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="start"
@@ -94,7 +96,7 @@ const ServiceActions: React.FC<{
       />,
     );
   }
-  if (!isPartOfWorkshop && actionHandlers.stop) {
+  if (!isManagedInstance && actionHandlers.stop) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="stop"
@@ -116,7 +118,7 @@ const ServiceActions: React.FC<{
       <ActionDropdownItem key="reorder" label="Reorder" onSelect={actionHandlers.reorder} />,
     );
   }
-  if (!isPartOfWorkshop && actionHandlers.rate) {
+  if (!isManagedInstance && actionHandlers.rate) {
     actionDropdownItems.push(
       <ActionDropdownItem
         key="rate"

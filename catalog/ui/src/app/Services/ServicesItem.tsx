@@ -80,6 +80,7 @@ import {
   displayName,
   renderContent,
   isResourceClaimPartOfWorkshop,
+  isResourceClaimPartOfSelfPacedLab,
   getStageFromK8sObject,
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
@@ -390,13 +391,15 @@ const ServicesItemComponent: React.FC<{
   }>({ action: null, submitDisabled: false });
 
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const isPartOfSelfPacedLab = isResourceClaimPartOfSelfPacedLab(resourceClaim);
+  const isManagedInstance = isPartOfWorkshop || isPartOfSelfPacedLab;
 
   const {
     data: serviceAccessConfigResponse,
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isPartOfWorkshop && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
+    !isManagedInstance && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
@@ -598,7 +601,8 @@ const ServicesItemComponent: React.FC<{
   }
   if (isPartOfWorkshop) {
     actionHandlers.manageWorkshop = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
-  } else {
+  }
+  if (!isManagedInstance) {
     actionHandlers.rate = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
   }
   if (canReorderResourceClaim(resourceClaim, catalogItem, groups, isAdmin)) {
@@ -912,6 +916,14 @@ const ServicesItemComponent: React.FC<{
                   Workshop UI
                 </Label>
               ) : null}
+              {isPartOfSelfPacedLab ? (
+                <Label
+                  key="service-item__selfpacedlab"
+                  tooltipDescription={<div>This service is part of a self-paced lab</div>}
+                >
+                  Self-Paced Lab
+                </Label>
+              ) : null}
               {serviceAlias ? (
                 <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
                   {serviceAlias}
@@ -1072,11 +1084,11 @@ const ServicesItemComponent: React.FC<{
                       <AutoStopDestroy
                         type="auto-stop"
                         onClick={() => {
-                          if (!isLocked && !isPartOfWorkshop) {
+                          if (!isLocked && !isManagedInstance) {
                             showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
                           }
                         }}
-                        isDisabled={isLocked || isPartOfWorkshop}
+                        isDisabled={isLocked || isManagedInstance}
                         resourceClaim={resourceClaim}
                         className="services-item__schedule-btn"
                         time={autoStopTime}
@@ -1085,7 +1097,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+                  {!externalPlatformUrl && !isManagedInstance && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1182,7 +1194,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {!isPartOfWorkshop && sfdc_enabled ? (
+                  {!isManagedInstance && sfdc_enabled ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1199,7 +1211,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isPartOfWorkshop && canManageCollaborators ? (
+                  {!isManagedInstance && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Share service{' '}
@@ -1244,7 +1256,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isPartOfWorkshop && isAdmin ? (
+                  {!isManagedInstance && isAdmin ? (
                     <>
                       <DescriptionListGroup className="services-item__admin-section">
                         <DescriptionListTerm>Admin Settings</DescriptionListTerm>
@@ -1448,7 +1460,7 @@ const ServicesItemComponent: React.FC<{
                               isAdmin={isAdmin}
                               groups={groups}
                               externalPlatformUrl={externalPlatformUrl}
-                              isPartOfWorkshop={isPartOfWorkshop}
+                              isPartOfWorkshop={isManagedInstance}
                               startDate={startDate}
                               startTimestamp={startTimestamp}
                               stopDate={stopDate}
