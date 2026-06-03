@@ -13,6 +13,7 @@ import {
   displayName,
   getStageFromK8sObject,
   isResourceClaimPartOfWorkshop,
+  isResourceClaimPartOfSelfPacedLab,
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
@@ -48,6 +49,8 @@ const renderResourceClaimRow = ({
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const isPartOfSelfPacedLab = isResourceClaimPartOfSelfPacedLab(resourceClaim);
+  const isManagedInstance = isPartOfWorkshop || isPartOfSelfPacedLab;
   const serviceAlias = resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '';
   // Find lab user interface information either in the resource claim or inside resources
   // associated with the provisioned service.
@@ -146,6 +149,11 @@ const renderResourceClaimRow = ({
           Workshop UI
         </Label>
       ) : null}
+      {isPartOfSelfPacedLab ? (
+        <Label key="selfpacedlab__ui" tooltipDescription={<div>This service is part of a self-paced lab</div>}>
+          Self-Paced Lab
+        </Label>
+      ) : null}
       {serviceAlias ? (
         <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
           {serviceAlias}
@@ -205,7 +213,7 @@ const renderResourceClaimRow = ({
         gap: 'var(--pf-t--global--spacer--sm)',
       }}
     >
-      {!isPartOfWorkshop ? (
+      {!isManagedInstance ? (
         <ButtonCircleIcon
           isDisabled={isLocked || !checkResourceClaimCanStart(resourceClaim)}
           onClick={actionHandlers.start}
@@ -214,7 +222,7 @@ const renderResourceClaimRow = ({
           key="actions__start"
         />
       ) : null}
-      {!isPartOfWorkshop ? (
+      {!isManagedInstance ? (
         <ButtonCircleIcon
           isDisabled={isLocked || !checkResourceClaimCanStop(resourceClaim)}
           onClick={actionHandlers.stop}
