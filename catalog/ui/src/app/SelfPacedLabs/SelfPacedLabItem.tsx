@@ -33,6 +33,7 @@ import {
   MenuToggleElement,
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList } from '@patternfly/react-core';
+
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
   apiPaths,
@@ -77,6 +78,7 @@ import LoadingIcon from '@app/components/LoadingIcon';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import PatientNumberInput from '@app/components/PatientNumberInput';
+import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import SelfPacedLabStatus from '@app/components/SelfPacedLabStatus';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
@@ -105,6 +107,9 @@ const SelfPacedLabItemComponent: React.FC<{
   const [scheduleAction, setScheduleAction] = useState<ModalAction>('scheduleDelete');
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
+  const [modalDeleteRC, openModalDeleteRC] = useModal();
+  const [deleteTargetRCs, setDeleteTargetRCs] = useState<ResourceClaim[]>([]);
+  const [selectedUids, setSelectedUids] = useState<string[]>([]);
 
   const { data: selfPacedLab, mutate: mutateSelfPacedLab } = useSWR<SelfPacedLab>(
     apiPaths.SELF_PACED_LAB({ namespace: serviceNamespaceName, selfPacedLabName }),
@@ -190,6 +195,19 @@ const SelfPacedLabItemComponent: React.FC<{
   const userRegistrationValue = selfPacedLab?.spec.openRegistration === false ? 'pre' : 'open';
   const autoDestroyTime = selfPacedLab?.spec.lifespan?.end ? Date.parse(selfPacedLab.spec.lifespan.end) : null;
   const autoStartTime = selfPacedLab?.spec.lifespan?.start ? Date.parse(selfPacedLab.spec.lifespan.start) : null;
+
+  const selectedResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((rc) => selectedUids.includes(rc.metadata.uid)),
+    [resourceClaims, selectedUids],
+  );
+
+  async function onInstanceDeleteConfirm() {
+    for (const rc of deleteTargetRCs) {
+      await deleteResourceClaim(rc);
+    }
+    setSelectedUids([]);
+    mutateRC();
+  }
 
   // Admin settings
   const opsEffortAnnotation = selfPacedLab?.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
@@ -399,6 +417,9 @@ const SelfPacedLabItemComponent: React.FC<{
           isAdmin={isAdmin}
         />
       )}
+      <Modal ref={modalDeleteRC} passModifiers={true} onConfirm={() => null}>
+        <ResourceClaimDeleteModal onConfirm={onInstanceDeleteConfirm} resourceClaims={deleteTargetRCs} />
+      </Modal>
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="selfpacedlab-item__topbar">
           <ProjectSelector
@@ -442,6 +463,13 @@ const SelfPacedLabItemComponent: React.FC<{
                 isLocked={isLocked}
                 actionHandlers={{
                   delete: () => openModalDelete(),
+                  deleteSelected:
+                    selectedResourceClaims.length > 0
+                      ? () => {
+                          setDeleteTargetRCs(selectedResourceClaims);
+                          openModalDeleteRC();
+                        }
+                      : undefined,
                 }}
               />
             </Bullseye>
@@ -888,48 +916,69 @@ const SelfPacedLabItemComponent: React.FC<{
             {activeTab === 'instances' ? (
               resourceClaims && resourceClaims.length > 0 ? (
                 <SelectableTable
-                  columns={
-                    isAdmin
-                      ? ['Name', 'Status', 'Assignment', 'Created At', 'Actions']
-                      : ['Name', 'Status', 'Assignment', 'Created At']
-                  }
-                  onSelectAll={() => {}}
-                  rows={resourceClaims.map((rc) => {
-                    const userAssignments = userAssignmentsList?.items || [];
-                    return {
-                      cells: [
-                        <>
-                          <Link key="link" to={`/services/${rc.metadata.namespace}/${rc.metadata.name}`}>
-                            {displayName(rc)}
-                          </Link>
-                          {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
-                        </>,
-                        <ServiceStatus key="status" resourceClaim={rc} />,
-                        <>
-                          {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
-                            ? userAssignments
-                                .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
-                                .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email || '-'}</p>)
-                            : '-'}
-                        </>,
-                        <>
-                          <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
-                          <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)
-                        </>,
-                        ...(isAdmin
-                          ? [
-                              <ButtonCircleIcon
-                                key="actions"
-                                onClick={() => deleteResourceClaim(rc).then(() => mutateRC())}
-                                description="Delete"
-                                icon={TrashIcon}
-                              />,
-                            ]
-                          : []),
-                      ],
-                    };
-                  })}
-                />
+                    columns={
+                      isAdmin
+                        ? ['Name', 'Status', 'Assignment', 'Created At', 'Actions']
+                        : ['Name', 'Status', 'Assignment', 'Created At']
+                    }
+                    onSelectAll={(isSelected) => {
+                      if (isSelected) {
+                        setSelectedUids(resourceClaims.map((rc) => rc.metadata.uid));
+                      } else {
+                        setSelectedUids([]);
+                      }
+                    }}
+                    rows={resourceClaims.map((rc) => {
+                      const userAssignments = userAssignmentsList?.items || [];
+                      return {
+                        cells: [
+                          <>
+                            <Link key="link" to={`/services/${rc.metadata.namespace}/${rc.metadata.name}`}>
+                              {displayName(rc)}
+                            </Link>
+                            {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
+                          </>,
+                          <ServiceStatus key="status" resourceClaim={rc} />,
+                          <>
+                            {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                              ? userAssignments
+                                  .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                                  .map((uA) => (
+                                    <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>
+                                      {uA.spec.assignment?.email || '-'}
+                                    </p>
+                                  ))
+                              : '-'}
+                          </>,
+                          <>
+                            <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
+                            <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)
+                          </>,
+                          ...(isAdmin
+                            ? [
+                                <ButtonCircleIcon
+                                  key="actions"
+                                  onClick={() => {
+                                    setDeleteTargetRCs([rc]);
+                                    openModalDeleteRC();
+                                  }}
+                                  description="Delete"
+                                  icon={TrashIcon}
+                                />,
+                              ]
+                            : []),
+                        ],
+                        onSelect: (isSelected: boolean) =>
+                          setSelectedUids((uids) => {
+                            if (isSelected) {
+                              return uids.includes(rc.metadata.uid) ? uids : [...uids, rc.metadata.uid];
+                            }
+                            return uids.filter((uid) => uid !== rc.metadata.uid);
+                          }),
+                        selected: selectedUids.includes(rc.metadata.uid),
+                      };
+                    })}
+                  />
               ) : resourceClaims ? (
                 <EmptyState headingLevel="h4" titleText="No instances" variant="sm">
                   <EmptyStateBody>No pool instances found for this self-paced lab.</EmptyStateBody>

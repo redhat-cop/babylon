@@ -19,6 +19,7 @@ const ServiceActions: React.FC<{
     start?: () => void;
     stop?: () => void;
     manageWorkshop?: () => void;
+    deleteSelected?: () => void;
     rate?: () => void;
     reorder?: () => void;
   };
@@ -70,6 +71,15 @@ const ServiceActions: React.FC<{
         isDisabled={isLocked || !canManageCollaborators}
         onSelect={actionHandlers.delete}
         icon={isLocked ? <LockedIcon /> : null}
+      />,
+    );
+  }
+  if (actionHandlers.deleteSelected) {
+    actionDropdownItems.push(
+      <ActionDropdownItem
+        key="deleteSelected"
+        label="Delete Selected"
+        onSelect={actionHandlers.deleteSelected}
       />,
     );
   }
