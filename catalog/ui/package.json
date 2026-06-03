@@ -85,7 +85,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
-    "@lexical/code": "^0.44.0",
+    "@lexical/code": "^0.45.0",
     "@lexical/html": "^0.44.0",
     "@lexical/link": "^0.44.0",
     "@lexical/list": "^0.44.0",
