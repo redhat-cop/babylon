@@ -143,6 +143,9 @@ class SelfPacedLabProvisionItem(CachedKopfObject):
                 "ownerReferences": [self.as_owner_ref()],
             },
             "spec": {
+                "lifespan": {
+                    "end": (datetime.now(timezone.utc) + self.unassigned_lifespan_delta).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                },
                 "provider": {
                     "name": catalog_item_obj.name,
                     "parameterValues": {
@@ -310,36 +313,16 @@ class SelfPacedLabProvisionItem(CachedKopfObject):
         logger.debug(f"Manage ResourceClaims for {self}")
 
         now = datetime.now(timezone.utc)
-        unassigned_lifespan_delta = self.unassigned_lifespan_delta
 
         unclaimed_ready_count = 0
         provisioning_count = 0
         assigned_count = 0
         failed_count = 0
 
-        assigned_lifespan_delta = self.assigned_lifespan_delta
-
         async for resource_claim_obj in self.list_resource_claims():
             is_assigned = resource_claim_obj.labels.get(Babylon.selfpacedlab_assigned_label) == 'true'
 
             if is_assigned:
-                # Enforce assigned (per-user session) lifespan
-                if assigned_lifespan_delta:
-                    assigned_at_str = resource_claim_obj.annotations.get(
-                        Babylon.selfpacedlab_assigned_at_annotation
-                    )
-                    if assigned_at_str:
-                        assigned_at = datetime.strptime(
-                            assigned_at_str, '%Y-%m-%dT%H:%M:%SZ'
-                        ).replace(tzinfo=timezone.utc)
-                        if assigned_at + assigned_lifespan_delta < now:
-                            logger.info(
-                                f"Deleting {resource_claim_obj} - assigned lifespan expired "
-                                f"(assigned at {assigned_at_str}, TTL {self.assigned_lifespan})"
-                            )
-                            await resource_claim_obj.delete()
-                            await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
-                            continue
                 assigned_count += 1
                 continue
 
@@ -352,16 +335,6 @@ class SelfPacedLabProvisionItem(CachedKopfObject):
 
             if resource_claim_obj.is_failed:
                 failed_count += 1
-                continue
-
-            # Check unassigned lifespan TTL
-            if resource_claim_obj.creation_datetime + unassigned_lifespan_delta < now:
-                logger.info(
-                    f"Recycling {resource_claim_obj} - unassigned lifespan expired "
-                    f"(created {resource_claim_obj.creation_timestamp}, TTL {self.unassigned_lifespan})"
-                )
-                await resource_claim_obj.delete()
-                await lab.remove_resource_claim_from_status(resource_claim_obj, logger=logger)
                 continue
 
             unclaimed_ready_count += 1

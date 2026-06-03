@@ -7,6 +7,7 @@ from cachedkopfobject import CachedKopfObject
 from labuserinterface import LabUserInterface
 
 import resourceclaim as resourceclaim_import
+import selfpacedlabprovisionitem as selfpacedlabprovisionitem_import
 
 
 class SelfPacedLabUserAssignment(CachedKopfObject):
@@ -191,16 +192,31 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
         if rc.labels.get(Babylon.selfpacedlab_assigned_label) == 'true':
             return
 
-        logger.info(f"Marking {rc} as assigned for {self}")
-        await rc.merge_patch({
+        now = datetime.now(timezone.utc)
+        patch = {
             "metadata": {
                 "labels": {
                     Babylon.selfpacedlab_assigned_label: "true",
                 },
                 "annotations": {
                     Babylon.selfpacedlab_assigned_at_annotation:
-                        datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 },
             }
-        })
+        }
+
+        provision_item_name = rc.labels.get(Babylon.selfpacedlab_provision_item_label)
+        if provision_item_name:
+            provision_item = await selfpacedlabprovisionitem_import.SelfPacedLabProvisionItem.get(
+                name=provision_item_name, namespace=self.namespace
+            )
+            if provision_item and provision_item.assigned_lifespan_delta:
+                patch["spec"] = {
+                    "lifespan": {
+                        "end": (now + provision_item.assigned_lifespan_delta).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    }
+                }
+
+        logger.info(f"Marking {rc} as assigned for {self}")
+        await rc.merge_patch(patch)
 
