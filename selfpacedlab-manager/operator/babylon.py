@@ -33,7 +33,7 @@ class Babylon():
     selfpacedlab_label = f"{babylon_domain}/selfpacedlab"
     selfpacedlab_id_label = f"{babylon_domain}/selfpacedlab-id"
     selfpacedlab_uid_label = f"{babylon_domain}/selfpacedlab-uid"
-    selfpacedlab_item_label = f"{babylon_domain}/selfpacedlab-item"
+    selfpacedlab_provision_item_label = f"{babylon_domain}/selfpacedlab-provision-item"
     selfpacedlab_assigned_label = f"{babylon_domain}/assigned"
     selfpacedlab_assigned_at_annotation = f"{babylon_domain}/assigned-at"
     service_access_annotation = f"{babylon_domain}/service-access"

@@ -29,11 +29,11 @@ def parse_duration(duration_str):
         return timedelta(seconds=value)
 
 
-class SelfPacedLabItem(CachedKopfObject):
+class SelfPacedLabProvisionItem(CachedKopfObject):
     api_group = Babylon.babylon_domain
     api_version = Babylon.babylon_api_version
-    kind = 'SelfPacedLabItem'
-    plural = 'selfpacedlabitems'
+    kind = 'SelfPacedLabProvisionItem'
+    plural = 'selfpacedlabprovisionitems'
 
     cache = {}
 
@@ -137,7 +137,7 @@ class SelfPacedLabItem(CachedKopfObject):
                     Babylon.selfpacedlab_label: lab.name,
                     Babylon.selfpacedlab_id_label: lab.selfpacedlab_id,
                     Babylon.selfpacedlab_uid_label: lab.uid,
-                    Babylon.selfpacedlab_item_label: self.name,
+                    Babylon.selfpacedlab_provision_item_label: self.name,
                 },
                 "namespace": f"{self.namespace}",
                 "ownerReferences": [self.as_owner_ref()],
@@ -255,7 +255,7 @@ class SelfPacedLabItem(CachedKopfObject):
     async def handle_delete(self, logger):
         try:
             lab = await self.get_selfpacedlab()
-            await lab.remove_selfpacedlab_item_from_status(self, logger=logger)
+            await lab.remove_selfpacedlab_provision_item_from_status(self, logger=logger)
         except k8sApiException as exception:
             if exception.status != 404:
                 logger.exception(
@@ -280,7 +280,7 @@ class SelfPacedLabItem(CachedKopfObject):
     async def list_resource_claims(self):
         async for resource_claim_obj in resourceclaim.ResourceClaim.list(
             label_selector=f"{Babylon.selfpacedlab_label}={self.selfpacedlab_name},"
-            f"{Babylon.selfpacedlab_item_label}={self.name}",
+            f"{Babylon.selfpacedlab_provision_item_label}={self.name}",
             namespace=self.namespace,
         ):
             if resource_claim_obj.deletion_timestamp is not None:
@@ -297,7 +297,7 @@ class SelfPacedLabItem(CachedKopfObject):
                 )
             raise
 
-        await lab.add_selfpacedlab_item_to_status(self, logger=logger)
+        await lab.add_selfpacedlab_provision_item_to_status(self, logger=logger)
 
         if not lab.selfpacedlab_id:
             logger.info(f"Waiting for selfpacedlab id assignment for {lab}")

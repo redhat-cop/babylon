@@ -656,8 +656,8 @@ export interface SelfPacedLabSpec {
   openRegistration?: boolean;
 }
 
-export interface SelfPacedLabItem extends K8sObject {
-  spec: SelfPacedLabItemSpec;
+export interface SelfPacedLabProvisionItem extends K8sObject {
+  spec: SelfPacedLabProvisionItemSpec;
   status?: {
     readyCount?: number;
     provisioningCount?: number;
@@ -666,7 +666,7 @@ export interface SelfPacedLabItem extends K8sObject {
   };
 }
 
-export interface SelfPacedLabItemSpec {
+export interface SelfPacedLabProvisionItemSpec {
   assignedLifespan: string;
   catalogItem: {
     name: string;

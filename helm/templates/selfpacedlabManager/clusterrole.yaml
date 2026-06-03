@@ -57,8 +57,10 @@ rules:
   resources:
   - selfpacedlabs
   - selfpacedlabs/status
-  - selfpacedlabitems
-  - selfpacedlabitems/status
+  - selfpacedlabprovisionitems
+  - selfpacedlabprovisionitems/status
+  - selfpacedlabuserassignments
+  - selfpacedlabuserassignments/status
   verbs:
   - create
   - delete

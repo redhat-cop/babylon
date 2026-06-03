@@ -43,10 +43,10 @@ import {
   fetcherItemsInAllPages,
   patchResourceClaim,
   patchSelfPacedLab,
-  patchSelfPacedLabItem,
+  patchSelfPacedLabProvisionItem,
   SERVICES_KEY,
 } from '@app/api';
-import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabItem as SelfPacedLabItemType } from '@app/types';
+import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType, SelfPacedLabUserAssignmentList } from '@app/types';
 import {
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
@@ -128,16 +128,16 @@ const SelfPacedLabItemComponent: React.FC<{
     fetcher,
   );
 
-  const { data: selfPacedLabItems, mutate: mutateSelfPacedLabItems } = useSWR<SelfPacedLabItemType[]>(
+  const { data: selfPacedLabProvisionItems, mutate: mutateSelfPacedLabProvisionItems } = useSWR<SelfPacedLabProvisionItemType[]>(
     selfPacedLab
-      ? apiPaths.SELF_PACED_LAB_ITEMS({
+      ? apiPaths.SELF_PACED_LAB_PROVISION_ITEMS({
           namespace: serviceNamespaceName,
           selfPacedLabName: selfPacedLab.metadata.name,
         })
       : null,
     () =>
       fetcherItemsInAllPages((continueId) =>
-        apiPaths.SELF_PACED_LAB_ITEMS({
+        apiPaths.SELF_PACED_LAB_PROVISION_ITEMS({
           namespace: serviceNamespaceName,
           selfPacedLabName: selfPacedLab.metadata.name,
           limit: FETCH_BATCH_LIMIT,
@@ -170,6 +170,19 @@ const SelfPacedLabItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
+    },
+  );
+
+  const { data: userAssignmentsList } = useSWR<SelfPacedLabUserAssignmentList>(
+    selfPacedLab
+      ? apiPaths.SELF_PACED_LAB_USER_ASSIGNMENTS({
+          namespace: serviceNamespaceName,
+          selfPacedLabName: selfPacedLab.metadata.name,
+        })
+      : null,
+    fetcher,
+    {
+      refreshInterval: 8000,
     },
   );
 
@@ -344,11 +357,11 @@ const SelfPacedLabItemComponent: React.FC<{
           currentDate={scheduleAction === 'scheduleDelete' ? autoDestroyTime : autoStartTime}
         />
       </Modal>
-      {selfPacedLabItems && selfPacedLabItems.length > 0 && (
+      {selfPacedLabProvisionItems && selfPacedLabProvisionItems.length > 0 && (
         <SalesforceItemsEditModal
           isOpen={modalEditSalesforce}
           onClose={() => setModalEditSalesforce(false)}
-          items={JSON.parse(selfPacedLabItems[0].spec.parameters?.['salesforce_items'] || '[]')}
+          items={JSON.parse(selfPacedLabProvisionItems[0].spec.parameters?.['salesforce_items'] || '[]')}
           onSave={async (next) => {
             await patchSelfPacedLab({
               name: selfPacedLab.metadata.name,
@@ -362,8 +375,8 @@ const SelfPacedLabItemComponent: React.FC<{
                 },
               },
             });
-            for (const item of selfPacedLabItems) {
-              await patchSelfPacedLabItem({
+            for (const item of selfPacedLabProvisionItems) {
+              await patchSelfPacedLabProvisionItem({
                 name: item.metadata.name,
                 namespace: item.metadata.namespace,
                 patch: {
@@ -599,12 +612,12 @@ const SelfPacedLabItemComponent: React.FC<{
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
-                {selfPacedLabItems && selfPacedLabItems.length > 0 && sfdc_enabled ? (
+                {selfPacedLabProvisionItems && selfPacedLabProvisionItems.length > 0 && sfdc_enabled ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                     <DescriptionListDescription>
                       <SalesforceItemsList
-                        items={JSON.parse(selfPacedLabItems[0].spec.parameters?.['salesforce_items'] || '[]')}
+                        items={JSON.parse(selfPacedLabProvisionItems[0].spec.parameters?.['salesforce_items'] || '[]')}
                       />
                       <Button
                         variant="link"
@@ -706,8 +719,8 @@ const SelfPacedLabItemComponent: React.FC<{
           </Tab>
           <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
             {activeTab === 'provision' ? (
-              selfPacedLabItems && selfPacedLabItems.length > 0 ? (
-                selfPacedLabItems.map((item) => (
+              selfPacedLabProvisionItems && selfPacedLabProvisionItems.length > 0 ? (
+                selfPacedLabProvisionItems.map((item) => (
                   <DescriptionList isHorizontal key={item.metadata.uid}>
                     <DescriptionListGroup>
                       <DescriptionListTerm>Name</DescriptionListTerm>
@@ -749,11 +762,11 @@ const SelfPacedLabItemComponent: React.FC<{
                           max={200}
                           adminModifier={true}
                           onChange={(value: number) =>
-                            patchSelfPacedLabItem({
+                            patchSelfPacedLabProvisionItem({
                               name: item.metadata.name,
                               namespace: item.metadata.namespace,
                               patch: { spec: { poolSize: value } },
-                            }).then(() => mutateSelfPacedLabItems())
+                            }).then(() => mutateSelfPacedLabProvisionItems())
                           }
                           value={item.spec.poolSize}
                           style={{ paddingRight: 'var(--pf-t--global--spacer--md)' }}
@@ -775,11 +788,11 @@ const SelfPacedLabItemComponent: React.FC<{
                               min={1}
                               max={30}
                               onChange={(value: number) =>
-                                patchSelfPacedLabItem({
+                                patchSelfPacedLabProvisionItem({
                                   name: item.metadata.name,
                                   namespace: item.metadata.namespace,
                                   patch: { spec: { concurrency: value } },
-                                }).then(() => mutateSelfPacedLabItems())
+                                }).then(() => mutateSelfPacedLabProvisionItems())
                               }
                               value={item.spec.concurrency}
                               style={{ paddingRight: 'var(--pf-t--global--spacer--md)' }}
@@ -794,11 +807,11 @@ const SelfPacedLabItemComponent: React.FC<{
                               min={10}
                               max={999}
                               onChange={(value: number) =>
-                                patchSelfPacedLabItem({
+                                patchSelfPacedLabProvisionItem({
                                   name: item.metadata.name,
                                   namespace: item.metadata.namespace,
                                   patch: { spec: { startDelay: value } },
-                                }).then(() => mutateSelfPacedLabItems())
+                                }).then(() => mutateSelfPacedLabProvisionItems())
                               }
                               value={item.spec.startDelay}
                               style={{ paddingRight: 'var(--pf-t--global--spacer--md)' }}
@@ -822,11 +835,11 @@ const SelfPacedLabItemComponent: React.FC<{
                         <EditableText
                           aria-label="Edit Assigned Lifespan"
                           onChange={(val: string) =>
-                            patchSelfPacedLabItem({
+                            patchSelfPacedLabProvisionItem({
                               name: item.metadata.name,
                               namespace: item.metadata.namespace,
                               patch: { spec: { assignedLifespan: val } },
-                            }).then(() => mutateSelfPacedLabItems())
+                            }).then(() => mutateSelfPacedLabProvisionItems())
                           }
                           placeholder="e.g. 4h"
                           value={item.spec.assignedLifespan}
@@ -847,11 +860,11 @@ const SelfPacedLabItemComponent: React.FC<{
                         <EditableText
                           aria-label="Edit Unassigned Lifespan"
                           onChange={(val: string) =>
-                            patchSelfPacedLabItem({
+                            patchSelfPacedLabProvisionItem({
                               name: item.metadata.name,
                               namespace: item.metadata.namespace,
                               patch: { spec: { unassignedLifespan: val } },
-                            }).then(() => mutateSelfPacedLabItems())
+                            }).then(() => mutateSelfPacedLabProvisionItems())
                           }
                           placeholder="e.g. 24h"
                           value={item.spec.unassignedLifespan}
@@ -860,10 +873,10 @@ const SelfPacedLabItemComponent: React.FC<{
                     </DescriptionListGroup>
                   </DescriptionList>
                 ))
-              ) : selfPacedLabItems ? (
-                <EmptyState headingLevel="h4" titleText="No SelfPacedLabItems found" variant="sm">
+              ) : selfPacedLabProvisionItems ? (
+                <EmptyState headingLevel="h4" titleText="No SelfPacedLabProvisionItems found" variant="sm">
                   <EmptyStateBody>
-                    This indicates an error has occurred. A SelfPacedLabItem should have been created when this lab was created.
+                    This indicates an error has occurred. A SelfPacedLabProvisionItem should have been created when this lab was created.
                   </EmptyStateBody>
                 </EmptyState>
               ) : (
@@ -882,7 +895,7 @@ const SelfPacedLabItemComponent: React.FC<{
                   }
                   onSelectAll={() => {}}
                   rows={resourceClaims.map((rc) => {
-                    const assignment = rc.metadata.labels?.[`${BABYLON_DOMAIN}/selfpacedlab-assignment`];
+                    const userAssignments = userAssignmentsList?.items || [];
                     return {
                       cells: [
                         <>
@@ -892,7 +905,13 @@ const SelfPacedLabItemComponent: React.FC<{
                           {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
                         </>,
                         <ServiceStatus key="status" resourceClaim={rc} />,
-                        assignment || '-',
+                        <>
+                          {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                            ? userAssignments
+                                .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                                .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email || '-'}</p>)
+                            : '-'}
+                        </>,
                         <>
                           <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
                           <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)

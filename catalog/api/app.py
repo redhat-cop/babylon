@@ -1410,7 +1410,7 @@ async def update_system_status(request):
         logging.error(f"Unexpected error updating system status: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
-@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabitems|selfpacedlabuserassignments}")
+@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabprovisionitems|selfpacedlabuserassignments}")
 @routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
 async def openshift_api_list_by_get_rbac(request):
     """List items with special handling so that users can list items in a
