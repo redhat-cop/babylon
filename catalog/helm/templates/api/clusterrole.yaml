@@ -36,6 +36,30 @@ rules:
 - apiGroups:
   - babylon.gpte.redhat.com
   resources:
+  - selfpacedlabs
+  - selfpacedlabitems
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - selfpacedlabuserassignments
+  verbs:
+  - get
+  - list
+  - update
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - workshopprovisions
+  verbs:
+  - get
+  - list
+  - patch
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
   - workshops
   - multiworkshops
   verbs:

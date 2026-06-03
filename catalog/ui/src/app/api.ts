@@ -965,6 +965,7 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
         ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),

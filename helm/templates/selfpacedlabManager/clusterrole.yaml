@@ -59,6 +59,8 @@ rules:
   - selfpacedlabs/status
   - selfpacedlabitems
   - selfpacedlabitems/status
+  - selfpacedlabuserassignments
+  - selfpacedlabuserassignments/status
   verbs:
   - create
   - delete

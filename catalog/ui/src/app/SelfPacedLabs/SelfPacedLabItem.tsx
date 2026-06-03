@@ -46,7 +46,7 @@ import {
   patchSelfPacedLabItem,
   SERVICES_KEY,
 } from '@app/api';
-import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabItem as SelfPacedLabItemType } from '@app/types';
+import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabItem as SelfPacedLabItemType, SelfPacedLabUserAssignmentList } from '@app/types';
 import {
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
@@ -170,6 +170,19 @@ const SelfPacedLabItemComponent: React.FC<{
     {
       refreshInterval: 8000,
       compare: compareK8sObjectsArr,
+    },
+  );
+
+  const { data: userAssignmentsList } = useSWR<SelfPacedLabUserAssignmentList>(
+    selfPacedLab
+      ? apiPaths.SELF_PACED_LAB_USER_ASSIGNMENTS({
+          namespace: serviceNamespaceName,
+          selfPacedLabName: selfPacedLab.metadata.name,
+        })
+      : null,
+    fetcher,
+    {
+      refreshInterval: 8000,
     },
   );
 
@@ -882,7 +895,7 @@ const SelfPacedLabItemComponent: React.FC<{
                   }
                   onSelectAll={() => {}}
                   rows={resourceClaims.map((rc) => {
-                    const assignment = rc.metadata.labels?.[`${BABYLON_DOMAIN}/selfpacedlab-assignment`];
+                    const userAssignments = userAssignmentsList?.items || [];
                     return {
                       cells: [
                         <>
@@ -892,7 +905,13 @@ const SelfPacedLabItemComponent: React.FC<{
                           {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
                         </>,
                         <ServiceStatus key="status" resourceClaim={rc} />,
-                        assignment || '-',
+                        <>
+                          {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                            ? userAssignments
+                                .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                                .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email || '-'}</p>)
+                            : '-'}
+                        </>,
                         <>
                           <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
                           <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import kopf
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
@@ -5,6 +7,7 @@ from babylon import Babylon
 from cachedkopfobject import CachedKopfObject
 from labuserinterface import LabUserInterface
 
+import resourceclaim as resourceclaim_import
 import selfpacedlab as selfpacedlab_import
 
 
@@ -192,6 +195,7 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
         async with self.lock:
             logger.info(f"Handling create for {self}")
             await self.copy_to_selfpacedlab()
+            await self.sync_resource_claim_assigned(logger=logger)
 
     async def handle_delete(self, logger):
         async with self.lock:
@@ -202,6 +206,36 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
         async with self.lock:
             logger.info(f"Handling update for {self}")
             await self.copy_to_selfpacedlab()
+            await self.sync_resource_claim_assigned(logger=logger)
+
+    async def sync_resource_claim_assigned(self, logger):
+        if not self.resource_claim_name or not self.assignment:
+            return
+        try:
+            rc = await resourceclaim_import.ResourceClaim.fetch(
+                name=self.resource_claim_name, namespace=self.namespace
+            )
+        except k8sApiException as exception:
+            if exception.status == 404:
+                logger.warning(f"ResourceClaim {self.resource_claim_name} not found for {self}")
+                return
+            raise
+
+        if rc.labels.get(Babylon.selfpacedlab_assigned_label) == 'true':
+            return
+
+        logger.info(f"Marking {rc} as assigned for {self}")
+        await rc.merge_patch({
+            "metadata": {
+                "labels": {
+                    Babylon.selfpacedlab_assigned_label: "true",
+                },
+                "annotations": {
+                    Babylon.selfpacedlab_assigned_at_annotation:
+                        datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                },
+            }
+        })
 
     async def remove_from_selfpacedlab(self):
         try:
