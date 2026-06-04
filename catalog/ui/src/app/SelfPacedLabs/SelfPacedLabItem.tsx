@@ -192,13 +192,17 @@ const SelfPacedLabItemComponent: React.FC<{
   );
 
   const selfPacedLabId = selfPacedLab?.metadata.labels?.[`${BABYLON_DOMAIN}/selfpacedlab-id`];
+  const activeResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((rc) => !rc.metadata.deletionTimestamp),
+    [resourceClaims],
+  );
   const userRegistrationValue = selfPacedLab?.spec.openRegistration === false ? 'pre' : 'open';
   const autoDestroyTime = selfPacedLab?.spec.lifespan?.end ? Date.parse(selfPacedLab.spec.lifespan.end) : null;
   const autoStartTime = selfPacedLab?.spec.lifespan?.start ? Date.parse(selfPacedLab.spec.lifespan.start) : null;
 
   const selectedResourceClaims = useMemo(
-    () => (resourceClaims || []).filter((rc) => selectedUids.includes(rc.metadata.uid)),
-    [resourceClaims, selectedUids],
+    () => activeResourceClaims.filter((rc) => selectedUids.includes(rc.metadata.uid)),
+    [activeResourceClaims, selectedUids],
   );
 
   async function onInstanceDeleteConfirm() {
@@ -912,9 +916,9 @@ const SelfPacedLabItemComponent: React.FC<{
               )
             ) : null}
           </Tab>
-          <Tab eventKey="instances" title={<TabTitleText>Instances ({resourceClaims?.length ?? '...'})</TabTitleText>}>
+          <Tab eventKey="instances" title={<TabTitleText>Instances ({resourceClaims ? activeResourceClaims.length : '...'})</TabTitleText>}>
             {activeTab === 'instances' ? (
-              resourceClaims && resourceClaims.length > 0 ? (
+              resourceClaims && activeResourceClaims.length > 0 ? (
                 <SelectableTable
                     columns={
                       isAdmin
@@ -923,12 +927,12 @@ const SelfPacedLabItemComponent: React.FC<{
                     }
                     onSelectAll={(isSelected) => {
                       if (isSelected) {
-                        setSelectedUids(resourceClaims.map((rc) => rc.metadata.uid));
+                        setSelectedUids(activeResourceClaims.map((rc) => rc.metadata.uid));
                       } else {
                         setSelectedUids([]);
                       }
                     }}
-                    rows={resourceClaims.map((rc) => {
+                    rows={activeResourceClaims.map((rc) => {
                       const userAssignments = userAssignmentsList?.items || [];
                       return {
                         cells: [
