@@ -105,7 +105,7 @@
     "asciidoctor": "^3.0.2",
     "dompurify": "^3.4.5",
     "fuse.js": "^7.3.0",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.2.0",
     "json2csv": "^5.0.7",
     "lexical": "^0.44.0",
     "lodash.throttle": "^4.1.1",
