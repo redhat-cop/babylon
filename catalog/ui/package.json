@@ -117,7 +117,7 @@
     "react-dom": "^18.3.1",
     "react-error-boundary": "^6.1.2",
     "react-redux": "^9.0.0",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.17.0",
     "react-window": "^1.8.11",
     "swr": "^2.4.1",
     "yjs": "^13.6.30"
