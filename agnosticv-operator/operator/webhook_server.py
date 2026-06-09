@@ -346,7 +346,16 @@ class WebhookServer:
                 "error": "Invalid pull_request field format"
             }, status=400)
         
-        pr_number = pull_request.get('number', 0)
+        pr_number_raw = pull_request.get('number', 0)
+        try:
+            pr_number = int(pr_number_raw)
+            if pr_number <= 0:
+                raise ValueError("PR number must be positive")
+        except (TypeError, ValueError):
+            return web.json_response({
+                "error": "Invalid pull_request.number"
+            }, status=400)
+
         pr_state = pull_request.get('state', '')
         head_ref = pull_request.get('head', {}).get('ref', '')
         base_ref = pull_request.get('base', {}).get('ref', '')
