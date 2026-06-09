@@ -16,6 +16,10 @@
   min-height: auto !important;
 }
 
+.catalog-item-details__body .pf-v6-c-sidebar__content {
+  min-width: 0;
+}
+
 .catalog-item-details__body {
   border-top: 1px solid var(--pf-t--chart--color--black--300);
   padding-top: var(--pf-t--global--spacer--md) !important;
@@ -93,6 +97,12 @@
   padding-bottom: var(--pf-t--global--spacer--xs);
 }
 
+.catalog-item-details__description {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
 .catalog-item-details__description h1 {
   font-size: 1.3em;
   font-weight: bold;
@@ -131,6 +141,7 @@
   background-color: #ddd;
   padding: 0.6em 0.8em;
   margin: 0.6em 0;
+  overflow-x: auto;
 }
 
 .catalog-item-details__description ul {
