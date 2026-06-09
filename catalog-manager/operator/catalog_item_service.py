@@ -47,7 +47,6 @@ class CatalogItemService:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
                         f"{Babylon.ratings_api}/api/ratings/v1/catalogitem/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}?catalog_name={self.catalog_item.name}",
-                        ssl=False,
                     ) as resp:
                         if resp.status == 200:
                             self.logger.info(
@@ -71,7 +70,6 @@ class CatalogItemService:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
                         f"{Babylon.reporting_api}/catalog_incident/last-incident/{self.catalog_item.labels['gpte.redhat.com/asset-uuid']}/{self.catalog_item.labels['babylon.gpte.redhat.com/stage']}",
-                        ssl=False,
                         headers={"Authorization": f"Bearer {Babylon.reporting_api_authorization_token}"}
 
                     ) as resp:
