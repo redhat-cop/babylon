@@ -1,3 +1,6 @@
 nodeLinker: hoisted
 allowBuilds:
   core-js: true
+overrides:
+  dompurify: ^3.4.8
+  uuid: ^11.1.1
