@@ -172,7 +172,8 @@ async def request_rating_get(request_uid: str,
                              include_details: bool = False
                              ) -> Optional[List[RatingSchema]]:
 
-    logger.info(f"Getting rating for request {request_uid}")
+    safe_request_uid = _sanitize_for_log(request_uid)
+    logger.info(f"Getting rating for request {safe_request_uid}")
     ratings = await Rating.get_request_id(request_uid)
 
     if not ratings:
