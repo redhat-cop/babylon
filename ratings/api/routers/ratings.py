@@ -156,7 +156,9 @@ async def request_rating_by_email_get(request_uid: str,
                                       include_details: bool = False
                                       ) -> RatingSchema:
 
-    logger.info(f"Getting rating for request {request_uid} and email {email}")
+    safe_request_uid = _sanitize_for_log(request_uid)
+    safe_email = _sanitize_for_log(email)
+    logger.info(f"Getting rating for request {safe_request_uid} and email {safe_email}")
     rating = await Rating.get_request_rating_by_email(request_uid, email)
 
     if not rating:
