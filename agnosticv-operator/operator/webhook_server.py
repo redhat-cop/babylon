@@ -446,11 +446,20 @@ class WebhookServer:
             "repositories": results
         }, status=200)
     
+    def _sanitize_for_log(self, value):
+        """Sanitize user-controlled values to prevent log injection."""
+        if value is None:
+            return ''
+        return str(value).replace('\r', '').replace('\n', '')
+
     async def trigger_pr_processing(self, agnosticv_repo, pr_number, head_ref, head_sha, action):
         """Process a single specific PR for webhook events"""
         try:
             logger = logging.getLogger(f'webhook.{agnosticv_repo.name}.pr{pr_number}')
-            logger.info(f"PR {action}: #{pr_number} ({head_ref} -> {head_sha})")
+            safe_action = self._sanitize_for_log(action)
+            safe_head_ref = self._sanitize_for_log(head_ref)
+            safe_head_sha = self._sanitize_for_log(head_sha)
+            logger.info(f"PR {safe_action}: #{pr_number} ({safe_head_ref} -> {safe_head_sha})")
             
             # Process only this specific PR
             async with agnosticv_repo.lock:
@@ -461,7 +470,7 @@ class WebhookServer:
                     logger=logger
                 )
             
-            logger.info(f"PR {action} processing completed for #{pr_number}")
+            logger.info(f"PR {safe_action} processing completed for #{pr_number}")
             
         except Exception as e:
             self.logger.error(f"Error processing PR {pr_number}: {e}")
