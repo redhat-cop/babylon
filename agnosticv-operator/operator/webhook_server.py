@@ -622,14 +622,15 @@ class WebhookServer:
         """Trigger PR cleanup when PR is closed - for merged PRs, keep components; for closed PRs, delete them"""
         try:
             logger = logging.getLogger(f'webhook.{agnosticv_repo.name}.pr{pr_number}')
+            safe_head_ref = str(head_ref).replace('\r', '').replace('\n', '')
             if merged:
-                logger.info(f"PR merged: #{pr_number} ({head_ref}) - triggering full main branch reprocessing")
+                logger.info(f"PR merged: #{pr_number} ({safe_head_ref}) - triggering full main branch reprocessing")
                 # For merged PRs, trigger a full reprocessing of the main branch
                 # This will apply any deletions and ensure components are up to date
                 await self.trigger_main_branch_sync(agnosticv_repo, pr_number, logger)
                 return
             else:
-                logger.info(f"PR closed without merge: #{pr_number} ({head_ref}) - deleting components")
+                logger.info(f"PR closed without merge: #{pr_number} ({safe_head_ref}) - deleting components")
             
             # Only delete components for PRs that were closed without merge
             async with agnosticv_repo.lock:
