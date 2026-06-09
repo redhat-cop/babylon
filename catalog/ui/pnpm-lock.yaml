@@ -25,7 +25,7 @@ importers:
         version: 0.44.0
       '@lexical/react':
         specifier: ^0.44.0
-        version: 0.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.30)
+        version: 0.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.31)
       '@lexical/rich-text':
         specifier: ^0.44.0
         version: 0.44.0
@@ -114,8 +114,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1(react@18.3.1)
       yjs:
-        specifier: ^13.6.30
-        version: 13.6.30
+        specifier: ^13.6.31
+        version: 13.6.31
     devDependencies:
       '@babel/preset-env':
         specifier: ^7.29.7
@@ -5755,8 +5755,8 @@ packages:
     resolution: {integrity: sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==}
     engines: {node: '>=12'}
 
-  yjs@13.6.30:
-    resolution: {integrity: sha512-vv/9h42eCMC81ZHDFswuu/MKzkl/vyq1BhaNGfHyOonwlG4CJbQF4oiBBJPvfdeCt/PlVDWh7Nov9D34YY09uQ==}
+  yjs@13.6.31:
+    resolution: {integrity: sha512-Eq+5BRfbeGyqGVrTJL3bEcr8gKkxPuyuoHmAwpk52fDb8kOVMrfVSTRPd6yiGgX5Fskb96qCRjzjbRjrL4YEnw==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
 
   yocto-queue@0.1.0:
@@ -7286,7 +7286,7 @@ snapshots:
       '@lexical/utils': 0.44.0
       lexical: 0.44.0
 
-  '@lexical/react@0.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.30)':
+  '@lexical/react@0.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(yjs@13.6.31)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@lexical/devtools-core': 0.44.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -7304,13 +7304,13 @@ snapshots:
       '@lexical/table': 0.44.0
       '@lexical/text': 0.44.0
       '@lexical/utils': 0.44.0
-      '@lexical/yjs': 0.44.0(yjs@13.6.30)
+      '@lexical/yjs': 0.44.0(yjs@13.6.31)
       lexical: 0.44.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-error-boundary: 6.1.2(react@18.3.1)
     optionalDependencies:
-      yjs: 13.6.30
+      yjs: 13.6.31
 
   '@lexical/rich-text@0.44.0':
     dependencies:
@@ -7340,11 +7340,11 @@ snapshots:
       '@lexical/selection': 0.44.0
       lexical: 0.44.0
 
-  '@lexical/yjs@0.44.0(yjs@13.6.30)':
+  '@lexical/yjs@0.44.0(yjs@13.6.31)':
     dependencies:
       '@lexical/selection': 0.44.0
       lexical: 0.44.0
-      yjs: 13.6.30
+      yjs: 13.6.31
 
   '@monaco-editor/loader@1.7.0':
     dependencies:
@@ -12333,7 +12333,7 @@ snapshots:
       y18n: 5.0.8
       yargs-parser: 21.1.1
 
-  yjs@13.6.30:
+  yjs@13.6.31:
     dependencies:
       lib0: 0.2.117
 
