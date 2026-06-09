@@ -92,6 +92,10 @@ j2env = jinja2.Environment(
         )
     ]),
     trim_blocks = True,
+    autoescape = jinja2.select_autoescape(
+        ['html', 'htm', 'xml'],
+        default_for_string = True,
+    ),
 )
 
 # Add to_yaml filter
