@@ -181,7 +181,7 @@ class WebhookServer:
             if not url:
                 return ""
             # Remove .git suffix
-            url = url.rstrip('.git')
+            url = url.removesuffix('.git')
             # Convert SSH to HTTPS for comparison
             if url.startswith('git@github.com:'):
                 url = url.replace('git@github.com:', 'https://github.com/')
