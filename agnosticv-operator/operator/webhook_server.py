@@ -502,8 +502,6 @@ class WebhookServer:
     async def cleanup_merged_pr_annotations(self, agnosticv_repo, pr_number, logger):
         """Remove merged PR from used-by-prs annotations on affected components only"""
         try:
-            from agnosticvcomponent import AgnosticVComponent
-            from babylon import Babylon
             import aiohttp
             
             # Validate PR number before using it in URL construction
