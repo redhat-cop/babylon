@@ -10,6 +10,10 @@ from models import Bookmark, User
 logger = logging.getLogger('babylon-ratings')
 
 
+def _sanitize_for_log(value: object) -> str:
+    return str(value).replace("\r", "").replace("\n", "")
+
+
 tags = ["user-manager"]
 
 router = APIRouter(tags=tags)
@@ -20,7 +24,7 @@ router = APIRouter(tags=tags)
             summary="Get favorites catalog item asset")
 async def bookmarks_get(email: str) -> BookmarkListResponseSchema:
 
-    logger.info(f"Getting favorites for user {email}")
+    logger.info(f"Getting favorites for user {_sanitize_for_log(email)}")
     try:
         user = await User.get_by_email(email)
         if user:
@@ -29,10 +33,10 @@ async def bookmarks_get(email: str) -> BookmarkListResponseSchema:
             ]
             return BookmarkListResponseSchema(bookmarks=bookmarks_response)
         else:
-            logger.info(f"User email doesn't exists {email}")
+            logger.info(f"User email doesn't exists {_sanitize_for_log(email)}")
             return BookmarkListResponseSchema(bookmarks=[])
     except Exception as e:
-        logger.error(f"Error getting favorite: {e}", stack_info=True)
+        logger.error(f"Error getting favorite: {_sanitize_for_log(e)}", stack_info=True)
         raise HTTPException(status_code=500, detail="Error getting favorites") from e
 
 @router.post("/api/user-manager/v1/bookmarks",
@@ -41,7 +45,7 @@ async def bookmarks_get(email: str) -> BookmarkListResponseSchema:
              )
 async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListResponseSchema:
 
-    logger.info(f"Add favorite item for user {bookmark_obj.email}")
+    logger.info(f"Add favorite item for user {_sanitize_for_log(bookmark_obj.email)}")
     try:
         user = await User.get_by_email(bookmark_obj.email)
         if user:
@@ -55,7 +59,7 @@ async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListRes
         else:
             raise HTTPException(status_code=404, detail="User email doesn't exists") from e 
     except Exception as e:
-        logger.error(f"Error saving favorite: {e}", stack_info=True)
+        logger.error(f"Error saving favorite: {_sanitize_for_log(e)}", stack_info=True)
         raise HTTPException(status_code=500, detail="Error saving favorites") from e
 
 @router.delete("/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
@@ -63,7 +67,9 @@ async def bookmarks_post(bookmark_obj: BookmarkRequestSchema) -> BookmarkListRes
              summary="Delete bookmark",
              )
 async def bookmarks_delete(email: str, asset_uuid: str) -> BookmarkListResponseSchema:
-    logger.info(f"Delete favorite item {asset_uuid} for user {email}")
+    logger.info(
+        f"Delete favorite item {_sanitize_for_log(asset_uuid)} for user {_sanitize_for_log(email)}"
+    )
     try:
         user = await User.get_by_email(email)
         if user:
@@ -78,6 +84,6 @@ async def bookmarks_delete(email: str, asset_uuid: str) -> BookmarkListResponseS
             raise HTTPException(status_code=404, detail="User email doesn't exists") from e 
    
     except Exception as e:
-        logger.error(f"Error deleting favorite: {e}", stack_info=True)
+        logger.error(f"Error deleting favorite: {_sanitize_for_log(e)}", stack_info=True)
         raise HTTPException(status_code=404, detail="Error deleting favorite") from e
 
