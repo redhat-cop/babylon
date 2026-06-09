@@ -73,7 +73,8 @@ async def catalog_item_rating_history_get(asset_uuid: str,
 async def list_ratings_get(pagination: dict = Depends(get_pagination_params),
                            include_details: bool = False) -> List[RatingsListSchema]:
 
-    logger.info(f"Getting ratings list with pagination: {pagination}")
+    safe_pagination = _sanitize_for_log(str(pagination))
+    logger.info(f"Getting ratings list with pagination: {safe_pagination}")
     page = pagination["page"]
     per_page = pagination["per_page"]
     ratings_list = await Rating.list_ratings_paged(page,
