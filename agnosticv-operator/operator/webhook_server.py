@@ -251,8 +251,9 @@ class WebhookServer:
         try:
             # Create a logger for this operation
             logger = logging.getLogger(f'webhook.{agnosticv_repo.name}')
+            safe_branch_name = str(branch_name).replace('\r', '').replace('\n', '')
             
-            logger.info(f"Webhook triggered update for {agnosticv_repo.name}#{branch_name}")
+            logger.info(f"Webhook triggered update for {agnosticv_repo.name}#{safe_branch_name}")
             
             # Acquire lock and trigger update (skip PR processing for push events)
             async with agnosticv_repo.lock:
