@@ -188,7 +188,8 @@ async def request_rating_post(request_uid: str,
                               new_rating: RatingCreateSchema,
                               include_details: bool = False) -> RatingSchema:
 
-    logger.info(f"Creating or updating rating for request {request_uid}")
+    safe_request_uid = _sanitize_for_log(request_uid)
+    logger.info(f"Creating or updating rating for request {safe_request_uid}")
     rating = Rating.from_dict(new_rating.model_dump())
     rating.request_id = request_uid
     try:
