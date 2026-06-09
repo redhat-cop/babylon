@@ -43,29 +43,29 @@ jest.mock('@app/api', () => ({
 
 describe('Catalog Page Layout Scenario', () => {
   test("When app layout renders, should display 'Catalog' option", async () => {
-    const { findAllByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const { findAllByText } = await render(<AppLayout title="test">Test</AppLayout>);
     const testVar = (await findAllByText('Catalog'))[0];
     expect(testVar).toBeInTheDocument();
   });
   test("When app layout renders, should display 'My Services' option", async () => {
-    const { findByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const { findByText } = await render(<AppLayout title="test">Test</AppLayout>);
     const testVar = await findByText('My Services');
     expect(testVar).toBeInTheDocument();
   });
   test('When app layout renders, should display user name', async () => {
-    const { findByText } = render(<AppLayout title="test">Test</AppLayout>);
+    const { findByText } = await render(<AppLayout title="test">Test</AppLayout>);
     const testVar = await findByText('test@redhat.com');
     expect(testVar).toBeInTheDocument();
   });
   test('When app layout renders, should display hamburger toggle', async () => {
-    const { container } = render(<AppLayout title="test">Test</AppLayout>);
+    const { container } = await render(<AppLayout title="test">Test</AppLayout>);
     await waitFor(() => expect(container.querySelector('#nav-toggle')).toBeTruthy());
   });
 });
 
 describe('Catalog page event scenarios', () => {
   test('When navigation toggle is clicked, navigation get hidden', async () => {
-    const { container } = render(<AppLayout title="test">Test</AppLayout>);
+    const { container } = await render(<AppLayout title="test">Test</AppLayout>);
     const testVar = container.querySelector('#nav-toggle');
     fireEvent.click(testVar);
     await waitFor(() => expect(testVar).toBeTruthy());

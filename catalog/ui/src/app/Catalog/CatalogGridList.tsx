@@ -1,7 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
-import { FixedSizeGrid as Grid, FixedSizeList as List } from 'react-window';
+import React, { useMemo } from 'react';
+import { Grid, List, CellComponentProps, RowComponentProps } from 'react-window';
 import { CatalogItem } from '@app/types';
-import { ReactWindowScroller } from '@app/utils/react-window-scroller';
 import CatalogItemCard from './CatalogItemCard';
 import CatalogItemListItem from './CatalogItemListItem';
 
@@ -9,7 +8,42 @@ const GUTTER_SIZE = 16;
 const GRID_COLUMN_WIDTH = 280;
 const GRID_ROW_HEIGHT = 260;
 const LIST_ROW_HEIGHT = 150;
-const SAFE_MARGIN = 2000;
+
+type GridCellProps = {
+  catalogItemsResultAsGrid: CatalogItem[][];
+  horizontalOffset: number;
+};
+
+const Cell = ({ columnIndex, rowIndex, style, catalogItemsResultAsGrid, horizontalOffset }: CellComponentProps<GridCellProps>) => (
+  <div
+    style={{
+      ...style,
+      left: Number(style.left) + horizontalOffset,
+      top: Number(style.top) + GUTTER_SIZE,
+      width: Number(style.width) - GUTTER_SIZE,
+      height: Number(style.height) - GUTTER_SIZE,
+    }}
+  >
+    {catalogItemsResultAsGrid[rowIndex][columnIndex] ? (
+      <CatalogItemCard catalogItem={catalogItemsResultAsGrid[rowIndex][columnIndex]} />
+    ) : null}
+  </div>
+);
+
+type ListRowProps = {
+  catalogItems: CatalogItem[];
+};
+
+const Row = ({ index, style, catalogItems }: RowComponentProps<ListRowProps>) => (
+  <div
+    style={{
+      ...style,
+      top: Number(style.top) + GUTTER_SIZE,
+    }}
+  >
+    {catalogItems[index] ? <CatalogItemListItem catalogItem={catalogItems[index]} /> : null}
+  </div>
+);
 
 const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMRect; view: 'gallery' | 'list' }> = ({
   catalogItems,
@@ -17,8 +51,10 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
   view,
 }) => {
   const gridWidth = wrapperRect?.width || 1000;
-  const gridHeight = window.innerHeight - wrapperRect?.top + SAFE_MARGIN || 1000;
+  const gridHeight = window.innerHeight - (wrapperRect?.top || 0) || 1000;
   const catalogItemsColumnsSize = Math.floor(gridWidth / (GRID_COLUMN_WIDTH + GUTTER_SIZE));
+  const contentWidth = catalogItemsColumnsSize * GRID_COLUMN_WIDTH + Math.max(0, catalogItemsColumnsSize - 1) * GUTTER_SIZE;
+  const horizontalOffset = Math.max(0, (gridWidth - contentWidth) / 2);
   const catalogItemsResultAsGrid = useMemo(
     () =>
       catalogItems.reduce((grid, item, index) => {
@@ -31,72 +67,26 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
     [catalogItems, catalogItemsColumnsSize],
   );
 
-  const Cell = useCallback(
-    ({ columnIndex, rowIndex, style }) => (
-      <div
-        style={{
-          ...style,
-          left: style.left + GUTTER_SIZE,
-          top: style.top + GUTTER_SIZE,
-          width: style.width - GUTTER_SIZE,
-          height: style.height - GUTTER_SIZE,
-        }}
-      >
-        {catalogItemsResultAsGrid[rowIndex][columnIndex] ? (
-          <CatalogItemCard catalogItem={catalogItemsResultAsGrid[rowIndex][columnIndex]} />
-        ) : null}
-      </div>
-    ),
-    [catalogItemsResultAsGrid],
-  );
-
-  const Row = useCallback(
-    ({ index, style }) => (
-      <div
-        style={{
-          ...style,
-          top: style.top + GUTTER_SIZE,
-        }}
-      >
-        {catalogItems[index] ? <CatalogItemListItem catalogItem={catalogItems[index]} /> : null}
-      </div>
-    ),
-    [catalogItems],
-  );
-
-  return (
-    <ReactWindowScroller>
-      {({ ref, outerRef, style, onScroll }) =>
-        view === 'gallery' ? (
-          <Grid
-            ref={ref}
-            outerRef={outerRef}
-            style={style}
-            columnCount={catalogItemsColumnsSize}
-            columnWidth={GRID_COLUMN_WIDTH + GUTTER_SIZE}
-            rowCount={catalogItemsResultAsGrid.length}
-            rowHeight={GRID_ROW_HEIGHT + GUTTER_SIZE}
-            width={gridWidth}
-            height={gridHeight}
-            onScroll={onScroll}
-          >
-            {Cell}
-          </Grid>
-        ) : (
-          <List
-            ref={ref}
-            outerRef={outerRef}
-            style={style}
-            width={gridWidth}
-            height={gridHeight}
-            itemCount={catalogItems.length}
-            itemSize={LIST_ROW_HEIGHT + GUTTER_SIZE}
-          >
-            {Row}
-          </List>
-        )
-      }
-    </ReactWindowScroller>
+  return view === 'gallery' ? (
+    <div style={{ width: gridWidth, height: gridHeight }}>
+      <Grid<GridCellProps>
+        cellComponent={Cell}
+        cellProps={{ catalogItemsResultAsGrid, horizontalOffset }}
+        columnCount={catalogItemsColumnsSize}
+        columnWidth={GRID_COLUMN_WIDTH + GUTTER_SIZE}
+        rowCount={catalogItemsResultAsGrid.length}
+        rowHeight={GRID_ROW_HEIGHT + GUTTER_SIZE}
+      />
+    </div>
+  ) : (
+    <div style={{ width: gridWidth, height: gridHeight }}>
+      <List<ListRowProps>
+        rowComponent={Row}
+        rowProps={{ catalogItems }}
+        rowCount={catalogItems.length}
+        rowHeight={LIST_ROW_HEIGHT + GUTTER_SIZE}
+      />
+    </div>
   );
 };
 

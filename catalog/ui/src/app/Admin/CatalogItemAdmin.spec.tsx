@@ -38,7 +38,7 @@ jest.mock('@app/utils/useSession', () =>
 
 describe('CatalogItemAdmin Component', () => {
   test('When renders should show the current values', async () => {
-    const { getByLabelText, getByText, getByDisplayValue } = render(<CatalogItemAdmin />);
+    const { getByLabelText, getByText, getByDisplayValue } = await render(<CatalogItemAdmin />);
     await waitFor(() => {
       expect(getByLabelText('Disabled').closest('input')).toBeChecked();
       expect(getByText('Under maintenance')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('CatalogItemAdmin Component', () => {
     });
   });
   test('When save form API function is called', async () => {
-    const { getByLabelText, getByText } = render(<CatalogItemAdmin />);
+    const { getByLabelText, getByText } = await render(<CatalogItemAdmin />);
 
     await waitFor(() => {
       expect(getByLabelText('Disabled').closest('input')).toBeChecked();

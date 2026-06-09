@@ -7,7 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "ignoreDeprecations": "6.0",
     "importHelpers": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["es2019", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",

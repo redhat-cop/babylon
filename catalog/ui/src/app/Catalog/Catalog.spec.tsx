@@ -33,7 +33,7 @@ describe('Catalog Component', () => {
     window.sessionStorage.clear();
   });
   test.skip('When renders should display the total count of catalog items', async () => {
-    const { getByText } = render(<Catalog userHasRequiredPropertiesToAccess={true} />);
+    const { getByText } = await render(<Catalog userHasRequiredPropertiesToAccess={true} />);
     await waitFor(() => expect(getByText('12 items')).toBeInTheDocument());
   });
   it.skip('should export the CSV', async () => {
@@ -46,7 +46,7 @@ describe('Catalog Component', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blob: any = new Blob(['hello world'], { type: 'text/plain' });
 
-    const { getByLabelText, getByText } = render(<Catalog userHasRequiredPropertiesToAccess={true} />);
+    const { getByLabelText, getByText } = await render(<Catalog userHasRequiredPropertiesToAccess={true} />);
     await waitFor(() => expect(getByText('12 items')).toBeInTheDocument());
 
     global.URL.createObjectURL = jest.fn(() => blob);
