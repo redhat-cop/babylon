@@ -60,7 +60,7 @@ const Navigation: React.FC = () => {
       {!partner_connect_header_enabled ? (
         <NavItem>
           <a
-            href="https://litellm-prod-frontend.apps.maas.redhatworkshops.io/"
+            href="https://maas-rhdp-frontend.apps.maas.redhatworkshops.io/models"
             target="_blank"
             rel="noreferrer noopener"
             className="pf-v6-c-nav__link"
