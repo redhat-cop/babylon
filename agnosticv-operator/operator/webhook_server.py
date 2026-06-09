@@ -496,15 +496,24 @@ class WebhookServer:
             from babylon import Babylon
             import aiohttp
             
+            # Validate PR number before using it in URL construction
+            try:
+                validated_pr_number = int(pr_number)
+                if validated_pr_number <= 0:
+                    raise ValueError("PR number must be a positive integer")
+            except (TypeError, ValueError):
+                logger.warning(f"Invalid PR number '{pr_number}', skipping merged PR annotation cleanup")
+                return
+
             # Get the files modified by this PR via GitHub API
             github_token = await agnosticv_repo.get_github_token()
             if not github_token:
-                logger.warning(f"No GitHub token available, skipping efficient cleanup for PR #{pr_number}")
+                logger.warning(f"No GitHub token available, skipping efficient cleanup for PR #{validated_pr_number}")
                 return
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{agnosticv_repo.github_api_base_url}/pulls/{pr_number}/files",
+                    f"{agnosticv_repo.github_api_base_url}/pulls/{validated_pr_number}/files",
                     headers={
                         "Accept": "application/vnd.github+json",
                         "Authorization": f"Bearer {github_token}",
