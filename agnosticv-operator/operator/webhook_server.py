@@ -181,7 +181,7 @@ class WebhookServer:
             if not url:
                 return ""
             # Remove .git suffix
-            url = url.removesuffix('.git')
+            url = url.rstrip('.git')
             # Convert SSH to HTTPS for comparison
             if url.startswith('git@github.com:'):
                 url = url.replace('git@github.com:', 'https://github.com/')
@@ -502,6 +502,8 @@ class WebhookServer:
     async def cleanup_merged_pr_annotations(self, agnosticv_repo, pr_number, logger):
         """Remove merged PR from used-by-prs annotations on affected components only"""
         try:
+            from agnosticvcomponent import AgnosticVComponent
+            from babylon import Babylon
             import aiohttp
             
             # Validate PR number before using it in URL construction
@@ -663,7 +665,7 @@ class WebhookServer:
                             original_ref = agnosticv_repo.git_checkout_ref
                             if original_ref != agnosticv_repo.git_ref:
                                 logger.debug(f"Checking out main branch {agnosticv_repo.git_ref} to get component list")
-                                agnosticv_repo.git_repo_checkout(logger=logger, ref=agnosticv_repo.git_ref)
+                                agnosticv_repo._AgnosticVRepo__git_repo_checkout(logger=logger, ref=agnosticv_repo.git_ref)
                         
                             main_component_paths, error_msg = await agnosticv_repo._agnosticv_get_all_component_paths_no_lock()
                             if error_msg:
@@ -678,7 +680,7 @@ class WebhookServer:
                             # Restore original checkout
                             if original_ref and original_ref != agnosticv_repo.git_ref:
                                 logger.debug(f"Restoring checkout to {original_ref}")
-                                agnosticv_repo.git_repo_checkout(logger=logger, ref=original_ref)
+                                agnosticv_repo._AgnosticVRepo__git_repo_checkout(logger=logger, ref=original_ref)
                             
                     except Exception as e:
                         logger.warning(f"Failed to get main branch components for PR cleanup: {e}")
