@@ -70,6 +70,21 @@ function FloatingLinkEditor({ editor }) {
   const [isEditMode, setEditMode] = useState(false);
   const [lastSelection, setLastSelection] = useState(null);
 
+  const sanitizeUrl = useCallback((url) => {
+    if (!url) {
+      return '';
+    }
+    try {
+      const parsed = new URL(url, window.location.origin);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.href;
+      }
+    } catch (e) {
+      // Invalid URL; fall through and return empty string.
+    }
+    return '';
+  }, []);
+
   const updateLinkEditor = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
@@ -169,8 +184,9 @@ function FloatingLinkEditor({ editor }) {
             if (event.key === 'Enter') {
               event.preventDefault();
               if (lastSelection !== null) {
-                if (linkUrl !== '') {
-                  editor.dispatchCommand(TOGGLE_LINK_COMMAND, linkUrl);
+                const safeUrl = sanitizeUrl(linkUrl);
+                if (safeUrl !== '') {
+                  editor.dispatchCommand(TOGGLE_LINK_COMMAND, safeUrl);
                 }
                 setEditMode(false);
               }
@@ -183,8 +199,8 @@ function FloatingLinkEditor({ editor }) {
       ) : (
         <>
           <div className="link-input">
-            <a href={linkUrl} target="_blank" rel="noopener noreferrer">
-              {linkUrl}
+            <a href={sanitizeUrl(linkUrl)} target="_blank" rel="noopener noreferrer">
+              {sanitizeUrl(linkUrl)}
             </a>
             <div
               className="link-edit"
