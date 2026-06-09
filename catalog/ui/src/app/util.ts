@@ -429,7 +429,7 @@ export function escapeRegex(string: string) {
 export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
   const parseHTML = new DOMParser().parseFromString(
-    dompurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    dompurify.sanitize(unStrippedHtml.replace(/<!--[\s\S]*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
     'text/html',
   );
   return parseHTML.body.textContent || '';
