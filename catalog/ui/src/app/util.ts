@@ -111,7 +111,16 @@ export function randomString(length: number): string {
 
 export function recursiveAssign(target: object, source: object): void {
   for (const [k, v] of Object.entries(source)) {
-    if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') {
+      continue;
+    }
+    if (
+      v !== null &&
+      typeof v === 'object' &&
+      Object.prototype.hasOwnProperty.call(target, k) &&
+      target[k] !== null &&
+      typeof target[k] === 'object'
+    ) {
       recursiveAssign(target[k], v);
     } else {
       target[k] = v;
