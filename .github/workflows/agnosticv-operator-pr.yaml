@@ -11,6 +11,10 @@ on:
       - agnosticv-operator/**
     branches:
       - main
+
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: "Publish image in quay"
