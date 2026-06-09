@@ -65,7 +65,7 @@ import Footer from '@app/components/Footer';
 import './multiworkshop-detail.css';
 
 function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html.replace(/[<>]/g, '').trim();
 }
 
 const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; workshop: Workshop }> = ({ workshopName, namespace, workshop }) => {
