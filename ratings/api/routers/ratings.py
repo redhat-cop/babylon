@@ -52,7 +52,8 @@ async def catalog_item_rating_history_get(asset_uuid: str,
                                           catalog_name: Optional[str] = None,
                                           include_details: bool = False
                                           ) -> List[RatingSchema]:
-    logger.info(f"Getting rating history for catalog item {asset_uuid}")
+    safe_asset_uuid = _sanitize_for_log(asset_uuid)
+    logger.info(f"Getting rating history for catalog item {safe_asset_uuid}")
     average_rating = await Rating.catalog_item_rating(asset_uuid,
                                                       catalog_name,
                                                       include_details)
