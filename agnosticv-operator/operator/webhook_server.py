@@ -665,7 +665,7 @@ class WebhookServer:
                                 logger.debug(f"Checking out main branch {agnosticv_repo.git_ref} to get component list")
                                 agnosticv_repo.git_repo_checkout(logger=logger, ref=agnosticv_repo.git_ref)
                         
-                            main_component_paths, error_msg = await agnosticv_repo._agnosticv_get_all_component_paths_no_lock()
+                                agnosticv_repo.git_repo_checkout(logger=logger, ref=agnosticv_repo.git_ref)
                             if error_msg:
                                 logger.warning(f"Error getting main branch components: {error_msg}")
                                 main_component_paths = []
@@ -680,7 +680,7 @@ class WebhookServer:
                                 logger.debug(f"Restoring checkout to {original_ref}")
                                 agnosticv_repo.git_repo_checkout(logger=logger, ref=original_ref)
                             
-                    except Exception as e:
+                                agnosticv_repo.git_repo_checkout(logger=logger, ref=original_ref)
                         logger.warning(f"Failed to get main branch components for PR cleanup: {e}")
                         main_branch_component_names = set()
                     
