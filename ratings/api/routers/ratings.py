@@ -29,7 +29,8 @@ async def catalog_item_rating_get(asset_uuid: str,
                                   include_details: bool = False
                                   ) -> CatalogItemRatingAverageSchema:
 
-    logger.info(f"Getting rating for catalog item {asset_uuid}")
+    safe_asset_uuid = asset_uuid.replace('\r', '').replace('\n', '')
+    logger.info(f"Getting rating for catalog item {safe_asset_uuid}")
     rating = await Rating.catalog_item_average(asset_uuid,
                                                catalog_name,
                                                include_details)
