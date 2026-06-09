@@ -136,7 +136,8 @@ async def provision_rating_post(provision_uuid: str,
                                 new_rating: RatingProvisionCreateSchema,
                                 include_details: bool = False) -> RatingSchema:
 
-    logger.info(f"Creating or updating rating for provision {provision_uuid}")
+    safe_provision_uuid = _sanitize_for_log(provision_uuid)
+    logger.info(f"Creating or updating rating for provision {safe_provision_uuid}")
     rating = Rating.from_dict(new_rating.model_dump())
     rating.provision_uuid = provision_uuid
     try:
