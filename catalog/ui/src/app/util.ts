@@ -428,8 +428,14 @@ export function escapeRegex(string: string) {
 
 export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
+  let sanitizedInput = unStrippedHtml;
+  let previous: string;
+  do {
+    previous = sanitizedInput;
+    sanitizedInput = sanitizedInput.replace(/<!--.*?-->/g, '');
+  } while (sanitizedInput !== previous);
   const parseHTML = new DOMParser().parseFromString(
-    dompurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    dompurify.sanitize(sanitizedInput.replace(/(\r\n|\n|\r)/gm, '')),
     'text/html',
   );
   return parseHTML.body.textContent || '';
