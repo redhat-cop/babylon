@@ -16,6 +16,10 @@ from .pagination import get_pagination_params
 logger = logging.getLogger('babylon-ratings')
 
 
+def _sanitize_for_log(value: str) -> str:
+    return value.replace('\r', '').replace('\n', '')
+
+
 tags = ["ratings"]
 
 router = APIRouter(tags=tags)
@@ -200,7 +204,8 @@ async def request_rating_post(request_uid: str,
             response_model=WorkshopRequestSchema,
             summary="Get request ID by workshop ID")
 async def workshop_rating_get(workshop_id: str) -> WorkshopRequestSchema:
-    logger.info(f"Getting request ID for workshop {workshop_id}")
+    safe_workshop_id = _sanitize_for_log(workshop_id)
+    logger.info(f"Getting request ID for workshop {safe_workshop_id}")
     request = await ProvisionRequest.get_request_workshop(workshop_id)
     if not request:
         raise HTTPException(status_code=404, detail="Workshop not found")
