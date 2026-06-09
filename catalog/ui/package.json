@@ -42,7 +42,6 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/react-router-dom": "^5.3.3",
-    "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.61.0",
     "babel-loader": "^10.1.1",
@@ -118,7 +117,7 @@
     "react-error-boundary": "^6.1.2",
     "react-redux": "^9.0.0",
     "react-router-dom": "^7.17.0",
-    "react-window": "^1.8.11",
+    "react-window": "^2.2.7",
     "swr": "^2.4.1",
     "yjs": "^13.6.31"
   }

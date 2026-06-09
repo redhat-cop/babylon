@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, Suspense, useRef, useEffect } from 'react';
 import Fuse from 'fuse.js';
-import { FixedSizeGrid as Grid } from 'react-window';
+import { Grid, CellComponentProps } from 'react-window';
 import {
   Modal,
   Button,
@@ -50,6 +50,51 @@ import '@app/Catalog/catalog-item-card.css';
 const GUTTER_SIZE = 16;
 const GRID_COLUMN_WIDTH = 280;
 const GRID_ROW_HEIGHT = 260;
+
+type CatalogCellProps = {
+  catalogItemsGrid: CatalogItem[][];
+  selectedItems: Map<string, CatalogItem>;
+  onToggleItem: (catalogItem: CatalogItem, isSelected: boolean) => void;
+  onItemSelect: (catalogItem: CatalogItem) => void;
+  isMultiSelectMode: boolean;
+};
+
+const CatalogCell = ({
+  columnIndex,
+  rowIndex,
+  style,
+  catalogItemsGrid,
+  selectedItems,
+  onToggleItem,
+  onItemSelect,
+  isMultiSelectMode,
+}: CellComponentProps<CatalogCellProps>) => {
+  const catalogItem = catalogItemsGrid[rowIndex]?.[columnIndex];
+  if (!catalogItem) return null;
+
+  const itemKey = `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`;
+  const isSelected = selectedItems.has(itemKey);
+
+  return (
+    <div
+      style={{
+        ...style,
+        left: Number(style.left) + GUTTER_SIZE,
+        top: Number(style.top) + GUTTER_SIZE,
+        width: Number(style.width) - GUTTER_SIZE,
+        height: Number(style.height) - GUTTER_SIZE,
+      }}
+    >
+      <SelectableCatalogItemCard
+        catalogItem={catalogItem}
+        isSelected={isSelected}
+        onToggle={onToggleItem}
+        onClick={onItemSelect}
+        isMultiSelectMode={isMultiSelectMode}
+      />
+    </div>
+  );
+};
 
 // Selectable Catalog Item Card Component for multi-select mode
 const SelectableCatalogItemCard: React.FC<{
@@ -346,37 +391,6 @@ const CatalogItemsContent: React.FC<{
     return grid;
   }, [filteredCatalogItems, columnCount]);
 
-  const Cell = useCallback(
-    ({ columnIndex, rowIndex, style }) => {
-      const catalogItem = catalogItemsGrid[rowIndex]?.[columnIndex];
-      if (!catalogItem) return null;
-
-      const itemKey = `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`;
-      const isSelected = selectedItems.has(itemKey);
-
-      return (
-        <div
-          style={{
-            ...style,
-            left: style.left + GUTTER_SIZE,
-            top: style.top + GUTTER_SIZE,
-            width: style.width - GUTTER_SIZE,
-            height: style.height - GUTTER_SIZE,
-          }}
-        >
-          <SelectableCatalogItemCard
-            catalogItem={catalogItem}
-            isSelected={isSelected}
-            onToggle={onToggleItem}
-            onClick={onItemSelect}
-            isMultiSelectMode={isMultiSelectMode}
-          />
-        </div>
-      );
-    },
-    [catalogItemsGrid, onItemSelect, isMultiSelectMode, selectedItems, onToggleItem],
-  );
-
   return (
     <>
       {filteredCatalogItems.length === 0 ? (
@@ -392,16 +406,14 @@ const CatalogItemsContent: React.FC<{
         </EmptyState>
       ) : (
         <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
-          <Grid
+          <Grid<CatalogCellProps>
+            cellComponent={CatalogCell}
+            cellProps={{ catalogItemsGrid, selectedItems, onToggleItem, onItemSelect, isMultiSelectMode }}
             columnCount={columnCount}
             columnWidth={GRID_COLUMN_WIDTH + GUTTER_SIZE}
             rowCount={catalogItemsGrid.length}
             rowHeight={GRID_ROW_HEIGHT + GUTTER_SIZE}
-            width={containerDimensions.width}
-            height={containerDimensions.height}
-          >
-            {Cell}
-          </Grid>
+          />
         </div>
       )}
     </>

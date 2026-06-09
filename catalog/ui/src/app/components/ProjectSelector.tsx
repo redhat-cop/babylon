@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import { FixedSizeList as List } from 'react-window';
+import { List, RowComponentProps } from 'react-window';
 import useSession from '@app/utils/useSession';
 import { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
@@ -19,6 +19,30 @@ import {
 } from '@patternfly/react-core';
 
 import './project-selector.css';
+
+type ProjectRowProps = {
+  filteredServiceNamespaces: ServiceNamespace[];
+  onSelect: (namespace: ServiceNamespace) => void;
+  setIsOpen: (v: boolean) => void;
+};
+
+const ProjectRow = ({ index, style, filteredServiceNamespaces, onSelect, setIsOpen }: RowComponentProps<ProjectRowProps>) => (
+  <div style={style}>
+    <DropdownItem
+      itemId={filteredServiceNamespaces[index].name}
+      key={filteredServiceNamespaces[index].name}
+      value={filteredServiceNamespaces[index].name}
+      onClick={() => {
+        onSelect(filteredServiceNamespaces[index]);
+        setIsOpen(false);
+      }}
+    >
+      <span className="project-selector__item">
+        {filteredServiceNamespaces[index].displayName || filteredServiceNamespaces[index].name}
+      </span>
+    </DropdownItem>
+  </div>
+);
 
 const ProjectSelector: React.FC<{
   currentNamespaceName?: string;
@@ -71,24 +95,6 @@ const ProjectSelector: React.FC<{
     [serviceNamespaces, searchValue],
   );
 
-  const Row = ({ index, style }) => (
-    <div style={style}>
-      <DropdownItem
-        itemId={filteredServiceNamespaces[index].name}
-        key={filteredServiceNamespaces[index].name}
-        value={filteredServiceNamespaces[index].name}
-        onClick={() => {
-          onSelect(filteredServiceNamespaces[index]);
-          setIsOpen(false);
-        }}
-      >
-        <span className="project-selector__item">
-          {filteredServiceNamespaces[index].displayName || filteredServiceNamespaces[index].name}
-        </span>
-      </DropdownItem>
-    </div>
-  );
-
   return (
     <Dropdown
       className="project-selector"
@@ -129,9 +135,14 @@ const ProjectSelector: React.FC<{
           <LoadingIcon />
         </DropdownItem>
       ) : (
-        <List height={200} itemCount={filteredServiceNamespaces.length} itemSize={40} width={400}>
-          {Row}
-        </List>
+        <div style={{ height: 200, width: 400 }}>
+          <List<ProjectRowProps>
+            rowComponent={ProjectRow}
+            rowProps={{ filteredServiceNamespaces, onSelect, setIsOpen }}
+            rowCount={filteredServiceNamespaces.length}
+            rowHeight={40}
+          />
+        </div>
       )}
     </Dropdown>
   );
