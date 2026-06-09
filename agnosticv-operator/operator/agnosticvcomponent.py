@@ -52,6 +52,7 @@ def error_if_undefined(result):
 jinja2env = jinja2.Environment(
     finalize = error_if_undefined,
     undefined = jinja2.ChainableUndefined,
+    autoescape = jinja2.select_autoescape(['html', 'htm', 'xml']),
 )
 jinja2env.filters['bool'] = lambda x: bool(str2bool(x)) if isinstance(x, str) else bool(x)
 jinja2env.filters['uuid2int'] = lambda x: int(UUID(x))
