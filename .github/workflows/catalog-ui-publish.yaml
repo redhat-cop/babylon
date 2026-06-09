@@ -6,6 +6,10 @@ on:
       - "*"
     tags:
       - "catalog-ui-v[0-9]*"
+
+permissions:
+  contents: read
+
 jobs:
   publish:
     env:

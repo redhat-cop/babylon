@@ -11,6 +11,10 @@ on:
       - catalog/**
     branches:
       - main
+
+permissions:
+  contents: read
+
 jobs:
   test:
     name: "UI Tests"
