@@ -98,7 +98,7 @@ oauthProxy:
 redis:
   name: # default use chart name + '-redis'
   deploy: true
-  password:
+  password: null
   generatePassword: true
   image:
     #override:
