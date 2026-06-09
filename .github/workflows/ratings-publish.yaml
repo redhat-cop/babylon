@@ -68,7 +68,7 @@ jobs:
 
       - name: Build and push
         if: steps.image_tags.outputs.IMAGE_TAGS
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: ratings
           file: ratings/Dockerfile
