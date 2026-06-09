@@ -15,13 +15,15 @@ const CatalogContent: React.FC<{
   const { groups, userInterface } = useSession().getSession();
   const [wrapperRect, catalogWrapperRef] = useRect();
   return (
-    <div ref={catalogWrapperRef}>
+    <div>
       {catalogItemsResult.length > 0 ? (
         <PageSection hasBodyWrapper={false}
           variant={PageSectionVariants.default}
           className={`catalog__content-box catalog__content-box--${view}`}
         >
-          <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
+          <div ref={catalogWrapperRef}>
+            <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
+          </div>
         </PageSection>
       ) : (
         <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} className="catalog__content-box--empty">

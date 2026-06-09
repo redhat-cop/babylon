@@ -11,13 +11,14 @@ const LIST_ROW_HEIGHT = 150;
 
 type GridCellProps = {
   catalogItemsResultAsGrid: CatalogItem[][];
+  horizontalOffset: number;
 };
 
-const Cell = ({ columnIndex, rowIndex, style, catalogItemsResultAsGrid }: CellComponentProps<GridCellProps>) => (
+const Cell = ({ columnIndex, rowIndex, style, catalogItemsResultAsGrid, horizontalOffset }: CellComponentProps<GridCellProps>) => (
   <div
     style={{
       ...style,
-      left: Number(style.left) + GUTTER_SIZE,
+      left: Number(style.left) + horizontalOffset,
       top: Number(style.top) + GUTTER_SIZE,
       width: Number(style.width) - GUTTER_SIZE,
       height: Number(style.height) - GUTTER_SIZE,
@@ -52,6 +53,8 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
   const gridWidth = wrapperRect?.width || 1000;
   const gridHeight = window.innerHeight - (wrapperRect?.top || 0) || 1000;
   const catalogItemsColumnsSize = Math.floor(gridWidth / (GRID_COLUMN_WIDTH + GUTTER_SIZE));
+  const contentWidth = catalogItemsColumnsSize * GRID_COLUMN_WIDTH + Math.max(0, catalogItemsColumnsSize - 1) * GUTTER_SIZE;
+  const horizontalOffset = Math.max(0, (gridWidth - contentWidth) / 2);
   const catalogItemsResultAsGrid = useMemo(
     () =>
       catalogItems.reduce((grid, item, index) => {
@@ -68,7 +71,7 @@ const CatalogGridList: React.FC<{ catalogItems: CatalogItem[]; wrapperRect: DOMR
     <div style={{ width: gridWidth, height: gridHeight }}>
       <Grid<GridCellProps>
         cellComponent={Cell}
-        cellProps={{ catalogItemsResultAsGrid }}
+        cellProps={{ catalogItemsResultAsGrid, horizontalOffset }}
         columnCount={catalogItemsColumnsSize}
         columnWidth={GRID_COLUMN_WIDTH + GUTTER_SIZE}
         rowCount={catalogItemsResultAsGrid.length}
