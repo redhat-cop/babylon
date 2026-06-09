@@ -1,4 +1,4 @@
-import React, { ReactElement, Suspense, useLayoutEffect, useState } from 'react';
+import React, { ReactElement, Suspense, useLayoutEffect, useState, act } from 'react';
 import { render, RenderOptions, RenderResult, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -28,18 +28,22 @@ const AllTheProviders = ({ children, history }) => {
   );
 };
 
-const customRender = (
+const customRender = async (
   ui: ReactElement,
   options?: { history: MemoryHistory } & Omit<RenderOptions, 'queries'>,
-): RenderResult => {
+): Promise<RenderResult> => {
   function getOptions({ history = createMemoryHistory({ initialEntries: ['/'] }), ...rest }) {
     return { rest, history };
   }
   const { history, ...rest } = getOptions(options || {});
-  return render(ui, {
-    wrapper: ({ children }) => <AllTheProviders history={history}>{children}</AllTheProviders>,
-    ...rest,
+  let result: RenderResult;
+  await act(async () => {
+    result = render(ui, {
+      wrapper: ({ children }) => <AllTheProviders history={history}>{children}</AllTheProviders>,
+      ...rest,
+    });
   });
+  return result;
 };
 
 // re-export everything

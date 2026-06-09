@@ -82,7 +82,7 @@ jest.mock('@app/utils/useServiceQuota', () => {
 
 describe('CatalogItemForm Component', () => {
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
-    const { getByText, getByLabelText } = render(<CatalogItemForm />);
+    const { getByText, getByLabelText } = await render(<CatalogItemForm />);
     const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));
     const sfidLabel = getByLabelText('Salesforce IDs (Opportunity ID, Campaign ID or Project ID)');
     const purposeLabel = getByText('Purpose');
@@ -97,14 +97,14 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('When Cancel button is clicked the history goBack function is called', async () => {
-    const { getByText } = render(<CatalogItemForm />);
+    const { getByText } = await render(<CatalogItemForm />);
     const button = await waitFor(() => getByText('Cancel'));
     fireEvent.click(button);
     expect(mockNavigate).toHaveBeenCalled();
   });
 
   test('Submit button disabled until required fields are filled', async () => {
-    const { getByText, getByLabelText, getByRole } = render(<CatalogItemForm />);
+    const { getByText, getByLabelText, getByRole } = await render(<CatalogItemForm />);
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
@@ -127,7 +127,7 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('Description should be visible when hovering', async () => {
-    const { queryByText, getByLabelText } = render(<CatalogItemForm />);
+    const { queryByText, getByLabelText } = await render(<CatalogItemForm />);
 
     const sfidLabel = await waitFor(() => getByLabelText('Salesforce IDs (Opportunity ID, Campaign ID or Project ID)'));
     const sfidTypeDescriptionText = 'Salesforce ID type: Opportunity ID, Campaign ID or Project ID.';
@@ -137,7 +137,7 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('Enabling Workshop switch should display form', async () => {
-    const { getByText, queryByText, getByLabelText } = render(<CatalogItemForm />);
+    const { getByText, queryByText, getByLabelText } = await render(<CatalogItemForm />);
     const switchBtn = await waitFor(() => getByLabelText('Enable workshop user interface'));
 
     const workshopItemDisplayName = 'Test Config';
@@ -159,7 +159,7 @@ describe('CatalogItemForm Component', () => {
   });
 
   test('Workshop Title is required', async () => {
-    const { getByText, getByLabelText, getByRole } = render(<CatalogItemForm />);
+    const { getByText, getByLabelText, getByRole } = await render(<CatalogItemForm />);
     const button = await waitFor(() =>
       getByRole('button', {
         name: /Order/i,
@@ -205,7 +205,7 @@ describe('CatalogItemForm Component', () => {
         isLoading: false,
       });
 
-      const { getByRole } = render(<CatalogItemForm />);
+      const { getByRole } = await render(<CatalogItemForm />);
       const button = await waitFor(() =>
         getByRole('button', {
           name: /Order/i,
@@ -225,7 +225,7 @@ describe('CatalogItemForm Component', () => {
         isLoading: false,
       });
 
-      const { getByText } = render(<CatalogItemForm />);
+      const { getByText } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(getByText('Service Quota Exceeded')).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe('CatalogItemForm Component', () => {
         isLoading: false,
       });
 
-      const { getByText, getByLabelText, getByRole, queryByText } = render(<CatalogItemForm />);
+      const { getByText, getByLabelText, getByRole, queryByText } = await render(<CatalogItemForm />);
       const button = await waitFor(() =>
         getByRole('button', {
           name: /Order/i,
@@ -276,7 +276,7 @@ describe('CatalogItemForm Component', () => {
         isLoading: false,
       });
 
-      const { queryByText } = render(<CatalogItemForm />);
+      const { queryByText } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(queryByText('Service Quota Exceeded')).not.toBeInTheDocument();
@@ -297,7 +297,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('Admin Settings section should be visible for admin users', async () => {
-      const { getByText } = render(<CatalogItemForm />);
+      const { getByText } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(getByText('Admin Settings')).toBeInTheDocument();
@@ -305,7 +305,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('White-Glove Support switch should be visible in admin section', async () => {
-      const { getByLabelText } = render(<CatalogItemForm />);
+      const { getByLabelText } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(getByLabelText('White-Glove Support')).toBeInTheDocument();
@@ -313,7 +313,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('Resource Pool selector should be visible in admin section', async () => {
-      const { getByTestId } = render(<CatalogItemForm />);
+      const { getByTestId } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(getByTestId('resource-pool-selector')).toBeInTheDocument();
@@ -321,7 +321,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('Keep instance if provision fails switch should be visible in admin section', async () => {
-      const { getByLabelText } = render(<CatalogItemForm />);
+      const { getByLabelText } = await render(<CatalogItemForm />);
 
       await waitFor(() => {
         expect(getByLabelText('Keep instance if provision fails')).toBeInTheDocument();
@@ -329,7 +329,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('White-Glove Support switch should toggle correctly', async () => {
-      const { getByLabelText } = render(<CatalogItemForm />);
+      const { getByLabelText } = await render(<CatalogItemForm />);
 
       const whiteGloveSwitch = await waitFor(() => getByLabelText('White-Glove Support'));
       expect(whiteGloveSwitch).not.toBeChecked();
@@ -342,7 +342,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('Keep instance switch should toggle correctly', async () => {
-      const { getByLabelText } = render(<CatalogItemForm />);
+      const { getByLabelText } = await render(<CatalogItemForm />);
 
       const keepInstanceSwitch = await waitFor(() => getByLabelText('Keep instance if provision fails'));
       // Default is useAutoDetach=true, so isChecked=!useAutoDetach=false
@@ -356,7 +356,7 @@ describe('CatalogItemForm Component', () => {
     });
 
     test('Resource Pool selector should allow pool selection', async () => {
-      const { getByTestId } = render(<CatalogItemForm />);
+      const { getByTestId } = await render(<CatalogItemForm />);
 
       const selector = await waitFor(() => getByTestId('resource-pool-select'));
       expect(selector).toBeInTheDocument();

@@ -15,14 +15,14 @@ jest.mock('react-redux', () => {
 
 describe('ServiceStatus', () => {
   test('When ServiceStatus layout renders with stopped, should display ServiceStatus', async () => {
-    const { getByText } = render(
+    const { getByText } = await render(
       <ServiceStatus resourceClaim={stoppedResourceClaimObj as unknown as ResourceClaim} />,
     );
     const status = getByText(/Stopped/i);
     await waitFor(() => expect(status).toBeInTheDocument());
   });
   test('When ServiceStatus layout renders with provision-failed, should display ServiceStatus', async () => {
-    const { getByText } = render(
+    const { getByText } = await render(
       <ServiceStatus resourceClaim={failedResourceClaimObj as unknown as ResourceClaim} />,
     );
     const status = getByText(/Provision Failed/i);
