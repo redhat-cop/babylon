@@ -892,6 +892,23 @@ const Ops: React.FC = () => {
     return counts;
   }, [operationTargets]);
 
+  const emptyFilterMsg = useMemo(() => {
+    const filterText = workshopSearchText && !workshopFilter ? workshopSearchText : workshopFilter;
+    if (!filterText && !stageFilter && scheduleFilter === 'all' && !whiteGloveMode) return null;
+
+    const searchTerms = workshopSearchText && !workshopFilter ? parseSearchTerms(workshopSearchText) : [];
+    const searchMsg = searchTerms.length > 1
+      ? `search terms "${searchTerms.join('", "')}"`
+      : filterText ? `"${filterText}"` : null;
+
+    return (
+      <>
+        No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
+        Try another workshop name, stage, white glove mode, start window, or failed filter.
+      </>
+    );
+  }, [workshopFilter, workshopSearchText, stageFilter, scheduleFilter, whiteGloveMode]);
+
   const isUnfiltered = !workshopFilter && !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
 
   const modalScopeDescription = useMemo(() => {
@@ -1887,9 +1904,9 @@ const Ops: React.FC = () => {
               )}
             </div>
 
-            {targets.length === 0 && workshops.length > 0 && (
-              <Alert variant="warning" isInline title="No workshops match the current filters" style={{ marginBottom: 16 }}>
-                Try another workshop name, stage, white glove mode, start window, or failed filter.
+            {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
+              <Alert variant="warning" isInline style={{ marginBottom: 16 }}>
+                {emptyFilterMsg}
               </Alert>
             )}
 
