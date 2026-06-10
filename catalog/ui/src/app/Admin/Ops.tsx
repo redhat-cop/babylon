@@ -1905,7 +1905,7 @@ const Ops: React.FC = () => {
             </div>
 
             {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
-              <Alert variant="warning" isInline style={{ marginBottom: 16 }}>
+              <Alert variant="warning" isInline title="No matches" style={{ marginBottom: 16 }}>
                 {emptyFilterMsg}
               </Alert>
             )}
