@@ -1961,17 +1961,17 @@ const Ops: React.FC = () => {
               <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
                 <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
                 <CardBody>
-                  <p className="ops-desc">
+                  <p className="ops-desc" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     Sets spec.count to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
-                  <div className="ops-number-row">
+                  <div className="ops-number-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
                       onPlus={() => setScaleCount(scaleCount + 1)}
                       onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={4} aria-label="New instance count" />
-                    <span>new instance count</span>
+                    <span style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>← new instance count</span>
                   </div>
                   {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
                   {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
