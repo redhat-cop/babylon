@@ -362,6 +362,27 @@ function isResourceClaimFailed(rc: ResourceClaim): boolean {
   return false;
 }
 
+/**
+ * Parse multi-term search input into individual search terms.
+ * Supports comma-separated, space-separated, or mixed formats.
+ * Examples:
+ *   "workshop1, workshop2" -> ["workshop1", "workshop2"]
+ *   "workshop1 workshop2" -> ["workshop1", "workshop2"]
+ *   "workshop1,workshop2 workshop3" -> ["workshop1", "workshop2", "workshop3"]
+ */
+function parseSearchTerms(input: string): string[] {
+  if (!input || !input.trim()) return [];
+
+  // Split by comma or whitespace, trim each term, filter empty strings
+  const terms = input
+    .split(/[,\s]+/)
+    .map(term => term.trim().toLowerCase())
+    .filter(term => term.length > 0);
+
+  // Deduplicate terms
+  return Array.from(new Set(terms));
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
