@@ -668,14 +668,7 @@ const Ops: React.FC = () => {
 
   // ---------- Workshop filter ----------
 
-  const workshopOptions = useMemo(() => {
-    const names = new Set(workshops.map(w => displayName(w)));
-    return Array.from(names).sort();
-  }, [workshops]);
-
-  const [workshopFilter, setWorkshopFilter] = useState('');
   const [workshopSearchText, setWorkshopSearchText] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
@@ -689,8 +682,8 @@ const Ops: React.FC = () => {
   const targets = useMemo(() => {
     let list = workshops;
 
-    // Multi-term free-text search (partial match) - use when in multi-namespace/platform mode or when no exact filter set
-    if (workshopSearchText && !workshopFilter) {
+    // Multi-term free-text search (partial match)
+    if (workshopSearchText) {
       const searchTerms = parseSearchTerms(workshopSearchText);
       if (searchTerms.length > 0) {
         list = list.filter(w => {
@@ -708,9 +701,6 @@ const Ops: React.FC = () => {
       }
     }
 
-    // Exact match dropdown filter (legacy single-namespace behavior)
-    if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
-
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
@@ -720,7 +710,6 @@ const Ops: React.FC = () => {
     return arr;
   }, [
     workshops,
-    workshopFilter,
     workshopSearchText,
     stageFilter,
     failedFilter,
@@ -744,11 +733,11 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopFilter, workshopSearchText, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+  }, [workshopSearchText, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
-  }, [workshopFilter, stageFilter, namespace]);
+  }, [stageFilter, namespace]);
 
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
@@ -869,18 +858,17 @@ const Ops: React.FC = () => {
     const nsLabel = platformMode ? 'all namespaces' :
                     isMultiNs ? `${activeNamespaces.length} namespace(s)` :
                     namespace || 'unknown namespace';
-    if (workshopSearchText && !workshopFilter) {
+    if (workshopSearchText) {
       const searchTerms = parseSearchTerms(workshopSearchText);
       const displayTerms = searchTerms.length > 3
         ? `${searchTerms.slice(0, 3).join(', ')}... (${searchTerms.length} terms)`
         : searchTerms.join(', ');
       return <>Search &ldquo;{displayTerms}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
-    if (workshopFilter) return <>{workshopFilter} ({targets.length}) in {nsLabel}</>;
     if (hasSelection) return <>{selectedWs.size} selected</>;
     if (whiteGloveMode) return <>White Glove ({targets.length}) in {nsLabel}</>;
     return <>{targets.length} in {nsLabel}</>;
-  }, [workshopFilter, workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
+  }, [workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -893,10 +881,10 @@ const Ops: React.FC = () => {
   }, [operationTargets]);
 
   const emptyFilterMsg = useMemo(() => {
-    const filterText = workshopSearchText && !workshopFilter ? workshopSearchText : workshopFilter;
+    const filterText = workshopSearchText;
     if (!filterText && !stageFilter && scheduleFilter === 'all' && !whiteGloveMode) return null;
 
-    const searchTerms = workshopSearchText && !workshopFilter ? parseSearchTerms(workshopSearchText) : [];
+    const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
     const searchMsg = searchTerms.length > 1
       ? `search terms "${searchTerms.join('", "')}"`
       : filterText ? `"${filterText}"` : null;
@@ -907,12 +895,12 @@ const Ops: React.FC = () => {
         Try another workshop name, stage, white glove mode, start window, or failed filter.
       </>
     );
-  }, [workshopFilter, workshopSearchText, stageFilter, scheduleFilter, whiteGloveMode]);
+  }, [workshopSearchText, stageFilter, scheduleFilter, whiteGloveMode]);
 
-  const isUnfiltered = !workshopFilter && !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
+  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
 
   const modalScopeDescription = useMemo(() => {
-    const filterText = workshopSearchText && !workshopFilter ? workshopSearchText : workshopFilter;
+    const filterText = workshopSearchText;
     if (!isMultiNs) {
       return filterText
         ? <> matching &ldquo;{filterText}&rdquo; in <code>{namespace}</code></>
@@ -931,7 +919,7 @@ const Ops: React.FC = () => {
         </ul>
       </>
     );
-  }, [isMultiNs, workshopFilter, workshopSearchText, namespace, namespaceCounts]);
+  }, [isMultiNs, workshopSearchText, namespace, namespaceCounts]);
 
   // ---------- Summary stats ----------
 
@@ -1722,35 +1710,14 @@ const Ops: React.FC = () => {
                 <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   Workshop
                 </label>
-                {isMultiNs || platformMode ? (
-                  <SearchInput
-                    placeholder="Search by name or namespace (comma/space separated for multiple)"
-                    value={workshopSearchText}
-                    onChange={(_e, val) => setWorkshopSearchText(val)}
-                    onClear={() => setWorkshopSearchText('')}
-                    style={{ minWidth: 280 }}
-                    aria-label="Search workshops"
-                  />
-                ) : (
-                  <Select
-                    id="ops-scope"
-                    isOpen={filterOpen}
-                    selected={workshopFilter}
-                    onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
-                    onOpenChange={setFilterOpen}
-                    toggle={(toggleRef) => (
-                      <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
-                        {workshopFilter || 'All Workshops'}
-                      </MenuToggle>
-                    )}
-                    shouldFocusToggleOnSelect
-                  >
-                    <SelectList>
-                      <SelectOption value="">All Workshops</SelectOption>
-                      {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-                    </SelectList>
-                  </Select>
-                )}
+                <SearchInput
+                  placeholder="Search by name or namespace (comma/space separated for multiple)"
+                  value={workshopSearchText}
+                  onChange={(_e, val) => setWorkshopSearchText(val)}
+                  onClear={() => setWorkshopSearchText('')}
+                  style={{ minWidth: 280 }}
+                  aria-label="Search workshops"
+                />
                 <div className="ops-stage-filters">
                   {STAGE_FILTERS.map(f => (
                     <Label
@@ -1825,7 +1792,7 @@ const Ops: React.FC = () => {
               {isMultiNs && (
                 <>
                   <div className="ops-stat">
-                    <span className="ops-stat-value">{activeNamespaces.length}</span>
+                    <span className="ops-stat-value">{platformMode ? 'All' : activeNamespaces.length}</span>
                     <span className="ops-stat-label">Namespaces</span>
                   </div>
                   <div className="ops-stat-divider" />
@@ -2149,7 +2116,7 @@ const Ops: React.FC = () => {
                   page={safeTablePage}
                   perPage={tablePerPage}
                   onSetPage={(_e, p) => setTablePage(p)}
-                  onPerPageSelect={(_e, _pp, p) => { setTablePerPage(p); setTablePage(1); }}
+                  onPerPageSelect={(_e, pp) => { setTablePerPage(pp); setTablePage(1); }}
                   perPageOptions={[
                     { title: '10', value: 10 },
                     { title: '20', value: 20 },
