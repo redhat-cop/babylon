@@ -683,7 +683,7 @@ const Ops: React.FC = () => {
   const [scheduleFilter, setScheduleFilter] = useState<OpsScheduleFilterKey>('all');
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePerPage, setTablePerPage] = useState(OPS_GROUP_PAGE_DEFAULT);
+  const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
   const [workshopView, setWorkshopView] = useState<'table' | 'calendar'>('table');
 
   const targets = useMemo(() => {
@@ -2132,10 +2132,10 @@ const Ops: React.FC = () => {
                   onSetPage={(_e, p) => setTablePage(p)}
                   onPerPageSelect={(_e, _pp, p) => { setTablePerPage(p); setTablePage(1); }}
                   perPageOptions={[
-                    { title: '15', value: 15 },
-                    { title: '18', value: 18 },
+                    { title: '10', value: 10 },
                     { title: '20', value: 20 },
                     { title: '50', value: 50 },
+                    { title: '100', value: 100 },
                   ]}
                   variant="top"
                   isCompact
