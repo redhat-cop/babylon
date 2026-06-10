@@ -866,18 +866,20 @@ const Ops: React.FC = () => {
   }, []);
 
   const scopeLabel = useMemo(() => {
-    const nsLabel = platformMode ? 'all namespaces (platform)' : isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
-    if (hasSelection) {
-      return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
-    }
+    const nsLabel = platformMode ? 'all namespaces' :
+                    isMultiNs ? `${activeNamespaces.length} namespace(s)` :
+                    namespace || 'unknown namespace';
     if (workshopSearchText && !workshopFilter) {
-      return <>Search &ldquo;{workshopSearchText}&rdquo; ({targets.length}) in {nsLabel}</>;
+      const searchTerms = parseSearchTerms(workshopSearchText);
+      const displayTerms = searchTerms.length > 3
+        ? `${searchTerms.slice(0, 3).join(', ')}... (${searchTerms.length} terms)`
+        : searchTerms.join(', ');
+      return <>Search &ldquo;{displayTerms}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
-    if (workshopFilter) {
-      return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
-    }
-    const modePrefix = whiteGloveMode ? 'White glove' : 'All';
-    return <>{modePrefix} · {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
+    if (workshopFilter) return <>{workshopFilter} ({targets.length}) in {nsLabel}</>;
+    if (hasSelection) return <>{selectedWs.size} selected</>;
+    if (whiteGloveMode) return <>White Glove ({targets.length}) in {nsLabel}</>;
+    return <>{targets.length} in {nsLabel}</>;
   }, [workshopFilter, workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
