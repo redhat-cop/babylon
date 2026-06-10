@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Card, CardBody, EmptyState, EmptyStateBody } from '@patternfly/react-core';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { Workshop } from '@app/types';
 import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
@@ -9,6 +9,11 @@ export interface WorkshopTimelineProps {
   selectedWorkshops: Set<string>;
   onSelectWorkshop: (id: string, selected: boolean) => void;
   onClickWorkshop: (id: string) => void;
+}
+
+interface WorkshopCondition {
+  type: string;
+  status: string;
 }
 
 function getMonday(d: Date): Date {
@@ -41,7 +46,7 @@ function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming
   const status = workshop.status;
   if (!status) return 'Upcoming';
 
-  if (status.phase === 'Failed' || status.conditions?.some((c: any) => c.type === 'Failed' && c.status === 'True')) {
+  if (status.phase === 'Failed' || status.conditions?.some((c: WorkshopCondition) => c.type === 'Failed' && c.status === 'True')) {
     return 'Failed';
   }
 

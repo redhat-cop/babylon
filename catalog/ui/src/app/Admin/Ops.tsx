@@ -73,7 +73,6 @@ import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
-import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import {
   apiPaths,
@@ -991,28 +990,6 @@ const Ops: React.FC = () => {
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
-<<<<<<< HEAD
-    const failedWorkshops: Array<{
-      workshop: Workshop;
-      namespace: string;
-      failedClaims: ResourceClaim[];
-      failedCount: number;
-    }> = [];
-
-    for (const ws of operationTargets) {
-      const claims = resourceClaimsByWorkshop.get(wsKey(ws)) || [];
-      const failedClaims = claims.filter(rc =>
-        !rc.metadata.deletionTimestamp && isResourceClaimFailed(rc)
-      );
-
-      if (failedClaims.length > 0) {
-        failedWorkshops.push({
-          workshop: ws,
-          namespace: ws.metadata.namespace,
-          failedClaims,
-          failedCount: failedClaims.length,
-        });
-=======
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
     const allJobUrls: string[] = [];
 
@@ -1035,17 +1012,13 @@ const Ops: React.FC = () => {
         const jobUrls = failedClaims.map(getProvisionJobUrl).filter((url): url is string => url !== null);
         allJobUrls.push(...jobUrls);
         failedWorkshops.push({ workshop: ws, failedClaims, failedCount: failedClaims.length, jobUrls });
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
       }
     }
 
     return {
       totalFailed: failedWorkshops.reduce((sum, fw) => sum + fw.failedCount, 0),
       failedWorkshops,
-<<<<<<< HEAD
-=======
       allJobUrls,
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     };
   }, [operationTargets, resourceClaimsByWorkshop]);
 
@@ -1397,7 +1370,6 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
-<<<<<<< HEAD
   const handleRedeployFailed = async () => {
     setShowRedeployConfirm(false);
     setRedeployLoading(true);
@@ -1434,7 +1406,9 @@ const Ops: React.FC = () => {
         AlertVariant.danger,
         `Redeploy: ${succeeded} succeeded, ${failed} failed`,
       );
-=======
+    }
+  };
+
   const handleOpenFailedJobs = (urls: string[], batchSize = 10) => {
     const toOpen = urls.slice(0, batchSize);
     toOpen.forEach((url) => window.open(url, '_blank'));
@@ -1443,7 +1417,6 @@ const Ops: React.FC = () => {
       addAlert(AlertVariant.info, `Opened ${batchSize} jobs. ${urls.length - batchSize} remaining.`);
     } else {
       addAlert(AlertVariant.success, `Opened ${urls.length} AAP2 job(s) in new tabs`);
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     }
   };
 
@@ -1585,7 +1558,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => { setWorkshopFilter(''); setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
+              onSelect={(n) => { setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -2093,35 +2066,25 @@ const Ops: React.FC = () => {
               {/* Redeploy Failed Services */}
               <Card isFullHeight className="ops-redeploy-failed">
                 <CardTitle>
-<<<<<<< HEAD
-                  <RedoIcon className="ops-card-icon" /> Redeploy Failed Services
-=======
                   <RedoIcon className="ops-card-icon" />
                   Redeploy Failed Services
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                 </CardTitle>
                 <CardBody>
                   {failedInstancesAnalysis.totalFailed > 0 ? (
                     <>
-<<<<<<< HEAD
                       <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                         Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
                         <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
                       </p>
-                      <Button
-                        variant="warning"
-                        onClick={() => setShowRedeployConfirm(true)}
-                        isLoading={redeployLoading}
-                        isDisabled={anyLoading}
-                      >
-                        Redeploy Failed Services
-                      </Button>
-=======
-                      <p>
-                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s)
-                        across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
-                      </p>
-                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Button
+                          variant="warning"
+                          onClick={() => setShowRedeployConfirm(true)}
+                          isLoading={redeployLoading}
+                          isDisabled={anyLoading}
+                        >
+                          Redeploy Failed Services
+                        </Button>
                         <Tooltip content={failedJobsTooltip}>
                           <Dropdown
                             isOpen={isBatchMenuOpen}
@@ -2153,7 +2116,6 @@ const Ops: React.FC = () => {
                           </Dropdown>
                         </Tooltip>
                       </div>
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                     </>
                   ) : (
                     <p className="ops-muted">No failed instances found</p>
@@ -2958,7 +2920,7 @@ const Ops: React.FC = () => {
             <ul style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {failedInstancesAnalysis.failedWorkshops.map(fw => (
                 <li key={wsKey(fw.workshop)}>
-                  <strong>{displayName(fw.workshop)}</strong> ({fw.namespace}): {fw.failedCount} failed
+                  <strong>{displayName(fw.workshop)}</strong> ({fw.workshop.metadata.namespace}): {fw.failedCount} failed
                 </li>
               ))}
             </ul>

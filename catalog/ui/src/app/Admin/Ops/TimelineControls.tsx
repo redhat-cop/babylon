@@ -108,7 +108,7 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
   return (
     <Toolbar>
       <ToolbarContent>
-        <ToolbarGroup variant="button-group">
+        <ToolbarGroup>
           <ToolbarItem>
             <Button variant="secondary" onClick={handleToday}>
               Today

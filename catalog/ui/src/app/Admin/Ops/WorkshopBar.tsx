@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { Checkbox, Tooltip } from '@patternfly/react-core';
 import { Workshop } from '@app/types';
-import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 
 export interface WorkshopBarProps {
   workshop: Workshop;
@@ -12,12 +11,17 @@ export interface WorkshopBarProps {
   onClick: (id: string) => void;
 }
 
+interface WorkshopCondition {
+  type: string;
+  status: string;
+}
+
 function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
   const status = workshop.status;
   if (!status) return 'Upcoming';
 
   // Check for failed state
-  if (status.phase === 'Failed' || status.conditions?.some((c: any) => c.type === 'Failed' && c.status === 'True')) {
+  if (status.phase === 'Failed' || status.conditions?.some((c: WorkshopCondition) => c.type === 'Failed' && c.status === 'True')) {
     return 'Failed';
   }
 
