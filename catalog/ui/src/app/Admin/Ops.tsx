@@ -1981,6 +1981,9 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
+                  <p className="ops-desc" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 8 }}>
+                    <em>Auto-destroy scheduling coming soon</em>
+                  </p>
                   <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
@@ -2153,6 +2156,11 @@ const Ops: React.FC = () => {
                         of {targets.length} total
                       </span>
                     )}
+                    {summary.seatsAssigned > 0 && (
+                      <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--pf-t--global--color--green--200)' }}>
+                        {summary.seatsAssigned}/{summary.seatsTotal} seats running
+                      </span>
+                    )}
                   </Title>
                 </SplitItem>
                 <SplitItem>
@@ -2191,6 +2199,29 @@ const Ops: React.FC = () => {
                       <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
                     </Button>
                   </SplitItem>
+                )}
+                {workshopView === 'timeline' && (
+                  <>
+                    <SplitItem>
+                      <Button
+                        variant="link"
+                        onClick={() => setSelectedWs(new Set(targets.map(wsKey)))}
+                        isDisabled={selectedWs.size === targets.length}
+                      >
+                        Select all
+                      </Button>
+                    </SplitItem>
+                    {hasSelection && (
+                      <SplitItem>
+                        <Button
+                          variant="link"
+                          onClick={() => setSelectedWs(new Set())}
+                        >
+                          Clear selection
+                        </Button>
+                      </SplitItem>
+                    )}
+                  </>
                 )}
                 <SplitItem>
                   <Tooltip content="Export to CSV">
