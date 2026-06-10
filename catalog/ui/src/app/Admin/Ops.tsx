@@ -689,15 +689,23 @@ const Ops: React.FC = () => {
   const targets = useMemo(() => {
     let list = workshops;
 
-    // Free-text search (partial match) - use when in multi-namespace/platform mode or when no exact filter set
+    // Multi-term free-text search (partial match) - use when in multi-namespace/platform mode or when no exact filter set
     if (workshopSearchText && !workshopFilter) {
-      const searchLower = workshopSearchText.toLowerCase().trim();
-      list = list.filter(w => {
-        const name = displayName(w).toLowerCase();
-        const wsName = w.metadata.name.toLowerCase();
-        const ns = w.metadata.namespace.toLowerCase();
-        return name.includes(searchLower) || wsName.includes(searchLower) || ns.includes(searchLower);
-      });
+      const searchTerms = parseSearchTerms(workshopSearchText);
+      if (searchTerms.length > 0) {
+        list = list.filter(w => {
+          const name = displayName(w).toLowerCase();
+          const wsName = w.metadata.name.toLowerCase();
+          const ns = w.metadata.namespace.toLowerCase();
+
+          // Match if ANY search term found in name, wsName, or namespace
+          return searchTerms.some(term =>
+            name.includes(term) ||
+            wsName.includes(term) ||
+            ns.includes(term)
+          );
+        });
+      }
     }
 
     // Exact match dropdown filter (legacy single-namespace behavior)
