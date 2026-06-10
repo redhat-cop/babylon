@@ -114,6 +114,7 @@ import { WorkshopTimeline } from '@app/Admin/Ops/WorkshopTimeline';
 
 import './admin.css';
 import './ops.css';
+import './Ops/timeline.css';
 import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
 interface OpsAlert {
@@ -2256,8 +2257,10 @@ const Ops: React.FC = () => {
                     });
                   }}
                   onClickWorkshop={(id) => {
-                    const [namespace, name] = id.split('/');
-                    navigate(`/workshops/${namespace}/${name}`);
+                    const workshop = targets.find(ws => wsKey(ws) === id);
+                    if (workshop) {
+                      navigate(wsDetailPath(workshop));
+                    }
                   }}
                 />
               )}

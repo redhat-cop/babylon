@@ -53,13 +53,13 @@ function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming
 function getStatusColor(status: 'Running' | 'Failed' | 'Upcoming' | 'Stopped'): string {
   switch (status) {
     case 'Running':
-      return 'var(--pf-v5-global--success-color--100)';
+      return 'var(--pf-t--global--color--green--200, #28a745)';
     case 'Failed':
-      return 'var(--pf-v5-global--danger-color--100)';
+      return 'var(--pf-t--global--color--red--200, #dc3545)';
     case 'Upcoming':
-      return 'var(--pf-v5-global--primary-color--100)';
+      return 'var(--pf-t--global--color--blue--200, #007bff)';
     case 'Stopped':
-      return 'var(--pf-v5-global--Color--200)';
+      return 'var(--pf-t--global--color--gray--400, #6c757d)';
   }
 }
 
@@ -104,16 +104,18 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const leftPercent = (daysFromViewStart / totalViewDays) * 100;
   const widthPercent = Math.max((workshopDurationDays / totalViewDays) * 100, 2); // Minimum 2% width
 
+  const workshopKey = `${workshop.metadata.namespace}/${workshop.metadata.name}`;
+
   const handleCheckboxChange = useCallback(
     (checked: boolean) => {
-      onSelect(workshop.metadata.name, checked);
+      onSelect(workshopKey, checked);
     },
-    [onSelect, workshop.metadata.name]
+    [onSelect, workshopKey]
   );
 
   const handleBarClick = useCallback(() => {
-    onClick(workshop.metadata.name);
-  }, [onClick, workshop.metadata.name]);
+    onClick(workshopKey);
+  }, [onClick, workshopKey]);
 
   const workshopName = workshop.spec?.displayName || workshop.metadata.name;
 
@@ -142,9 +144,9 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           alignItems: 'center',
           cursor: 'pointer',
           boxShadow: isSelected
-            ? '0 0 0 2px var(--pf-v5-global--primary-color--100)'
+            ? '0 0 0 2px var(--pf-t--global--color--blue--200, #007bff)'
             : '0 1px 2px rgba(0,0,0,0.1)',
-          border: isSelected ? '2px solid var(--pf-v5-global--primary-color--100)' : 'none',
+          border: isSelected ? '2px solid var(--pf-t--global--color--blue--200, #007bff)' : 'none',
           transition: 'box-shadow 0.2s',
           overflow: 'hidden',
           whiteSpace: 'nowrap',

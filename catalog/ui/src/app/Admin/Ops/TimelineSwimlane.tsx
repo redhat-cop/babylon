@@ -116,7 +116,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
             <div
               style={{
                 textAlign: 'center',
-                color: 'var(--pf-v5-global--Color--200)',
+                color: 'var(--pf-t--global--text--color--subtle, #6c757d)',
                 padding: '20px',
               }}
             >
