@@ -1705,7 +1705,7 @@ const Ops: React.FC = () => {
                 </label>
                 {isMultiNs || platformMode ? (
                   <SearchInput
-                    placeholder="Search by name or namespace..."
+                    placeholder="Search by name or namespace (comma/space separated for multiple)"
                     value={workshopSearchText}
                     onChange={(_e, val) => setWorkshopSearchText(val)}
                     onClear={() => setWorkshopSearchText('')}
