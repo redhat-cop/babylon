@@ -91,6 +91,7 @@ import {
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
+  WorkshopWithResourceClaims,
 } from '@app/types';
 import {
   displayName,
@@ -2249,7 +2250,7 @@ const Ops: React.FC = () => {
                   workshops={targets.map(ws => ({
                     ...ws,
                     resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || []
-                  }))}
+                  } as WorkshopWithResourceClaims))}
                   selectedWorkshops={selectedWs}
                   onSelectWorkshop={(id, selected) => {
                     setSelectedWs(prev => {
