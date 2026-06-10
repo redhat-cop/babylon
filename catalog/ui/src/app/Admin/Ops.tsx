@@ -1962,7 +1962,7 @@ const Ops: React.FC = () => {
                 <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
-                    Sets <code>spec.count</code> to the value below.
+                    Sets spec.count to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
                   <div className="ops-number-row">
