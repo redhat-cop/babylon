@@ -1558,7 +1558,7 @@ const Ops: React.FC = () => {
             {workshops.length > 0 && (
               <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {platformMode ? ' (platform-wide)' : isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
+                {platformMode ? ' (platform-wide)' : isMultiNs && activeNamespaces.length > 1 ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
           </SplitItem>
@@ -1574,7 +1574,7 @@ const Ops: React.FC = () => {
                 <Tooltip content={
                   platformMode
                     ? 'Filtering all workshops on the platform'
-                    : isMultiNs
+                    : isMultiNs && activeNamespaces.length > 1
                       ? `Filtering workshops across ${activeNamespaces.length} namespaces`
                       : `Filtering workshops in ${namespace}`
                 }>
