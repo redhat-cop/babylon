@@ -1,6 +1,15 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Checkbox, Tooltip } from '@patternfly/react-core';
-import { WorkshopWithResourceClaims } from '@app/types';
+import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
+import { displayName, BABYLON_DOMAIN, getStageFromK8sObject } from '@app/util';
+import { dateUrgency, relativeTime } from '../Ops';
+
+interface ProvisionProgress {
+  desired: number;
+  claimed: number;
+  failed: number;
+  concurrency: number;
+}
 
 export interface WorkshopBarProps {
   workshop: WorkshopWithResourceClaims;
@@ -9,13 +18,18 @@ export interface WorkshopBarProps {
   isSelected: boolean;
   onSelect: (id: string, selected: boolean) => void;
   onClick: (id: string) => void;
+  getSeats: (ws: Workshop) => { assigned: number; total: number } | null;
+  getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
+  getCurrentCount: (ws: Workshop) => number | null;
+  multiWorkshopsByName: Map<string, MultiWorkshop>;
+  isMultiNs: boolean;
+  timezone: string;
 }
 
-function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
+function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'failed' | 'upcoming' | 'stopped' {
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
-  // Check if any resource claim failed (reuse Ops.tsx logic)
   const hasFailed = resourceClaims.some(rc => {
     const state = rc.status?.resources?.[0]?.state;
     if (!state || state.kind !== 'AnarchySubject') return false;
@@ -23,62 +37,32 @@ function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'F
     return provisionState === 'provision-failed' || provisionState === 'provision-error';
   });
 
-  if (hasFailed) return 'Failed';
+  if (hasFailed) return 'failed';
 
-  // Check if workshop has started (has provisioned instances)
+  if (workshop.spec?.provisionDisabled) return 'stopped';
+
   const hasStarted = resourceClaims.some(rc =>
     rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
     rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete'
   );
 
-  // Check dates
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
   const stopDate = workshop.spec?.actionSchedule?.stop;
 
-  if (startDate && new Date(startDate).getTime() > now) {
-    return 'Upcoming';
-  }
+  if (startDate && new Date(startDate).getTime() > now) return 'upcoming';
+  if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) return 'stopped';
+  if (hasStarted) return 'running';
 
-  if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) {
-    return 'Stopped';
-  }
-
-  if (hasStarted) {
-    return 'Running';
-  }
-
-  return 'Upcoming';
-}
-
-function getStatusColor(status: 'Running' | 'Failed' | 'Upcoming' | 'Stopped'): string {
-  switch (status) {
-    case 'Running':
-      return 'var(--pf-t--global--color--green--200, #28a745)';
-    case 'Failed':
-      return 'var(--pf-t--global--color--red--200, #dc3545)';
-    case 'Upcoming':
-      return 'var(--pf-t--global--color--blue--200, #007bff)';
-    case 'Stopped':
-      return 'var(--pf-t--global--color--gray--400, #6c757d)';
-  }
+  return 'upcoming';
 }
 
 function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } {
-  const spec = workshop.spec;
-  const lifespan = spec?.lifespan;
-
+  const lifespan = workshop.spec?.lifespan;
   let start = new Date();
   let end = new Date();
-  end.setDate(end.getDate() + 7); // Default to 7 days from now
-
-  if (lifespan?.start) {
-    start = new Date(lifespan.start);
-  }
-
-  if (lifespan?.end) {
-    end = new Date(lifespan.end);
-  }
-
+  end.setDate(end.getDate() + 7);
+  if (lifespan?.start) start = new Date(lifespan.start);
+  if (lifespan?.end) end = new Date(lifespan.end);
   return { start, end };
 }
 
@@ -89,88 +73,173 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   isSelected,
   onSelect,
   onClick,
+  getSeats,
+  getProvisionProgress,
+  getCurrentCount,
+  multiWorkshopsByName,
+  isMultiNs,
+  timezone,
 }) => {
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
   const status = getWorkshopStatus(workshop);
-  const color = getStatusColor(status);
 
-  // Calculate position and width
-  const totalViewDays = (viewEnd.getTime() - viewStart.getTime()) / (1000 * 60 * 60 * 24);
+  const totalViewMs = viewEnd.getTime() - viewStart.getTime();
   const clippedStart = new Date(Math.max(workshopStart.getTime(), viewStart.getTime()));
   const clippedEnd = new Date(Math.min(workshopEnd.getTime(), viewEnd.getTime()));
-  const daysFromViewStart = (clippedStart.getTime() - viewStart.getTime()) / (1000 * 60 * 60 * 24);
-  const workshopDurationDays = (clippedEnd.getTime() - clippedStart.getTime()) / (1000 * 60 * 60 * 24);
-
-  const leftPercent = (daysFromViewStart / totalViewDays) * 100;
-  const widthPercent = Math.max((workshopDurationDays / totalViewDays) * 100, 2); // Minimum 2% width
+  const leftPercent = ((clippedStart.getTime() - viewStart.getTime()) / totalViewMs) * 100;
+  const widthPercent = Math.max(((clippedEnd.getTime() - clippedStart.getTime()) / totalViewMs) * 100, 3);
 
   const workshopKey = `${workshop.metadata.namespace}/${workshop.metadata.name}`;
+  const name = displayName(workshop);
+  const ns = workshop.metadata.namespace;
+  const stage = getStageFromK8sObject(workshop);
+
+  const mwSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
+  const isMultiAsset = !!mwSource;
+
+  const seats = useMemo(() => getSeats(workshop), [getSeats, workshop]);
+  const progress = useMemo(() => getProvisionProgress(workshop), [getProvisionProgress, workshop]);
+  const instanceCount = useMemo(() => getCurrentCount(workshop), [getCurrentCount, workshop]);
+
+  const stopIso = workshop.spec?.actionSchedule?.stop;
+  const destroyIso = workshop.spec?.lifespan?.end;
+  const stopUrgency = dateUrgency(stopIso);
+  const destroyUrgency = dateUrgency(destroyIso);
+
+  const worstUrgency = stopUrgency === 'critical' || destroyUrgency === 'critical'
+    ? 'critical'
+    : stopUrgency === 'warning' || destroyUrgency === 'warning'
+      ? 'warning'
+      : null;
+
+  const urgencyTag = useMemo(() => {
+    if (status === 'stopped' || status === 'upcoming') return null;
+    if (stopUrgency === 'critical' && stopIso) return `stop ${relativeTime(stopIso)}`;
+    if (destroyUrgency === 'critical' && destroyIso) return `destroy ${relativeTime(destroyIso)}`;
+    if (stopUrgency === 'warning' && stopIso) return `stop ${relativeTime(stopIso)}`;
+    if (destroyUrgency === 'warning' && destroyIso) return `destroy ${relativeTime(destroyIso)}`;
+    return null;
+  }, [status, stopUrgency, destroyUrgency, stopIso, destroyIso]);
 
   const handleCheckboxChange = useCallback(
-    (checked: boolean) => {
-      onSelect(workshopKey, checked);
-    },
+    (checked: boolean) => onSelect(workshopKey, checked),
     [onSelect, workshopKey]
   );
 
-  const handleBarClick = useCallback(() => {
-    onClick(workshopKey);
-  }, [onClick, workshopKey]);
+  const handleBarClick = useCallback(() => onClick(workshopKey), [onClick, workshopKey]);
 
-  const workshopName = workshop.spec?.displayName || workshop.metadata.name;
+  const seatText = seats ? `${seats.assigned}/${seats.total}` : null;
+  const instanceText = instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
+
+  const formatShortDate = useCallback((d: Date): string => {
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    if (timezone !== 'local') opts.timeZone = timezone;
+    return d.toLocaleDateString('en-US', opts);
+  }, [timezone]);
+
+  const formatFullDate = useCallback((iso: string): string => {
+    const d = new Date(iso);
+    const opts: Intl.DateTimeFormatOptions = {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+    };
+    if (timezone !== 'local') opts.timeZone = timezone;
+    return d.toLocaleString('en-US', opts);
+  }, [timezone]);
+
+  const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'upcoming'
+    ? ` tl-bar--urgency-${worstUrgency}`
+    : '';
 
   const tooltipContent = (
-    <div>
-      <div><strong>{workshopName}</strong></div>
-      <div>Status: {status}</div>
-      <div>Start: {workshopStart.toLocaleDateString()}</div>
-      <div>End: {workshopEnd.toLocaleDateString()}</div>
+    <div className="tl-bar-tooltip">
+      <div className="tl-bar-tooltip-name">{name}</div>
+      <div className="tl-bar-tooltip-meta">{workshop.metadata.name}</div>
+      <table className="tl-bar-tooltip-table">
+        <tbody>
+          <tr><td>Namespace</td><td>{ns}</td></tr>
+          <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
+          {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
+          {isMultiAsset && <tr><td>Type</td><td>Multi-Asset</td></tr>}
+          {seats && <tr><td>Seats</td><td>{seats.assigned} / {seats.total} assigned</td></tr>}
+          {progress && <tr><td>Instances</td><td>{progress.claimed} / {progress.desired}{progress.failed > 0 ? ` (${progress.failed} failed)` : ''}</td></tr>}
+          {progress && progress.concurrency > 0 && <tr><td>Concurrency</td><td>{progress.concurrency}</td></tr>}
+          <tr><td>Start</td><td>{formatShortDate(workshopStart)}</td></tr>
+          <tr><td>End</td><td>{formatShortDate(workshopEnd)}</td></tr>
+          {stopIso && (
+            <tr>
+              <td>Auto-Stop</td>
+              <td className={stopUrgency === 'critical' ? 'tl-tooltip-critical' : stopUrgency === 'warning' ? 'tl-tooltip-warning' : ''}>
+                {formatFullDate(stopIso)} ({relativeTime(stopIso)})
+              </td>
+            </tr>
+          )}
+          {destroyIso && (
+            <tr>
+              <td>Auto-Destroy</td>
+              <td className={destroyUrgency === 'critical' ? 'tl-tooltip-critical' : destroyUrgency === 'warning' ? 'tl-tooltip-warning' : ''}>
+                {formatFullDate(destroyIso)} ({relativeTime(destroyIso)})
+              </td>
+            </tr>
+          )}
+          {workshop.spec?.accessPassword && (
+            <tr><td>Password</td><td><code className="tl-tooltip-password">{workshop.spec.accessPassword}</code></td></tr>
+          )}
+          {workshop.spec?.openRegistration !== false
+            ? <tr><td>Registration</td><td>Open</td></tr>
+            : <tr><td>Registration</td><td>Pre-registration</td></tr>}
+        </tbody>
+      </table>
     </div>
   );
 
   return (
-    <Tooltip content={tooltipContent}>
+    <Tooltip content={tooltipContent} maxWidth="400px">
       <div
-        className={`workshop-bar workshop-bar-${status.toLowerCase()}${isSelected ? ' workshop-bar-selected' : ''}`}
+        className={`tl-bar tl-bar--${status}${isSelected ? ' tl-bar--selected' : ''}${barUrgencyClass}`}
         style={{
-          position: 'absolute',
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,
-          backgroundColor: color,
-          height: '32px',
-          borderRadius: '4px',
-          padding: '4px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          cursor: 'pointer',
-          boxShadow: isSelected
-            ? '0 0 0 2px var(--pf-t--global--color--blue--200, #007bff)'
-            : '0 1px 2px rgba(0,0,0,0.1)',
-          border: isSelected ? '2px solid var(--pf-t--global--color--blue--200, #007bff)' : 'none',
-          transition: 'box-shadow 0.2s',
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
         }}
         onClick={handleBarClick}
       >
         <Checkbox
-          id={`workshop-bar-checkbox-${workshop.metadata.name}`}
+          id={`tl-cb-${workshop.metadata.name}`}
           isChecked={isSelected}
           onChange={(_event, checked) => handleCheckboxChange(checked)}
           onClick={(e) => e.stopPropagation()}
-          style={{ marginRight: '8px' }}
-          aria-label={`Select ${workshopName}`}
+          className="tl-bar__checkbox"
+          aria-label={`Select ${name}`}
         />
-        <span
-          style={{
-            color: 'white',
-            fontSize: '12px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {workshopName}
+
+        <span className="tl-bar__name">{name}</span>
+
+        <span className="tl-bar__details">
+          {urgencyTag && (
+            <span className={`tl-bar__badge tl-bar__badge--urgency tl-bar__badge--urgency-${worstUrgency}`}>
+              {urgencyTag}
+            </span>
+          )}
+          {isMultiNs && (
+            <span className="tl-bar__badge tl-bar__badge--ns">{ns.replace(/^user-|-redhat-com.*$/g, '').slice(0, 20)}</span>
+          )}
+          {isMultiAsset && (
+            <span className="tl-bar__badge tl-bar__badge--multi">MA</span>
+          )}
+          {seatText && (
+            <span className={`tl-bar__badge tl-bar__badge--seats${seats && seats.assigned >= seats.total ? ' tl-bar__badge--seats-full' : ''}`}>
+              {seatText}
+            </span>
+          )}
+          {instanceText && (
+            <span className="tl-bar__badge tl-bar__badge--inst">
+              {instanceText}
+            </span>
+          )}
+          {progress && progress.failed > 0 && (
+            <span className="tl-bar__badge tl-bar__badge--fail">
+              {progress.failed}
+            </span>
+          )}
         </span>
       </div>
     </Tooltip>

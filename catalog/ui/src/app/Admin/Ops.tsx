@@ -317,7 +317,7 @@ const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = 
 
 let alertKeyCounter = 0;
 
-function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
+export function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
   if (remaining < 0) return 'critical';
@@ -326,7 +326,7 @@ function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   return 'ok';
 }
 
-function relativeTime(iso: string): string {
+export function relativeTime(iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
   if (diff < 0) {
     const ago = Math.abs(diff);
@@ -2290,12 +2290,24 @@ const Ops: React.FC = () => {
                       return next;
                     });
                   }}
+                  onBatchSelect={(keys) => {
+                    setSelectedWs(new Set(keys));
+                  }}
+                  onDeselectAll={() => {
+                    setSelectedWs(new Set());
+                  }}
                   onClickWorkshop={(id) => {
                     const workshop = targets.find(ws => wsKey(ws) === id);
                     if (workshop) {
                       navigate(wsDetailPath(workshop));
                     }
                   }}
+                  getSeats={getSeats}
+                  getProvisionProgress={getProvisionProgress}
+                  getCurrentCount={getCurrentCount}
+                  multiWorkshopsByName={multiWorkshopsByName}
+                  isMultiNs={isMultiNs}
+                  timezone={timezone}
                 />
               )}
               {workshopView === 'table' && (

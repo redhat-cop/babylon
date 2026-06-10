@@ -12,6 +12,7 @@ export interface TimelineControlsProps {
   startDate: Date;
   endDate: Date;
   onDateChange: (start: Date, end: Date) => void;
+  timezone: string;
 }
 
 function getMonday(d: Date): Date {
@@ -44,6 +45,7 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
   startDate,
   endDate,
   onDateChange,
+  timezone,
 }) => {
   const handleToday = useCallback(() => {
     const today = new Date();
@@ -98,11 +100,9 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
   );
 
   const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    if (timezone !== 'local') opts.timeZone = timezone;
+    return date.toLocaleDateString('en-US', opts);
   };
 
   return (
