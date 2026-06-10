@@ -1973,9 +1973,11 @@ const Ops: React.FC = () => {
                       widthChars={4} aria-label="New instance count" />
                     <span style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>← new instance count</span>
                   </div>
-                  {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
-                  {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
-                  {scaleAnalysis.same > 0 && <Label color="grey" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.same} no change</Label>}
+                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', marginTop: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+                    {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} scale up</Label>}
+                    {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} scale down</Label>}
+                    {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} no change</Label>}
+                  </div>
                   {(isScaleDown || isScaleZero) && (
                     <div style={{ marginTop: 12 }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
