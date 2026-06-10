@@ -2,12 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { Badge, Button } from '@patternfly/react-core';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
-import { Workshop } from '@app/types';
+import { WorkshopWithResourceClaims } from '@app/types';
 import WorkshopBar from './WorkshopBar';
 
 export interface TimelineSwimlaneProps {
   status: 'Running' | 'Failed' | 'Upcoming' | 'Stopped';
-  workshops: Workshop[];
+  workshops: WorkshopWithResourceClaims[];
   viewStart: Date;
   viewEnd: Date;
   selectedWorkshops: Set<string>;
@@ -16,10 +16,10 @@ export interface TimelineSwimlaneProps {
 }
 
 interface WorkshopRow {
-  workshops: Workshop[];
+  workshops: WorkshopWithResourceClaims[];
 }
 
-function getWorkshopDates(workshop: Workshop): { start: Date; end: Date } {
+function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } {
   const spec = workshop.spec;
   const lifespan = spec?.lifespan;
 
@@ -44,7 +44,7 @@ function workshopsOverlap(w1: Workshop, w2: Workshop): boolean {
   return s1 < e2 && s2 < e1;
 }
 
-function arrangeWorkshopsInRows(workshops: Workshop[]): WorkshopRow[] {
+function arrangeWorkshopsInRows(workshops: WorkshopWithResourceClaims[]): WorkshopRow[] {
   const rows: WorkshopRow[] = [];
 
   workshops.forEach((workshop) => {
@@ -133,11 +133,11 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
               >
                 {row.workshops.map((workshop) => (
                   <WorkshopBar
-                    key={workshop.metadata.name}
+                    key={`${workshop.metadata.namespace}/${workshop.metadata.name}`}
                     workshop={workshop}
                     viewStart={viewStart}
                     viewEnd={viewEnd}
-                    isSelected={selectedWorkshops.has(workshop.metadata.name)}
+                    isSelected={selectedWorkshops.has(`${workshop.metadata.namespace}/${workshop.metadata.name}`)}
                     onSelect={onSelectWorkshop}
                     onClick={onClickWorkshop}
                   />

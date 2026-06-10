@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
-import { Workshop } from '@app/types';
+import { WorkshopWithResourceClaims } from '@app/types';
 import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
 
 export interface WorkshopTimelineProps {
-  workshops: Workshop[];
+  workshops: WorkshopWithResourceClaims[];
   selectedWorkshops: Set<string>;
   onSelectWorkshop: (id: string, selected: boolean) => void;
   onClickWorkshop: (id: string) => void;
@@ -37,9 +37,9 @@ function getEndOfDay(d: Date): Date {
   return date;
 }
 
-function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
+function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
   const now = Date.now();
-  const resourceClaims = workshop.status?.resourceClaims || [];
+  const resourceClaims = workshop.resourceClaims || [];
 
   // Check if any resource claim failed (reuse Ops.tsx logic)
   const hasFailed = resourceClaims.some(rc => {
@@ -76,7 +76,7 @@ function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming
   return 'Upcoming';
 }
 
-function getWorkshopDates(workshop: Workshop): { start: Date; end: Date } | null {
+function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } | null {
   const spec = workshop.spec;
   const lifespan = spec?.lifespan;
 
@@ -99,7 +99,7 @@ function getWorkshopDates(workshop: Workshop): { start: Date; end: Date } | null
   return { start, end };
 }
 
-function workshopInDateRange(workshop: Workshop, viewStart: Date, viewEnd: Date): boolean {
+function workshopInDateRange(workshop: WorkshopWithResourceClaims, viewStart: Date, viewEnd: Date): boolean {
   const dates = getWorkshopDates(workshop);
   if (!dates) return true; // Show workshops without dates
 
@@ -163,10 +163,10 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     const visibleWorkshops = workshops.filter((w) => workshopInDateRange(w, dateRange.start, dateRange.end));
 
     const grouped = {
-      Running: [] as Workshop[],
-      Failed: [] as Workshop[],
-      Upcoming: [] as Workshop[],
-      Stopped: [] as Workshop[],
+      Running: [] as WorkshopWithResourceClaims[],
+      Failed: [] as WorkshopWithResourceClaims[],
+      Upcoming: [] as WorkshopWithResourceClaims[],
+      Stopped: [] as WorkshopWithResourceClaims[],
     };
 
     visibleWorkshops.forEach((workshop) => {

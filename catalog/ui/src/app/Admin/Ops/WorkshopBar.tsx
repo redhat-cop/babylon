@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import { Checkbox, Tooltip } from '@patternfly/react-core';
-import { Workshop } from '@app/types';
+import { WorkshopWithResourceClaims } from '@app/types';
 
 export interface WorkshopBarProps {
-  workshop: Workshop;
+  workshop: WorkshopWithResourceClaims;
   viewStart: Date;
   viewEnd: Date;
   isSelected: boolean;
@@ -11,9 +11,9 @@ export interface WorkshopBarProps {
   onClick: (id: string) => void;
 }
 
-function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
+function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
   const now = Date.now();
-  const resourceClaims = workshop.status?.resourceClaims || [];
+  const resourceClaims = workshop.resourceClaims || [];
 
   // Check if any resource claim failed (reuse Ops.tsx logic)
   const hasFailed = resourceClaims.some(rc => {
@@ -63,7 +63,7 @@ function getStatusColor(status: 'Running' | 'Failed' | 'Upcoming' | 'Stopped'): 
   }
 }
 
-function getWorkshopDates(workshop: Workshop): { start: Date; end: Date } {
+function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } {
   const spec = workshop.spec;
   const lifespan = spec?.lifespan;
 

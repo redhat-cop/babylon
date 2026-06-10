@@ -2246,7 +2246,10 @@ const Ops: React.FC = () => {
               )}
               {workshopView === 'timeline' && (
                 <WorkshopTimeline
-                  workshops={targets}
+                  workshops={targets.map(ws => ({
+                    ...ws,
+                    resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || []
+                  }))}
                   selectedWorkshops={selectedWs}
                   onSelectWorkshop={(id, selected) => {
                     setSelectedWs(prev => {

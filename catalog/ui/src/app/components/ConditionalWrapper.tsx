@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 
 type ConditionalWrapperProps = {
-  children: JSX.Element;
+  children: ReactElement;
   condition: boolean;
-  wrapper: (children: JSX.Element) => JSX.Element;
+  wrapper: (children: ReactElement) => ReactElement;
 };
 const ConditionalWrapper: React.FC<ConditionalWrapperProps> = ({ condition, wrapper, children }) =>
   condition ? React.cloneElement(wrapper(children)) : children;
