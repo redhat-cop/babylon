@@ -1888,19 +1888,19 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div className="ops-number-row">
+                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
                       onPlus={() => setExtStopDays(extStopDays + 1)}
                       onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={3} aria-label="Days" />
-                    <span>days</span>
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
                     <NumberInput value={extStopHours} min={0}
                       onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
                       onPlus={() => setExtStopHours(extStopHours + 1)}
                       onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={3} aria-label="Hours" />
-                    <span>hours</span>
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
                   </div>
                   <Button variant="primary" onClick={handleExtendStop}
                     isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
@@ -1917,19 +1917,19 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div className="ops-number-row">
+                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
                       onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
                       onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={3} aria-label="Days" />
-                    <span>days</span>
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
                     <NumberInput value={extDestroyHours} min={0}
                       onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
                       onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
                       onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
                       widthChars={3} aria-label="Hours" />
-                    <span>hours</span>
+                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
                   </div>
                   <Button variant="primary" onClick={handleExtendDestroy}
                     isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
