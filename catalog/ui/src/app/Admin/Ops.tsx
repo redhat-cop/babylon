@@ -65,6 +65,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import TableIcon from '@patternfly/react-icons/dist/js/icons/table-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import ChartLineIcon from '@patternfly/react-icons/dist/js/icons/chart-line-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
@@ -73,7 +74,6 @@ import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
-import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import {
   apiPaths,
@@ -91,6 +91,7 @@ import {
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
   ServiceNamespace,
+  WorkshopWithResourceClaims,
 } from '@app/types';
 import {
   displayName,
@@ -110,9 +111,13 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
+import WorkshopTimeline from '@app/Admin/Ops/WorkshopTimeline';
+// Force webpack to include Timeline
+if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
 import './admin.css';
 import './ops.css';
+import './Ops/timeline.css';
 import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
 interface OpsAlert {
@@ -312,7 +317,7 @@ const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = 
 
 let alertKeyCounter = 0;
 
-function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
+export function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
   if (remaining < 0) return 'critical';
@@ -321,7 +326,7 @@ function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   return 'ok';
 }
 
-function relativeTime(iso: string): string {
+export function relativeTime(iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
   if (diff < 0) {
     const ago = Math.abs(diff);
@@ -697,7 +702,7 @@ const Ops: React.FC = () => {
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar'>('table');
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
 
   const targets = useMemo(() => {
     let list = workshops;
@@ -991,28 +996,6 @@ const Ops: React.FC = () => {
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
-<<<<<<< HEAD
-    const failedWorkshops: Array<{
-      workshop: Workshop;
-      namespace: string;
-      failedClaims: ResourceClaim[];
-      failedCount: number;
-    }> = [];
-
-    for (const ws of operationTargets) {
-      const claims = resourceClaimsByWorkshop.get(wsKey(ws)) || [];
-      const failedClaims = claims.filter(rc =>
-        !rc.metadata.deletionTimestamp && isResourceClaimFailed(rc)
-      );
-
-      if (failedClaims.length > 0) {
-        failedWorkshops.push({
-          workshop: ws,
-          namespace: ws.metadata.namespace,
-          failedClaims,
-          failedCount: failedClaims.length,
-        });
-=======
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
     const allJobUrls: string[] = [];
 
@@ -1035,17 +1018,13 @@ const Ops: React.FC = () => {
         const jobUrls = failedClaims.map(getProvisionJobUrl).filter((url): url is string => url !== null);
         allJobUrls.push(...jobUrls);
         failedWorkshops.push({ workshop: ws, failedClaims, failedCount: failedClaims.length, jobUrls });
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
       }
     }
 
     return {
       totalFailed: failedWorkshops.reduce((sum, fw) => sum + fw.failedCount, 0),
       failedWorkshops,
-<<<<<<< HEAD
-=======
       allJobUrls,
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     };
   }, [operationTargets, resourceClaimsByWorkshop]);
 
@@ -1397,7 +1376,6 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
-<<<<<<< HEAD
   const handleRedeployFailed = async () => {
     setShowRedeployConfirm(false);
     setRedeployLoading(true);
@@ -1434,7 +1412,9 @@ const Ops: React.FC = () => {
         AlertVariant.danger,
         `Redeploy: ${succeeded} succeeded, ${failed} failed`,
       );
-=======
+    }
+  };
+
   const handleOpenFailedJobs = (urls: string[], batchSize = 10) => {
     const toOpen = urls.slice(0, batchSize);
     toOpen.forEach((url) => window.open(url, '_blank'));
@@ -1443,7 +1423,6 @@ const Ops: React.FC = () => {
       addAlert(AlertVariant.info, `Opened ${batchSize} jobs. ${urls.length - batchSize} remaining.`);
     } else {
       addAlert(AlertVariant.success, `Opened ${urls.length} AAP2 job(s) in new tabs`);
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     }
   };
 
@@ -1585,7 +1564,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => { setWorkshopFilter(''); setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
+              onSelect={(n) => { setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -2093,35 +2072,25 @@ const Ops: React.FC = () => {
               {/* Redeploy Failed Services */}
               <Card isFullHeight className="ops-redeploy-failed">
                 <CardTitle>
-<<<<<<< HEAD
-                  <RedoIcon className="ops-card-icon" /> Redeploy Failed Services
-=======
                   <RedoIcon className="ops-card-icon" />
                   Redeploy Failed Services
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                 </CardTitle>
                 <CardBody>
                   {failedInstancesAnalysis.totalFailed > 0 ? (
                     <>
-<<<<<<< HEAD
                       <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                         Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
                         <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
                       </p>
-                      <Button
-                        variant="warning"
-                        onClick={() => setShowRedeployConfirm(true)}
-                        isLoading={redeployLoading}
-                        isDisabled={anyLoading}
-                      >
-                        Redeploy Failed Services
-                      </Button>
-=======
-                      <p>
-                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s)
-                        across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
-                      </p>
-                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                        <Button
+                          variant="warning"
+                          onClick={() => setShowRedeployConfirm(true)}
+                          isLoading={redeployLoading}
+                          isDisabled={anyLoading}
+                        >
+                          Redeploy Failed Services
+                        </Button>
                         <Tooltip content={failedJobsTooltip}>
                           <Dropdown
                             isOpen={isBatchMenuOpen}
@@ -2153,7 +2122,6 @@ const Ops: React.FC = () => {
                           </Dropdown>
                         </Tooltip>
                       </div>
->>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                     </>
                   ) : (
                     <p className="ops-muted">No failed instances found</p>
@@ -2184,6 +2152,11 @@ const Ops: React.FC = () => {
                         of {targets.length} total
                       </span>
                     )}
+                    {summary.seatsAssigned > 0 && (
+                      <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--pf-t--global--color--green--200)' }}>
+                        {summary.seatsAssigned}/{summary.seatsTotal} seats running
+                      </span>
+                    )}
                   </Title>
                 </SplitItem>
                 <SplitItem>
@@ -2204,6 +2177,14 @@ const Ops: React.FC = () => {
                         if (selected) setWorkshopView('calendar');
                       }}
                     />
+                    <ToggleGroupItem
+                      icon={<ChartLineIcon />}
+                      text="Timeline"
+                      isSelected={workshopView === 'timeline'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('timeline');
+                      }}
+                    />
                   </ToggleGroup>
                 </SplitItem>
                 {workshopView === 'table' && (
@@ -2214,6 +2195,29 @@ const Ops: React.FC = () => {
                       <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
                     </Button>
                   </SplitItem>
+                )}
+                {workshopView === 'timeline' && (
+                  <>
+                    <SplitItem>
+                      <Button
+                        variant="link"
+                        onClick={() => setSelectedWs(new Set(targets.map(wsKey)))}
+                        isDisabled={selectedWs.size === targets.length}
+                      >
+                        Select all
+                      </Button>
+                    </SplitItem>
+                    {hasSelection && (
+                      <SplitItem>
+                        <Button
+                          variant="link"
+                          onClick={() => setSelectedWs(new Set())}
+                        >
+                          Clear selection
+                        </Button>
+                      </SplitItem>
+                    )}
+                  </>
                 )}
                 <SplitItem>
                   <Tooltip content="Export to CSV">
@@ -2270,6 +2274,41 @@ const Ops: React.FC = () => {
                     />
                   )}
                 </div>
+              )}
+              {workshopView === 'timeline' && (
+                <WorkshopTimeline
+                  workshops={targets.map(ws => ({
+                    ...ws,
+                    resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || []
+                  } as WorkshopWithResourceClaims))}
+                  selectedWorkshops={selectedWs}
+                  onSelectWorkshop={(id, selected) => {
+                    setSelectedWs(prev => {
+                      const next = new Set(prev);
+                      if (selected) next.add(id);
+                      else next.delete(id);
+                      return next;
+                    });
+                  }}
+                  onBatchSelect={(keys) => {
+                    setSelectedWs(new Set(keys));
+                  }}
+                  onDeselectAll={() => {
+                    setSelectedWs(new Set());
+                  }}
+                  onClickWorkshop={(id) => {
+                    const workshop = targets.find(ws => wsKey(ws) === id);
+                    if (workshop) {
+                      navigate(wsDetailPath(workshop));
+                    }
+                  }}
+                  getSeats={getSeats}
+                  getProvisionProgress={getProvisionProgress}
+                  getCurrentCount={getCurrentCount}
+                  multiWorkshopsByName={multiWorkshopsByName}
+                  isMultiNs={isMultiNs}
+                  timezone={timezone}
+                />
               )}
               {workshopView === 'table' && (
               <div className="ops-table-wrap">
@@ -2958,7 +2997,7 @@ const Ops: React.FC = () => {
             <ul style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
               {failedInstancesAnalysis.failedWorkshops.map(fw => (
                 <li key={wsKey(fw.workshop)}>
-                  <strong>{displayName(fw.workshop)}</strong> ({fw.namespace}): {fw.failedCount} failed
+                  <strong>{displayName(fw.workshop)}</strong> ({fw.workshop.metadata.namespace}): {fw.failedCount} failed
                 </li>
               ))}
             </ul>
