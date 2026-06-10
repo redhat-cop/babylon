@@ -12,6 +12,9 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -64,6 +67,7 @@ import TableIcon from '@patternfly/react-icons/dist/js/icons/table-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
@@ -381,6 +385,22 @@ function parseSearchTerms(input: string): string[] {
 
   // Deduplicate terms
   return Array.from(new Set(terms));
+}
+
+function getProvisionJobUrl(rc: ResourceClaim): string | null {
+  const state = rc.status?.resources?.[0]?.state;
+  if (!state || state.kind !== 'AnarchySubject') return null;
+  const provJob = state.status?.towerJobs?.provision;
+  if (!provJob) return null;
+  if (provJob.towerJobURL) {
+    return provJob.towerJobURL.startsWith('https://')
+      ? provJob.towerJobURL
+      : `https://${provJob.towerJobURL}`;
+  }
+  if (provJob.towerHost && provJob.deployerJob) {
+    return `https://${provJob.towerHost}/#/jobs/${provJob.deployerJob}/`;
+  }
+  return null;
 }
 
 const Ops: React.FC = () => {
@@ -971,6 +991,7 @@ const Ops: React.FC = () => {
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
+<<<<<<< HEAD
     const failedWorkshops: Array<{
       workshop: Workshop;
       namespace: string;
@@ -991,14 +1012,50 @@ const Ops: React.FC = () => {
           failedClaims,
           failedCount: failedClaims.length,
         });
+=======
+    const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
+    const allJobUrls: string[] = [];
+
+    for (const ws of operationTargets) {
+      const claims = resourceClaimsByWorkshop.get(wsKey(ws)) || [];
+      const failedClaims = claims.filter((rc) => {
+        const summary = rc.status?.summary;
+        if (summary) {
+          return summary.state.toLowerCase().endsWith('-failed') || summary.state.toLowerCase() === 'failed';
+        }
+        const state = rc.status?.resources?.[0]?.state;
+        if (state?.kind === 'AnarchySubject') {
+          const currentState = state.spec?.vars?.current_state ?? '';
+          return currentState.endsWith('-failed') || currentState === 'failed';
+        }
+        return false;
+      });
+
+      if (failedClaims.length > 0) {
+        const jobUrls = failedClaims.map(getProvisionJobUrl).filter((url): url is string => url !== null);
+        allJobUrls.push(...jobUrls);
+        failedWorkshops.push({ workshop: ws, failedClaims, failedCount: failedClaims.length, jobUrls });
+>>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
       }
     }
 
     return {
       totalFailed: failedWorkshops.reduce((sum, fw) => sum + fw.failedCount, 0),
       failedWorkshops,
+<<<<<<< HEAD
+=======
+      allJobUrls,
+>>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     };
   }, [operationTargets, resourceClaimsByWorkshop]);
+
+  const failedJobsTooltip = useMemo(() => {
+    if (failedInstancesAnalysis.totalFailed === 0) return '';
+    const breakdown = failedInstancesAnalysis.failedWorkshops
+      .map(fw => `${displayName(fw.workshop)} (${fw.jobUrls.length})`)
+      .join(', ');
+    return `Opens AAP2 jobs for ${failedInstancesAnalysis.totalFailed} failed instances across: ${breakdown}`;
+  }, [failedInstancesAnalysis]);
 
   // ---------- Operation parameters ----------
 
@@ -1015,6 +1072,7 @@ const Ops: React.FC = () => {
   const [extDestroyLoading, setExtDestroyLoading] = useState(false);
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
+  const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
 
   // ---------- Redeploy Failed Services state ----------
 
@@ -1339,6 +1397,7 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
+<<<<<<< HEAD
   const handleRedeployFailed = async () => {
     setShowRedeployConfirm(false);
     setRedeployLoading(true);
@@ -1375,6 +1434,16 @@ const Ops: React.FC = () => {
         AlertVariant.danger,
         `Redeploy: ${succeeded} succeeded, ${failed} failed`,
       );
+=======
+  const handleOpenFailedJobs = (urls: string[], batchSize = 10) => {
+    const toOpen = urls.slice(0, batchSize);
+    toOpen.forEach((url) => window.open(url, '_blank'));
+
+    if (urls.length > batchSize) {
+      addAlert(AlertVariant.info, `Opened ${batchSize} jobs. ${urls.length - batchSize} remaining.`);
+    } else {
+      addAlert(AlertVariant.success, `Opened ${urls.length} AAP2 job(s) in new tabs`);
+>>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
     }
   };
 
@@ -2024,11 +2093,17 @@ const Ops: React.FC = () => {
               {/* Redeploy Failed Services */}
               <Card isFullHeight className="ops-redeploy-failed">
                 <CardTitle>
+<<<<<<< HEAD
                   <RedoIcon className="ops-card-icon" /> Redeploy Failed Services
+=======
+                  <RedoIcon className="ops-card-icon" />
+                  Redeploy Failed Services
+>>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                 </CardTitle>
                 <CardBody>
                   {failedInstancesAnalysis.totalFailed > 0 ? (
                     <>
+<<<<<<< HEAD
                       <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
                         Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
                         <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
@@ -2041,6 +2116,44 @@ const Ops: React.FC = () => {
                       >
                         Redeploy Failed Services
                       </Button>
+=======
+                      <p>
+                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s)
+                        across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                      </p>
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                        <Tooltip content={failedJobsTooltip}>
+                          <Dropdown
+                            isOpen={isBatchMenuOpen}
+                            onSelect={() => setIsBatchMenuOpen(false)}
+                            onOpenChange={setIsBatchMenuOpen}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)}
+                                isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
+                                variant="secondary"
+                                icon={<ExternalLinkAltIcon />}
+                              >
+                                Open Jobs ({failedInstancesAnalysis.allJobUrls.length})
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>
+                                Open 10 jobs
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>
+                                Open 20 jobs
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>
+                                Open All ({failedInstancesAnalysis.allJobUrls.length} jobs)
+                              </DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </Tooltip>
+                      </div>
+>>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                     </>
                   ) : (
                     <p className="ops-muted">No failed instances found</p>

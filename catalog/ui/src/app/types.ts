@@ -100,6 +100,9 @@ export interface AnarchySubjectStatus {
 
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
+  towerHost?: string;
+  deployerJob?: number;
+  jobStatus?: string;
   completeTimestamp?: string;
   startTimestamp?: string;
 }
