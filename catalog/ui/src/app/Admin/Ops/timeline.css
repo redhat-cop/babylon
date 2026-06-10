@@ -21,6 +21,23 @@
   margin-bottom: 8px;
 }
 
+/* Swimlane backgrounds by status */
+.ops-swimlane-running {
+  background: var(--pf-t--global--color--green--50, rgba(40, 167, 69, 0.1));
+}
+
+.ops-swimlane-failed {
+  background: var(--pf-t--global--color--red--50, rgba(220, 53, 69, 0.1));
+}
+
+.ops-swimlane-upcoming {
+  background: var(--pf-t--global--color--blue--50, rgba(0, 102, 204, 0.05));
+}
+
+.ops-swimlane-stopped {
+  background: var(--pf-t--global--color--orange--50, rgba(255, 152, 0, 0.1));
+}
+
 .timeline-swimlane-header {
   padding: 12px 16px;
   background: var(--pf-v5-global--BackgroundColor--200);
@@ -65,21 +82,25 @@
   border: 2px solid var(--pf-v5-global--primary-color--100);
 }
 
-/* Status-based colors */
+/* Status-based colors - dark mode compatible */
 .workshop-bar-running {
-  background-color: var(--pf-v5-global--success-color--100);
+  background: var(--pf-t--global--color--green--200, #28a745);
+  color: var(--pf-t--global--text--color--on-dark, white);
 }
 
 .workshop-bar-failed {
-  background-color: var(--pf-v5-global--danger-color--100);
+  background: var(--pf-t--global--color--red--200, #dc3545);
+  color: var(--pf-t--global--text--color--on-dark, white);
 }
 
 .workshop-bar-upcoming {
-  background-color: var(--pf-v5-global--primary-color--100);
+  background: var(--pf-t--global--color--blue--200, #0066cc);
+  color: var(--pf-t--global--text--color--on-dark, white);
 }
 
 .workshop-bar-stopped {
-  background-color: var(--pf-v5-global--Color--200);
+  background: var(--pf-t--global--color--orange--200, #ff9800);
+  color: var(--pf-t--global--text--color--on-dark, white);
 }
 
 /* Workshop Bar Checkbox */

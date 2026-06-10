@@ -11,11 +11,6 @@ export interface WorkshopTimelineProps {
   onClickWorkshop: (id: string) => void;
 }
 
-interface WorkshopCondition {
-  type: string;
-  status: string;
-}
-
 function getMonday(d: Date): Date {
   const date = new Date(d);
   const day = date.getDay();
@@ -43,19 +38,39 @@ function getEndOfDay(d: Date): Date {
 }
 
 function getWorkshopStatus(workshop: Workshop): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
-  const status = workshop.status;
-  if (!status) return 'Upcoming';
+  const now = Date.now();
+  const resourceClaims = workshop.status?.resourceClaims || [];
 
-  if (status.phase === 'Failed' || status.conditions?.some((c: WorkshopCondition) => c.type === 'Failed' && c.status === 'True')) {
-    return 'Failed';
+  // Check if any resource claim failed (reuse Ops.tsx logic)
+  const hasFailed = resourceClaims.some(rc => {
+    const state = rc.status?.resources?.[0]?.state;
+    if (!state || state.kind !== 'AnarchySubject') return false;
+    const provisionState = state.spec?.vars?.current_state;
+    return provisionState === 'provision-failed' || provisionState === 'provision-error';
+  });
+
+  if (hasFailed) return 'Failed';
+
+  // Check if workshop has started (has provisioned instances)
+  const hasStarted = resourceClaims.some(rc =>
+    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
+    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete'
+  );
+
+  // Check dates
+  const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
+  const stopDate = workshop.spec?.actionSchedule?.stop;
+
+  if (startDate && new Date(startDate).getTime() > now) {
+    return 'Upcoming';
   }
 
-  if (status.phase === 'Running' || status.phase === 'Active') {
-    return 'Running';
-  }
-
-  if (status.phase === 'Stopped' || status.phase === 'Terminated') {
+  if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) {
     return 'Stopped';
+  }
+
+  if (hasStarted) {
+    return 'Running';
   }
 
   return 'Upcoming';
