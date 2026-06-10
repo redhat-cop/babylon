@@ -147,14 +147,14 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   }, [timezone]);
 
   const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'upcoming'
-    ? ` tl-bar--urgency-${worstUrgency}`
+    ? ` timeline-bar--urgency-${worstUrgency}`
     : '';
 
   const tooltipContent = (
-    <div className="tl-bar-tooltip">
-      <div className="tl-bar-tooltip-name">{name}</div>
-      <div className="tl-bar-tooltip-meta">{workshop.metadata.name}</div>
-      <table className="tl-bar-tooltip-table">
+    <div className="timeline-bar-tooltip">
+      <div className="timeline-bar-tooltip-name">{name}</div>
+      <div className="timeline-bar-tooltip-meta">{workshop.metadata.name}</div>
+      <table className="timeline-bar-tooltip-table">
         <tbody>
           <tr><td>Namespace</td><td>{ns}</td></tr>
           <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
@@ -168,7 +168,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {stopIso && (
             <tr>
               <td>Auto-Stop</td>
-              <td className={stopUrgency === 'critical' ? 'tl-tooltip-critical' : stopUrgency === 'warning' ? 'tl-tooltip-warning' : ''}>
+              <td className={stopUrgency === 'critical' ? 'timeline-tooltip-critical' : stopUrgency === 'warning' ? 'timeline-tooltip-warning' : ''}>
                 {formatFullDate(stopIso)} ({relativeTime(stopIso)})
               </td>
             </tr>
@@ -176,13 +176,13 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {destroyIso && (
             <tr>
               <td>Auto-Destroy</td>
-              <td className={destroyUrgency === 'critical' ? 'tl-tooltip-critical' : destroyUrgency === 'warning' ? 'tl-tooltip-warning' : ''}>
+              <td className={destroyUrgency === 'critical' ? 'timeline-tooltip-critical' : destroyUrgency === 'warning' ? 'timeline-tooltip-warning' : ''}>
                 {formatFullDate(destroyIso)} ({relativeTime(destroyIso)})
               </td>
             </tr>
           )}
           {workshop.spec?.accessPassword && (
-            <tr><td>Password</td><td><code className="tl-tooltip-password">{workshop.spec.accessPassword}</code></td></tr>
+            <tr><td>Password</td><td><code className="timeline-tooltip-password">{workshop.spec.accessPassword}</code></td></tr>
           )}
           {workshop.spec?.openRegistration !== false
             ? <tr><td>Registration</td><td>Open</td></tr>
@@ -195,7 +195,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   return (
     <Tooltip content={tooltipContent} maxWidth="400px">
       <div
-        className={`tl-bar tl-bar--${status}${isSelected ? ' tl-bar--selected' : ''}${barUrgencyClass}`}
+        className={`timeline-bar timeline-bar--${status}${isSelected ? ' timeline-bar--selected' : ''}${barUrgencyClass}`}
         style={{
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,
@@ -203,40 +203,40 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
         onClick={handleBarClick}
       >
         <Checkbox
-          id={`tl-cb-${workshop.metadata.name}`}
+          id={`timeline-cb-${workshop.metadata.name}`}
           isChecked={isSelected}
           onChange={(_event, checked) => handleCheckboxChange(checked)}
           onClick={(e) => e.stopPropagation()}
-          className="tl-bar__checkbox"
+          className="timeline-bar__checkbox"
           aria-label={`Select ${name}`}
         />
 
-        <span className="tl-bar__name">{name}</span>
+        <span className="timeline-bar__name">{name}</span>
 
-        <span className="tl-bar__details">
+        <span className="timeline-bar__details">
           {urgencyTag && (
-            <span className={`tl-bar__badge tl-bar__badge--urgency tl-bar__badge--urgency-${worstUrgency}`}>
+            <span className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}>
               {urgencyTag}
             </span>
           )}
           {isMultiNs && (
-            <span className="tl-bar__badge tl-bar__badge--ns">{ns.replace(/^user-|-redhat-com.*$/g, '').slice(0, 20)}</span>
+            <span className="timeline-bar__badge timeline-bar__badge--ns">{ns.replace(/^user-|-redhat-com.*$/g, '').slice(0, 20)}</span>
           )}
           {isMultiAsset && (
-            <span className="tl-bar__badge tl-bar__badge--multi">MA</span>
+            <span className="timeline-bar__badge timeline-bar__badge--multi">MA</span>
           )}
           {seatText && (
-            <span className={`tl-bar__badge tl-bar__badge--seats${seats && seats.assigned >= seats.total ? ' tl-bar__badge--seats-full' : ''}`}>
+            <span className={`timeline-bar__badge timeline-bar__badge--seats${seats && seats.assigned >= seats.total ? ' timeline-bar__badge--seats-full' : ''}`}>
               {seatText}
             </span>
           )}
           {instanceText && (
-            <span className="tl-bar__badge tl-bar__badge--inst">
+            <span className="timeline-bar__badge timeline-bar__badge--inst">
               {instanceText}
             </span>
           )}
           {progress && progress.failed > 0 && (
-            <span className="tl-bar__badge tl-bar__badge--fail">
+            <span className="timeline-bar__badge timeline-bar__badge--fail">
               {progress.failed}
             </span>
           )}

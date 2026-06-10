@@ -115,38 +115,38 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
   if (workshops.length === 0) return null;
 
   return (
-    <div className={`tl-swimlane tl-swimlane--${status.toLowerCase()}`}>
+    <div className={`timeline-swimlane timeline-swimlane--${status.toLowerCase()}`}>
       <button
-        className="tl-swimlane__header"
+        className="timeline-swimlane__header"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
       >
-        <span className="tl-swimlane__toggle">
+        <span className="timeline-swimlane__toggle">
           {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
         </span>
         <Checkbox
-          id={`tl-swimlane-cb-${status}`}
+          id={`timeline-swimlane-cb-${status}`}
           isChecked={allSelected ? true : someSelected ? null : false}
           onChange={handleSwimlaneSelect}
           onClick={(e) => e.stopPropagation()}
-          className="tl-swimlane__checkbox"
+          className="timeline-swimlane__checkbox"
           aria-label={`Select all ${status} workshops`}
         />
-        <span className="tl-swimlane__icon">{STATUS_ICONS[status]}</span>
+        <span className="timeline-swimlane__icon">{STATUS_ICONS[status]}</span>
         <strong>{status}</strong>
-        <Badge isRead className="tl-swimlane__count">{workshops.length}</Badge>
+        <Badge isRead className="timeline-swimlane__count">{workshops.length}</Badge>
       </button>
 
       {isExpanded && (
         <div
-          className="tl-swimlane__body"
+          className="timeline-swimlane__body"
           style={{ height: rows.length > 0 ? `${rows.length * 46 + 16}px` : '60px' }}
         >
           {nowPercent !== null && (
-            <div className="tl-now-line" style={{ left: `${nowPercent}%` }} />
+            <div className="timeline-now-line" style={{ left: `${nowPercent}%` }} />
           )}
           {rows.map((row, rowIndex) => (
-            <div key={rowIndex} className="tl-swimlane__row" style={{ top: `${rowIndex * 46 + 8}px` }}>
+            <div key={rowIndex} className="timeline-swimlane__row" style={{ top: `${rowIndex * 46 + 8}px` }}>
               {row.workshops.map((workshop) => (
                 <WorkshopBar
                   key={`${workshop.metadata.namespace}/${workshop.metadata.name}`}

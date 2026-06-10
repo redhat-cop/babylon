@@ -225,10 +225,10 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   };
 
   return (
-    <div className="tl-container">
+    <div className="timeline-container">
       <TimelineControls startDate={dateRange.start} endDate={dateRange.end} onDateChange={handleDateChange} timezone={timezone} />
 
-      <div className="tl-quick-select">
+      <div className="timeline-quick-select">
         {SELECT_BUTTONS.map(btn => {
           const count = btn.status === 'all'
             ? totalWorkshops
@@ -242,14 +242,14 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
               color={btn.color as any}
               isCompact
               onClick={() => handleQuickSelect(btn.status)}
-              className="tl-quick-select__btn"
+              className="timeline-quick-select__btn"
             >
               {btn.label}{count > 0 ? ` (${count})` : ''}
             </Label>
           );
         })}
         {selectedWorkshops.size > 0 && (
-          <Badge isRead className="tl-quick-select__count">{selectedWorkshops.size} selected</Badge>
+          <Badge isRead className="timeline-quick-select__count">{selectedWorkshops.size} selected</Badge>
         )}
       </div>
 
@@ -259,9 +259,9 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
         </EmptyState>
       ) : (
         <>
-          <div className="tl-date-grid">
+          <div className="timeline-date-grid">
             {nowPercent !== null && (
-              <div className="tl-now-marker" style={{ left: `${nowPercent}%` }} title="Now" />
+              <div className="timeline-now-marker" style={{ left: `${nowPercent}%` }} title="Now" />
             )}
             {dateGrid.map((day, i) => {
               const isToday = day.toDateString() === todayStr;
@@ -269,10 +269,10 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
               return (
                 <div
                   key={i}
-                  className={`tl-date-cell${isToday ? ' tl-date-cell--today' : ''}${isWeekend ? ' tl-date-cell--weekend' : ''}`}
+                  className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}`}
                 >
-                  <span className="tl-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
-                  <span className="tl-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
+                  <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
+                  <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
                 </div>
               );
             })}
