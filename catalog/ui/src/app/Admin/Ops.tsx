@@ -12,6 +12,9 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
   EmptyState,
   EmptyStateBody,
   FormSelect,
@@ -1046,6 +1049,14 @@ const Ops: React.FC = () => {
     };
   }, [operationTargets, resourceClaimsByWorkshop]);
 
+  const failedJobsTooltip = useMemo(() => {
+    if (failedInstancesAnalysis.totalFailed === 0) return '';
+    const breakdown = failedInstancesAnalysis.failedWorkshops
+      .map(fw => `${displayName(fw.workshop)} (${fw.jobUrls.length})`)
+      .join(', ');
+    return `Opens AAP2 jobs for ${failedInstancesAnalysis.totalFailed} failed instances across: ${breakdown}`;
+  }, [failedInstancesAnalysis]);
+
   // ---------- Operation parameters ----------
 
   const [extStopDays, setExtStopDays] = useState(0);
@@ -1061,6 +1072,7 @@ const Ops: React.FC = () => {
   const [extDestroyLoading, setExtDestroyLoading] = useState(false);
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
+  const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
 
   // ---------- Redeploy Failed Services state ----------
 
@@ -2110,14 +2122,36 @@ const Ops: React.FC = () => {
                         across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
                       </p>
                       <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                        <Button
-                          variant="secondary"
-                          onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls)}
-                          isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
-                          icon={<ExternalLinkAltIcon />}
-                        >
-                          Open Jobs ({failedInstancesAnalysis.allJobUrls.length})
-                        </Button>
+                        <Tooltip content={failedJobsTooltip}>
+                          <Dropdown
+                            isOpen={isBatchMenuOpen}
+                            onSelect={() => setIsBatchMenuOpen(false)}
+                            onOpenChange={setIsBatchMenuOpen}
+                            toggle={(toggleRef) => (
+                              <MenuToggle
+                                ref={toggleRef}
+                                onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)}
+                                isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
+                                variant="secondary"
+                                icon={<ExternalLinkAltIcon />}
+                              >
+                                Open Jobs ({failedInstancesAnalysis.allJobUrls.length})
+                              </MenuToggle>
+                            )}
+                          >
+                            <DropdownList>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>
+                                Open 10 jobs
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>
+                                Open 20 jobs
+                              </DropdownItem>
+                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>
+                                Open All ({failedInstancesAnalysis.allJobUrls.length} jobs)
+                              </DropdownItem>
+                            </DropdownList>
+                          </Dropdown>
+                        </Tooltip>
                       </div>
 >>>>>>> e620f7c2 (feat(ops): add bulk open AAP2 jobs for failed instances)
                     </>
