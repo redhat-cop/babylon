@@ -111,7 +111,9 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
-import { WorkshopTimeline } from '@app/Admin/Ops/WorkshopTimeline';
+import WorkshopTimeline from '@app/Admin/Ops/WorkshopTimeline';
+// Force webpack to include Timeline
+if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
 import './admin.css';
 import './ops.css';
