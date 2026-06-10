@@ -65,6 +65,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import TableIcon from '@patternfly/react-icons/dist/js/icons/table-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import ChartLineIcon from '@patternfly/react-icons/dist/js/icons/chart-line-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
@@ -109,6 +110,7 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
+import { WorkshopTimeline } from '@app/Admin/Ops/WorkshopTimeline';
 
 import './admin.css';
 import './ops.css';
@@ -696,7 +698,7 @@ const Ops: React.FC = () => {
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar'>('table');
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
 
   const targets = useMemo(() => {
     let list = workshops;
@@ -2166,6 +2168,14 @@ const Ops: React.FC = () => {
                         if (selected) setWorkshopView('calendar');
                       }}
                     />
+                    <ToggleGroupItem
+                      icon={<ChartLineIcon />}
+                      text="Timeline"
+                      isSelected={workshopView === 'timeline'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('timeline');
+                      }}
+                    />
                   </ToggleGroup>
                 </SplitItem>
                 {workshopView === 'table' && (
@@ -2232,6 +2242,24 @@ const Ops: React.FC = () => {
                     />
                   )}
                 </div>
+              )}
+              {workshopView === 'timeline' && (
+                <WorkshopTimeline
+                  workshops={targets}
+                  selectedWorkshops={selectedWs}
+                  onSelectWorkshop={(id, selected) => {
+                    setSelectedWs(prev => {
+                      const next = new Set(prev);
+                      if (selected) next.add(id);
+                      else next.delete(id);
+                      return next;
+                    });
+                  }}
+                  onClickWorkshop={(id) => {
+                    const [namespace, name] = id.split('/');
+                    navigate(`/workshops/${namespace}/${name}`);
+                  }}
+                />
               )}
               {workshopView === 'table' && (
               <div className="ops-table-wrap">
