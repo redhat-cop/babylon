@@ -46,3 +46,56 @@
   flex-grow: 1;
   background-color: #fff;
 }
+
+/* ========================================
+   Compact Operation Cards
+   ======================================== */
+
+.ops-operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--pf-t--global--spacer--md);
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
+/* Reduce padding on all operation cards */
+.ops-operations-grid .pf-v6-c-card {
+  --pf-v6-c-card--c-card__body--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-card--c-card__title--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+}
+
+/* Tighter form groups within operation cards */
+.ops-operations-grid .pf-v6-c-form-group {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+/* Smaller card titles */
+.ops-operations-grid .pf-v6-c-card__title {
+  font-size: var(--pf-t--global--font--size--body--default);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* Compact buttons */
+.ops-operations-grid .pf-v6-c-button {
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+}
+
+/* Compact number inputs */
+.ops-operations-grid .pf-v6-c-number-input {
+  max-width: 120px;
+}
+
+/* Reduce icon size in card titles */
+.ops-card-icon {
+  font-size: var(--pf-t--global--font--size--body--default);
+  margin-right: var(--pf-t--global--spacer--xs);
+}

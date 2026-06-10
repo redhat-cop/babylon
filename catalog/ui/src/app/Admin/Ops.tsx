@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Alert,
   AlertGroup,
@@ -69,6 +69,7 @@ import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
 import SunIcon from '@patternfly/react-icons/dist/js/icons/sun-icon';
 import SortAmountDownIcon from '@patternfly/react-icons/dist/js/icons/sort-amount-down-icon';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import {
   apiPaths,
@@ -343,10 +344,29 @@ function wsDetailPath(ws: Workshop): string {
   return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
+/**
+ * Check if a ResourceClaim is in a failed provision state.
+ */
+function isResourceClaimFailed(rc: ResourceClaim): boolean {
+  // Check for provision failure states
+  const state = rc.status?.resources?.[0]?.state;
+  if (!state) return false;
+
+  // AnarchySubject with failed provision
+  if (state.kind === 'AnarchySubject') {
+    const provisionState = state.spec?.vars?.current_state;
+    return provisionState === 'provision-failed' ||
+           provisionState === 'provision-error';
+  }
+
+  return false;
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
+  const { mutate } = useSWRConfig();
 
   // ---------- Alerts ----------
 
@@ -914,6 +934,36 @@ const Ops: React.FC = () => {
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
+  const failedInstancesAnalysis = useMemo(() => {
+    const failedWorkshops: Array<{
+      workshop: Workshop;
+      namespace: string;
+      failedClaims: ResourceClaim[];
+      failedCount: number;
+    }> = [];
+
+    for (const ws of operationTargets) {
+      const claims = resourceClaimsByWorkshop.get(wsKey(ws)) || [];
+      const failedClaims = claims.filter(rc =>
+        !rc.metadata.deletionTimestamp && isResourceClaimFailed(rc)
+      );
+
+      if (failedClaims.length > 0) {
+        failedWorkshops.push({
+          workshop: ws,
+          namespace: ws.metadata.namespace,
+          failedClaims,
+          failedCount: failedClaims.length,
+        });
+      }
+    }
+
+    return {
+      totalFailed: failedWorkshops.reduce((sum, fw) => sum + fw.failedCount, 0),
+      failedWorkshops,
+    };
+  }, [operationTargets, resourceClaimsByWorkshop]);
+
   // ---------- Operation parameters ----------
 
   const [extStopDays, setExtStopDays] = useState(0);
@@ -930,6 +980,11 @@ const Ops: React.FC = () => {
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
 
+  // ---------- Redeploy Failed Services state ----------
+
+  const [redeployLoading, setRedeployLoading] = useState(false);
+  const [showRedeployConfirm, setShowRedeployConfirm] = useState(false);
+
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
   const [showExtStopConfirm, setShowExtStopConfirm] = useState(false);
@@ -940,7 +995,7 @@ const Ops: React.FC = () => {
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || redeployLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -1246,6 +1301,45 @@ const Ops: React.FC = () => {
     mutateProvisions();
     if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
+  };
+
+  const handleRedeployFailed = async () => {
+    setShowRedeployConfirm(false);
+    setRedeployLoading(true);
+
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const { failedClaims, workshop } of failedInstancesAnalysis.failedWorkshops) {
+      try {
+        // Delete failed ResourceClaims (DO NOT reduce count - Babylon recreates automatically)
+        for (const claim of failedClaims) {
+          await deleteResourceClaim(claim);
+        }
+        succeeded += failedClaims.length;
+      } catch (err) {
+        console.error('Redeploy failed for workshop:', displayName(workshop), err);
+        failed += failedClaims.length;
+      }
+    }
+
+    // Refresh provisions and resource claims
+    await mutateProvisions();
+    await mutate(resourceClaimKeys);
+
+    setRedeployLoading(false);
+
+    if (failed === 0) {
+      addAlert(
+        AlertVariant.success,
+        `Redeployed ${succeeded} failed instance(s) across ${failedInstancesAnalysis.failedWorkshops.length} workshop(s)`,
+      );
+    } else {
+      addAlert(
+        AlertVariant.danger,
+        `Redeploy: ${succeeded} succeeded, ${failed} failed`,
+      );
+    }
   };
 
   // ---------- No namespace selected ----------
@@ -1768,7 +1862,7 @@ const Ops: React.FC = () => {
               </Alert>
             )}
 
-            <div className="ops-grid">
+            <div className="ops-grid ops-operations-grid">
               {/* Resource Lock */}
               <Card isFullHeight>
                 <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
@@ -1903,6 +1997,33 @@ const Ops: React.FC = () => {
                       {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
                     </Button>
                   </div>
+                </CardBody>
+              </Card>
+
+              {/* Redeploy Failed Services */}
+              <Card isFullHeight className="ops-redeploy-failed">
+                <CardTitle>
+                  <RedoIcon className="ops-card-icon" /> Redeploy Failed Services
+                </CardTitle>
+                <CardBody>
+                  {failedInstancesAnalysis.totalFailed > 0 ? (
+                    <>
+                      <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
+                        <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                      </p>
+                      <Button
+                        variant="warning"
+                        onClick={() => setShowRedeployConfirm(true)}
+                        isLoading={redeployLoading}
+                        isDisabled={anyLoading}
+                      >
+                        Redeploy Failed Services
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="ops-muted">No failed instances found</p>
+                  )}
                 </CardBody>
               </Card>
             </div>
@@ -2676,6 +2797,49 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
           <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Redeploy Failed Services Confirmation */}
+      <Modal
+        variant="small"
+        isOpen={showRedeployConfirm}
+        onClose={() => setShowRedeployConfirm(false)}
+        aria-labelledby="redeploy-confirm"
+      >
+        <ModalHeader title="Confirm Redeploy Failed Services" labelId="redeploy-confirm" />
+        <ModalBody>
+          <Alert
+            variant="warning"
+            isInline
+            title="Warning"
+          >
+            <p>
+              This will delete and recreate failed instances. Cloud resources will be deleted. Babylon will automatically recreate them.
+            </p>
+          </Alert>
+
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            <p>The following workshops have failed instances:</p>
+            <ul style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              {failedInstancesAnalysis.failedWorkshops.map(fw => (
+                <li key={wsKey(fw.workshop)}>
+                  <strong>{displayName(fw.workshop)}</strong> ({fw.namespace}): {fw.failedCount} failed
+                </li>
+              ))}
+            </ul>
+            <p>
+              Total: <strong>{failedInstancesAnalysis.totalFailed}</strong> instance(s) will be redeployed
+            </p>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="warning" onClick={handleRedeployFailed}>
+            Redeploy Failed Services
+          </Button>
+          <Button variant="link" onClick={() => setShowRedeployConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
     </div>
