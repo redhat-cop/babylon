@@ -1949,6 +1949,9 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
+                  <p className="ops-desc" style={{ fontSize: '0.8rem', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 8 }}>
+                    <em>Auto-stop scheduling coming soon</em>
+                  </p>
                   <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
