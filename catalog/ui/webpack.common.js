@@ -11,6 +11,7 @@ module.exports = () => {
   return {
     optimization: {
       sideEffects: true,
+      usedExports: true,
     },
     module: {
       rules: [

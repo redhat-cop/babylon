@@ -25,7 +25,7 @@ module.exports = merge(common('development'), {
     proxy: [
       {
         context: ['/api'],
-        target: 'http://localhost:8080',
+        target: 'https://admin-babylon.apps.babydev.dev.open.redhat.com',
         secure: false,
         changeOrigin: true,
         headers: {
@@ -34,7 +34,7 @@ module.exports = merge(common('development'), {
       },
       {
         context: ['/apis'],
-        target: 'http://localhost:8080',
+        target: 'https://admin-babylon.apps.babydev.dev.open.redhat.com',
         secure: false,
         changeOrigin: true,
         headers: {
@@ -43,7 +43,7 @@ module.exports = merge(common('development'), {
       },
       {
         context: ['/auth'],
-        target: 'http://localhost:8080',
+        target: 'https://admin-babylon.apps.babydev.dev.open.redhat.com',
         secure: false,
         changeOrigin: true,
         headers: {
