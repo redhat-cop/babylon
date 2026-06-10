@@ -1965,19 +1965,23 @@ const Ops: React.FC = () => {
                     Sets spec.count to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
-                  <div className="ops-number-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
                       onPlus={() => setScaleCount(scaleCount + 1)}
                       onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={4} aria-label="New instance count" />
-                    <span style={{ fontSize: 'var(--pf-t--global--font--size--body--default)' }}>← new instance count</span>
+                      widthChars={6} aria-label="New instance count" />
+                    <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)', fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      New instance count
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', marginTop: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
-                    {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} scale up</Label>}
-                    {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} scale down</Label>}
-                    {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} no change</Label>}
-                  </div>
+                  {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
+                    <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap' }}>
+                      {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} scale up</Label>}
+                      {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} scale down</Label>}
+                      {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} no change</Label>}
+                    </div>
+                  )}
                   {(isScaleDown || isScaleZero) && (
                     <div style={{ marginTop: 12 }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
