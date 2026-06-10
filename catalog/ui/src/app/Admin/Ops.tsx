@@ -1951,9 +1951,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <Alert variant="info" isInline title="Feature coming soon" style={{ marginBottom: 12 }}>
-                    <p>Automated stop scheduling will allow setting future stop times when creating workshops.</p>
-                  </Alert>
                   <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
@@ -1983,9 +1980,6 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <Alert variant="info" isInline title="Feature coming soon" style={{ marginBottom: 12 }}>
-                    <p>Automated destroy scheduling will allow setting future destroy times when creating workshops.</p>
-                  </Alert>
                   <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
