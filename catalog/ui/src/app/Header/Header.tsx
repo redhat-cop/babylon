@@ -86,7 +86,6 @@ const Header: React.FC<{
     );
   }
 
-  // 2. Feedback/Feature Request (moved here, renamed)
   if (feedback_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="feedback" value={feedback_link}>
