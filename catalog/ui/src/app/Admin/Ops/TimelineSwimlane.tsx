@@ -38,7 +38,7 @@ function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; 
   return { start, end };
 }
 
-function workshopsOverlap(w1: Workshop, w2: Workshop): boolean {
+function workshopsOverlap(w1: WorkshopWithResourceClaims, w2: WorkshopWithResourceClaims): boolean {
   const { start: s1, end: e1 } = getWorkshopDates(w1);
   const { start: s2, end: e2 } = getWorkshopDates(w2);
   return s1 < e2 && s2 < e1;
