@@ -2075,32 +2075,6 @@ const Ops: React.FC = () => {
               </div>
             </div>
 
-            {/* Busy days warning */}
-            {regionStats.topBusyDays.length > 0 && (
-              <div className="ops-busy-days-banner">
-                <ExclamationTriangleIcon className="ops-busy-days-icon" />
-                <span className="ops-busy-days-text">
-                  Busy days ahead:{' '}
-                  {regionStats.topBusyDays.map((bd, i) => (
-                    <React.Fragment key={bd.label}>
-                      {i > 0 && ', '}
-                      <Label
-                        color="orange"
-                        isCompact
-                        className="ops-schedule-chip"
-                        onClick={() => {
-                          handleTimelineDateChange(getStartOfDay(bd.date), getEndOfDay(bd.date));
-                          setWorkshopView('timeline');
-                        }}
-                      >
-                        {bd.label} — {bd.count} workshops ({bd.region})
-                      </Label>
-                    </React.Fragment>
-                  ))}
-                </span>
-              </div>
-            )}
-
             {/* Bulk actions — collapsed by default, below summary */}
             <ExpandableSection
               toggleText={`Actions${hasSelection ? ` (${selectedWs.size} selected)` : ''}`}
@@ -2562,6 +2536,30 @@ const Ops: React.FC = () => {
                   />
                   </div>
                 </div>
+                {regionStats.topBusyDays.length > 0 && (
+                  <div className="ops-busy-days-banner">
+                    <ExclamationTriangleIcon className="ops-busy-days-icon" />
+                    <span className="ops-busy-days-text">
+                      Busy days ahead:{' '}
+                      {regionStats.topBusyDays.map((bd, i) => (
+                        <React.Fragment key={bd.label}>
+                          {i > 0 && ', '}
+                          <Label
+                            color="orange"
+                            isCompact
+                            className="ops-schedule-chip"
+                            onClick={() => {
+                              handleTimelineDateChange(getStartOfDay(bd.date), getEndOfDay(bd.date));
+                              setWorkshopView('timeline');
+                            }}
+                          >
+                            {bd.label} — {bd.count} workshops ({bd.region})
+                          </Label>
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {workshopView === 'table' && workshopGroups.length > 0 && (
