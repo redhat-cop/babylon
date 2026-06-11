@@ -83,6 +83,11 @@
     "webpack-dev-server": "^5.2.4",
     "webpack-merge": "^6.0.1"
   },
+  "pnpm": {
+    "overrides": {
+      "shell-quote": ">=1.8.4"
+    }
+  },
   "dependencies": {
     "@lexical/code": "^0.44.0",
     "@lexical/html": "^0.44.0",
