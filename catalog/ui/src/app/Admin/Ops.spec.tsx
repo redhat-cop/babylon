@@ -12,9 +12,18 @@ async function renderOps(ui: React.ReactElement = <Ops />) {
   return await render(<SWRConfig value={{ suspense: false }}>{ui}</SWRConfig>);
 }
 
+/** Expand the collapsed Actions section so operation cards become visible */
+async function expandActions() {
+  await waitFor(() => screen.getByText(/^Actions/));
+  const toggle = screen.getByText(/^Actions/).closest('button') || screen.getByText(/^Actions/);
+  await userEvent.click(toggle);
+  await waitFor(() => screen.getByText('Resource Lock'));
+}
+
 function getScaleWorkshopsCard(): HTMLElement {
-  const node = screen.getAllByText('Scale Workshops').find((el) => el.closest('.pf-v6-c-card'));
-  if (!node) throw new Error('Scale Workshops card not found');
+  const scaleTexts = screen.getAllByText('Scale');
+  const node = scaleTexts.find((el) => el.closest('.pf-v6-c-card__title'));
+  if (!node) throw new Error('Scale card not found');
   return node.closest('.pf-v6-c-card') as HTMLElement;
 }
 
@@ -258,12 +267,13 @@ describe('Ops Component', () => {
 
     test('renders all five operation cards', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => {
         expect(screen.getByText('Resource Lock')).toBeInTheDocument();
-        expect(screen.getByText(/Extend Stop Time/)).toBeInTheDocument();
-        expect(screen.getByText(/Extend Destroy Time/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Extend Stop/).length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText(/Extend Destroy/).length).toBeGreaterThanOrEqual(1);
         expect(screen.getAllByText(/Disable Auto-Stop/).length).toBeGreaterThanOrEqual(1);
-        expect(screen.getByText('Scale Workshops')).toBeInTheDocument();
+        expect(screen.getAllByText('Scale').length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -448,6 +458,7 @@ describe('Ops Component', () => {
   describe('Operation Confirmation Modals', () => {
     test('Lock button opens lock confirmation modal', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
       await waitFor(() => {
@@ -458,6 +469,7 @@ describe('Ops Component', () => {
 
     test('Unlock button opens unlock confirmation modal', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
       await waitFor(() => {
@@ -468,6 +480,7 @@ describe('Ops Component', () => {
 
     test('Unlock modal warns about multi-asset child workshops', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Unlock' }));
       await waitFor(() => {
@@ -479,6 +492,7 @@ describe('Ops Component', () => {
 
     test('Lock confirmation shows workshop count', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => screen.getByText('Resource Lock'));
       await userEvent.click(screen.getByRole('button', { name: 'Lock' }));
       await waitFor(() => {
@@ -490,8 +504,9 @@ describe('Ops Component', () => {
 
     test('Scale button opens scale confirmation modal', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText('Scale Workshops'));
-      const scaleBtn = screen.getAllByRole('button').find(b => b.textContent === 'Scale');
+      await expandActions();
+      const scaleCard = getScaleWorkshopsCard();
+      const scaleBtn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
       if (scaleBtn) await userEvent.click(scaleBtn);
       await waitFor(() => {
         expect(screen.getByText('Confirm Scale')).toBeInTheDocument();
@@ -500,8 +515,9 @@ describe('Ops Component', () => {
 
     test('Scale shows current vs new count per workshop', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText('Scale Workshops'));
-      const scaleBtn = screen.getAllByRole('button').find(b => b.textContent === 'Scale');
+      await expandActions();
+      const scaleCard = getScaleWorkshopsCard();
+      const scaleBtn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
       if (scaleBtn) await userEvent.click(scaleBtn);
       await waitFor(() => {
         const arrows = screen.getAllByText('→');
@@ -511,7 +527,7 @@ describe('Ops Component', () => {
 
     test('Scale to zero shows destructive confirmation with type-to-confirm', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText('Scale Workshops'));
+      await expandActions();
       const scaleCard = getScaleWorkshopsCard();
       const lastMinus = within(scaleCard).getByLabelText('Minus');
       for (let i = 0; i < 5; i++) await userEvent.click(lastMinus);
@@ -526,6 +542,7 @@ describe('Ops Component', () => {
 
     test('Disable Auto-Stop opens confirmation modal', async () => {
       await renderOps();
+      await expandActions();
       await waitFor(() => screen.getByText(/Removes/));
       const btn = screen.getAllByRole('button').find(b => {
         const text = b.textContent?.trim();
@@ -540,15 +557,17 @@ describe('Ops Component', () => {
 
     test('Extend Stop is disabled when both day and hour are 0', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText(/Extend Stop Time/));
-      const extendStopBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop');
+      await expandActions();
+      await waitFor(() => expect(screen.getAllByText(/Extend Stop/).length).toBeGreaterThanOrEqual(1));
+      const extendStopBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop' && b.closest('.pf-v6-c-card__body'));
       expect(extendStopBtn).toBeDisabled();
     });
 
     test('Extend Destroy is disabled when both day and hour are 0', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText(/Extend Destroy Time/));
-      const extendDestroyBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy');
+      await expandActions();
+      await waitFor(() => expect(screen.getAllByText(/Extend Destroy/).length).toBeGreaterThanOrEqual(1));
+      const extendDestroyBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy' && b.closest('.pf-v6-c-card__body'));
       expect(extendDestroyBtn).toBeDisabled();
     });
   });
@@ -577,16 +596,17 @@ describe('Ops Component', () => {
   describe('Scale Analysis Labels', () => {
     test('shows scale analysis labels (up/down/same)', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText('Scale Workshops'));
+      await expandActions();
+      const scaleCard = getScaleWorkshopsCard();
       await waitFor(() => {
-        const labels = document.querySelectorAll('.pf-v6-c-label');
+        const labels = scaleCard.querySelectorAll('.pf-v6-c-label');
         expect(labels.length).toBeGreaterThanOrEqual(1);
       });
     });
 
     test('scale card gets warning border when scaling down', async () => {
       await renderOps();
-      await waitFor(() => screen.getByText('Scale Workshops'));
+      await expandActions();
       const scaleCard = getScaleWorkshopsCard();
       const lastMinus = within(scaleCard).getByLabelText('Minus');
       for (let i = 0; i < 4; i++) await userEvent.click(lastMinus);
