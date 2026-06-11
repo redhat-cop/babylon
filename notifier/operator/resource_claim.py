@@ -1,3 +1,4 @@
+import kubernetes_asyncio
 import re
 
 from pydantic.v1.utils import deep_update
@@ -26,6 +27,23 @@ class DeployerJob:
         return self.definition.get('startTimestamp')
 
 class ResourceClaim:
+    @classmethod
+    async def get(cls, name, namespace):
+        try:
+            definition = await Babylon.custom_objects_api.get_namespaced_custom_object(
+                group=Babylon.resource_broker_domain,
+                name=name,
+                namespace=namespace,
+                plural='resourceclaims',
+                version=Babylon.resource_broker_api_version,
+            )
+            return ResourceClaim(definition=definition)
+        except kubernetes_asyncio.client.rest.ApiException as e:
+            if e.status == 404:
+                return None
+            else:
+                raise
+
     def __init__(self, definition):
         self.definition = definition
 
