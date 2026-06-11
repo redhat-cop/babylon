@@ -12,7 +12,7 @@ import { Dropdown, DropdownItem, MenuToggle, MenuToggleElement } from '@patternf
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';
-import { dateInTimezone, getDateTimePartsInTimezone } from './timezones';
+import { getBrowserTimezone, dateInTimezone, getDateTimePartsInTimezone } from './timezones';
 
 import './date-time-picker.css';
 
@@ -42,8 +42,8 @@ const DateTimePicker: React.FC<{
   minDate?: number;
   maxDate?: number;
   forceUpdateTimestamp?: number;
-  timezone: string;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone }) => {
+  timezone?: string;
+}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone = getBrowserTimezone() }) => {
   const dateFormat = (date: Date) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',

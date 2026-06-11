@@ -886,7 +886,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   destroyTimestamp={formState.endDate?.getTime()}
                 />
               </div>
-              </FormGroup>
+            </FormGroup>
             {!isAutoStopDisabled(catalogItem) && !formState.selfPacedLab ? (
               <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
                 <div className="catalog-item-form__group-control--single">
@@ -912,7 +912,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   destroyTimestamp={formState.endDate.getTime()}
                 />
               </div>
-              </FormGroup>
+            </FormGroup>
           <div className="catalog-item-form__workshop-section">
             <div className="catalog-item-form__workshop-section-title">Workshop Settings</div>
             <div className="catalog-item-form__workshop-form">

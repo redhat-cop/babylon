@@ -56,7 +56,7 @@ export function getDateTimePartsInTimezone(
   date: Date,
   timezone: string,
 ): { year: number; month: number; day: number; hour: number; minute: number } {
-  return getPartsInTimezone(date, timezone === 'local' ? getBrowserTimezone() : timezone);
+  return getPartsInTimezone(date, timezone);
 }
 
 export function dateInTimezone(
@@ -67,13 +67,9 @@ export function dateInTimezone(
   minute: number,
   timezone: string,
 ): Date {
-  const tz = timezone === 'local' ? getBrowserTimezone() : timezone;
-
-  // Create a UTC guess from the parts
   const guess = new Date(Date.UTC(year, month, day, hour, minute, 0, 0));
 
-  // See what wall-clock time `guess` maps to in the target timezone
-  const tzParts = getPartsInTimezone(guess, tz);
+  const tzParts = getPartsInTimezone(guess, timezone);
   const diffMinutes = hour * 60 + minute - (tzParts.hour * 60 + tzParts.minute);
 
   let dayDiff = 0;
@@ -86,7 +82,7 @@ export function dateInTimezone(
   const totalDiffMs = (dayDiff * 24 * 60 + diffMinutes) * 60 * 1000;
   const adjusted = new Date(guess.getTime() + totalDiffMs);
 
-  const verifyParts = getPartsInTimezone(adjusted, tz);
+  const verifyParts = getPartsInTimezone(adjusted, timezone);
   if (verifyParts.hour !== hour || verifyParts.minute !== minute) {
     const diff2 = hour * 60 + minute - (verifyParts.hour * 60 + verifyParts.minute);
     let dayDiff2 = 0;
