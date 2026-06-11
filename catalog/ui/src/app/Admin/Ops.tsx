@@ -2231,11 +2231,6 @@ const Ops: React.FC = () => {
                         of {targets.length} total
                       </span>
                     )}
-                    {summary.seatsAssigned > 0 && (
-                      <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--pf-t--global--color--green--200)' }}>
-                        {summary.seatsAssigned}/{summary.seatsTotal} seats running
-                      </span>
-                    )}
                   </Title>
                 </SplitItem>
                 <SplitItem>
@@ -2384,7 +2379,7 @@ const Ops: React.FC = () => {
                       <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
                         <div>
                           <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.counts.all}</div>
-                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total deploy</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>workshops</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.instances.all}</div>
@@ -2398,7 +2393,7 @@ const Ops: React.FC = () => {
                         if (c === 0 && run === 0 && dep === 0) return null;
                         return (
                           <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
-                            <strong>{r.label}:</strong> {c} deploy{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
+                            <strong>{r.label}:</strong> {c} total{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
                           </div>
                         );
                       })}
@@ -2424,12 +2419,13 @@ const Ops: React.FC = () => {
                     const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
 
                     let labelText: string;
-                    if (count > 0 && peak.count > 0) {
-                      labelText = `${count} deploy · ${peak.count} peak/day`;
+                    const parts: string[] = [];
+                    if (run > 0) parts.push(`${run} running`);
+                    if (deploy > 0) parts.push(`${deploy} scheduled`);
+                    if (parts.length > 0) {
+                      labelText = parts.join(' · ');
                     } else if (count > 0) {
-                      labelText = `${count} deploy`;
-                    } else if (peak.count > 0) {
-                      labelText = `${peak.count} active/day`;
+                      labelText = `${count} total`;
                     } else {
                       labelText = 'none';
                     }
@@ -2448,7 +2444,7 @@ const Ops: React.FC = () => {
                         <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
                           <div>
                             <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
-                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>deploy</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
