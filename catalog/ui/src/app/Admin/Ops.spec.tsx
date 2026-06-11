@@ -280,11 +280,12 @@ describe('Ops Component', () => {
       });
     });
 
-    test('renders timezone selector defaulting to "local"', async () => {
+    test('renders timezone selector defaulting to browser timezone', async () => {
       await renderOps();
       await waitFor(() => {
         const tz = screen.getByLabelText('Timezone');
-        expect(tz).toHaveValue('local');
+        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        expect(tz).toHaveValue(browserTz);
       });
     });
 

@@ -102,6 +102,7 @@ import {
   namespaceToServiceNamespaceMapper,
 } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
+import { COMMON_TIMEZONES, getBrowserTimezone } from '@app/components/timezones';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
@@ -170,22 +171,6 @@ export function distributeProvisionCountsRespectingAssigned(
   }
   return result;
 }
-
-const COMMON_TIMEZONES = [
-  { value: 'local', label: 'Local (browser)' },
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'US Eastern (ET)' },
-  { value: 'America/Chicago', label: 'US Central (CT)' },
-  { value: 'America/Denver', label: 'US Mountain (MT)' },
-  { value: 'America/Los_Angeles', label: 'US Pacific (PT)' },
-  { value: 'Europe/London', label: 'UK (GMT/BST)' },
-  { value: 'Europe/Berlin', label: 'Central Europe (CET)' },
-  { value: 'Europe/Madrid', label: 'Spain (CET)' },
-  { value: 'Asia/Kolkata', label: 'India (IST)' },
-  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Asia/Tokyo', label: 'Japan (JST)' },
-  { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
-];
 
 function seatColorClass(assigned: number, total: number): string {
   if (total <= 0 || assigned <= 0) return '';
@@ -523,16 +508,15 @@ const Ops: React.FC = () => {
 
   // ---------- Timezone ----------
 
-  const [timezone, setTimezone] = useState('local');
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   const fmtDate = useCallback((iso?: string) => {
     if (!iso) return null;
     const d = new Date(iso);
-    const opts: Intl.DateTimeFormatOptions = {
+    return d.toLocaleString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-    };
-    if (timezone !== 'local') opts.timeZone = timezone;
-    return d.toLocaleString(undefined, opts);
+      timeZone: timezone,
+    });
   }, [timezone]);
 
   // ---------- Data fetching (multi-namespace aware) ----------
@@ -1098,12 +1082,11 @@ const Ops: React.FC = () => {
     const fmtDateCSV = (iso?: string) => {
       if (!iso) return '';
       const d = new Date(iso);
-      const opts: Intl.DateTimeFormatOptions = {
+      return d.toLocaleString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-      };
-      if (timezone !== 'local') opts.timeZone = timezone;
-      return d.toLocaleString(undefined, opts);
+        timeZone: timezone,
+      });
     };
 
     const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',

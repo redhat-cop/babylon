@@ -11,3 +11,33 @@
 .hide-controls .pf-v6-c-menu-toggle__controls {
   display: none;
 }
+.date-time-picker__timezone {
+  margin-top: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.date-time-picker__timezone-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.date-time-picker__timezone-native-select {
+  font-size: 11px;
+  padding: 1px 2px;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+.date-time-picker__timezone-native-select:focus {
+  border-color: var(--pf-t--global--border--color--hover);
+}
+.date-time-picker__timezone-native-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

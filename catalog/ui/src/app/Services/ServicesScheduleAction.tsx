@@ -4,6 +4,8 @@ import { Alert, AlertGroup, Form, FormGroup, Switch } from '@patternfly/react-co
 import { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
 import { displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import useSession from '@app/utils/useSession';
 import { getAutoStopTime, getMaxRuntime, getMinDefaultRuntime, getStartTime } from './service-utils';
 import { getMaxAutoDestroy, getWorkshopAutoStopTime, getWorkshopLifespan } from '@app/Workshops/workshops-utils';
@@ -44,6 +46,7 @@ const ServicesScheduleAction: React.FC<{
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
   useEffect(() => setState(selectedDate), [setState, selectedDate]);
   useEffect(() => setTitle(`${displayName(resourceClaim || workshop)}`), [setTitle, resourceClaim, workshop]);
 
@@ -81,6 +84,8 @@ const ServicesScheduleAction: React.FC<{
   const helpLink = useHelpLink();
 
   return (
+    <>
+    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
     <Form isHorizontal>
       <FormGroup fieldId="services-schedule-action" label={actionLabel}>
         <DateTimePicker
@@ -89,6 +94,7 @@ const ServicesScheduleAction: React.FC<{
           {...minMaxProps}
           isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
           forceUpdateTimestamp={forceUpdateTimestamp}
+          timezone={timezone}
         />
       </FormGroup>
       {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
@@ -164,6 +170,7 @@ const ServicesScheduleAction: React.FC<{
         </AlertGroup>
       ) : null}
     </Form>
+    </>
   );
 };
 

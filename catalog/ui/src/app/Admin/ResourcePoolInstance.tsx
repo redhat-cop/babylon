@@ -40,6 +40,8 @@ import { selectedUidsReducer } from '@app/reducers';
 import { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import Modal, { useModal } from '@app/Modal/Modal';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -75,6 +77,7 @@ const CreateResourcePoolScalingForm: React.FC<{
   const [count, setCount] = useState(1);
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const [now] = useState(() => Date.now());
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   useEffect(() => {
     if (!setOnConfirmCb) return;
@@ -115,6 +118,8 @@ const CreateResourcePoolScalingForm: React.FC<{
   }, [count, onCreated, resourcePool, scheduledDate, setOnConfirmCb]);
 
   return (
+    <>
+    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
     <Form>
       <FormGroup label="Number of ResourceHandles to add" isRequired fieldId="scaling-count">
         <NumberInput
@@ -134,9 +139,11 @@ const CreateResourcePoolScalingForm: React.FC<{
           defaultTimestamp={now}
           onSelect={(date) => setScheduledDate(date)}
           minDate={now}
+          timezone={timezone}
         />
       </FormGroup>
     </Form>
+    </>
   );
 };
 
