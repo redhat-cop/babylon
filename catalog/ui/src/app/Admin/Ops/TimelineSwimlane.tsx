@@ -13,7 +13,7 @@ interface ProvisionProgress {
 }
 
 export interface TimelineSwimlaneProps {
-  status: 'Running' | 'Failed' | 'Upcoming' | 'Stopped';
+  status: 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
   workshops: WorkshopWithResourceClaims[];
   viewStart: Date;
   viewEnd: Date;
@@ -72,7 +72,7 @@ function arrangeWorkshopsInRows(workshops: WorkshopWithResourceClaims[]): Worksh
 const STATUS_ICONS: Record<string, string> = {
   Running: '▶',
   Failed: '⚠',
-  Upcoming: '⏰',
+  Scheduled: '⏰',
   Stopped: '⏹',
 };
 

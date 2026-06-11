@@ -36,6 +36,38 @@
   margin-left: 8px;
 }
 
+/* ── Region Filter ── */
+.timeline-region-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 0;
+}
+
+.timeline-region-filter__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+  margin-right: 2px;
+}
+
+.timeline-region-filter__btn {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease;
+}
+
+.timeline-region-filter__btn:hover {
+  transform: translateY(-1px);
+}
+
+.timeline-region-overlap {
+  margin-left: 3px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+
 /* ── Date Grid ── */
 .timeline-date-grid {
   display: flex;
@@ -50,6 +82,7 @@
 }
 
 .timeline-date-cell {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -91,6 +124,38 @@
 
 .timeline-date-cell--weekend {
   opacity: 0.65;
+}
+
+.timeline-date-cell__hours {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.timeline-date-cell__hour-mark {
+  position: absolute;
+  top: 100%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+  opacity: 0.6;
+  white-space: nowrap;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.timeline-date-cell__hour-mark::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--pf-t--global--border--color--default, #d2d2d2);
+  opacity: 0.5;
 }
 
 /* ── Now Marker (date grid) ── */
@@ -182,7 +247,7 @@
 .timeline-swimlane--failed .timeline-swimlane__header {
   background: color-mix(in srgb, var(--pf-t--global--color--status--danger--default, #c9190b) 10%, var(--pf-t--global--background--color--primary--default, #fff));
 }
-.timeline-swimlane--upcoming .timeline-swimlane__header {
+.timeline-swimlane--scheduled .timeline-swimlane__header {
   background: color-mix(in srgb, var(--pf-t--global--color--status--info--default, #06c) 8%, var(--pf-t--global--background--color--primary--default, #fff));
 }
 .timeline-swimlane--stopped .timeline-swimlane__header {
@@ -247,12 +312,12 @@
 .timeline-bar--failed {
   background: linear-gradient(135deg, var(--pf-t--global--color--status--danger--default, #c9190b), color-mix(in srgb, var(--pf-t--global--color--status--danger--default, #c9190b) 80%, #000));
 }
-.timeline-bar--upcoming {
+.timeline-bar--scheduled {
   background: linear-gradient(135deg, var(--pf-t--global--color--status--info--default, #06c), color-mix(in srgb, var(--pf-t--global--color--status--info--default, #06c) 80%, #000));
 }
 .timeline-bar--stopped {
   background: linear-gradient(135deg, var(--pf-t--global--color--status--warning--default, #f0ab00), color-mix(in srgb, var(--pf-t--global--color--status--warning--default, #f0ab00) 80%, #000));
-  color: #151515;
+  color: var(--pf-t--global--text--color--on-highlight, #151515);
 }
 
 /* ── Urgency States ── */
@@ -295,7 +360,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* ── Bar badges ── */
@@ -450,4 +517,56 @@
 }
 .timeline-container::-webkit-scrollbar-thumb:hover {
   background: var(--pf-t--global--text--color--subtle, #6a6e73);
+}
+
+/* ── Timezone Indicator ── */
+.timeline-timezone-label {
+  text-align: center;
+  font-size: 11px;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+  padding: 2px 0 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── Dark Mode ── */
+.pf-v6-theme-dark .timeline-date-grid,
+.pf-v5-theme-dark .timeline-date-grid,
+[data-theme="dark"] .timeline-date-grid {
+  background: var(--pf-t--global--background--color--primary--default, #1b1d21);
+}
+
+.pf-v6-theme-dark .timeline-swimlane__body,
+.pf-v5-theme-dark .timeline-swimlane__body,
+[data-theme="dark"] .timeline-swimlane__body {
+  background: var(--pf-t--global--background--color--primary--default, #1b1d21);
+}
+
+.pf-v6-theme-dark .timeline-quick-select__btn:hover,
+.pf-v5-theme-dark .timeline-quick-select__btn:hover,
+[data-theme="dark"] .timeline-quick-select__btn:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.pf-v6-theme-dark .timeline-bar,
+.pf-v5-theme-dark .timeline-bar,
+[data-theme="dark"] .timeline-bar {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pf-v6-theme-dark .timeline-bar:hover,
+.pf-v5-theme-dark .timeline-bar:hover,
+[data-theme="dark"] .timeline-bar:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.pf-v6-theme-dark .timeline-date-cell__hour-mark,
+.pf-v5-theme-dark .timeline-date-cell__hour-mark,
+[data-theme="dark"] .timeline-date-cell__hour-mark {
+  color: var(--pf-t--global--text--color--subtle, #c9c9c9);
+}
+
+.pf-v6-theme-dark .timeline-date-cell__hour-mark::before,
+.pf-v5-theme-dark .timeline-date-cell__hour-mark::before,
+[data-theme="dark"] .timeline-date-cell__hour-mark::before {
+  background: var(--pf-t--global--border--color--default, #4f5255);
 }

@@ -53,9 +53,9 @@
 
 .ops-operations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--pf-t--global--spacer--md);
-  margin-top: var(--pf-t--global--spacer--md);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--pf-t--global--spacer--sm);
+  margin-top: var(--pf-t--global--spacer--sm);
 }
 
 /* Reduce padding on all operation cards */

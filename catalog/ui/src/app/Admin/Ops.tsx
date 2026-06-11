@@ -1965,7 +1965,7 @@ const Ops: React.FC = () => {
                       widthChars={3} aria-label="Hours" />
                     <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
                   </div>
-                  <Button variant="primary" onClick={handleExtendStop}
+                  <Button variant="warning" onClick={handleExtendStop}
                     isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
                     Extend Stop
                   </Button>
@@ -1994,7 +1994,7 @@ const Ops: React.FC = () => {
                       widthChars={3} aria-label="Hours" />
                     <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
                   </div>
-                  <Button variant="primary" onClick={handleExtendDestroy}
+                  <Button variant="warning" onClick={handleExtendDestroy}
                     isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
                     Extend Destroy
                   </Button>
@@ -2823,7 +2823,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
+          <Button variant="warning" onClick={handleExtendStop}>Extend Stop</Button>
           <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2853,7 +2853,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
+          <Button variant="warning" onClick={handleExtendDestroy}>Extend Destroy</Button>
           <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>

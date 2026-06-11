@@ -26,7 +26,7 @@ export interface WorkshopBarProps {
   timezone: string;
 }
 
-function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'failed' | 'upcoming' | 'stopped' {
+function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'failed' | 'scheduled' | 'stopped' {
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
@@ -49,11 +49,11 @@ function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'f
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
   const stopDate = workshop.spec?.actionSchedule?.stop;
 
-  if (startDate && new Date(startDate).getTime() > now) return 'upcoming';
+  if (startDate && new Date(startDate).getTime() > now) return 'scheduled';
   if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) return 'stopped';
   if (hasStarted) return 'running';
 
-  return 'upcoming';
+  return 'scheduled';
 }
 
 function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } {
@@ -113,7 +113,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
       : null;
 
   const urgencyTag = useMemo(() => {
-    if (status === 'stopped' || status === 'upcoming') return null;
+    if (status === 'stopped' || status === 'scheduled') return null;
     if (stopUrgency === 'critical' && stopIso) return `stop ${relativeTime(stopIso)}`;
     if (destroyUrgency === 'critical' && destroyIso) return `destroy ${relativeTime(destroyIso)}`;
     if (stopUrgency === 'warning' && stopIso) return `stop ${relativeTime(stopIso)}`;
@@ -146,9 +146,10 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
     return d.toLocaleString('en-US', opts);
   }, [timezone]);
 
-  const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'upcoming'
+  const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'scheduled'
     ? ` timeline-bar--urgency-${worstUrgency}`
     : '';
+
 
   const tooltipContent = (
     <div className="timeline-bar-tooltip">

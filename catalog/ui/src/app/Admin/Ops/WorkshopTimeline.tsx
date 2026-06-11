@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Badge, EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
+import { Badge, EmptyState, EmptyStateBody, Label, Tooltip } from '@patternfly/react-core';
 import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
@@ -56,7 +56,7 @@ function wsKey(ws: WorkshopWithResourceClaims): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
-export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
+export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Scheduled' | 'Stopped' {
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
@@ -78,10 +78,10 @@ export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Runnin
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
   const stopDate = workshop.spec?.actionSchedule?.stop;
 
-  if (startDate && new Date(startDate).getTime() > now) return 'Upcoming';
+  if (startDate && new Date(startDate).getTime() > now) return 'Scheduled';
   if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) return 'Stopped';
   if (hasStarted) return 'Running';
-  return 'Upcoming';
+  return 'Scheduled';
 }
 
 function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } | null {
@@ -103,13 +103,79 @@ function workshopInDateRange(workshop: WorkshopWithResourceClaims, viewStart: Da
 
 const STORAGE_KEY = 'opsTimelineDateRange';
 
-type StatusKey = 'Running' | 'Failed' | 'Upcoming' | 'Stopped';
+type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
+
+type RegionKey = 'all' | 'emea' | 'na-east' | 'na-west' | 'apac-india' | 'apac-aus';
+
+const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; endUtcH: number }[] = [
+  { key: 'apac-aus',   label: 'APAC Aus',     tz: 'Australia/Sydney',  startUtcH: 23,   endUtcH: 31 },  // wraps midnight
+  { key: 'apac-india', label: 'APAC India',   tz: 'Asia/Kolkata',      startUtcH: 3.5,  endUtcH: 11.5 },
+  { key: 'emea',       label: 'EMEA',         tz: 'Europe/Berlin',     startUtcH: 7,    endUtcH: 15 },
+  { key: 'na-east',    label: 'NA East',      tz: 'America/New_York',  startUtcH: 13,   endUtcH: 21 },
+  { key: 'na-west',    label: 'NA West',      tz: 'America/Los_Angeles', startUtcH: 16, endUtcH: 24 },
+];
+
+/** Check if a workshop is active during a region's business hours on any day of its lifespan */
+function getWorkshopRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
+  const dates = getWorkshopDates(ws);
+  if (!dates) return [];
+
+  const regions: RegionKey[] = [];
+  const durationMs = dates.end.getTime() - dates.start.getTime();
+  const durationH = durationMs / (1000 * 60 * 60);
+
+  // If workshop spans 24+ hours it covers all regions
+  if (durationH >= 24) return REGIONS.map(r => r.key);
+
+  // Check each day the workshop is active
+  const startDay = new Date(dates.start);
+  startDay.setUTCHours(0, 0, 0, 0);
+  const endDay = new Date(dates.end);
+  endDay.setUTCHours(23, 59, 59, 999);
+
+  for (const r of REGIONS) {
+    let matched = false;
+    const cursor = new Date(startDay);
+    while (cursor <= endDay && !matched) {
+      // Region business hours for this day (UTC)
+      let bizStartMs = cursor.getTime() + r.startUtcH * 3600000;
+      let bizEndMs = cursor.getTime() + r.endUtcH * 3600000;
+      // Handle wrap-around for APAC Aus
+      if (r.endUtcH > 24) {
+        bizEndMs = cursor.getTime() + (r.endUtcH - 24) * 3600000 + 86400000;
+      }
+      // Workshop active during [dates.start, dates.end], biz hours [bizStart, bizEnd]
+      if (dates.start.getTime() < bizEndMs && dates.end.getTime() > bizStartMs) {
+        matched = true;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    if (matched) regions.push(r.key);
+  }
+  return regions;
+}
+
+/** Primary region = first region whose business hours the workshop starts in */
+function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | null {
+  const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+  if (!startIso) return null;
+  const d = new Date(startIso);
+  const utcH = d.getUTCHours() + d.getUTCMinutes() / 60;
+  for (const r of REGIONS) {
+    if (r.endUtcH > 24) {
+      if (utcH >= r.startUtcH || utcH < (r.endUtcH - 24)) return r.key;
+    } else {
+      if (utcH >= r.startUtcH && utcH < r.endUtcH) return r.key;
+    }
+  }
+  return null;
+}
 
 const SELECT_BUTTONS: { label: string; status: StatusKey | 'all' | 'none'; color: 'green' | 'red' | 'blue' | 'orange' | 'grey' }[] = [
   { label: 'Select All', status: 'all', color: 'grey' },
   { label: 'Running', status: 'Running', color: 'green' },
   { label: 'Failed', status: 'Failed', color: 'red' },
-  { label: 'Upcoming', status: 'Upcoming', color: 'blue' },
+  { label: 'Scheduled', status: 'Scheduled', color: 'blue' },
   { label: 'Stopped', status: 'Stopped', color: 'orange' },
   { label: 'Deselect', status: 'none', color: 'grey' },
 ];
@@ -153,15 +219,48 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     setDateRange({ start, end });
   }, []);
 
+  const [regionFilter, setRegionFilter] = useState<RegionKey>('all');
+
+  const visibleWorkshops = useMemo(() => {
+    let visible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
+    if (regionFilter !== 'all') {
+      visible = visible.filter(w => getWorkshopRegions(w).includes(regionFilter));
+    }
+    return visible;
+  }, [workshops, dateRange, regionFilter]);
+
   const groupedWorkshops = useMemo(() => {
-    const visible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
     const grouped: Record<StatusKey, WorkshopWithResourceClaims[]> = {
-      Running: [], Failed: [], Upcoming: [], Stopped: [],
+      Running: [], Failed: [], Scheduled: [], Stopped: [],
     };
-    visible.forEach(ws => {
+    visibleWorkshops.forEach(ws => {
       grouped[getWorkshopStatus(ws)].push(ws);
     });
     return grouped;
+  }, [visibleWorkshops]);
+
+  const regionStats = useMemo(() => {
+    const allVisible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
+    const counts: Record<RegionKey, number> = { 'all': allVisible.length, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 };
+
+    // A workshop can span multiple regions, so count it in each region it's active during
+    for (const ws of allVisible) {
+      const regions = getWorkshopRegions(ws);
+      for (const r of regions) counts[r]++;
+    }
+
+    // Count workshops that span multiple regions (overlap = active during 2+ regions' business hours)
+    const spanning: Record<string, number> = {};
+    for (const r of REGIONS) {
+      let multiRegionCount = 0;
+      for (const ws of allVisible) {
+        const regions = getWorkshopRegions(ws);
+        if (regions.includes(r.key) && regions.length > 1) multiRegionCount++;
+      }
+      spanning[r.key] = multiRegionCount;
+    }
+
+    return { counts, spanning };
   }, [workshops, dateRange]);
 
   const dateGrid = useMemo(() => {
@@ -253,9 +352,40 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
         )}
       </div>
 
+      <div className="timeline-region-filter">
+        <span className="timeline-region-filter__label">Region:</span>
+        <Label
+          color={regionFilter === 'all' ? 'blue' : 'grey'}
+          isCompact
+          onClick={() => setRegionFilter('all')}
+          className="timeline-region-filter__btn"
+        >
+          All ({regionStats.counts.all})
+        </Label>
+        {REGIONS.map(r => {
+          const count = regionStats.counts[r.key];
+          const spanning = regionStats.spanning[r.key];
+          const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+          const tooltipLines = [`${count} workshops active during 9-5 ${tzCity}`];
+          if (spanning > 0) tooltipLines.push(`${spanning} also span other regions`);
+          return (
+            <Tooltip key={r.key} content={<span>{tooltipLines.join(' · ')}</span>}>
+              <Label
+                color={regionFilter === r.key ? 'blue' : 'grey'}
+                isCompact
+                onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
+                className="timeline-region-filter__btn"
+              >
+                {r.label} ({count}){spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
+              </Label>
+            </Tooltip>
+          );
+        })}
+      </div>
+
       {totalWorkshops === 0 ? (
         <EmptyState>
-          <EmptyStateBody>No workshops match the selected date range</EmptyStateBody>
+          <EmptyStateBody>No workshops match the selected filters</EmptyStateBody>
         </EmptyState>
       ) : (
         <>
@@ -273,12 +403,23 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
                 >
                   <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
                   <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
+                  <div className="timeline-date-cell__hours">
+                    {[6, 12, 18].map(h => (
+                      <span key={h} className="timeline-date-cell__hour-mark" style={{ left: `${(h / 24) * 100}%` }}>
+                        {`${String(h).padStart(2, '0')}:00`}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {(['Running', 'Failed', 'Upcoming', 'Stopped'] as const).map(status => (
+          <div className="timeline-timezone-label">
+            Times shown in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone}
+          </div>
+
+          {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map(status => (
             <TimelineSwimlane
               key={status}
               status={status}
