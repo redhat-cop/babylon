@@ -44,7 +44,7 @@
   flex-direction: column;
   overflow: auto;
   flex-grow: 1;
-  background-color: var(--pf-t--global--background--color--primary--default, #fff);
+  background-color: #fff;
 }
 
 /* ========================================
@@ -53,103 +53,49 @@
 
 .ops-operations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
-  margin-top: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--pf-t--global--spacer--md);
+  margin-top: var(--pf-t--global--spacer--md);
 }
 
-/* Minimal padding on all operation cards */
+/* Reduce padding on all operation cards */
 .ops-operations-grid .pf-v6-c-card {
-  --pf-v6-c-card--c-card__body--PaddingBlockStart: 6px;
-  --pf-v6-c-card--c-card__body--PaddingInlineEnd: 8px;
-  --pf-v6-c-card--c-card__body--PaddingBlockEnd: 6px;
-  --pf-v6-c-card--c-card__body--PaddingInlineStart: 8px;
-  --pf-v6-c-card--c-card__title--PaddingBlockStart: 6px;
-  --pf-v6-c-card--c-card__title--PaddingInlineEnd: 8px;
-  --pf-v6-c-card--c-card__title--PaddingBlockEnd: 2px;
-  --pf-v6-c-card--c-card__title--PaddingInlineStart: 8px;
+  --pf-v6-c-card--c-card__body--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-card--c-card__title--PaddingInlineStart: var(--pf-t--global--spacer--sm);
 }
 
 /* Tighter form groups within operation cards */
 .ops-operations-grid .pf-v6-c-form-group {
-  margin-bottom: 4px;
+  margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
 /* Smaller card titles */
 .ops-operations-grid .pf-v6-c-card__title {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: var(--pf-t--global--font--size--body--default);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
 }
 
 /* Compact buttons */
 .ops-operations-grid .pf-v6-c-button {
-  --pf-v6-c-button--PaddingBlockStart: 3px;
-  --pf-v6-c-button--PaddingInlineEnd: 8px;
-  --pf-v6-c-button--PaddingBlockEnd: 3px;
-  --pf-v6-c-button--PaddingInlineStart: 8px;
-  font-size: 0.78rem;
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
 }
 
 /* Compact number inputs */
 .ops-operations-grid .pf-v6-c-number-input {
-  flex-shrink: 0;
-}
-
-.ops-operations-grid .pf-v6-c-number-input .pf-v6-c-button {
-  --pf-v6-c-button--PaddingInlineEnd: 4px;
-  --pf-v6-c-button--PaddingInlineStart: 4px;
-}
-
-/* Unit label (e.g., "days", "hrs") attached to NumberInput */
-.ops-operations-grid .pf-v6-c-number-input__unit {
-  font-size: 0.75rem;
-  padding: 0 4px;
-}
-
-/* Extend Stop/Destroy row — two NumberInputs side by side */
-.ops-extend-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
+  max-width: 120px;
 }
 
 /* Reduce icon size in card titles */
 .ops-card-icon {
-  font-size: 0.8rem;
-  margin-right: 3px;
+  font-size: var(--pf-t--global--font--size--body--default);
+  margin-right: var(--pf-t--global--spacer--xs);
 }
-
-/* Operation card title should not truncate */
-.ops-operations-grid .pf-v6-c-card__title-text {
-  white-space: normal;
-  word-break: break-word;
-}
-
-/* Compact descriptions in operation cards */
-.ops-operations-grid .ops-desc {
-  margin-bottom: 4px;
-  font-size: 0.72rem;
-  line-height: 1.3;
-}
-
-/* Tighter button row spacing */
-.ops-operations-grid .ops-button-row {
-  gap: 4px;
-}
-
-/* Dark mode: tone down card backgrounds */
-:root.pf-v6-theme-dark .ops-operations-grid .pf-v6-c-card,
-.pf-v5-theme-dark .ops-operations-grid .pf-v6-c-card,
-[data-theme="dark"] .ops-operations-grid .pf-v6-c-card {
-  --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--secondary--default, #212427);
-}
-
-:root.pf-v6-theme-dark .admin-container,
-.pf-v5-theme-dark .admin-container,
-[data-theme="dark"] .admin-container {
-  background-color: var(--pf-t--global--background--color--primary--default, #1b1d21);
-}
-
-/* Dark mode for operation cards handled globally in ops.css */
