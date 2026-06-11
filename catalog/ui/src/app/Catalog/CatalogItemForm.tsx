@@ -167,6 +167,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       user: { groups, roles, isAdmin },
       purposeOpts,
       sfdc_enabled,
+      workshop: workshopInitialProps,
     }),
   );
   let maxAutoDestroyTime = Math.min(

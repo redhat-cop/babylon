@@ -545,6 +545,10 @@ spec:
                 description: >-
                   Boolean flag to indicate if the catalog item shoud not support the ability to enable the Workshop User Interface.
                 type: boolean
+              workshopUiEnabledByDefault:
+                description: >-
+                  Boolean flag to indicate if the Workshop User Interface toggle should be enabled by default in the order form.
+                type: boolean
               workshopUiMaxInstances:
                 description: >-
                   Maximum number of instances supported in a single the workshop. 0 means no limit.

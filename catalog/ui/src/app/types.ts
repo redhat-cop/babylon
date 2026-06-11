@@ -185,6 +185,7 @@ export interface CatalogItemSpec {
     stopComplete?: MessageTemplate;
   };
   workshopUiDisabled?: boolean;
+  workshopUiEnabledByDefault?: boolean;
   workshopUiMaxInstances?: number;
   workshopUserMode?: string;
   parameters?: CatalogItemSpecParameter[];
