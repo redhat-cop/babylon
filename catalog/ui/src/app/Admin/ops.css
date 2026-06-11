@@ -160,9 +160,10 @@
   height: 28px;
 }
 
-/* Hide calendar toggle button — users can type dates or use preset buttons */
-.ops-date-picker-compact .pf-v6-c-date-picker__input .pf-v6-c-input-group__item:last-child {
-  display: none;
+/* Compact calendar toggle button */
+.ops-date-picker-compact .pf-v6-c-date-picker__input .pf-v6-c-button {
+  padding: 2px 6px;
+  font-size: 0.78rem;
 }
 
 .ops-date-range-controls {
