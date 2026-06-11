@@ -111,6 +111,7 @@ class SelfPacedLab(CachedKopfObject):
             logger.info(f"Handling delete for {self}")
             await self.delete_all_selfpacedlab_provision_items(logger=logger)
             await self.delete_all_resource_claims(logger=logger)
+            self.cache.pop(self.cache_key, None)
 
     async def handle_resume(self, logger):
         async with self.lock:

@@ -170,6 +170,7 @@ class SelfPacedLabUserAssignment(CachedKopfObject):
     async def handle_delete(self, logger):
         async with self.lock:
             logger.info(f"Handling delete for {self}")
+            self.cache.pop(self.cache_key, None)
 
     async def handle_update(self, logger):
         async with self.lock:
