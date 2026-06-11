@@ -1947,23 +1947,21 @@ const Ops: React.FC = () => {
               <Card isFullHeight>
                 <CardTitle>
                   <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
-                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop Time</span>
+                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                  <div className="ops-extend-row">
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
                       onPlus={() => setExtStopDays(extStopDays + 1)}
                       onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} aria-label="Days" />
-                    <span style={{ fontSize: '0.78rem' }}>days</span>
+                      widthChars={2} unit="days" aria-label="Days" />
                     <NumberInput value={extStopHours} min={0}
                       onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
                       onPlus={() => setExtStopHours(extStopHours + 1)}
                       onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} aria-label="Hours" />
-                    <span style={{ fontSize: '0.78rem' }}>hrs</span>
+                      widthChars={2} unit="hrs" aria-label="Hours" />
                   </div>
                   <Button variant="warning" onClick={handleExtendStop}
                     isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
@@ -1976,23 +1974,21 @@ const Ops: React.FC = () => {
               <Card isFullHeight>
                 <CardTitle>
                   <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
-                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy Time</span>
+                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span>
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                  <div className="ops-extend-row">
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
                       onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
                       onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} aria-label="Days" />
-                    <span style={{ fontSize: '0.78rem' }}>days</span>
+                      widthChars={2} unit="days" aria-label="Days" />
                     <NumberInput value={extDestroyHours} min={0}
                       onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
                       onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
                       onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} aria-label="Hours" />
-                    <span style={{ fontSize: '0.78rem' }}>hrs</span>
+                      widthChars={2} unit="hrs" aria-label="Hours" />
                   </div>
                   <Button variant="warning" onClick={handleExtendDestroy}
                     isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>

@@ -90,9 +90,8 @@
   font-size: 0.78rem;
 }
 
-/* Compact number inputs — keep narrow so "days"/"hours" labels stay visible */
+/* Compact number inputs */
 .ops-operations-grid .pf-v6-c-number-input {
-  max-width: 105px;
   flex-shrink: 0;
 }
 
@@ -101,11 +100,19 @@
   --pf-v6-c-button--PaddingInlineStart: 4px;
 }
 
-/* Ensure "days" / "hours" labels next to number inputs are visible */
-.ops-operations-grid .pf-v6-c-number-input + span {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: 0.78rem;
+/* Unit label (e.g., "days", "hrs") attached to NumberInput */
+.ops-operations-grid .pf-v6-c-number-input__unit {
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+/* Extend Stop/Destroy row — two NumberInputs side by side */
+.ops-extend-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
 /* Reduce icon size in card titles */

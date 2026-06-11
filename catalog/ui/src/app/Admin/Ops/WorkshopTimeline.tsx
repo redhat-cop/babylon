@@ -131,21 +131,34 @@ function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | n
   return null;
 }
 
-/** All regions a workshop is active during (based on which 9-5 windows it overlaps) */
+/**
+ * All regions a workshop is active during (based on which 9-5 windows
+ * the DELIVERY window overlaps — using actionSchedule start/stop, not full lifespan).
+ * A workshop might deploy in APAC India (9am IST) and still be running during
+ * EMEA business hours, so it spans both regions.
+ */
 function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
-  const dates = getWorkshopDates(ws);
-  if (!dates) return [];
+  // Use actionSchedule (actual delivery window) for overlap detection
+  const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+  const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+  if (!startIso) {
+    const primary = getWorkshopPrimaryRegion(ws);
+    return primary ? [primary] : [];
+  }
 
-  const durationH = (dates.end.getTime() - dates.start.getTime()) / 3600000;
-  // Multi-day workshops: classify by primary region only to avoid noise
+  const deliveryStart = new Date(startIso);
+  const deliveryEnd = stopIso ? new Date(stopIso) : new Date(deliveryStart.getTime() + 8 * 3600000); // default 8h
+
+  const durationH = (deliveryEnd.getTime() - deliveryStart.getTime()) / 3600000;
+  // If delivery window is > 24h (e.g., multi-day event), classify by primary only
   if (durationH >= 24) {
     const primary = getWorkshopPrimaryRegion(ws);
     return primary ? [primary] : [];
   }
 
-  // Short workshops: check which regions' business hours they overlap
+  // Check which regions' business hours the delivery window overlaps
   const regions: RegionKey[] = [];
-  const startDay = new Date(dates.start);
+  const startDay = new Date(deliveryStart);
   startDay.setUTCHours(0, 0, 0, 0);
 
   for (const r of REGIONS) {
@@ -153,7 +166,7 @@ function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
     const bizEndMs = r.endUtcH > 24
       ? startDay.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
       : startDay.getTime() + r.endUtcH * 3600000;
-    if (dates.start.getTime() < bizEndMs && dates.end.getTime() > bizStartMs) {
+    if (deliveryStart.getTime() < bizEndMs && deliveryEnd.getTime() > bizStartMs) {
       regions.push(r.key);
     }
   }
@@ -237,21 +250,37 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
   const regionStats = useMemo(() => {
     const allVisible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
-    const counts: Record<RegionKey, number> = { 'all': allVisible.length, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 };
+    const emptyRegionRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
 
-    // Count by primary region + instance/seat totals
-    const instances: Record<RegionKey, number> = { 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 };
+    const counts = emptyRegionRecord();   // Workshops by deploy region (primary)
+    const instances = emptyRegionRecord(); // Instances by deploy region
+    const deploying = emptyRegionRecord(); // Scheduled (deploying) workshops per region
+    const running = emptyRegionRecord();   // Running workshops per region
+    const delivering = emptyRegionRecord();// Workshops whose delivery spans INTO this region
+
+    counts.all = allVisible.length;
+
     for (const ws of allVisible) {
       const primary = getWorkshopPrimaryRegion(ws);
       const count = getCurrentCount(ws) ?? 1;
+      const status = getWorkshopStatus(ws);
       instances.all += count;
+
       if (primary) {
         counts[primary]++;
         instances[primary] += count;
+        if (status === 'Scheduled') deploying[primary]++;
+        if (status === 'Running') running[primary]++;
+      }
+
+      // Track which regions this workshop's delivery spans into
+      const active = getWorkshopActiveRegions(ws);
+      for (const rk of active) {
+        delivering[rk]++;
       }
     }
 
-    // Per-region overlap breakdown: how many workshops in region X also span into region Y
+    // Per-region overlap breakdown: how many workshops span from region X into region Y
     const overlapDetail: Record<string, Record<string, number>> = {};
     for (const r of REGIONS) {
       overlapDetail[r.key] = {};
@@ -268,17 +297,15 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     // Total spanning count per region
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
-      spanning[r.key] = Object.values(overlapDetail[r.key]).reduce((s, n) => s + n, 0) > 0
-        ? new Set(
-            allVisible.filter(ws => {
-              const active = getWorkshopActiveRegions(ws);
-              return active.includes(r.key) && active.length > 1;
-            }).map(ws => `${ws.metadata.namespace}/${ws.metadata.name}`)
-          ).size
-        : 0;
+      spanning[r.key] = new Set(
+        allVisible.filter(ws => {
+          const active = getWorkshopActiveRegions(ws);
+          return active.includes(r.key) && active.length > 1;
+        }).map(ws => `${ws.metadata.namespace}/${ws.metadata.name}`)
+      ).size;
     }
 
-    return { counts, instances, spanning, overlapDetail };
+    return { counts, instances, deploying, running, delivering, spanning, overlapDetail };
   }, [workshops, dateRange, getCurrentCount]);
 
   const dateGrid = useMemo(() => {
@@ -383,22 +410,40 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
         {REGIONS.map(r => {
           const count = regionStats.counts[r.key];
           const inst = regionStats.instances[r.key];
+          const deploy = regionStats.deploying[r.key];
+          const run = regionStats.running[r.key];
+          const deliver = regionStats.delivering[r.key];
           const spanning = regionStats.spanning[r.key];
           const overlaps = regionStats.overlapDetail[r.key] || {};
           const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+          const REGION_LIMIT = 5;
+          const atCapacity = count >= REGION_LIMIT;
 
           const regionLabelMap: Record<string, string> = {};
           REGIONS.forEach(rr => { regionLabelMap[rr.key] = rr.label; });
 
           const tooltipContent = (
             <div style={{ lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 600, marginBottom: 2 }}>{r.label} — 9-5 {tzCity}</div>
-              <div>{count} workshops · {inst} instances</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.label} — 9am-5pm {tzCity}</div>
+              <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+                <tbody>
+                  <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Deploy from</td><td style={{ fontWeight: 600 }}>{count} workshops · {inst} instances</td></tr>
+                  {deploy > 0 && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Deploying</td><td>{deploy} scheduled</td></tr>}
+                  {run > 0 && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Running</td><td>{run} active</td></tr>}
+                  {deliver > count && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Delivery active</td><td>{deliver} total (incl. from other regions)</td></tr>}
+                  <tr>
+                    <td style={{ paddingRight: 10, opacity: 0.8 }}>Capacity</td>
+                    <td style={{ fontWeight: atCapacity ? 700 : 400, color: atCapacity ? '#ff6b6b' : 'inherit' }}>
+                      {count}/{REGION_LIMIT}{atCapacity ? ' ⚠ at limit' : ''}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               {spanning > 0 && (
-                <div style={{ marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 4 }}>
-                  <div style={{ fontWeight: 500 }}>{spanning} overlap with other regions:</div>
+                <div style={{ marginTop: 6, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 4 }}>
+                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{spanning} span into other regions:</div>
                   {Object.entries(overlaps).map(([otherKey, n]) => (
-                    <div key={otherKey} style={{ paddingLeft: 8 }}>↔ {n} with {regionLabelMap[otherKey] || otherKey}</div>
+                    <div key={otherKey} style={{ paddingLeft: 8, fontSize: 11 }}>↔ {n} with {regionLabelMap[otherKey] || otherKey}</div>
                   ))}
                 </div>
               )}
@@ -406,14 +451,16 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
           );
 
           return (
-            <Tooltip key={r.key} content={tooltipContent} maxWidth="300px">
+            <Tooltip key={r.key} content={tooltipContent} maxWidth="320px">
               <Label
-                color={regionFilter === r.key ? 'blue' : 'grey'}
+                color={regionFilter === r.key ? 'blue' : atCapacity ? 'red' : 'grey'}
                 isCompact
                 onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
                 className="timeline-region-filter__btn"
               >
-                {r.label}: {count} ws · {inst} inst{spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
+                {r.label}: {count} ws · {inst} inst
+                {spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
+                {atCapacity && <span className="timeline-region-overlap"> ⚠</span>}
               </Label>
             </Tooltip>
           );
@@ -453,7 +500,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
           </div>
 
           <div className="timeline-timezone-label">
-            Times shown in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone}
+            Times shown in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} — change via timezone selector above
           </div>
 
           {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map(status => (
