@@ -507,11 +507,20 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
             </div>
           );
 
-          // Label: lead with deploy count, show peak for support awareness
-          const labelParts: string[] = [];
-          if (count > 0) labelParts.push(`${count} deploy`);
-          if (inst > 0) labelParts.push(`${inst} inst`);
-          const labelMain = labelParts.length > 0 ? labelParts.join(' · ') : 'no deploys';
+          // Label: context-aware — different text depending on whether workshops deploy from here or just flow through
+          let labelText: string;
+          if (count > 0 && fromOtherRegions > 0) {
+            // Workshops deploy from here AND flow in from other regions
+            labelText = `${count} deploy · ${peak.count} active/day`;
+          } else if (count > 0) {
+            // Only deploys from here, no cross-region
+            labelText = `${count} deploy · ${inst} inst`;
+          } else if (peak.count > 0) {
+            // Nothing deploys here but workshops are active during biz hours
+            labelText = `${peak.count} active/day (cross-region)`;
+          } else {
+            labelText = 'no activity';
+          }
 
           return (
             <Tooltip key={r.key} content={tooltipContent} maxWidth="380px">
@@ -520,8 +529,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
                 onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
                 className="timeline-region-filter__btn"
               >
-                {r.label} — {labelMain}
-                {peak.count > 0 && <span className="timeline-region-peak"> · {peak.count}/day</span>}
+                {r.label} — {labelText}
                 {spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
               </Label>
             </Tooltip>
