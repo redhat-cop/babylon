@@ -284,6 +284,7 @@ function reduceFormStateInit(
   { isAdmin, groups, roles },
   purposeOpts: TPurposeOpts,
   sfdc_enabled: boolean,
+  workshopInitialProps?: WorkshopProps,
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -341,7 +342,7 @@ function reduceFormStateInit(
     serviceNamespace: serviceNamespace,
     termsOfServiceAgreed: false,
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
-    workshop: null,
+    workshop: catalogItem.spec.workshopUiEnabledByDefault && workshopInitialProps ? workshopInitialProps : null,
     selfPacedLab: null,
     error: '',
     useAutoDetach: true,
@@ -517,6 +518,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         action.user,
         action.purposeOpts,
         action.sfdc_enabled,
+        action.workshop,
       );
     case 'initDates':
       return {
