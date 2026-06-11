@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v2.6.1
+      tag: v2.6.2
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.2.5
+        tag: v1.2.6
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -145,7 +145,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.35.0
+        tag: v0.35.1
       replicaCount: 1
       resources:
         requests:
@@ -181,7 +181,7 @@ notifier:
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.9.4
+    tag: v0.9.5
   namespace:
     create: true
     name: babylon-notifier
@@ -244,7 +244,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.10.6
+    tag: v0.10.7
   namespace:
     create: true
     name: babylon-workshop-manager
@@ -265,7 +265,7 @@ selfpacedlabManager:
   image:
     repository: quay.io/rhpds/babylon-selfpacedlab-manager
     pullPolicy: IfNotPresent
-    tag: v0.0.1
+    tag: v0.0.2
   namespace:
     create: true
     name: babylon-selfpacedlab-manager
@@ -315,7 +315,7 @@ ratings:
   image:
     repository: quay.io/redhat-gpte/babylon-ratings
     pullPolicy: Always
-    tag: v1.0.11
+    tag: v1.0.12
   resources:
     limits:
       cpu: "1"
