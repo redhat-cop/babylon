@@ -469,7 +469,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           isAdmin
             ? null
             : formState.workshop
-              ? formState.startDate.getTime() - Date.now() + parseDuration('5d')
+              ? (formState.startDate ? formState.startDate.getTime() : Date.now()) - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
         onConfirm={(dates: TDates) =>
