@@ -137,14 +137,13 @@
 
 .timeline-date-cell__hour-mark {
   position: absolute;
-  top: 100%;
+  bottom: 0;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: 8px;
   color: var(--pf-t--global--text--color--subtle, #6a6e73);
-  opacity: 0.6;
+  opacity: 0.5;
   white-space: nowrap;
   line-height: 1;
-  padding-top: 2px;
 }
 
 .timeline-date-cell__hour-mark::before {
@@ -153,9 +152,9 @@
   bottom: 100%;
   left: 50%;
   width: 1px;
-  height: 8px;
+  height: 4px;
   background: var(--pf-t--global--border--color--default, #d2d2d2);
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 /* ── Now Marker (date grid) ── */
@@ -569,4 +568,34 @@
 .pf-v5-theme-dark .timeline-date-cell__hour-mark::before,
 [data-theme="dark"] .timeline-date-cell__hour-mark::before {
   background: var(--pf-t--global--border--color--default, #4f5255);
+}
+
+/* Dark mode: swimlane border + checkbox backgrounds */
+:root.pf-v6-theme-dark .timeline-swimlane {
+  border-color: var(--pf-t--global--border--color--default, #4f5255);
+}
+
+:root.pf-v6-theme-dark .timeline-swimlane__body {
+  border-top-color: var(--pf-t--global--border--color--default, #4f5255);
+}
+
+:root.pf-v6-theme-dark .timeline-bar__checkbox input[type="checkbox"],
+:root.pf-v6-theme-dark .timeline-swimlane__checkbox input[type="checkbox"] {
+  background-color: #2a2d32;
+  border-color: var(--pf-t--global--border--color--default, #4f5255);
+}
+
+/* Dark mode: today highlight should be subtle */
+:root.pf-v6-theme-dark .timeline-date-cell--today {
+  background: color-mix(in srgb, var(--pf-t--global--color--brand--default, #06c) 12%, transparent);
+}
+
+/* Dark mode: date grid border */
+:root.pf-v6-theme-dark .timeline-date-grid {
+  border-bottom-color: var(--pf-t--global--border--color--default, #4f5255);
+}
+
+/* Dark mode: date cell dividers */
+:root.pf-v6-theme-dark .timeline-date-cell {
+  border-right-color: color-mix(in srgb, var(--pf-t--global--border--color--default, #4f5255) 50%, transparent);
 }

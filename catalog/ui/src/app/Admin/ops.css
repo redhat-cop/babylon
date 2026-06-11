@@ -752,32 +752,33 @@ a.ops-ws-meta:hover {
   color: var(--pf-t--global--text--color--regular);
 }
 
-/* --- Form controls (NumberInput, FormSelect, TextInput): PF6 uses CSS vars on .pf-v6-c-form-control; set them so inputs/selects match dark surfaces --- */
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-form-control,
-:root.pf-v6-theme-dark .ops-scope-bar .pf-v6-c-form-control {
-  --pf-v6-c-form-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+/* --- Form controls (NumberInput, FormSelect, TextInput): force dark backgrounds on ALL form controls --- */
+:root.pf-v6-theme-dark .pf-v6-c-form-control {
+  --pf-v6-c-form-control--BackgroundColor: #2a2d32;
   --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--regular);
   --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--default);
 }
 
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-input-group {
-  --pf-v6-c-input-group__item--m-box--BackgroundColor: var(--pf-t--global--background--color--control--default);
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-input-group {
+  --pf-v6-c-input-group__item--m-box--BackgroundColor: #2a2d32;
 }
 
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-button.pf-m-control {
-  --pf-v6-c-button--m-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button.pf-m-control {
+  --pf-v6-c-button--m-control--BackgroundColor: #2a2d32;
   --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-button--m-control--Color: var(--pf-t--global--text--color--regular);
 }
 
-/* Legacy: direct input/button rules (span form-control owns bg for inputs; select uses BackgroundColor var) */
-:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input {
-  background: transparent;
-  color: var(--pf-t--global--text--color--regular);
+/* Force dark background on all number input fields and select dropdowns */
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input,
+:root.pf-v6-theme-dark .pf-v6-c-form-control input,
+:root.pf-v6-theme-dark .pf-v6-c-form-control select {
+  background: #2a2d32 !important;
+  color: var(--pf-t--global--text--color--regular) !important;
 }
 
 :root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button {
-  background: var(--pf-t--global--background--color--control--default);
+  background: #2a2d32;
   color: var(--pf-t--global--text--color--regular);
   border-color: var(--pf-t--global--border--color--default);
 }

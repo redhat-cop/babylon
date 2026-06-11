@@ -1951,19 +1951,19 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                     <NumberInput value={extStopDays} min={0}
                       onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
                       onPlus={() => setExtStopDays(extStopDays + 1)}
                       onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
+                      widthChars={2} aria-label="Days" />
+                    <span style={{ fontSize: '0.78rem' }}>days</span>
                     <NumberInput value={extStopHours} min={0}
                       onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
                       onPlus={() => setExtStopHours(extStopHours + 1)}
                       onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
+                      widthChars={2} aria-label="Hours" />
+                    <span style={{ fontSize: '0.78rem' }}>hrs</span>
                   </div>
                   <Button variant="warning" onClick={handleExtendStop}
                     isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
@@ -1980,19 +1980,19 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </CardTitle>
                 <CardBody>
-                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                     <NumberInput value={extDestroyDays} min={0}
                       onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
                       onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
                       onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
+                      widthChars={2} aria-label="Days" />
+                    <span style={{ fontSize: '0.78rem' }}>days</span>
                     <NumberInput value={extDestroyHours} min={0}
                       onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
                       onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
                       onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
+                      widthChars={2} aria-label="Hours" />
+                    <span style={{ fontSize: '0.78rem' }}>hrs</span>
                   </div>
                   <Button variant="warning" onClick={handleExtendDestroy}
                     isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
@@ -2024,17 +2024,17 @@ const Ops: React.FC = () => {
               <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
                 <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
                 <CardBody>
-                  <p className="ops-desc" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                  <p className="ops-desc">
                     Sets spec.count to the value below.
                     This <strong>replaces</strong> the current instance count.
                   </p>
-                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                  <div style={{ marginBottom: 6 }}>
                     <NumberInput value={scaleCount} min={0}
                       onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
                       onPlus={() => setScaleCount(scaleCount + 1)}
                       onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={6} aria-label="New instance count" />
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)', fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      widthChars={4} aria-label="New instance count" />
+                    <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                       New instance count
                     </div>
                   </div>

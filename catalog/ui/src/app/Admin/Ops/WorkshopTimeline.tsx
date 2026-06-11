@@ -115,47 +115,7 @@ const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; e
   { key: 'na-west',    label: 'NA West',      tz: 'America/Los_Angeles', startUtcH: 16, endUtcH: 24 },
 ];
 
-/** Check if a workshop is active during a region's business hours on any day of its lifespan */
-function getWorkshopRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
-  const dates = getWorkshopDates(ws);
-  if (!dates) return [];
-
-  const regions: RegionKey[] = [];
-  const durationMs = dates.end.getTime() - dates.start.getTime();
-  const durationH = durationMs / (1000 * 60 * 60);
-
-  // If workshop spans 24+ hours it covers all regions
-  if (durationH >= 24) return REGIONS.map(r => r.key);
-
-  // Check each day the workshop is active
-  const startDay = new Date(dates.start);
-  startDay.setUTCHours(0, 0, 0, 0);
-  const endDay = new Date(dates.end);
-  endDay.setUTCHours(23, 59, 59, 999);
-
-  for (const r of REGIONS) {
-    let matched = false;
-    const cursor = new Date(startDay);
-    while (cursor <= endDay && !matched) {
-      // Region business hours for this day (UTC)
-      let bizStartMs = cursor.getTime() + r.startUtcH * 3600000;
-      let bizEndMs = cursor.getTime() + r.endUtcH * 3600000;
-      // Handle wrap-around for APAC Aus
-      if (r.endUtcH > 24) {
-        bizEndMs = cursor.getTime() + (r.endUtcH - 24) * 3600000 + 86400000;
-      }
-      // Workshop active during [dates.start, dates.end], biz hours [bizStart, bizEnd]
-      if (dates.start.getTime() < bizEndMs && dates.end.getTime() > bizStartMs) {
-        matched = true;
-      }
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    if (matched) regions.push(r.key);
-  }
-  return regions;
-}
-
-/** Primary region = first region whose business hours the workshop starts in */
+/** Primary region = classified by workshop start time (which region's 9-5 it kicks off in) */
 function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | null {
   const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
   if (!startIso) return null;
@@ -169,6 +129,38 @@ function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | n
     }
   }
   return null;
+}
+
+/** All regions a workshop is active during (based on which 9-5 windows it overlaps) */
+function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
+  const dates = getWorkshopDates(ws);
+  if (!dates) return [];
+
+  const durationH = (dates.end.getTime() - dates.start.getTime()) / 3600000;
+  // Multi-day workshops: classify by primary region only to avoid noise
+  if (durationH >= 24) {
+    const primary = getWorkshopPrimaryRegion(ws);
+    return primary ? [primary] : [];
+  }
+
+  // Short workshops: check which regions' business hours they overlap
+  const regions: RegionKey[] = [];
+  const startDay = new Date(dates.start);
+  startDay.setUTCHours(0, 0, 0, 0);
+
+  for (const r of REGIONS) {
+    const bizStartMs = startDay.getTime() + r.startUtcH * 3600000;
+    const bizEndMs = r.endUtcH > 24
+      ? startDay.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+      : startDay.getTime() + r.endUtcH * 3600000;
+    if (dates.start.getTime() < bizEndMs && dates.end.getTime() > bizStartMs) {
+      regions.push(r.key);
+    }
+  }
+  return regions.length > 0 ? regions : (() => {
+    const primary = getWorkshopPrimaryRegion(ws);
+    return primary ? [primary] : [];
+  })();
 }
 
 const SELECT_BUTTONS: { label: string; status: StatusKey | 'all' | 'none'; color: 'green' | 'red' | 'blue' | 'orange' | 'grey' }[] = [
@@ -224,7 +216,11 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   const visibleWorkshops = useMemo(() => {
     let visible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
     if (regionFilter !== 'all') {
-      visible = visible.filter(w => getWorkshopRegions(w).includes(regionFilter));
+      visible = visible.filter(w => {
+        const primary = getWorkshopPrimaryRegion(w);
+        const active = getWorkshopActiveRegions(w);
+        return primary === regionFilter || active.includes(regionFilter);
+      });
     }
     return visible;
   }, [workshops, dateRange, regionFilter]);
@@ -243,25 +239,47 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     const allVisible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
     const counts: Record<RegionKey, number> = { 'all': allVisible.length, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 };
 
-    // A workshop can span multiple regions, so count it in each region it's active during
+    // Count by primary region + instance/seat totals
+    const instances: Record<RegionKey, number> = { 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 };
     for (const ws of allVisible) {
-      const regions = getWorkshopRegions(ws);
-      for (const r of regions) counts[r]++;
+      const primary = getWorkshopPrimaryRegion(ws);
+      const count = getCurrentCount(ws) ?? 1;
+      instances.all += count;
+      if (primary) {
+        counts[primary]++;
+        instances[primary] += count;
+      }
     }
 
-    // Count workshops that span multiple regions (overlap = active during 2+ regions' business hours)
+    // Per-region overlap breakdown: how many workshops in region X also span into region Y
+    const overlapDetail: Record<string, Record<string, number>> = {};
+    for (const r of REGIONS) {
+      overlapDetail[r.key] = {};
+      for (const ws of allVisible) {
+        const active = getWorkshopActiveRegions(ws);
+        if (!active.includes(r.key) || active.length <= 1) continue;
+        for (const other of active) {
+          if (other === r.key) continue;
+          overlapDetail[r.key][other] = (overlapDetail[r.key][other] || 0) + 1;
+        }
+      }
+    }
+
+    // Total spanning count per region
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
-      let multiRegionCount = 0;
-      for (const ws of allVisible) {
-        const regions = getWorkshopRegions(ws);
-        if (regions.includes(r.key) && regions.length > 1) multiRegionCount++;
-      }
-      spanning[r.key] = multiRegionCount;
+      spanning[r.key] = Object.values(overlapDetail[r.key]).reduce((s, n) => s + n, 0) > 0
+        ? new Set(
+            allVisible.filter(ws => {
+              const active = getWorkshopActiveRegions(ws);
+              return active.includes(r.key) && active.length > 1;
+            }).map(ws => `${ws.metadata.namespace}/${ws.metadata.name}`)
+          ).size
+        : 0;
     }
 
-    return { counts, spanning };
-  }, [workshops, dateRange]);
+    return { counts, instances, spanning, overlapDetail };
+  }, [workshops, dateRange, getCurrentCount]);
 
   const dateGrid = useMemo(() => {
     const days: Date[] = [];
@@ -360,23 +378,42 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
           onClick={() => setRegionFilter('all')}
           className="timeline-region-filter__btn"
         >
-          All ({regionStats.counts.all})
+          All: {regionStats.counts.all} workshops · {regionStats.instances.all} instances
         </Label>
         {REGIONS.map(r => {
           const count = regionStats.counts[r.key];
+          const inst = regionStats.instances[r.key];
           const spanning = regionStats.spanning[r.key];
+          const overlaps = regionStats.overlapDetail[r.key] || {};
           const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
-          const tooltipLines = [`${count} workshops active during 9-5 ${tzCity}`];
-          if (spanning > 0) tooltipLines.push(`${spanning} also span other regions`);
+
+          const regionLabelMap: Record<string, string> = {};
+          REGIONS.forEach(rr => { regionLabelMap[rr.key] = rr.label; });
+
+          const tooltipContent = (
+            <div style={{ lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{r.label} — 9-5 {tzCity}</div>
+              <div>{count} workshops · {inst} instances</div>
+              {spanning > 0 && (
+                <div style={{ marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 4 }}>
+                  <div style={{ fontWeight: 500 }}>{spanning} overlap with other regions:</div>
+                  {Object.entries(overlaps).map(([otherKey, n]) => (
+                    <div key={otherKey} style={{ paddingLeft: 8 }}>↔ {n} with {regionLabelMap[otherKey] || otherKey}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+
           return (
-            <Tooltip key={r.key} content={<span>{tooltipLines.join(' · ')}</span>}>
+            <Tooltip key={r.key} content={tooltipContent} maxWidth="300px">
               <Label
                 color={regionFilter === r.key ? 'blue' : 'grey'}
                 isCompact
                 onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
                 className="timeline-region-filter__btn"
               >
-                {r.label} ({count}){spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
+                {r.label}: {count} ws · {inst} inst{spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
               </Label>
             </Tooltip>
           );
@@ -404,9 +441,9 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
                   <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
                   <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
                   <div className="timeline-date-cell__hours">
-                    {[6, 12, 18].map(h => (
+                    {[9, 12, 17].map(h => (
                       <span key={h} className="timeline-date-cell__hour-mark" style={{ left: `${(h / 24) * 100}%` }}>
-                        {`${String(h).padStart(2, '0')}:00`}
+                        {h <= 12 ? `${h}${h === 12 ? 'pm' : 'am'}` : `${h - 12}pm`}
                       </span>
                     ))}
                   </div>
