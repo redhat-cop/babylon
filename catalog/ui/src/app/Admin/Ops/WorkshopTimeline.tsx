@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Badge, EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
+import React, { useMemo, useCallback } from 'react';
+import { EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
 import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
-import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
 
 interface ProvisionProgress {
@@ -15,8 +14,6 @@ export interface WorkshopTimelineProps {
   workshops: WorkshopWithResourceClaims[];
   selectedWorkshops: Set<string>;
   onSelectWorkshop: (id: string, selected: boolean) => void;
-  onBatchSelect: (keys: string[]) => void;
-  onDeselectAll: () => void;
   onClickWorkshop: (id: string) => void;
   getSeats: (ws: Workshop) => { assigned: number; total: number } | null;
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
@@ -24,6 +21,8 @@ export interface WorkshopTimelineProps {
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
+  dateRange: { start: Date; end: Date };
+  onDateChange: (start: Date, end: Date) => void;
 }
 
 function getMonday(d: Date): Date {
@@ -56,7 +55,7 @@ function wsKey(ws: WorkshopWithResourceClaims): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
-export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Upcoming' | 'Stopped' {
+export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Scheduled' | 'Stopped' {
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
@@ -78,10 +77,10 @@ export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Runnin
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
   const stopDate = workshop.spec?.actionSchedule?.stop;
 
-  if (startDate && new Date(startDate).getTime() > now) return 'Upcoming';
+  if (startDate && new Date(startDate).getTime() > now) return 'Scheduled';
   if (stopDate && new Date(stopDate).getTime() < now && !hasStarted) return 'Stopped';
   if (hasStarted) return 'Running';
-  return 'Upcoming';
+  return 'Scheduled';
 }
 
 function getWorkshopDates(workshop: WorkshopWithResourceClaims): { start: Date; end: Date } | null {
@@ -101,25 +100,105 @@ function workshopInDateRange(workshop: WorkshopWithResourceClaims, viewStart: Da
   return dates.start < viewEnd && dates.end > viewStart;
 }
 
-const STORAGE_KEY = 'opsTimelineDateRange';
+export type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
 
-type StatusKey = 'Running' | 'Failed' | 'Upcoming' | 'Stopped';
+export type RegionKey = 'all' | 'emea' | 'na-east' | 'na-west' | 'apac-india' | 'apac-aus';
 
-const SELECT_BUTTONS: { label: string; status: StatusKey | 'all' | 'none'; color: 'green' | 'red' | 'blue' | 'orange' | 'grey' }[] = [
-  { label: 'Select All', status: 'all', color: 'grey' },
-  { label: 'Running', status: 'Running', color: 'green' },
-  { label: 'Failed', status: 'Failed', color: 'red' },
-  { label: 'Upcoming', status: 'Upcoming', color: 'blue' },
-  { label: 'Stopped', status: 'Stopped', color: 'orange' },
-  { label: 'Deselect', status: 'none', color: 'grey' },
+export const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; endUtcH: number }[] = [
+  { key: 'apac-aus',   label: 'APAC Aus',     tz: 'Australia/Sydney',  startUtcH: 23,   endUtcH: 31 },  // wraps midnight
+  { key: 'apac-india', label: 'APAC India',   tz: 'Asia/Kolkata',      startUtcH: 3.5,  endUtcH: 11.5 },
+  { key: 'emea',       label: 'EMEA',         tz: 'Europe/Berlin',     startUtcH: 7,    endUtcH: 15 },
+  { key: 'na-east',    label: 'NA East',      tz: 'America/New_York',  startUtcH: 13,   endUtcH: 21 },
+  { key: 'na-west',    label: 'NA West',      tz: 'America/Los_Angeles', startUtcH: 16, endUtcH: 24 },
 ];
+
+/** Primary region = classified by workshop start time (which region's 9-5 it kicks off in) */
+export function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | null {
+  const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+  if (!startIso) return null;
+  const d = new Date(startIso);
+  const utcH = d.getUTCHours() + d.getUTCMinutes() / 60;
+  for (const r of REGIONS) {
+    if (r.endUtcH > 24) {
+      if (utcH >= r.startUtcH || utcH < (r.endUtcH - 24)) return r.key;
+    } else {
+      if (utcH >= r.startUtcH && utcH < r.endUtcH) return r.key;
+    }
+  }
+  return null;
+}
+
+/**
+ * All regions a workshop is active during.
+ * For running workshops: includes regions whose biz hours include "now"
+ * (a running workshop needs support in whichever region is currently working).
+ * For scheduled: uses actionSchedule delivery window overlap.
+ * For stopped/failed: primary only.
+ */
+export function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
+  const status = getWorkshopStatus(ws);
+  const primary = getWorkshopPrimaryRegion(ws);
+
+  // Running workshops are active in every region whose biz hours include "now"
+  if (status === 'Running') {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const nowMs = now.getTime();
+    const regions: RegionKey[] = primary ? [primary] : [];
+    for (const r of REGIONS) {
+      if (primary === r.key) continue; // already included
+      const bizStartMs = todayStart.getTime() + r.startUtcH * 3600000;
+      const bizEndMs = r.endUtcH > 24
+        ? todayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+        : todayStart.getTime() + r.endUtcH * 3600000;
+      if (nowMs >= bizStartMs && nowMs < bizEndMs) {
+        regions.push(r.key);
+      }
+    }
+    return regions.length > 0 ? regions : (primary ? [primary] : []);
+  }
+
+  // Stopped/failed: primary region only
+  if (status === 'Stopped' || status === 'Failed') {
+    return primary ? [primary] : [];
+  }
+
+  // Scheduled: use actionSchedule delivery window for overlap detection
+  const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+  const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+  if (!startIso) {
+    return primary ? [primary] : [];
+  }
+
+  const deliveryStart = new Date(startIso);
+  const deliveryEnd = stopIso ? new Date(stopIso) : new Date(deliveryStart.getTime() + 8 * 3600000);
+
+  const durationH = (deliveryEnd.getTime() - deliveryStart.getTime()) / 3600000;
+  if (durationH >= 24) {
+    return primary ? [primary] : [];
+  }
+
+  const regions: RegionKey[] = [];
+  const startDay = new Date(deliveryStart);
+  startDay.setUTCHours(0, 0, 0, 0);
+
+  for (const r of REGIONS) {
+    const bizStartMs = startDay.getTime() + r.startUtcH * 3600000;
+    const bizEndMs = r.endUtcH > 24
+      ? startDay.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+      : startDay.getTime() + r.endUtcH * 3600000;
+    if (deliveryStart.getTime() < bizEndMs && deliveryEnd.getTime() > bizStartMs) {
+      regions.push(r.key);
+    }
+  }
+  return regions.length > 0 ? regions : (primary ? [primary] : []);
+}
 
 export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   workshops,
   selectedWorkshops,
   onSelectWorkshop,
-  onBatchSelect,
-  onDeselectAll,
   onClickWorkshop,
   getSeats,
   getProvisionProgress,
@@ -127,42 +206,23 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   multiWorkshopsByName,
   isMultiNs,
   timezone,
+  dateRange,
+  onDateChange: handleDateChange,
 }) => {
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { start: new Date(parsed.start), end: new Date(parsed.end) };
-      }
-    } catch (e) { /* ignore */ }
-    const today = new Date();
-    return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        start: dateRange.start.toISOString(),
-        end: dateRange.end.toISOString(),
-      }));
-    } catch (e) { /* ignore */ }
-  }, [dateRange]);
-
-  const handleDateChange = useCallback((start: Date, end: Date) => {
-    setDateRange({ start, end });
-  }, []);
+  // Region and status filtering is done globally in Ops.tsx — timeline only filters by date range
+  const visibleWorkshops = useMemo(() => {
+    return workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
+  }, [workshops, dateRange]);
 
   const groupedWorkshops = useMemo(() => {
-    const visible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
     const grouped: Record<StatusKey, WorkshopWithResourceClaims[]> = {
-      Running: [], Failed: [], Upcoming: [], Stopped: [],
+      Running: [], Failed: [], Scheduled: [], Stopped: [],
     };
-    visible.forEach(ws => {
+    visibleWorkshops.forEach(ws => {
       grouped[getWorkshopStatus(ws)].push(ws);
     });
     return grouped;
-  }, [workshops, dateRange]);
+  }, [visibleWorkshops]);
 
   const dateGrid = useMemo(() => {
     const days: Date[] = [];
@@ -176,23 +236,6 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
   const totalWorkshops = Object.values(groupedWorkshops).reduce((s, arr) => s + arr.length, 0);
   const todayStr = new Date().toDateString();
-
-  const handleQuickSelect = useCallback((status: StatusKey | 'all' | 'none') => {
-    if (status === 'none') {
-      onDeselectAll();
-      return;
-    }
-    if (status === 'all') {
-      const allKeys: string[] = [];
-      for (const arr of Object.values(groupedWorkshops)) {
-        arr.forEach(ws => allKeys.push(wsKey(ws)));
-      }
-      onBatchSelect(allKeys);
-      return;
-    }
-    const keys = (groupedWorkshops[status] || []).map(ws => wsKey(ws));
-    onBatchSelect(keys);
-  }, [groupedWorkshops, onBatchSelect, onDeselectAll]);
 
   const nowPercent = useMemo(() => {
     const now = Date.now();
@@ -226,39 +269,30 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
   return (
     <div className="timeline-container">
-      <TimelineControls startDate={dateRange.start} endDate={dateRange.end} onDateChange={handleDateChange} timezone={timezone} />
-
-      <div className="timeline-quick-select">
-        {SELECT_BUTTONS.map(btn => {
-          const count = btn.status === 'all'
-            ? totalWorkshops
-            : btn.status === 'none'
-              ? selectedWorkshops.size
-              : (groupedWorkshops[btn.status] || []).length;
-          if (btn.status !== 'all' && btn.status !== 'none' && count === 0) return null;
-          return (
-            <Label
-              key={btn.label}
-              color={btn.color as any}
-              isCompact
-              onClick={() => handleQuickSelect(btn.status)}
-              className="timeline-quick-select__btn"
-            >
-              {btn.label}{count > 0 ? ` (${count})` : ''}
-            </Label>
-          );
-        })}
-        {selectedWorkshops.size > 0 && (
-          <Badge isRead className="timeline-quick-select__count">{selectedWorkshops.size} selected</Badge>
-        )}
-      </div>
-
       {totalWorkshops === 0 ? (
         <EmptyState>
-          <EmptyStateBody>No workshops match the selected date range</EmptyStateBody>
+          <EmptyStateBody>No workshops match the selected filters</EmptyStateBody>
         </EmptyState>
       ) : (
         <>
+          {dateGrid.length === 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Label
+                color="blue"
+                isCompact
+                onClick={() => {
+                  const day = dateGrid[0];
+                  handleDateChange(getStartOfDay(getMonday(day)), getEndOfDay(getSunday(day)));
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                ← Back to week
+              </Label>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                {formatDateCell(dateGrid[0], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+          )}
           <div className="timeline-date-grid">
             {nowPercent !== null && (
               <div className="timeline-now-marker" style={{ left: `${nowPercent}%` }} title="Now" />
@@ -266,19 +300,33 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
             {dateGrid.map((day, i) => {
               const isToday = day.toDateString() === todayStr;
               const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              const isSingleDay = dateGrid.length === 1;
               return (
                 <div
                   key={i}
-                  className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}`}
+                  className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}${!isSingleDay ? ' timeline-date-cell--clickable' : ''}`}
+                  onClick={!isSingleDay ? () => handleDateChange(getStartOfDay(day), getEndOfDay(day)) : undefined}
+                  title={!isSingleDay ? `Click to zoom into ${formatDateCell(day, { weekday: 'long', month: 'long', day: 'numeric' })}` : undefined}
                 >
                   <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
                   <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
+                  <div className="timeline-date-cell__hours">
+                    {[9, 12, 17].map(h => (
+                      <span key={h} className="timeline-date-cell__hour-mark" style={{ left: `${(h / 24) * 100}%` }}>
+                        {h <= 12 ? `${h}${h === 12 ? 'pm' : 'am'}` : `${h - 12}pm`}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {(['Running', 'Failed', 'Upcoming', 'Stopped'] as const).map(status => (
+          <div className="timeline-timezone-label">
+            Times in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} · change at timezone selector at top of screen
+          </div>
+
+          {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map(status => (
             <TimelineSwimlane
               key={status}
               status={status}

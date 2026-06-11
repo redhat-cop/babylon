@@ -12,11 +12,13 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  DatePicker,
   Dropdown,
   DropdownList,
   DropdownItem,
   EmptyState,
   EmptyStateBody,
+  ExpandableSection,
   FormSelect,
   FormSelectOption,
   Icon,
@@ -112,7 +114,8 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
-import WorkshopTimeline from '@app/Admin/Ops/WorkshopTimeline';
+import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
+import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
@@ -187,6 +190,7 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
   { label: 'test', value: 'test', color: 'blue' },
 ];
 
+const TIMELINE_STORAGE_KEY = 'opsTimelineDateRange';
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -197,8 +201,7 @@ const SIX_MONTHS_MS = 15778800000;
 /** Paginate workshop *groups* (rows), not individual asset lines */
 const OPS_GROUP_PAGE_DEFAULT = 18;
 
-export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
-export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'stop-asc' | 'destroy-asc';
+export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'name-desc' | 'stop-asc' | 'destroy-asc' | 'status-asc' | 'lock-asc' | 'instances-desc' | 'seats-desc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
 export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
@@ -225,36 +228,26 @@ export function getWorkshopDestroyMs(ws: Workshop): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
-export function matchesOpsScheduleFilter(
-  ws: Workshop,
-  filter: OpsScheduleFilterKey,
-  nowMs: number = Date.now(),
-): boolean {
-  if (filter === 'all') return true;
-  const t = getWorkshopScheduleStartMs(ws);
-  if (t === null) return false;
-  if (filter === 'scheduled') return t > nowMs;
-  if (t <= nowMs) return false;
-  if (filter === 'd1') return t <= nowMs + ONE_DAY_MS;
-  if (filter === 'd2') return t <= nowMs + 2 * ONE_DAY_MS;
-  if (filter === 'd3') return t <= nowMs + 3 * ONE_DAY_MS;
-  return true;
-}
+
 
 function compareWorkshopsForSort(
   a: Workshop,
   b: Workshop,
   mode: OpsSortMode,
   getSeats: (w: Workshop) => { assigned: number; total: number } | null,
+  getCurrentCount?: (w: Workshop) => number | null,
 ): number {
+  const nameCmp = () => displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
   switch (mode) {
     case 'name-asc':
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    case 'name-desc':
+      return -nameCmp();
     case 'users-desc': {
       const sa = getSeats(a)?.assigned ?? 0;
       const sb = getSeats(b)?.assigned ?? 0;
       if (sb !== sa) return sb - sa;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'start-desc': {
       const ta = getWorkshopScheduleStartMs(a);
@@ -262,7 +255,7 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.NEGATIVE_INFINITY;
       const vb = tb ?? Number.NEGATIVE_INFINITY;
       if (vb !== va) return vb - va;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'stop-asc': {
       const sa = getWorkshopStopMs(a);
@@ -270,7 +263,7 @@ function compareWorkshopsForSort(
       const va = sa ?? Number.POSITIVE_INFINITY;
       const vb = sb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'destroy-asc': {
       const da = getWorkshopDestroyMs(a);
@@ -278,7 +271,35 @@ function compareWorkshopsForSort(
       const va = da ?? Number.POSITIVE_INFINITY;
       const vb = db ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    }
+    case 'status-asc': {
+      const order: Record<string, number> = { 'Running': 0, 'Failed': 1, 'Scheduled': 2, 'Stopped': 3 };
+      const sa = order[getWorkshopStatus(a as WorkshopWithResourceClaims)] ?? 4;
+      const sb = order[getWorkshopStatus(b as WorkshopWithResourceClaims)] ?? 4;
+      if (sa !== sb) return sa - sb;
+      return nameCmp();
+    }
+    case 'lock-asc': {
+      const la = isWorkshopLocked(a) ? 0 : 1;
+      const lb = isWorkshopLocked(b) ? 0 : 1;
+      if (la !== lb) return la - lb;
+      return nameCmp();
+    }
+    case 'instances-desc': {
+      const ca = getCurrentCount?.(a) ?? 0;
+      const cb = getCurrentCount?.(b) ?? 0;
+      if (cb !== ca) return cb - ca;
+      return nameCmp();
+    }
+    case 'seats-desc': {
+      const sa = getSeats(a)?.assigned ?? 0;
+      const sb = getSeats(b)?.assigned ?? 0;
+      if (sb !== sa) return sb - sa;
+      const ta = getSeats(a)?.total ?? 0;
+      const tb = getSeats(b)?.total ?? 0;
+      if (tb !== ta) return tb - ta;
+      return nameCmp();
     }
     case 'start-asc':
     default: {
@@ -287,18 +308,10 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.POSITIVE_INFINITY;
       const vb = tb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
   }
 }
-
-const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = [
-  { label: 'All dates', value: 'all' },
-  { label: 'Scheduled', value: 'scheduled' },
-  { label: '≤1 day', value: 'd1' },
-  { label: '≤2 days', value: 'd2' },
-  { label: '≤3 days', value: 'd3' },
-];
 
 let alertKeyCounter = 0;
 
@@ -682,14 +695,51 @@ const Ops: React.FC = () => {
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
   const whiteGloveMode = opsViewMode === 'white-glove';
-  const [scheduleFilter, setScheduleFilter] = useState<OpsScheduleFilterKey>('all');
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
   const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
+  const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+  const [attentionFilter, setAttentionFilter] = useState(false);
+
+  // Timeline date range — lifted up so controls can live in the global filter bar
+  const [timelineDateRange, setTimelineDateRange] = useState<{ start: Date; end: Date }>(() => {
+    try {
+      const stored = localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { start: new Date(parsed.start), end: new Date(parsed.end) };
+      }
+    } catch (e) { /* ignore */ }
+    const today = new Date();
+    return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify({
+        start: timelineDateRange.start.toISOString(),
+        end: timelineDateRange.end.toISOString(),
+      }));
+    } catch (e) { /* ignore */ }
+  }, [timelineDateRange]);
+
+  const handleTimelineDateChange = useCallback((start: Date, end: Date) => {
+    setTimelineDateRange({ start, end });
+  }, []);
+
+  // Attach resource claims to workshops for accurate status detection
+  const workshopsWithRc = useMemo((): WorkshopWithResourceClaims[] => {
+    return workshops.map(ws => ({
+      ...ws,
+      resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
+    } as WorkshopWithResourceClaims));
+  }, [workshops, resourceClaimsByWorkshop]);
 
   const targets = useMemo(() => {
-    let list = workshops;
+    let list: Workshop[] = workshopsWithRc;
 
     // Multi-term free-text search (partial match)
     if (workshopSearchText) {
@@ -713,9 +763,22 @@ const Ops: React.FC = () => {
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
-    if (scheduleFilter !== 'all') list = list.filter(ws => matchesOpsScheduleFilter(ws, scheduleFilter));
+    if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
+    if (attentionFilter) list = list.filter(w => {
+      const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
+      const destroyUrg = dateUrgency(w.spec?.lifespan?.end);
+      return stopUrg === 'critical' || destroyUrg === 'critical';
+    });
+    if (tableRegionFilter !== 'all') {
+      list = list.filter(w => {
+        const wsWithRc = w as WorkshopWithResourceClaims;
+        const primary = getWorkshopPrimaryRegion(wsWithRc);
+        const active = getWorkshopActiveRegions(wsWithRc);
+        return primary === tableRegionFilter || active.includes(tableRegionFilter);
+      });
+    }
     const arr = [...list];
-    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats));
+    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
   }, [
     workshops,
@@ -723,10 +786,13 @@ const Ops: React.FC = () => {
     stageFilter,
     failedFilter,
     whiteGloveMode,
-    scheduleFilter,
+    statusFilter,
+    attentionFilter,
+    tableRegionFilter,
     sortMode,
     getFailedCount,
     getSeats,
+    getCurrentCount,
   ]);
 
   const opsCalendarEvents = useMemo(
@@ -742,7 +808,7 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopSearchText, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+  }, [workshopSearchText, stageFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
@@ -891,7 +957,7 @@ const Ops: React.FC = () => {
 
   const emptyFilterMsg = useMemo(() => {
     const filterText = workshopSearchText;
-    if (!filterText && !stageFilter && scheduleFilter === 'all' && !whiteGloveMode) return null;
+    if (!filterText && !stageFilter && !whiteGloveMode) return null;
 
     const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
     const searchMsg = searchTerms.length > 1
@@ -901,12 +967,12 @@ const Ops: React.FC = () => {
     return (
       <>
         No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
-        Try another workshop name, stage, white glove mode, start window, or failed filter.
+        Try another workshop name, stage, or white glove mode.
       </>
     );
-  }, [workshopSearchText, stageFilter, scheduleFilter, whiteGloveMode]);
+  }, [workshopSearchText, stageFilter, whiteGloveMode]);
 
-  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
+  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode;
 
   const modalScopeDescription = useMemo(() => {
     const filterText = workshopSearchText;
@@ -978,6 +1044,120 @@ const Ops: React.FC = () => {
 
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
+
+  const DAILY_SUPPORT_LIMIT = 5;
+  const regionStats = useMemo(() => {
+    const emptyRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
+    const counts = emptyRecord();   // deploy region (primary)
+    const instances = emptyRecord();
+    const deploying = emptyRecord();
+    const running = emptyRecord();
+    counts.all = workshopsWithRc.length;
+
+    for (const ws of workshopsWithRc) {
+      const primary = getWorkshopPrimaryRegion(ws);
+      const count = getCurrentCount(ws) ?? 1;
+      const status = getWorkshopStatus(ws);
+      instances.all += count;
+      if (primary) {
+        counts[primary]++;
+        instances[primary] += count;
+        if (status === 'Scheduled') deploying[primary]++;
+        if (status === 'Running') running[primary]++;
+      }
+    }
+
+    // Daily peak per region (over next 7 days from today)
+    const dailyPeak: Record<string, { count: number; day: string }> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+
+    for (const r of REGIONS) {
+      let peak = 0;
+      let peakDay = '';
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount = 0;
+        for (const ws of workshopsWithRc) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs && wsEnd > bizStartMs) dayCount++;
+        }
+        if (dayCount > peak) {
+          peak = dayCount;
+          peakDay = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      }
+      dailyPeak[r.key] = { count: peak, day: peakDay };
+    }
+
+    // Busiest days across all regions (for warning banner)
+    const busyDays: { date: Date; label: string; region: string; count: number }[] = [];
+    for (const r of REGIONS) {
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs2 = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs2 = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount2 = 0;
+        for (const ws of workshopsWithRc) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs2 && wsEnd > bizStartMs2) dayCount2++;
+        }
+        if (dayCount2 >= DAILY_SUPPORT_LIMIT) {
+          busyDays.push({
+            date: new Date(day),
+            label: day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            region: r.label,
+            count: dayCount2,
+          });
+        }
+      }
+    }
+    // Deduplicate — keep highest count per date
+    const busyDayMap = new Map<string, typeof busyDays[0]>();
+    for (const bd of busyDays) {
+      const key = bd.date.toISOString().split('T')[0];
+      const existing = busyDayMap.get(key);
+      if (!existing || bd.count > existing.count) {
+        busyDayMap.set(key, bd);
+      }
+    }
+    const topBusyDays = Array.from(busyDayMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    // Cross-region overlap
+    const spanning: Record<string, number> = {};
+    for (const r of REGIONS) {
+      spanning[r.key] = workshopsWithRc.filter(ws => {
+        const active = getWorkshopActiveRegions(ws);
+        return active.includes(r.key) && active.length > 1;
+      }).length;
+    }
+
+    return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
+  }, [workshopsWithRc, getCurrentCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -1785,37 +1965,6 @@ const Ops: React.FC = () => {
                   ))}
                 </FormSelect>
               </div>
-              <div className="ops-scope-bar-extra">
-                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
-                <FormSelect
-                  id="ops-sort"
-                  aria-label="Sort workshops"
-                  value={sortMode}
-                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
-                  className="ops-sort-select"
-                >
-                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
-                  <FormSelectOption value="start-desc" label="Start (newest first)" />
-                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
-                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
-                  <FormSelectOption value="users-desc" label="Most seats assigned" />
-                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
-                </FormSelect>
-                <span className="ops-filter-inline-label">Start window</span>
-                <div className="ops-schedule-filters">
-                  {SCHEDULE_FILTER_CHIPS.map(c => (
-                    <Label
-                      key={c.value}
-                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
-                      className="ops-schedule-chip"
-                    >
-                      {c.label}
-                    </Label>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Summary stats */}
@@ -1857,11 +2006,6 @@ const Ops: React.FC = () => {
                 </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
-              <div className="ops-stat-divider" />
-              <div className="ops-stat">
-                <span className="ops-stat-value">{summary.activeCount}</span>
-                <span className="ops-stat-label">Active</span>
-              </div>
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
@@ -1873,7 +2017,7 @@ const Ops: React.FC = () => {
                     </div>
                   }>
                     <div
-                      className={`ops-stat ops-stat-attention ${failedFilter ? 'ops-stat-active-filter' : ''}`}
+                      className={`ops-stat ops-stat-failed ${failedFilter ? 'ops-stat-active-filter' : ''}`}
                       style={{ cursor: 'pointer' }}
                       onClick={() => setFailedFilter(f => !f)}
                       role="button"
@@ -1886,232 +2030,141 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </>
               )}
+              {summary.attentionCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div
+                    className={`ops-stat ops-stat-attention ${attentionFilter ? 'ops-stat-active-filter' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setAttentionFilter(f => !f)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setAttentionFilter(f => !f); }}
+                  >
+                    <span className="ops-stat-value">{summary.attentionCount}</span>
+                    <span className="ops-stat-label">Need attention{attentionFilter ? ' (filtered)' : ''}</span>
+                  </div>
+                </>
+              )}
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.activeCount}</span>
+                <span className="ops-stat-label">Active</span>
+              </div>
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.lockedCount}</span>
                 <span className="ops-stat-label">Locked</span>
               </div>
-              {summary.attentionCount > 0 && (
-                <>
-                  <div className="ops-stat-divider" />
-                  <div className="ops-stat ops-stat-attention">
-                    <span className="ops-stat-value">{summary.attentionCount}</span>
-                    <span className="ops-stat-label">Need attention</span>
-                  </div>
-                </>
-              )}
             </div>
+
+            {/* Bulk actions — collapsed by default, below summary */}
+            <ExpandableSection
+              toggleText={`Actions${hasSelection ? ` (${selectedWs.size} selected)` : ''}`}
+              isExpanded={actionsExpanded}
+              onToggle={(_e, expanded) => setActionsExpanded(expanded)}
+              isIndented
+            >
+              <div className="ops-grid ops-operations-grid">
+                <Card>
+                  <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Toggle <code>lock-enabled</code> on workshops.</p>
+                    <div className="ops-button-row">
+                      <Button variant="warning" onClick={() => setShowLockConfirm(true)} isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
+                      <Button variant="warning" onClick={() => setShowUnlockConfirm(true)} isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
+                    </div>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-stop time."><span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extStopDays} min={0} onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))} onPlus={() => setExtStopDays(extStopDays + 1)} onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extStopHours} min={0} onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))} onPlus={() => setExtStopHours(extStopHours + 1)} onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendStop} isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>Extend Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-destroy deadline."><span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extDestroyDays} min={0} onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))} onPlus={() => setExtDestroyDays(extDestroyDays + 1)} onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extDestroyHours} min={0} onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))} onPlus={() => setExtDestroyHours(extDestroyHours + 1)} onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendDestroy} isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>Extend Destroy</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Remove auto-stop schedule."><span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Removes <code>actionSchedule.stop</code> so workshops remain running.</p>
+                    <Button variant="warning" onClick={handleDisableAutostop} isLoading={noAutostopLoading} isDisabled={anyLoading}>Disable Auto-Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
+                  <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale</CardTitle>
+                  <CardBody>
+                    <div style={{ marginBottom: 6 }}>
+                      <NumberInput value={scaleCount} min={0} onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))} onPlus={() => setScaleCount(scaleCount + 1)} onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={4} aria-label="New instance count" />
+                      <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>New instance count</div>
+                    </div>
+                    {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap', marginBottom: 6 }}>
+                        {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} up</Label>}
+                        {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} down</Label>}
+                        {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} same</Label>}
+                      </div>
+                    )}
+                    {(isScaleDown || isScaleZero) && (
+                      <div style={{ marginBottom: 6 }}>
+                        <FormSelect aria-label="Scale down preference" value={scaleDownPreference} onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')} className="ops-scale-pref-select">
+                          <FormSelectOption value="unused" label="Unused first (safest)" />
+                          <FormSelectOption value="used" label="Used first (DANGEROUS)" />
+                        </FormSelect>
+                      </div>
+                    )}
+                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'} onClick={openScaleConfirm} isLoading={scaleLoading} isDisabled={anyLoading}>
+                      {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
+                    </Button>
+                  </CardBody>
+                </Card>
+                <Card className="ops-redeploy-failed">
+                  <CardTitle><RedoIcon className="ops-card-icon" /> Redeploy Failed</CardTitle>
+                  <CardBody>
+                    {failedInstancesAnalysis.totalFailed > 0 ? (
+                      <>
+                        <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                          <strong>{failedInstancesAnalysis.totalFailed}</strong> failed across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                        </p>
+                        <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                          <Button variant="warning" onClick={() => setShowRedeployConfirm(true)} isLoading={redeployLoading} isDisabled={anyLoading}>Redeploy</Button>
+                          <Tooltip content={failedJobsTooltip}>
+                            <Dropdown isOpen={isBatchMenuOpen} onSelect={() => setIsBatchMenuOpen(false)} onOpenChange={setIsBatchMenuOpen}
+                              toggle={(toggleRef) => (<MenuToggle ref={toggleRef} onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)} isDisabled={failedInstancesAnalysis.allJobUrls.length === 0} variant="secondary" icon={<ExternalLinkAltIcon />}>Jobs ({failedInstancesAnalysis.allJobUrls.length})</MenuToggle>)}>
+                              <DropdownList>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>Open 10</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>Open 20</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>Open All ({failedInstancesAnalysis.allJobUrls.length})</DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </Tooltip>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="ops-muted">No failed instances</p>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
+            </ExpandableSection>
 
             {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
               <Alert variant="warning" isInline title="No matches" style={{ marginBottom: 16 }}>
                 {emptyFilterMsg}
               </Alert>
             )}
-
-            <div className="ops-grid ops-operations-grid">
-              {/* Resource Lock */}
-              <Card isFullHeight>
-                <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Toggle <code>lock-enabled</code> on workshops.
-                    Locked resources cannot be modified by non-admin users.
-                  </p>
-                  <div className="ops-button-row">
-                    <Button variant="warning" onClick={() => setShowLockConfirm(true)}
-                      isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
-                      isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Extend Stop */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
-                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop Time</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <NumberInput value={extStopDays} min={0}
-                      onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
-                      onPlus={() => setExtStopDays(extStopDays + 1)}
-                      onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
-                    <NumberInput value={extStopHours} min={0}
-                      onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
-                      onPlus={() => setExtStopHours(extStopHours + 1)}
-                      onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
-                  </div>
-                  <Button variant="primary" onClick={handleExtendStop}
-                    isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
-                    Extend Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Extend Destroy */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
-                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy Time</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <NumberInput value={extDestroyDays} min={0}
-                      onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
-                      onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
-                      onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>days</span>
-                    <NumberInput value={extDestroyHours} min={0}
-                      onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
-                      onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
-                      onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span style={{ color: 'var(--pf-t--global--text--color--regular)' }}>hours</span>
-                  </div>
-                  <Button variant="primary" onClick={handleExtendDestroy}
-                    isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
-                    Extend Destroy
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Disable Auto-Stop */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Remove the auto-stop schedule so workshops keep running until destroy or manual intervention.">
-                    <span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Removes <code>actionSchedule.stop</code> so workshops remain running
-                    until their destroy deadline or manual stop.
-                  </p>
-                  <Button variant="warning" onClick={handleDisableAutostop}
-                    isLoading={noAutostopLoading} isDisabled={anyLoading}>
-                    Disable Auto-Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Scale */}
-              <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
-                <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
-                <CardBody>
-                  <p className="ops-desc" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    Sets spec.count to the value below.
-                    This <strong>replaces</strong> the current instance count.
-                  </p>
-                  <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    <NumberInput value={scaleCount} min={0}
-                      onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
-                      onPlus={() => setScaleCount(scaleCount + 1)}
-                      onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={6} aria-label="New instance count" />
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)', fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      New instance count
-                    </div>
-                  </div>
-                  {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
-                    <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap' }}>
-                      {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} scale up</Label>}
-                      {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} scale down</Label>}
-                      {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} no change</Label>}
-                    </div>
-                  )}
-                  {(isScaleDown || isScaleZero) && (
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
-                      <FormSelect
-                        aria-label="Scale down preference"
-                        value={scaleDownPreference}
-                        onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')}
-                        className="ops-scale-pref-select"
-                      >
-                        <FormSelectOption value="unused" label="Unused instances first (safest)" />
-                        <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
-                      </FormSelect>
-                    </div>
-                  )}
-                  <div style={{ marginTop: 12 }}>
-                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
-                      onClick={openScaleConfirm}
-                      isLoading={scaleLoading} isDisabled={anyLoading}>
-                      {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
-                    </Button>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Redeploy Failed Services */}
-              <Card isFullHeight className="ops-redeploy-failed">
-                <CardTitle>
-                  <RedoIcon className="ops-card-icon" />
-                  Redeploy Failed Services
-                </CardTitle>
-                <CardBody>
-                  {failedInstancesAnalysis.totalFailed > 0 ? (
-                    <>
-                      <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
-                        <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
-                      </p>
-                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                        <Button
-                          variant="warning"
-                          onClick={() => setShowRedeployConfirm(true)}
-                          isLoading={redeployLoading}
-                          isDisabled={anyLoading}
-                        >
-                          Redeploy Failed Services
-                        </Button>
-                        <Tooltip content={failedJobsTooltip}>
-                          <Dropdown
-                            isOpen={isBatchMenuOpen}
-                            onSelect={() => setIsBatchMenuOpen(false)}
-                            onOpenChange={setIsBatchMenuOpen}
-                            toggle={(toggleRef) => (
-                              <MenuToggle
-                                ref={toggleRef}
-                                onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)}
-                                isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
-                                variant="secondary"
-                                icon={<ExternalLinkAltIcon />}
-                              >
-                                Open Jobs ({failedInstancesAnalysis.allJobUrls.length})
-                              </MenuToggle>
-                            )}
-                          >
-                            <DropdownList>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>
-                                Open 10 jobs
-                              </DropdownItem>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>
-                                Open 20 jobs
-                              </DropdownItem>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>
-                                Open All ({failedInstancesAnalysis.allJobUrls.length} jobs)
-                              </DropdownItem>
-                            </DropdownList>
-                          </Dropdown>
-                        </Tooltip>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="ops-muted">No failed instances found</p>
-                  )}
-                </CardBody>
-              </Card>
-            </div>
 
             {/* Workshop detail table */}
             <div className="ops-workshops-section">
@@ -2133,11 +2186,6 @@ const Ops: React.FC = () => {
                     {hasSelection && selectedWs.size !== targets.length && (
                       <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                         of {targets.length} total
-                      </span>
-                    )}
-                    {summary.seatsAssigned > 0 && (
-                      <span style={{ marginLeft: 12, fontSize: '0.78rem', color: 'var(--pf-t--global--color--green--200)' }}>
-                        {summary.seatsAssigned}/{summary.seatsTotal} seats running
                       </span>
                     )}
                   </Title>
@@ -2209,6 +2257,294 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </SplitItem>
               </Split>
+
+              {/* Filters: sort, status, region, range — shared across all views */}
+              <div className="ops-scope-bar-extra">
+                <div className="ops-filter-row">
+                  <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                  <FormSelect
+                    id="ops-sort"
+                    aria-label="Sort workshops"
+                    value={sortMode}
+                    onChange={(_e, val) => setSortMode(val as OpsSortMode)}
+                    className="ops-sort-select"
+                  >
+                    <FormSelectOption value="start-asc" label="Start (oldest first)" />
+                    <FormSelectOption value="start-desc" label="Start (newest first)" />
+                    <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                    <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
+                    <FormSelectOption value="users-desc" label="Most seats assigned" />
+                    <FormSelectOption value="name-asc" label="Name (A–Z)" />
+                    <FormSelectOption value="name-desc" label="Name (Z–A)" />
+                    <FormSelectOption value="status-asc" label="Status" />
+                    <FormSelectOption value="lock-asc" label="Locked first" />
+                    <FormSelectOption value="instances-desc" label="Most instances" />
+                    <FormSelectOption value="seats-desc" label="Most seats (total)" />
+                  </FormSelect>
+                  <span className="ops-filter-inline-label">Status</span>
+                  <div className="ops-schedule-filters">
+                  {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
+                    const matching = key === 'all' ? workshopsWithRc : workshopsWithRc.filter(w => getWorkshopStatus(w) === key);
+                    const count = matching.length;
+                    const tooltipContent = key === 'all' ? `${count} total workshops` : (
+                      <div style={{ maxHeight: 200, overflow: 'auto' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}: {count}</div>
+                        {matching.slice(0, 15).map(w => {
+                          const seats = getSeats(w);
+                          const inst = getCurrentCount(w) ?? 1;
+                          return (
+                            <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 1 }}>
+                              {displayName(w)} — {inst} inst{seats ? `, ${seats.assigned}/${seats.total} seats` : ''}
+                            </div>
+                          );
+                        })}
+                        {matching.length > 15 && <div style={{ fontSize: 11, opacity: 0.6 }}>…and {matching.length - 15} more</div>}
+                      </div>
+                    );
+                    return (
+                      <Tooltip key={key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={statusFilter === key ? 'blue' : color as any}
+                          isCompact
+                          onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
+                          className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
+                        >
+                          {label} ({count})
+                        </Label>
+                      </Tooltip>
+                    );
+                  })}
+                  </div>
+                  {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                    <Label
+                      color="grey"
+                      isCompact
+                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                      className="ops-schedule-chip"
+                      style={{ fontStyle: 'italic' }}
+                    >
+                      Clear filters
+                    </Label>
+                  )}
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Region</span>
+                  <div className="ops-schedule-filters">
+                    <Tooltip content={
+                    <div style={{ lineHeight: 1.5, minWidth: 200 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
+                      <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.counts.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>workshops</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.instances.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                        </div>
+                      </div>
+                      {REGIONS.map(r => {
+                        const c = regionStats.counts[r.key];
+                        const run = regionStats.running[r.key];
+                        const dep = regionStats.deploying[r.key];
+                        if (c === 0 && run === 0 && dep === 0) return null;
+                        return (
+                          <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
+                            <strong>{r.label}:</strong> {c} total{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  } maxWidth="320px">
+                    <Label
+                      color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setTableRegionFilter('all')}
+                      className="ops-schedule-chip"
+                    >
+                      All ({regionStats.counts.all})
+                    </Label>
+                  </Tooltip>
+                  {REGIONS.map(r => {
+                    const count = regionStats.counts[r.key];
+                    const inst = regionStats.instances[r.key];
+                    const deploy = regionStats.deploying[r.key];
+                    const run = regionStats.running[r.key];
+                    const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
+                    const spanning = regionStats.spanning[r.key];
+                    const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+                    const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
+
+                    let labelText: string;
+                    const parts: string[] = [];
+                    if (run > 0) parts.push(`${run} running`);
+                    if (deploy > 0) parts.push(`${deploy} scheduled`);
+                    if (parts.length > 0) {
+                      labelText = parts.join(' · ');
+                    } else if (count > 0) {
+                      labelText = `${count} total`;
+                    } else {
+                      labelText = 'none';
+                    }
+
+                    // Workshops in this region
+                    const regionWorkshops = workshopsWithRc.filter(w => {
+                      const primary = getWorkshopPrimaryRegion(w);
+                      const active = getWorkshopActiveRegions(w);
+                      return primary === r.key || active.includes(r.key);
+                    });
+
+                    const tooltipContent = (
+                      <div style={{ lineHeight: 1.5, minWidth: 250, maxHeight: 350, overflow: 'auto' }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
+                        <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>Biz hours: 9am – 5pm {tzCity}</div>
+                        <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
+                          </div>
+                        </div>
+                        {(deploy > 0 || run > 0) && (
+                          <div style={{ fontSize: 11, marginBottom: 6 }}>
+                            {deploy > 0 && <span>{deploy} scheduled</span>}
+                            {deploy > 0 && run > 0 && <span> · </span>}
+                            {run > 0 && <span>{run} running</span>}
+                          </div>
+                        )}
+                        {peak.count > 0 && peak.day && (
+                          <div style={{ fontSize: 11, padding: '4px 6px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }}>
+                            <strong>Busiest:</strong> {peak.day} — {peak.count} active
+                            {peak.count >= DAILY_SUPPORT_LIMIT && <span style={{ color: '#e53e3e', fontWeight: 600 }}> (soft limit: {DAILY_SUPPORT_LIMIT}/day)</span>}
+                          </div>
+                        )}
+                        {spanning > 0 && (
+                          <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>↔ {spanning} cross-region</div>
+                        )}
+                        {regionWorkshops.length > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Workshops</div>
+                            {regionWorkshops.slice(0, 12).map(w => {
+                              const seats = getSeats(w);
+                              const wInst = getCurrentCount(w) ?? 1;
+                              const status = getWorkshopStatus(w as WorkshopWithResourceClaims);
+                              const statusIcon = status === 'Running' ? '●' : status === 'Failed' ? '✗' : status === 'Scheduled' ? '◔' : '■';
+                              const statusColor = status === 'Running' ? '#48bb78' : status === 'Failed' ? '#fc8181' : status === 'Scheduled' ? '#63b3ed' : '#ecc94b';
+                              return (
+                                <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 2, display: 'flex', gap: 6 }}>
+                                  <span style={{ color: statusColor, flexShrink: 0 }}>{statusIcon}</span>
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(w)}</span>
+                                  <span style={{ opacity: 0.6, flexShrink: 0 }}>{wInst} inst{seats ? ` · ${seats.assigned}/${seats.total}` : ''}</span>
+                                </div>
+                              );
+                            })}
+                            {regionWorkshops.length > 12 && <div style={{ fontSize: 11, opacity: 0.5 }}>…and {regionWorkshops.length - 12} more</div>}
+                          </div>
+                        )}
+                      </div>
+                    );
+
+                    return (
+                      <Tooltip key={r.key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={tableRegionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
+                          isCompact
+                          onClick={() => setTableRegionFilter(tableRegionFilter === r.key ? 'all' : r.key)}
+                          className="ops-schedule-chip"
+                        >
+                          {r.label} — {labelText}
+                        </Label>
+                      </Tooltip>
+                    );
+                  })}
+                    <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                      <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
+                    </Tooltip>
+                  </div>
+                  <span className="ops-filter-inline-label">Range</span>
+                  <div className="ops-schedule-filters ops-date-range-controls">
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
+                  }}>Today</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
+                  }}>This Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    const nextMon = new Date(today);
+                    nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
+                    const nextSun = new Date(nextMon);
+                    nextSun.setDate(nextMon.getDate() + 6);
+                    handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
+                  }}>Next Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(
+                      getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
+                      getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+                    );
+                  }}>This Month</Label>
+                  <DatePicker
+                    value={timelineDateRange.start.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
+                      }
+                    }}
+                    aria-label="Timeline start date"
+                    placeholder="Start"
+                    className="ops-date-picker-compact"
+                  />
+                  <DatePicker
+                    value={timelineDateRange.end.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
+                      }
+                    }}
+                    aria-label="Timeline end date"
+                    placeholder="End"
+                    className="ops-date-picker-compact"
+                  />
+                  </div>
+                </div>
+                {regionStats.topBusyDays.length > 0 && (
+                  <div className="ops-busy-days-banner">
+                    <ExclamationTriangleIcon className="ops-busy-days-icon" />
+                    <span className="ops-busy-days-text">
+                      Busy days ahead:{' '}
+                      {regionStats.topBusyDays.map((bd, i) => (
+                        <React.Fragment key={bd.label}>
+                          {i > 0 && ', '}
+                          <Label
+                            color="orange"
+                            isCompact
+                            className="ops-schedule-chip"
+                            onClick={() => {
+                              handleTimelineDateChange(getStartOfDay(bd.date), getEndOfDay(bd.date));
+                              setWorkshopView('timeline');
+                            }}
+                          >
+                            {bd.label} — {bd.count} workshops ({bd.region})
+                          </Label>
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {workshopView === 'table' && workshopGroups.length > 0 && (
                 <Pagination
                   className="ops-table-pagination"
@@ -2273,12 +2609,6 @@ const Ops: React.FC = () => {
                       return next;
                     });
                   }}
-                  onBatchSelect={(keys) => {
-                    setSelectedWs(new Set(keys));
-                  }}
-                  onDeselectAll={() => {
-                    setSelectedWs(new Set());
-                  }}
                   onClickWorkshop={(id) => {
                     const workshop = targets.find(ws => wsKey(ws) === id);
                     if (workshop) {
@@ -2291,6 +2621,8 @@ const Ops: React.FC = () => {
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}
+                  dateRange={timelineDateRange}
+                  onDateChange={handleTimelineDateChange}
                 />
               )}
               {workshopView === 'table' && (
@@ -2303,13 +2635,38 @@ const Ops: React.FC = () => {
                           aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'} />
                       </th>
                       <th></th>
-                      <th>Name</th>
-                      <th>Status</th>
-                      <th>Lock</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode(sortMode === 'name-asc' ? 'name-desc' : 'name-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by name">
+                          Name {sortMode === 'name-asc' ? <SortAmountDownIcon className="ops-col-sort-icon" /> : sortMode === 'name-desc' ? <SortAmountDownIcon className="ops-col-sort-icon" style={{ transform: 'scaleY(-1)' }} /> : null}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('status-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by status">
+                          Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('lock-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by lock status">
+                          Lock {sortMode === 'lock-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Assets</th>
-                      <th>Instances</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('instances-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by instance count">
+                          Instances {sortMode === 'instances-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Concurrency</th>
-                      <th>Seats</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('seats-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by seats">
+                          Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Registration</th>
                       <th>Password</th>
                       <th>
@@ -2806,7 +3163,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
+          <Button variant="warning" onClick={handleExtendStop}>Extend Stop</Button>
           <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2836,7 +3193,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
+          <Button variant="warning" onClick={handleExtendDestroy}>Extend Destroy</Button>
           <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>

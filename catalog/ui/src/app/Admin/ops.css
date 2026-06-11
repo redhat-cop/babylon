@@ -112,18 +112,26 @@
 
 .ops-scope-bar-extra {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 4px;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
   border-top: 1px solid var(--pf-t--global--border--color--default);
 }
 
+.ops-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
 .ops-filter-inline-label {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.72rem;
   white-space: nowrap;
   color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .ops-sort-select {
@@ -139,6 +147,27 @@
 
 .ops-schedule-chip {
   cursor: pointer;
+}
+
+/* Compact date pickers inline in filter bar */
+.ops-date-picker-compact {
+  max-width: 140px;
+}
+
+.ops-date-picker-compact input {
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  height: 28px;
+}
+
+/* Compact calendar toggle button */
+.ops-date-picker-compact .pf-v6-c-date-picker__input .pf-v6-c-button {
+  padding: 2px 6px;
+  font-size: 0.78rem;
+}
+
+.ops-date-range-controls {
+  align-items: center;
 }
 
 .ops-col-white-glove,
@@ -252,6 +281,17 @@
   min-width: 70px;
 }
 
+.ops-stat[role="button"] {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 16px;
+  transition: background-color 0.15s ease;
+}
+
+.ops-stat[role="button"]:hover {
+  background: color-mix(in srgb, var(--pf-t--global--color--brand--default, #06c) 8%, transparent);
+}
+
 .ops-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
@@ -300,12 +340,63 @@
   }
 }
 
-.ops-stat-attention .ops-stat-value {
+.ops-stat-failed .ops-stat-value {
+  color: var(--pf-t--global--color--status--danger--default);
+  font-weight: 700;
+}
+
+.ops-stat-failed .ops-stat-label {
   color: var(--pf-t--global--color--status--danger--default);
 }
 
+.ops-stat-attention .ops-stat-value {
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
 .ops-stat-attention .ops-stat-label {
-  color: var(--pf-t--global--color--status--danger--default);
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ops-stat-active-filter {
+  outline: 2px solid var(--pf-t--global--color--brand--default, #06c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Busy days warning banner */
+.ops-busy-days-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 8%, var(--pf-t--global--background--color--primary--default));
+  border: 1px solid color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 30%, transparent);
+  font-size: 0.82rem;
+}
+
+.ops-busy-days-icon {
+  color: var(--pf-t--global--color--status--warning--default);
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.ops-busy-days-text {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* Failed chip pulse when count > 0 */
+.ops-chip-failed {
+  animation: ops-chip-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ops-chip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* ---- Operation cards grid ---- */
@@ -578,13 +669,6 @@ a.ops-ws-meta:hover {
   color: var(--pf-t--global--color--status--danger--default);
 }
 
-/* ---- Clickable Failed stat ---- */
-
-.ops-stat-active-filter {
-  outline: 2px solid var(--pf-t--global--color--status--danger--default);
-  border-radius: 6px;
-}
-
 /* ---- Scale preference select ---- */
 
 .ops-scale-pref-select {
@@ -752,32 +836,33 @@ a.ops-ws-meta:hover {
   color: var(--pf-t--global--text--color--regular);
 }
 
-/* --- Form controls (NumberInput, FormSelect, TextInput): PF6 uses CSS vars on .pf-v6-c-form-control; set them so inputs/selects match dark surfaces --- */
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-form-control,
-:root.pf-v6-theme-dark .ops-scope-bar .pf-v6-c-form-control {
-  --pf-v6-c-form-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+/* --- Form controls (NumberInput, FormSelect, TextInput): force dark backgrounds on ALL form controls --- */
+:root.pf-v6-theme-dark .pf-v6-c-form-control {
+  --pf-v6-c-form-control--BackgroundColor: #2a2d32;
   --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--regular);
   --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--default);
 }
 
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-input-group {
-  --pf-v6-c-input-group__item--m-box--BackgroundColor: var(--pf-t--global--background--color--control--default);
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-input-group {
+  --pf-v6-c-input-group__item--m-box--BackgroundColor: #2a2d32;
 }
 
-:root.pf-v6-theme-dark .ops-grid .pf-v6-c-number-input .pf-v6-c-button.pf-m-control {
-  --pf-v6-c-button--m-control--BackgroundColor: var(--pf-t--global--background--color--control--default);
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button.pf-m-control {
+  --pf-v6-c-button--m-control--BackgroundColor: #2a2d32;
   --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-button--m-control--Color: var(--pf-t--global--text--color--regular);
 }
 
-/* Legacy: direct input/button rules (span form-control owns bg for inputs; select uses BackgroundColor var) */
-:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input {
-  background: transparent;
-  color: var(--pf-t--global--text--color--regular);
+/* Force dark background on all number input fields and select dropdowns */
+:root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-form-control input,
+:root.pf-v6-theme-dark .pf-v6-c-form-control input,
+:root.pf-v6-theme-dark .pf-v6-c-form-control select {
+  background: #2a2d32 !important;
+  color: var(--pf-t--global--text--color--regular) !important;
 }
 
 :root.pf-v6-theme-dark .pf-v6-c-number-input .pf-v6-c-button {
-  background: var(--pf-t--global--background--color--control--default);
+  background: #2a2d32;
   color: var(--pf-t--global--text--color--regular);
   border-color: var(--pf-t--global--border--color--default);
 }
@@ -979,4 +1064,102 @@ a.ops-ws-meta:hover {
 
 :root.pf-v6-theme-dark .ops-modal-scope code {
   background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 70%, white);
+}
+
+/* ========================================
+   Compact Operation Cards  (overrides base rules in admin.css)
+   ======================================== */
+
+.ops-operations-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* Minimal padding on all operation cards */
+.ops-operations-grid .pf-v6-c-card {
+  --pf-v6-c-card--c-card__body--PaddingBlockStart: 6px;
+  --pf-v6-c-card--c-card__body--PaddingInlineEnd: 8px;
+  --pf-v6-c-card--c-card__body--PaddingBlockEnd: 6px;
+  --pf-v6-c-card--c-card__body--PaddingInlineStart: 8px;
+  --pf-v6-c-card--c-card__title--PaddingBlockStart: 6px;
+  --pf-v6-c-card--c-card__title--PaddingInlineEnd: 8px;
+  --pf-v6-c-card--c-card__title--PaddingBlockEnd: 2px;
+  --pf-v6-c-card--c-card__title--PaddingInlineStart: 8px;
+}
+
+/* Tighter form groups within operation cards */
+.ops-operations-grid .pf-v6-c-form-group {
+  margin-bottom: 4px;
+}
+
+/* Smaller card titles */
+.ops-operations-grid .pf-v6-c-card__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Compact buttons */
+.ops-operations-grid .pf-v6-c-button {
+  --pf-v6-c-button--PaddingBlockStart: 3px;
+  --pf-v6-c-button--PaddingInlineEnd: 8px;
+  --pf-v6-c-button--PaddingBlockEnd: 3px;
+  --pf-v6-c-button--PaddingInlineStart: 8px;
+  font-size: 0.78rem;
+}
+
+/* Compact number inputs */
+.ops-operations-grid .pf-v6-c-number-input {
+  flex-shrink: 0;
+}
+
+.ops-operations-grid .pf-v6-c-number-input .pf-v6-c-button {
+  --pf-v6-c-button--PaddingInlineEnd: 4px;
+  --pf-v6-c-button--PaddingInlineStart: 4px;
+}
+
+/* Unit label (e.g., "days", "hrs") attached to NumberInput */
+.ops-operations-grid .pf-v6-c-number-input__unit {
+  font-size: 0.75rem;
+  padding: 0 4px;
+}
+
+/* Extend Stop/Destroy row — two NumberInputs side by side */
+.ops-extend-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+/* Reduce icon size in card titles */
+.ops-card-icon {
+  font-size: 0.8rem;
+  margin-right: 3px;
+}
+
+/* Operation card title should not truncate */
+.ops-operations-grid .pf-v6-c-card__title-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Compact descriptions in operation cards */
+.ops-operations-grid .ops-desc {
+  margin-bottom: 4px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+/* Tighter button row spacing */
+.ops-operations-grid .ops-button-row {
+  gap: 4px;
+}
+
+/* Dark mode: tone down card backgrounds */
+:root.pf-v6-theme-dark .ops-operations-grid .pf-v6-c-card,
+.pf-v5-theme-dark .ops-operations-grid .pf-v6-c-card,
+[data-theme="dark"] .ops-operations-grid .pf-v6-c-card {
+  --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--secondary--default, #212427);
 }
