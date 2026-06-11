@@ -15,27 +15,27 @@ export interface TimelineControlsProps {
   timezone: string;
 }
 
-function getMonday(d: Date): Date {
+export function getMonday(d: Date): Date {
   const date = new Date(d);
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(date.setDate(diff));
 }
 
-function getSunday(d: Date): Date {
+export function getSunday(d: Date): Date {
   const monday = getMonday(d);
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return sunday;
 }
 
-function getStartOfDay(d: Date): Date {
+export function getStartOfDay(d: Date): Date {
   const date = new Date(d);
   date.setHours(0, 0, 0, 0);
   return date;
 }
 
-function getEndOfDay(d: Date): Date {
+export function getEndOfDay(d: Date): Date {
   const date = new Date(d);
   date.setHours(23, 59, 59, 999);
   return date;

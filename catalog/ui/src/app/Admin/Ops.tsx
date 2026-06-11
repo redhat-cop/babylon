@@ -12,6 +12,7 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  DatePicker,
   Dropdown,
   DropdownList,
   DropdownItem,
@@ -113,6 +114,7 @@ import {
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
 import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
+import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
@@ -203,6 +205,7 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
   { label: 'test', value: 'test', color: 'blue' },
 ];
 
+const TIMELINE_STORAGE_KEY = 'opsTimelineDateRange';
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -342,7 +345,6 @@ function compareWorkshopsForSort(
 
 const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = [
   { label: 'All dates', value: 'all' },
-  { label: 'Scheduled', value: 'scheduled' },
   { label: '≤1 day', value: 'd1' },
   { label: '≤2 days', value: 'd2' },
   { label: '≤3 days', value: 'd3' },
@@ -739,6 +741,32 @@ const Ops: React.FC = () => {
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
   const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+
+  // Timeline date range — lifted up so controls can live in the global filter bar
+  const [timelineDateRange, setTimelineDateRange] = useState<{ start: Date; end: Date }>(() => {
+    try {
+      const stored = localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { start: new Date(parsed.start), end: new Date(parsed.end) };
+      }
+    } catch (e) { /* ignore */ }
+    const today = new Date();
+    return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify({
+        start: timelineDateRange.start.toISOString(),
+        end: timelineDateRange.end.toISOString(),
+      }));
+    } catch (e) { /* ignore */ }
+  }, [timelineDateRange]);
+
+  const handleTimelineDateChange = useCallback((start: Date, end: Date) => {
+    setTimelineDateRange({ start, end });
+  }, []);
 
   const targets = useMemo(() => {
     let list = workshops;
@@ -2237,7 +2265,7 @@ const Ops: React.FC = () => {
                   <FormSelectOption value="instances-desc" label="Most instances" />
                   <FormSelectOption value="seats-desc" label="Most seats (total)" />
                 </FormSelect>
-                <span className="ops-filter-inline-label">Start window</span>
+                <span className="ops-filter-inline-label">Starting</span>
                 <div className="ops-schedule-filters">
                   {SCHEDULE_FILTER_CHIPS.map(c => (
                     <Label
@@ -2269,16 +2297,45 @@ const Ops: React.FC = () => {
                     );
                   })}
                 </div>
-                <span className="ops-filter-inline-label">Region</span>
+                <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                  <span className="ops-filter-inline-label" style={{ cursor: 'help', borderBottom: '1px dotted var(--pf-t--global--text--color--subtle)' }}>Region ⓘ</span>
+                </Tooltip>
                 <div className="ops-schedule-filters">
-                  <Label
-                    color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
-                    isCompact
-                    onClick={() => setTableRegionFilter('all')}
-                    className="ops-schedule-chip"
-                  >
-                    All ({regionStats.counts.all})
-                  </Label>
+                  <Tooltip content={
+                    <div style={{ lineHeight: 1.5, minWidth: 200 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
+                      <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.counts.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total deploy</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.instances.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                        </div>
+                      </div>
+                      {REGIONS.map(r => {
+                        const c = regionStats.counts[r.key];
+                        const run = regionStats.running[r.key];
+                        const dep = regionStats.deploying[r.key];
+                        if (c === 0 && run === 0 && dep === 0) return null;
+                        return (
+                          <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
+                            <strong>{r.label}:</strong> {c} deploy{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  } maxWidth="320px">
+                    <Label
+                      color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setTableRegionFilter('all')}
+                      className="ops-schedule-chip"
+                    >
+                      All ({regionStats.counts.all})
+                    </Label>
+                  </Tooltip>
                   {REGIONS.map(r => {
                     const count = regionStats.counts[r.key];
                     const inst = regionStats.instances[r.key];
@@ -2351,11 +2408,65 @@ const Ops: React.FC = () => {
                     );
                   })}
                 </div>
-                {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                {workshopView === 'timeline' && (
+                  <>
+                    <span className="ops-filter-inline-label">Range</span>
+                    <div className="ops-schedule-filters ops-date-range-controls">
+                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
+                      }}>Today</Label>
+                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
+                      }}>This Week</Label>
+                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                        const today = new Date();
+                        const nextMon = new Date(today);
+                        nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
+                        const nextSun = new Date(nextMon);
+                        nextSun.setDate(nextMon.getDate() + 6);
+                        handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
+                      }}>Next Week</Label>
+                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(
+                          getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
+                          getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+                        );
+                      }}>This Month</Label>
+                      <DatePicker
+                        value={timelineDateRange.start.toISOString().split('T')[0]}
+                        onChange={(_e, val) => {
+                          if (val) {
+                            const d = new Date(val);
+                            if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
+                          }
+                        }}
+                        aria-label="Timeline start date"
+                        placeholder="Start"
+                        className="ops-date-picker-compact"
+                      />
+                      <DatePicker
+                        value={timelineDateRange.end.toISOString().split('T')[0]}
+                        onChange={(_e, val) => {
+                          if (val) {
+                            const d = new Date(val);
+                            if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
+                          }
+                        }}
+                        aria-label="Timeline end date"
+                        placeholder="End"
+                        className="ops-date-picker-compact"
+                      />
+                    </div>
+                  </>
+                )}
+                {(statusFilter !== 'all' || tableRegionFilter !== 'all' || scheduleFilter !== 'all') && (
                   <Label
                     color="grey"
                     isCompact
-                    onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                    onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setScheduleFilter('all'); }}
                     className="ops-schedule-chip"
                     style={{ fontStyle: 'italic' }}
                   >
@@ -2428,12 +2539,6 @@ const Ops: React.FC = () => {
                       return next;
                     });
                   }}
-                  onBatchSelect={(keys) => {
-                    setSelectedWs(new Set(keys));
-                  }}
-                  onDeselectAll={() => {
-                    setSelectedWs(new Set());
-                  }}
                   onClickWorkshop={(id) => {
                     const workshop = targets.find(ws => wsKey(ws) === id);
                     if (workshop) {
@@ -2446,6 +2551,8 @@ const Ops: React.FC = () => {
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}
+                  dateRange={timelineDateRange}
+                  onDateChange={handleTimelineDateChange}
                 />
               )}
               {workshopView === 'table' && (

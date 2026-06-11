@@ -143,6 +143,24 @@
   cursor: pointer;
 }
 
+/* Compact date pickers inline in filter bar */
+.ops-date-picker-compact {
+  max-width: 130px;
+}
+
+.ops-date-picker-compact .pf-v6-c-date-picker__input .pf-v6-c-input-group {
+  --pf-v6-c-input-group--c-form-control--Width: 105px;
+}
+
+.ops-date-picker-compact input {
+  font-size: 0.78rem;
+  padding: 2px 6px;
+}
+
+.ops-date-range-controls {
+  align-items: center;
+}
+
 .ops-col-white-glove,
 .ops-wg-cell {
   text-align: center;

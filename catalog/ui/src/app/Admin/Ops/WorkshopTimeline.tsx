@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Badge, EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
+import React, { useMemo, useCallback } from 'react';
+import { EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
 import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
-import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
 
 interface ProvisionProgress {
@@ -15,8 +14,6 @@ export interface WorkshopTimelineProps {
   workshops: WorkshopWithResourceClaims[];
   selectedWorkshops: Set<string>;
   onSelectWorkshop: (id: string, selected: boolean) => void;
-  onBatchSelect: (keys: string[]) => void;
-  onDeselectAll: () => void;
   onClickWorkshop: (id: string) => void;
   getSeats: (ws: Workshop) => { assigned: number; total: number } | null;
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
@@ -24,6 +21,8 @@ export interface WorkshopTimelineProps {
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
+  dateRange: { start: Date; end: Date };
+  onDateChange: (start: Date, end: Date) => void;
 }
 
 function getMonday(d: Date): Date {
@@ -100,8 +99,6 @@ function workshopInDateRange(workshop: WorkshopWithResourceClaims, viewStart: Da
   if (!dates) return true;
   return dates.start < viewEnd && dates.end > viewStart;
 }
-
-const STORAGE_KEY = 'opsTimelineDateRange';
 
 export type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
 
@@ -198,21 +195,10 @@ export function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): Region
   return regions.length > 0 ? regions : (primary ? [primary] : []);
 }
 
-const SELECT_BUTTONS: { label: string; status: StatusKey | 'all' | 'none'; color: 'green' | 'red' | 'blue' | 'orange' | 'grey' }[] = [
-  { label: 'Select All', status: 'all', color: 'grey' },
-  { label: 'Running', status: 'Running', color: 'green' },
-  { label: 'Failed', status: 'Failed', color: 'red' },
-  { label: 'Scheduled', status: 'Scheduled', color: 'blue' },
-  { label: 'Stopped', status: 'Stopped', color: 'orange' },
-  { label: 'Deselect', status: 'none', color: 'grey' },
-];
-
 export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   workshops,
   selectedWorkshops,
   onSelectWorkshop,
-  onBatchSelect,
-  onDeselectAll,
   onClickWorkshop,
   getSeats,
   getProvisionProgress,
@@ -220,32 +206,9 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   multiWorkshopsByName,
   isMultiNs,
   timezone,
+  dateRange,
+  onDateChange: handleDateChange,
 }) => {
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { start: new Date(parsed.start), end: new Date(parsed.end) };
-      }
-    } catch (e) { /* ignore */ }
-    const today = new Date();
-    return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        start: dateRange.start.toISOString(),
-        end: dateRange.end.toISOString(),
-      }));
-    } catch (e) { /* ignore */ }
-  }, [dateRange]);
-
-  const handleDateChange = useCallback((start: Date, end: Date) => {
-    setDateRange({ start, end });
-  }, []);
-
   // Region and status filtering is done globally in Ops.tsx — timeline only filters by date range
   const visibleWorkshops = useMemo(() => {
     return workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
@@ -273,23 +236,6 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
   const totalWorkshops = Object.values(groupedWorkshops).reduce((s, arr) => s + arr.length, 0);
   const todayStr = new Date().toDateString();
-
-  const handleQuickSelect = useCallback((status: StatusKey | 'all' | 'none') => {
-    if (status === 'none') {
-      onDeselectAll();
-      return;
-    }
-    if (status === 'all') {
-      const allKeys: string[] = [];
-      for (const arr of Object.values(groupedWorkshops)) {
-        arr.forEach(ws => allKeys.push(wsKey(ws)));
-      }
-      onBatchSelect(allKeys);
-      return;
-    }
-    const keys = (groupedWorkshops[status] || []).map(ws => wsKey(ws));
-    onBatchSelect(keys);
-  }, [groupedWorkshops, onBatchSelect, onDeselectAll]);
 
   const nowPercent = useMemo(() => {
     const now = Date.now();
@@ -323,8 +269,6 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
   return (
     <div className="timeline-container">
-      <TimelineControls startDate={dateRange.start} endDate={dateRange.end} onDateChange={handleDateChange} timezone={timezone} />
-
       {totalWorkshops === 0 ? (
         <EmptyState>
           <EmptyStateBody>No workshops match the selected filters</EmptyStateBody>
