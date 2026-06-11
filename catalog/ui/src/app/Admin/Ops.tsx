@@ -1927,7 +1927,7 @@ const Ops: React.FC = () => {
 
             <div className="ops-grid ops-operations-grid">
               {/* Resource Lock */}
-              <Card isFullHeight>
+              <Card>
                 <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
                 <CardBody>
                   <p className="ops-desc">
@@ -1944,7 +1944,7 @@ const Ops: React.FC = () => {
               </Card>
 
               {/* Extend Stop */}
-              <Card isFullHeight>
+              <Card>
                 <CardTitle>
                   <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
                     <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span>
@@ -1971,7 +1971,7 @@ const Ops: React.FC = () => {
               </Card>
 
               {/* Extend Destroy */}
-              <Card isFullHeight>
+              <Card>
                 <CardTitle>
                   <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
                     <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span>
@@ -1998,7 +1998,7 @@ const Ops: React.FC = () => {
               </Card>
 
               {/* Disable Auto-Stop */}
-              <Card isFullHeight>
+              <Card>
                 <CardTitle>
                   <Tooltip content="Remove the auto-stop schedule so workshops keep running until destroy or manual intervention.">
                     <span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span>

@@ -40,32 +40,44 @@
 .timeline-region-filter {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
-  padding: 2px 0;
+  padding: 4px 0;
 }
 
 .timeline-region-filter__label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pf-t--global--text--color--subtle, #6a6e73);
   margin-right: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .timeline-region-filter__btn {
   cursor: pointer;
   user-select: none;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  font-size: 12px;
 }
 
 .timeline-region-filter__btn:hover {
   transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .timeline-region-overlap {
-  margin-left: 3px;
-  font-size: 9px;
-  opacity: 0.75;
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.7;
+  font-weight: 600;
+}
+
+.timeline-region-peak {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 /* ── Date Grid ── */
@@ -120,6 +132,15 @@
 .timeline-date-cell--today .timeline-date-cell__day {
   color: var(--pf-t--global--color--brand--default, #06c);
   font-weight: 700;
+}
+
+.timeline-date-cell--clickable {
+  cursor: pointer;
+}
+
+.timeline-date-cell--clickable:hover {
+  background: color-mix(in srgb, var(--pf-t--global--color--brand--default, #06c) 10%, transparent);
+  border-radius: 6px;
 }
 
 .timeline-date-cell--weekend {

@@ -254,9 +254,9 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 
     const counts = emptyRegionRecord();   // Workshops by deploy region (primary)
     const instances = emptyRegionRecord(); // Instances by deploy region
-    const deploying = emptyRegionRecord(); // Scheduled (deploying) workshops per region
-    const running = emptyRegionRecord();   // Running workshops per region
-    const delivering = emptyRegionRecord();// Workshops whose delivery spans INTO this region
+    const deploying = emptyRegionRecord(); // Scheduled workshops per deploy region
+    const running = emptyRegionRecord();   // Running workshops per deploy region
+    const delivering = emptyRegionRecord();// Workshops whose delivery is active during this region's hours
 
     counts.all = allVisible.length;
 
@@ -273,14 +273,50 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
         if (status === 'Running') running[primary]++;
       }
 
-      // Track which regions this workshop's delivery spans into
       const active = getWorkshopActiveRegions(ws);
       for (const rk of active) {
         delivering[rk]++;
       }
     }
 
-    // Per-region overlap breakdown: how many workshops span from region X into region Y
+    // Daily peak: for each region, find the busiest single day (support load)
+    const dailyPeak: Record<string, { count: number; day: string }> = {};
+    const days: Date[] = [];
+    const cur = new Date(dateRange.start);
+    while (cur <= dateRange.end) {
+      days.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    for (const r of REGIONS) {
+      let peak = 0;
+      let peakDay = '';
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+
+        let dayCount = 0;
+        for (const ws of allVisible) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs && wsEnd > bizStartMs) dayCount++;
+        }
+        if (dayCount > peak) {
+          peak = dayCount;
+          peakDay = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      }
+      dailyPeak[r.key] = { count: peak, day: peakDay };
+    }
+
+    // Per-region overlap breakdown
     const overlapDetail: Record<string, Record<string, number>> = {};
     for (const r of REGIONS) {
       overlapDetail[r.key] = {};
@@ -294,7 +330,6 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
       }
     }
 
-    // Total spanning count per region
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
       spanning[r.key] = new Set(
@@ -305,7 +340,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
       ).size;
     }
 
-    return { counts, instances, deploying, running, delivering, spanning, overlapDetail };
+    return { counts, instances, deploying, running, delivering, spanning, overlapDetail, dailyPeak };
   }, [workshops, dateRange, getCurrentCount]);
 
   const dateGrid = useMemo(() => {
@@ -401,66 +436,93 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
         <span className="timeline-region-filter__label">Region:</span>
         <Label
           color={regionFilter === 'all' ? 'blue' : 'grey'}
-          isCompact
           onClick={() => setRegionFilter('all')}
           className="timeline-region-filter__btn"
         >
-          All: {regionStats.counts.all} workshops · {regionStats.instances.all} instances
+          All — {regionStats.counts.all} workshops · {regionStats.instances.all} instances
         </Label>
         {REGIONS.map(r => {
           const count = regionStats.counts[r.key];
           const inst = regionStats.instances[r.key];
           const deploy = regionStats.deploying[r.key];
           const run = regionStats.running[r.key];
-          const deliver = regionStats.delivering[r.key];
           const spanning = regionStats.spanning[r.key];
           const overlaps = regionStats.overlapDetail[r.key] || {};
+          const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
           const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
-          const REGION_LIMIT = 5;
-          const atCapacity = count >= REGION_LIMIT;
+          const DAILY_SUPPORT_LIMIT = 5;
+          // Support capacity = peak workshops active during biz hours on any single day
+          const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
+          // How many are from other regions on the peak day
+          const fromOtherRegions = peak.count > count ? peak.count - count : 0;
 
           const regionLabelMap: Record<string, string> = {};
           REGIONS.forEach(rr => { regionLabelMap[rr.key] = rr.label; });
 
           const tooltipContent = (
-            <div style={{ lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.label} — 9am-5pm {tzCity}</div>
-              <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-                <tbody>
-                  <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Deploy from</td><td style={{ fontWeight: 600 }}>{count} workshops · {inst} instances</td></tr>
-                  {deploy > 0 && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Deploying</td><td>{deploy} scheduled</td></tr>}
-                  {run > 0 && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Running</td><td>{run} active</td></tr>}
-                  {deliver > count && <tr><td style={{ paddingRight: 10, opacity: 0.8 }}>Delivery active</td><td>{deliver} total (incl. from other regions)</td></tr>}
-                  <tr>
-                    <td style={{ paddingRight: 10, opacity: 0.8 }}>Capacity</td>
-                    <td style={{ fontWeight: atCapacity ? 700 : 400, color: atCapacity ? '#ff6b6b' : 'inherit' }}>
-                      {count}/{REGION_LIMIT}{atCapacity ? ' ⚠ at limit' : ''}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div style={{ lineHeight: 1.5, minWidth: 240 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
+              <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 10 }}>Business hours: 9am – 5pm {tzCity}</div>
+
+              <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{count}</div>
+                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>deploy</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
+                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
+                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
+                </div>
+              </div>
+
+              {(deploy > 0 || run > 0) && (
+                <div style={{ marginBottom: 8 }}>
+                  {deploy > 0 && <span style={{ fontSize: 11 }}>{deploy} scheduled · </span>}
+                  {run > 0 && <span style={{ fontSize: 11 }}>{run} running</span>}
+                </div>
+              )}
+
+              {peak.count > 0 && (
+                <div style={{ fontSize: 12, padding: '6px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600 }}>Busiest day:</span> {peak.day} — {peak.count} workshops active during biz hours
+                  {fromOtherRegions > 0 && <span style={{ opacity: 0.8 }}> ({count} deploy here + {fromOtherRegions} from other regions)</span>}
+                  {peak.count >= DAILY_SUPPORT_LIMIT && <div style={{ marginTop: 4, color: '#e53e3e', fontWeight: 600, fontSize: 11 }}>Soft limit: {DAILY_SUPPORT_LIMIT} workshops/day</div>}
+                </div>
+              )}
+
               {spanning > 0 && (
-                <div style={{ marginTop: 6, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 4 }}>
-                  <div style={{ fontWeight: 500, marginBottom: 2 }}>{spanning} span into other regions:</div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', opacity: 0.5, marginBottom: 4, letterSpacing: '0.04em' }}>Cross-region</div>
                   {Object.entries(overlaps).map(([otherKey, n]) => (
-                    <div key={otherKey} style={{ paddingLeft: 8, fontSize: 11 }}>↔ {n} with {regionLabelMap[otherKey] || otherKey}</div>
+                    <div key={otherKey} style={{ fontSize: 11, lineHeight: 1.7, paddingLeft: 2 }}>
+                      ↔ {n} also active during {regionLabelMap[otherKey] || otherKey}
+                    </div>
                   ))}
                 </div>
               )}
             </div>
           );
 
+          // Label: lead with deploy count, show peak for support awareness
+          const labelParts: string[] = [];
+          if (count > 0) labelParts.push(`${count} deploy`);
+          if (inst > 0) labelParts.push(`${inst} inst`);
+          const labelMain = labelParts.length > 0 ? labelParts.join(' · ') : 'no deploys';
+
           return (
-            <Tooltip key={r.key} content={tooltipContent} maxWidth="320px">
+            <Tooltip key={r.key} content={tooltipContent} maxWidth="380px">
               <Label
-                color={regionFilter === r.key ? 'blue' : atCapacity ? 'red' : 'grey'}
-                isCompact
+                color={regionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
                 onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
                 className="timeline-region-filter__btn"
               >
-                {r.label}: {count} ws · {inst} inst
+                {r.label} — {labelMain}
+                {peak.count > 0 && <span className="timeline-region-peak"> · {peak.count}/day</span>}
                 {spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
-                {atCapacity && <span className="timeline-region-overlap"> ⚠</span>}
               </Label>
             </Tooltip>
           );
@@ -480,10 +542,13 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
             {dateGrid.map((day, i) => {
               const isToday = day.toDateString() === todayStr;
               const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              const isSingleDay = dateGrid.length === 1;
               return (
                 <div
                   key={i}
-                  className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}`}
+                  className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}${!isSingleDay ? ' timeline-date-cell--clickable' : ''}`}
+                  onClick={!isSingleDay ? () => handleDateChange(getStartOfDay(day), getEndOfDay(day)) : undefined}
+                  title={!isSingleDay ? `Click to zoom into ${formatDateCell(day, { weekday: 'long', month: 'long', day: 'numeric' })}` : undefined}
                 >
                   <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
                   <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
@@ -500,7 +565,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
           </div>
 
           <div className="timeline-timezone-label">
-            Times shown in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} — change via timezone selector above
+            Times in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} · change at timezone selector at top of screen
           </div>
 
           {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map(status => (
