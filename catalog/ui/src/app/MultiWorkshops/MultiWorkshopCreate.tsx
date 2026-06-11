@@ -50,6 +50,8 @@ import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import purposeOptions from './purposeOptions.json';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
@@ -77,6 +79,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
     const defaultProvisioningDate = now;
@@ -514,6 +517,7 @@ const MultiWorkshopCreate: React.FC = () => {
       </PageSection>
 
       <PageSection>
+        <TimezoneSelector timezone={timezone} onChange={setTimezone} />
         <Form className="multiworkshop-create__form">
           {(isAdmin || serviceNamespaces.length > 1) && (
             <FormGroup label="Create Multi Asset Workshop in Project" fieldId="project-selector">
@@ -621,6 +625,7 @@ const MultiWorkshopCreate: React.FC = () => {
                     });
                   }}
                   minDate={Date.now()}
+                  timezone={timezone}
                 />
                 <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
                   <OutlinedQuestionCircleIcon
@@ -691,6 +696,7 @@ const MultiWorkshopCreate: React.FC = () => {
                       });
                     }}
                     minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
+                    timezone={timezone}
                   />
                   <Tooltip
                     position="right"
@@ -726,10 +732,8 @@ const MultiWorkshopCreate: React.FC = () => {
                     setCreateFormData((prev) => ({ ...prev, endDate: date }));
                   }}
                   forceUpdateTimestamp={createFormData.endDate?.getTime()}
+                  timezone={timezone}
                 />
-                <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  Date and time are based on your device&apos;s timezone
-                </div>
               </FormGroup>
             </SplitItem>
           </Split>

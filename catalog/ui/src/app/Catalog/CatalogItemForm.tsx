@@ -23,7 +23,6 @@ import {
 } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import BetaBadge from '@app/components/BetaBadge';
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
 import {
@@ -68,12 +67,12 @@ import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import CatalogItemFormStartModal from './CatalogItemFormStartModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
-import DateTimePicker from '@app/components/DateTimePicker';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -86,6 +85,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const navigate = useNavigate();
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
+  const [isStartModalOpen, setIsStartModalOpen] = useState(false);
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
@@ -482,6 +482,42 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         onClose={() => openAutoStopDestroyModal(null)}
         title={_displayName}
       />
+      <CatalogItemFormStartModal
+        isOpen={isStartModalOpen}
+        isWorkshop={!!formState.workshop}
+        isAdmin={isAdmin}
+        startDate={formState.startDate || new Date()}
+        onConfirm={(startDate: Date, readyByMode: boolean) => {
+          setUseDirectProvisioningDate(readyByMode);
+          if (formState.workshop) {
+            const readyByTime = startDate.getTime() + READY_BY_LEAD_TIME_MS;
+            dispatchFormState({
+              type: 'dates',
+              startDate,
+              stopDate: new Date(
+                readyByTime +
+                  parseDuration(
+                    formState.activity?.startsWith('Customer Facing')
+                      ? '365d'
+                      : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
+                  ),
+              ),
+              endDate: new Date(
+                readyByTime +
+                  parseDuration(catalogItem.spec.lifespan?.default || '30h'),
+              ),
+            });
+          } else {
+            dispatchFormState({
+              type: 'initDates',
+              catalogItem,
+              startDate,
+            });
+          }
+        }}
+        onClose={() => setIsStartModalOpen(false)}
+        title={_displayName}
+      />
       <SearchSalesforceIdModal
         isOpen={searchSalesforceIdModal}
         onClose={() => openSearchSalesforceIdModal(false)}
@@ -795,23 +831,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {!formState.workshop && !catalogItem.spec.externalUrl ? (
           <FormGroup fieldId="serviceStartDate" isRequired label="Start Provisioning Date">
             <div className="catalog-item-form__group-control--single">
-              <DateTimePicker
-                defaultTimestamp={Date.now()}
-                onSelect={(d: Date) =>
-                  dispatchFormState({
-                    type: 'initDates',
-                    catalogItem,
-                    startDate: d,
-                  })
-                }
-                minDate={Date.now()}
+              <AutoStopDestroy
+                type="auto-start"
+                onClick={() => setIsStartModalOpen(true)}
+                className="catalog-item-form__auto-stop-btn"
+                time={formState.startDate ? formState.startDate.getTime() : Date.now()}
+                variant="extended"
+                destroyTimestamp={formState.endDate?.getTime()}
               />
-              <Tooltip position="right" content={<p>Select the date you&apos;d like the service to start provisioning.</p>}>
-                <OutlinedQuestionCircleIcon
-                  aria-label="Select the date you'd like the service to start provisioning."
-                  className="tooltip-icon-only"
-                />
-              </Tooltip>
             </div>
           </FormGroup>
         ) : null}
@@ -848,172 +875,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
         {formState.workshop ? (
           <>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--pf-t--global--spacer--md)',
-                alignItems: 'flex-start',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                <FormGroup
-                  fieldId="provisioningDate"
-                  isRequired
-                  label="Provisioning Date"
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--md)',
-                    }}
-                  >
-                    <DateTimePicker
-                      key={`provisioning-${useDirectProvisioningDate}`}
-                      defaultTimestamp={formState.startDate?.getTime() || Date.now()}
-                      forceUpdateTimestamp={formState.startDate?.getTime()}
-                      isDisabled={useDirectProvisioningDate}
-                      onSelect={(d: Date) => {
-                        dispatchFormState({
-                          type: 'dates',
-                          startDate: d,
-                          stopDate: new Date(
-                            d.getTime() +
-                              parseDuration(
-                                formState.activity?.startsWith('Customer Facing')
-                                  ? '365d'
-                                  : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
-                              ),
-                          ),
-                          endDate: new Date(
-                            d.getTime() +
-                              parseDuration(
-                                catalogItem.spec.lifespan?.default || '30h'
-                              )
-                          ),
-                        });
-                      }}
-                      minDate={Date.now()}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          Select when you want the workshop provisioning to start.
-                        </p>
-                      }
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Select when you want the workshop provisioning to start."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  </div>
-                  {isAdmin && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                        marginTop: 'var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Set ready by date"
-                        label={
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            Set ready by date
-                            <BetaBadge />
-                          </div>
-                        }
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  )}
-                </FormGroup>
-
-                {isAdmin && useDirectProvisioningDate && (
-                  <FormGroup
-                    fieldId="readyByDate"
-                    label="Ready by"
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <DateTimePicker
-                        key={`ready-by-${useDirectProvisioningDate}`}
-                        defaultTimestamp={
-                          formState.startDate
-                            ? formState.startDate.getTime() + READY_BY_LEAD_TIME_MS
-                            : Date.now() + READY_BY_LEAD_TIME_MS
-                        }
-                        forceUpdateTimestamp={formState.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
-                        onSelect={(d: Date) => {
-                          const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
-                          dispatchFormState({
-                            type: 'dates',
-                            startDate: provisioningDate,
-                            stopDate: new Date(
-                              d.getTime() +
-                                parseDuration(
-                                  formState.activity?.startsWith('Customer Facing')
-                                    ? '365d'
-                                    : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
-                                ),
-                            ),
-                            endDate: new Date(
-                              d.getTime() +
-                                parseDuration(
-                                  catalogItem.spec.lifespan?.default || '30h'
-                                )
-                            ),
-                          });
-                        }}
-                        minDate={Date.now() + READY_BY_LEAD_TIME_MS}
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  </FormGroup>
-                )}
+            <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Date">
+              <div className="catalog-item-form__group-control--single">
+                <AutoStopDestroy
+                  type="auto-start"
+                  onClick={() => setIsStartModalOpen(true)}
+                  className="catalog-item-form__auto-stop-btn"
+                  time={formState.startDate ? formState.startDate.getTime() : Date.now()}
+                  variant="extended"
+                  destroyTimestamp={formState.endDate?.getTime()}
+                />
               </div>
-            </div>
+              </FormGroup>
             {!isAutoStopDisabled(catalogItem) && !formState.selfPacedLab ? (
               <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
                 <div className="catalog-item-form__group-control--single">
@@ -1039,7 +912,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   destroyTimestamp={formState.endDate.getTime()}
                 />
               </div>
-            </FormGroup>
+              </FormGroup>
           <div className="catalog-item-form__workshop-section">
             <div className="catalog-item-form__workshop-section-title">Workshop Settings</div>
             <div className="catalog-item-form__workshop-form">

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import Modal, { useModal } from '@app/Modal/Modal';
 import { Alert, AlertGroup, Button, Form, FormGroup, Switch, Tooltip } from '@patternfly/react-core';
 import useHelpLink from '@app/utils/useHelpLink';
@@ -34,6 +36,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
   const helpLink = useHelpLink();
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useModal();
   const [now] = useState(() => Date.now());
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
   const [dates, setDates] = useState<TDates>({
     stopDate: null,
     endDate: null,
@@ -50,6 +53,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
 
   return (
     <Modal ref={autoStopDestroyModal} onConfirm={() => onConfirm(dates)} title={title} onClose={onClose}>
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
       <Form isHorizontal>
         {type === 'auto-stop' ? (
           !isAutoStopDisabled ? (
@@ -61,6 +65,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                   minDate={now}
                   maxDate={now + maxRuntimeTimestamp}
                   isDisabled={noAutoStopChecked}
+                  timezone={timezone}
                 />
               </FormGroup>
               {now + maxRuntimeTimestamp >= _endDate.getTime() ? (
@@ -120,6 +125,7 @@ const CatalogItemFormAutoStopDestroyModal: React.FC<{
                 maxDate={maxDestroyTimestamp ? now + maxDestroyTimestamp : null}
                 minDate={now}
                 forceUpdateTimestamp={dates.endDate?.getTime()}
+                timezone={timezone}
               />
             </FormGroup>
             {_endDate && _endDate.getTime() <= now ? (

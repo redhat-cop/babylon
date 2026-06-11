@@ -100,9 +100,9 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
   );
 
   const formatDate = (date: Date): string => {
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-    if (timezone !== 'local') opts.timeZone = timezone;
-    return date.toLocaleDateString('en-US', opts);
+    return date.toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', timeZone: timezone,
+    });
   };
 
   return (

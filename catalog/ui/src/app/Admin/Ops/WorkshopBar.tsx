@@ -132,18 +132,17 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const instanceText = instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
 
   const formatShortDate = useCallback((d: Date): string => {
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    if (timezone !== 'local') opts.timeZone = timezone;
-    return d.toLocaleDateString('en-US', opts);
+    return d.toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone,
+    });
   }, [timezone]);
 
   const formatFullDate = useCallback((iso: string): string => {
     const d = new Date(iso);
-    const opts: Intl.DateTimeFormatOptions = {
+    return d.toLocaleString('en-US', {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-    };
-    if (timezone !== 'local') opts.timeZone = timezone;
-    return d.toLocaleString('en-US', opts);
+      timeZone: timezone,
+    });
   }, [timezone]);
 
   const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'upcoming'

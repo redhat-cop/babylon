@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Form, FormGroup } from '@patternfly/react-core';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import useSession from '@app/utils/useSession';
 
 const SelfPacedLabScheduleAction: React.FC<{
@@ -12,6 +14,7 @@ const SelfPacedLabScheduleAction: React.FC<{
   const { isAdmin } = useSession().getSession();
   const defaultDate = currentDate ? new Date(currentDate) : new Date(Date.now() + 14400000);
   const [selectedDate, setSelectedDate] = useState(defaultDate);
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   useEffect(() => {
     setState(selectedDate);
@@ -37,12 +40,15 @@ const SelfPacedLabScheduleAction: React.FC<{
   }
 
   return (
+    <>
+    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
     <Form isHorizontal>
       <FormGroup fieldId="selfpacedlab-schedule-action" label={actionLabel}>
         <DateTimePicker
           defaultTimestamp={selectedDate.getTime()}
           onSelect={(date) => setSelectedDate(date)}
           {...minMaxProps}
+          timezone={timezone}
         />
       </FormGroup>
       {selectedDate.getTime() <= Date.now() ? (
@@ -53,6 +59,7 @@ const SelfPacedLabScheduleAction: React.FC<{
         />
       ) : null}
     </Form>
+    </>
   );
 };
 

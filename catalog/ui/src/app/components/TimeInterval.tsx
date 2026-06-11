@@ -60,6 +60,8 @@ const TimeInterval: React.FC<{
         {Math.round(abs_seconds / 60)} minutes{relativeText}
       </span>
     );
+  } else if (abs_seconds < 60) {
+    return <span>now</span>;
   } else {
     return (
       <span>

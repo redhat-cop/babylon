@@ -12,31 +12,20 @@ import { Dropdown, DropdownItem, MenuToggle, MenuToggleElement } from '@patternf
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';
+import { dateInTimezone, getDateTimePartsInTimezone } from './timezones';
 
 import './date-time-picker.css';
 
-function getHoursMinutes(timeStr: string): { hours: number; minutes: number } {
-  const timeStrArr = timeStr.split(':');
-  if (timeStrArr.length !== 2) throw new Error('Invalid time');
-  return {
-    hours: Number(timeStrArr[0]),
-    minutes: Number(timeStrArr[1]),
-  };
-}
-function getDateTime(dateStr: string, timeStr: string): Date {
-  const { hours, minutes } = getHoursMinutes(timeStr);
-  const valueDateTime = new Date(dateStr);
-  valueDateTime.setHours(hours);
-  valueDateTime.setMinutes(minutes);
-  return valueDateTime;
-}
 function formatAmPm(timeStr: string): string {
-  let { hours, minutes } = getHoursMinutes(timeStr);
+  const [hStr, mStr] = timeStr.split(':');
+  let hours = Number(hStr);
+  const minutes = Number(mStr);
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours %= 12;
   hours = hours || 12;
   return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)} ${ampm}`;
 }
+
 function formatHHMM(timeStr: string): string {
   let hours = Number(timeStr.match(/^(\d+)/)[1]);
   const minutes = Number(timeStr.match(/:(\d+)/)[1]);
@@ -44,12 +33,6 @@ function formatHHMM(timeStr: string): string {
   if (AMPM === 'PM' && hours < 12) hours = hours + 12;
   if (AMPM === 'AM' && hours === 12) hours = hours - 12;
   return `${('00' + hours).slice(-2)}:${('00' + minutes).slice(-2)}`;
-}
-function getDateAndTime(dateTime: Date) {
-  return {
-    date: dateTime.toISOString(),
-    time: `${('00' + dateTime.getHours()).slice(-2)}:${('00' + dateTime.getMinutes()).slice(-2)}`,
-  };
 }
 
 const DateTimePicker: React.FC<{
@@ -59,33 +42,58 @@ const DateTimePicker: React.FC<{
   minDate?: number;
   maxDate?: number;
   forceUpdateTimestamp?: number;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp }) => {
-  const dateFormat = (date: Date, withTime = true) =>
+  timezone: string;
+}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone }) => {
+  const dateFormat = (date: Date) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+      hour: '2-digit',
+      minute: '2-digit',
       timeZoneName: 'short',
+      timeZone: timezone,
     });
+
+  function getDateAndTimeTz(date: Date) {
+    const parts = getDateTimePartsInTimezone(date, timezone);
+    return {
+      dateIso: new Date(Date.UTC(parts.year, parts.month, parts.day)).toISOString(),
+      time: `${('00' + parts.hour).slice(-2)}:${('00' + parts.minute).slice(-2)}`,
+    };
+  }
+
+  function getDateTimeTz(dateIso: string, timeStr: string): Date {
+    const [hStr, mStr] = timeStr.split(':');
+    const hours = Number(hStr);
+    const minutes = Number(mStr);
+    const d = new Date(dateIso);
+    return dateInTimezone(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, timezone);
+  }
+
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isTimeOpen, setIsTimeOpen] = useState(false);
   const dateTime = new Date(defaultTimestamp);
-  const defaultDateTime = getDateAndTime(dateTime);
-  const [valueDate, setValueDate] = useState(defaultDateTime.date);
-  const [valueTime, setValueTime] = useState(defaultDateTime.time);
+  const defaultParts = getDateAndTimeTz(dateTime);
+  const [valueDate, setValueDate] = useState(defaultParts.dateIso);
+  const [valueTime, setValueTime] = useState(defaultParts.time);
   const hours = Array.from(new Array(24), (_, i) => ('00' + i).slice(-2));
   const minutes = ['00', '15', '30', '45'];
 
-  // sync updated timestamp from parent
+  useEffect(() => {
+    const currentUtcDate = getDateTimeTz(valueDate, valueTime);
+    const parts = getDateTimePartsInTimezone(currentUtcDate, timezone);
+    setValueDate(new Date(Date.UTC(parts.year, parts.month, parts.day)).toISOString());
+    setValueTime(`${('00' + parts.hour).slice(-2)}:${('00' + parts.minute).slice(-2)}`);
+  }, [timezone]);
+
   useEffect(() => {
     if (forceUpdateTimestamp) {
-      const dateTime = new Date(forceUpdateTimestamp);
-      const { date, time } = getDateAndTime(dateTime);
-      setValueDate(date);
-      setValueTime(time);
+      const parts = getDateAndTimeTz(new Date(forceUpdateTimestamp));
+      setValueDate(parts.dateIso);
+      setValueTime(parts.time);
     }
-  }, [forceUpdateTimestamp]);
+  }, [forceUpdateTimestamp, timezone]);
 
   const onToggleCalendar = () => {
     setIsCalendarOpen(!isCalendarOpen);
@@ -97,16 +105,17 @@ const DateTimePicker: React.FC<{
     setIsCalendarOpen(false);
   };
 
-  const _onSelect = (valueDate: string, valueTime: string) => {
-    const dateTime = getDateTime(valueDate, valueTime);
+  const _onSelect = (dateIso: string, timeStr: string) => {
+    const dateTime = getDateTimeTz(dateIso, timeStr);
     onSelect(dateTime);
   };
 
   const onSelectCalendar = (newValueDate: Date) => {
-    setValueDate(newValueDate.toISOString());
+    const iso = new Date(Date.UTC(newValueDate.getFullYear(), newValueDate.getMonth(), newValueDate.getDate())).toISOString();
+    setValueDate(iso);
     setIsCalendarOpen(!isCalendarOpen);
     setIsTimeOpen(!isTimeOpen);
-    _onSelect(newValueDate.toISOString(), valueTime);
+    _onSelect(iso, valueTime);
   };
 
   const onSelectTime = (ev: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
@@ -129,26 +138,12 @@ const DateTimePicker: React.FC<{
     return true;
   };
 
-  // Check if a time option is valid (not in the past when minDate is set)
   const isTimeOptionValid = (hour: string, minute: string): boolean => {
     if (!minDate) return true;
-    
-    const selectedDateObj = new Date(valueDate);
-    const minDateObj = new Date(minDate);
-    
-    // Check if selected date is the same day as minDate
-    const isSameDay = 
-      selectedDateObj.getFullYear() === minDateObj.getFullYear() &&
-      selectedDateObj.getMonth() === minDateObj.getMonth() &&
-      selectedDateObj.getDate() === minDateObj.getDate();
-    
-    if (!isSameDay) return true;
-    
-    // If same day, check if the time is in the future
-    const timeInMinutes = Number(hour) * 60 + Number(minute);
-    const minTimeInMinutes = minDateObj.getHours() * 60 + minDateObj.getMinutes();
-    
-    return timeInMinutes >= minTimeInMinutes;
+
+    const d = new Date(valueDate);
+    const candidateDate = dateInTimezone(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Number(hour), Number(minute), timezone);
+    return candidateDate.getTime() >= minDate;
   };
 
   const timeOptions = hours
@@ -162,9 +157,14 @@ const DateTimePicker: React.FC<{
         )),
     );
 
+  const calendarDate = (() => {
+    const d = new Date(valueDate);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  })();
+
   const calendar = (
     <CalendarMonth
-      date={new Date(valueDate)}
+      date={calendarDate}
       onChange={(_event, newValueDate: Date) => onSelectCalendar(newValueDate)}
       validators={[rangeValidatorDate]}
     />
@@ -186,7 +186,7 @@ const DateTimePicker: React.FC<{
             ...(isDisabled
               ? {
                   color:
-                    'var(--pf-v6-global--disabled-color--100)' /* CODEMODS: original v5 color was --pf-v6-global--disabled-color--100 */,
+                    'var(--pf-v6-global--disabled-color--100)',
                 }
               : {}),
           }}
@@ -211,7 +211,7 @@ const DateTimePicker: React.FC<{
     ></Button>
   );
 
-  const selectedDateTime = getDateTime(valueDate, valueTime);
+  const selectedDateTime = getDateTimeTz(valueDate, valueTime);
 
   return (
     <div style={{ width: '320px' }}>
@@ -229,7 +229,7 @@ const DateTimePicker: React.FC<{
               type="text"
               id="date-time"
               aria-label="Date and time picker"
-              value={dateFormat(selectedDateTime, true)}
+              value={dateFormat(selectedDateTime)}
               className="date-time-picker__text"
               onClick={onToggleCalendar}
               isDisabled={isDisabled}
