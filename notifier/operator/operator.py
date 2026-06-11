@@ -322,7 +322,8 @@ def create_retirement_task(logger, catalog_item, resource_claim, email_addresses
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled retirement notification in " + naturaldelta(notification_timedelta))
-        retirement_tasks[resource_claim.uid] = asyncio.create_task(
+        uid = resource_claim.uid
+        task = asyncio.create_task(
             notify_retirement_scheduled_after(
                 interval = notification_interval,
                 resource_claim_name = resource_claim.name,
@@ -330,6 +331,8 @@ def create_retirement_task(logger, catalog_item, resource_claim, email_addresses
                 email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: retirement_tasks.pop(uid, None))
+        retirement_tasks[uid] = task
 
 def create_stop_task(logger, resource_claim, email_addresses, **_):
     stop_timestamp = resource_claim.stop_timestamp
@@ -340,7 +343,8 @@ def create_stop_task(logger, resource_claim, email_addresses, **_):
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled stop notification in " + naturaldelta(notification_timedelta))
-        stop_tasks[resource_claim.uid] = asyncio.create_task(
+        uid = resource_claim.uid
+        task = asyncio.create_task(
             notify_stop_scheduled_after(
                 interval = notification_interval,
                 resource_claim_name = resource_claim.name,
@@ -348,6 +352,8 @@ def create_stop_task(logger, resource_claim, email_addresses, **_):
                 email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: stop_tasks.pop(uid, None))
+        stop_tasks[uid] = task
 
 def create_workshop_retirement_task(logger, workshop, email_addresses, **_):
     retirement_timestamp = workshop.lifespan_end
@@ -361,7 +367,8 @@ def create_workshop_retirement_task(logger, workshop, email_addresses, **_):
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled workshop retirement notification in " + naturaldelta(notification_timedelta))
-        workshop_retirement_tasks[workshop.uid] = asyncio.create_task(
+        uid = workshop.uid
+        task = asyncio.create_task(
             notify_workshop_retirement_scheduled_after(
                 interval = notification_interval,
                 workshop_name = workshop.name,
@@ -369,6 +376,8 @@ def create_workshop_retirement_task(logger, workshop, email_addresses, **_):
                 email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: workshop_retirement_tasks.pop(uid, None))
+        workshop_retirement_tasks[uid] = task
 
 async def get_deployer_log(deployer_job, logger):
     secret_list = await Babylon.core_v1_api.list_namespaced_secret(
