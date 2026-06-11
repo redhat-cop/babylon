@@ -207,10 +207,10 @@ notifier:
   resources:
     limits:
       cpu: "1"
-      memory: 640Mi
+      memory: 1Gi
     requests:
       cpu: 100m
-      memory: 640Mi
+      memory: 1Gi
 
 resourceBroker:
   api:
