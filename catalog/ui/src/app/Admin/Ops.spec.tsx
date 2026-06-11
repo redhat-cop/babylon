@@ -3,7 +3,7 @@ import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import { within } from '@testing-library/react';
-import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs, matchesOpsScheduleFilter } from './Ops';
+import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs } from './Ops';
 import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
@@ -706,23 +706,6 @@ describe('Ops Component', () => {
     test('getWorkshopScheduleStartMs reads actionSchedule.start', () => {
       const ws = makeWorkshop({ startDate: '2030-01-15T12:00:00.000Z' });
       expect(getWorkshopScheduleStartMs(ws)).toBe(new Date('2030-01-15T12:00:00.000Z').getTime());
-    });
-
-    test('matchesOpsScheduleFilter scheduled is future start only', () => {
-      const now = new Date('2030-01-01T00:00:00.000Z').getTime();
-      const past = makeWorkshop({ startDate: '2020-01-01T12:00:00.000Z' });
-      const future = makeWorkshop({ name: 'ws-fut', startDate: '2035-06-01T12:00:00.000Z' });
-      expect(matchesOpsScheduleFilter(past, 'scheduled', now)).toBe(false);
-      expect(matchesOpsScheduleFilter(future, 'scheduled', now)).toBe(true);
-    });
-
-    test('matchesOpsScheduleFilter d1 is within 24h', () => {
-      const now = new Date('2030-01-01T12:00:00.000Z').getTime();
-      const in12h = makeWorkshop({ startDate: new Date(now + 12 * 3600 * 1000).toISOString() });
-      const in2d = makeWorkshop({ name: 'ws-2d', startDate: new Date(now + 2 * 86400 * 1000).toISOString() });
-      expect(matchesOpsScheduleFilter(in12h, 'd1', now)).toBe(true);
-      expect(matchesOpsScheduleFilter(in2d, 'd1', now)).toBe(false);
-      expect(matchesOpsScheduleFilter(in2d, 'd2', now)).toBe(true);
     });
 
     test('getWorkshopStopMs reads actionSchedule.stop', () => {

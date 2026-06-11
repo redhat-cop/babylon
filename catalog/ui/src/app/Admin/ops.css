@@ -112,11 +112,17 @@
 
 .ops-scope-bar-extra {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  flex-direction: column;
+  gap: 6px;
   padding-top: 6px;
   border-top: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ops-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
 }
 
 .ops-filter-inline-label {
@@ -272,6 +278,17 @@
   min-width: 70px;
 }
 
+.ops-stat[role="button"] {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 16px;
+  transition: background-color 0.15s ease;
+}
+
+.ops-stat[role="button"]:hover {
+  background: color-mix(in srgb, var(--pf-t--global--color--brand--default, #06c) 8%, transparent);
+}
+
 .ops-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
@@ -320,12 +337,63 @@
   }
 }
 
-.ops-stat-attention .ops-stat-value {
+.ops-stat-failed .ops-stat-value {
+  color: var(--pf-t--global--color--status--danger--default);
+  font-weight: 700;
+}
+
+.ops-stat-failed .ops-stat-label {
   color: var(--pf-t--global--color--status--danger--default);
 }
 
+.ops-stat-attention .ops-stat-value {
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
 .ops-stat-attention .ops-stat-label {
-  color: var(--pf-t--global--color--status--danger--default);
+  color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ops-stat-active-filter {
+  outline: 2px solid var(--pf-t--global--color--brand--default, #06c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Busy days warning banner */
+.ops-busy-days-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 8%, var(--pf-t--global--background--color--primary--default));
+  border: 1px solid color-mix(in srgb, var(--pf-t--global--color--status--warning--default) 30%, transparent);
+  font-size: 0.82rem;
+}
+
+.ops-busy-days-icon {
+  color: var(--pf-t--global--color--status--warning--default);
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.ops-busy-days-text {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* Failed chip pulse when count > 0 */
+.ops-chip-failed {
+  animation: ops-chip-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ops-chip-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* ---- Operation cards grid ---- */

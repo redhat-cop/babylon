@@ -216,7 +216,6 @@ const SIX_MONTHS_MS = 15778800000;
 /** Paginate workshop *groups* (rows), not individual asset lines */
 const OPS_GROUP_PAGE_DEFAULT = 18;
 
-export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
 export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'name-desc' | 'stop-asc' | 'destroy-asc' | 'status-asc' | 'lock-asc' | 'instances-desc' | 'seats-desc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
@@ -244,21 +243,7 @@ export function getWorkshopDestroyMs(ws: Workshop): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
-export function matchesOpsScheduleFilter(
-  ws: Workshop,
-  filter: OpsScheduleFilterKey,
-  nowMs: number = Date.now(),
-): boolean {
-  if (filter === 'all') return true;
-  const t = getWorkshopScheduleStartMs(ws);
-  if (t === null) return false;
-  if (filter === 'scheduled') return t > nowMs;
-  if (t <= nowMs) return false;
-  if (filter === 'd1') return t <= nowMs + ONE_DAY_MS;
-  if (filter === 'd2') return t <= nowMs + 2 * ONE_DAY_MS;
-  if (filter === 'd3') return t <= nowMs + 3 * ONE_DAY_MS;
-  return true;
-}
+
 
 function compareWorkshopsForSort(
   a: Workshop,
@@ -342,13 +327,6 @@ function compareWorkshopsForSort(
     }
   }
 }
-
-const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = [
-  { label: 'All dates', value: 'all' },
-  { label: '≤1 day', value: 'd1' },
-  { label: '≤2 days', value: 'd2' },
-  { label: '≤3 days', value: 'd3' },
-];
 
 let alertKeyCounter = 0;
 
@@ -733,7 +711,6 @@ const Ops: React.FC = () => {
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
   const whiteGloveMode = opsViewMode === 'white-glove';
-  const [scheduleFilter, setScheduleFilter] = useState<OpsScheduleFilterKey>('all');
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
@@ -741,6 +718,7 @@ const Ops: React.FC = () => {
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
   const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+  const [attentionFilter, setAttentionFilter] = useState(false);
 
   // Timeline date range — lifted up so controls can live in the global filter bar
   const [timelineDateRange, setTimelineDateRange] = useState<{ start: Date; end: Date }>(() => {
@@ -768,8 +746,16 @@ const Ops: React.FC = () => {
     setTimelineDateRange({ start, end });
   }, []);
 
+  // Attach resource claims to workshops for accurate status detection
+  const workshopsWithRc = useMemo((): WorkshopWithResourceClaims[] => {
+    return workshops.map(ws => ({
+      ...ws,
+      resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
+    } as WorkshopWithResourceClaims));
+  }, [workshops, resourceClaimsByWorkshop]);
+
   const targets = useMemo(() => {
-    let list = workshops;
+    let list: Workshop[] = workshopsWithRc;
 
     // Multi-term free-text search (partial match)
     if (workshopSearchText) {
@@ -793,8 +779,12 @@ const Ops: React.FC = () => {
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
-    if (scheduleFilter !== 'all') list = list.filter(ws => matchesOpsScheduleFilter(ws, scheduleFilter));
     if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
+    if (attentionFilter) list = list.filter(w => {
+      const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
+      const destroyUrg = dateUrgency(w.spec?.lifespan?.end);
+      return stopUrg === 'critical' || destroyUrg === 'critical';
+    });
     if (tableRegionFilter !== 'all') {
       list = list.filter(w => {
         const wsWithRc = w as WorkshopWithResourceClaims;
@@ -812,8 +802,8 @@ const Ops: React.FC = () => {
     stageFilter,
     failedFilter,
     whiteGloveMode,
-    scheduleFilter,
     statusFilter,
+    attentionFilter,
     tableRegionFilter,
     sortMode,
     getFailedCount,
@@ -834,7 +824,7 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopSearchText, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+  }, [workshopSearchText, stageFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
@@ -983,7 +973,7 @@ const Ops: React.FC = () => {
 
   const emptyFilterMsg = useMemo(() => {
     const filterText = workshopSearchText;
-    if (!filterText && !stageFilter && scheduleFilter === 'all' && !whiteGloveMode) return null;
+    if (!filterText && !stageFilter && !whiteGloveMode) return null;
 
     const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
     const searchMsg = searchTerms.length > 1
@@ -993,12 +983,12 @@ const Ops: React.FC = () => {
     return (
       <>
         No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
-        Try another workshop name, stage, white glove mode, start window, or failed filter.
+        Try another workshop name, stage, or white glove mode.
       </>
     );
-  }, [workshopSearchText, stageFilter, scheduleFilter, whiteGloveMode]);
+  }, [workshopSearchText, stageFilter, whiteGloveMode]);
 
-  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
+  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode;
 
   const modalScopeDescription = useMemo(() => {
     const filterText = workshopSearchText;
@@ -1078,13 +1068,12 @@ const Ops: React.FC = () => {
     const instances = emptyRecord();
     const deploying = emptyRecord();
     const running = emptyRecord();
-    counts.all = workshops.length;
+    counts.all = workshopsWithRc.length;
 
-    for (const ws of workshops) {
-      const wsRc = ws as WorkshopWithResourceClaims;
-      const primary = getWorkshopPrimaryRegion(wsRc);
+    for (const ws of workshopsWithRc) {
+      const primary = getWorkshopPrimaryRegion(ws);
       const count = getCurrentCount(ws) ?? 1;
-      const status = getWorkshopStatus(wsRc);
+      const status = getWorkshopStatus(ws);
       instances.all += count;
       if (primary) {
         counts[primary]++;
@@ -1116,7 +1105,7 @@ const Ops: React.FC = () => {
           ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
           : dayStart.getTime() + r.endUtcH * 3600000;
         let dayCount = 0;
-        for (const ws of workshops) {
+        for (const ws of workshopsWithRc) {
           const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
           const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
           if (!startIso) continue;
@@ -1132,18 +1121,59 @@ const Ops: React.FC = () => {
       dailyPeak[r.key] = { count: peak, day: peakDay };
     }
 
+    // Busiest days across all regions (for warning banner)
+    const busyDays: { date: Date; label: string; region: string; count: number }[] = [];
+    for (const r of REGIONS) {
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs2 = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs2 = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount2 = 0;
+        for (const ws of workshopsWithRc) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs2 && wsEnd > bizStartMs2) dayCount2++;
+        }
+        if (dayCount2 >= DAILY_SUPPORT_LIMIT) {
+          busyDays.push({
+            date: new Date(day),
+            label: day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            region: r.label,
+            count: dayCount2,
+          });
+        }
+      }
+    }
+    // Deduplicate — keep highest count per date
+    const busyDayMap = new Map<string, typeof busyDays[0]>();
+    for (const bd of busyDays) {
+      const key = bd.date.toISOString().split('T')[0];
+      const existing = busyDayMap.get(key);
+      if (!existing || bd.count > existing.count) {
+        busyDayMap.set(key, bd);
+      }
+    }
+    const topBusyDays = Array.from(busyDayMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
     // Cross-region overlap
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
-      spanning[r.key] = workshops.filter(ws => {
-        const wsRc = ws as WorkshopWithResourceClaims;
-        const active = getWorkshopActiveRegions(wsRc);
+      spanning[r.key] = workshopsWithRc.filter(ws => {
+        const active = getWorkshopActiveRegions(ws);
         return active.includes(r.key) && active.length > 1;
       }).length;
     }
 
-    return { counts, instances, deploying, running, dailyPeak, spanning };
-  }, [workshops, getCurrentCount]);
+    return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
+  }, [workshopsWithRc, getCurrentCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -1993,11 +2023,6 @@ const Ops: React.FC = () => {
                 </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
-              <div className="ops-stat-divider" />
-              <div className="ops-stat">
-                <span className="ops-stat-value">{summary.activeCount}</span>
-                <span className="ops-stat-label">Active</span>
-              </div>
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
@@ -2009,7 +2034,7 @@ const Ops: React.FC = () => {
                     </div>
                   }>
                     <div
-                      className={`ops-stat ops-stat-attention ${failedFilter ? 'ops-stat-active-filter' : ''}`}
+                      className={`ops-stat ops-stat-failed ${failedFilter ? 'ops-stat-active-filter' : ''}`}
                       style={{ cursor: 'pointer' }}
                       onClick={() => setFailedFilter(f => !f)}
                       role="button"
@@ -2022,21 +2047,59 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </>
               )}
+              {summary.attentionCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div
+                    className={`ops-stat ops-stat-attention ${attentionFilter ? 'ops-stat-active-filter' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setAttentionFilter(f => !f)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setAttentionFilter(f => !f); }}
+                  >
+                    <span className="ops-stat-value">{summary.attentionCount}</span>
+                    <span className="ops-stat-label">Need attention{attentionFilter ? ' (filtered)' : ''}</span>
+                  </div>
+                </>
+              )}
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.activeCount}</span>
+                <span className="ops-stat-label">Active</span>
+              </div>
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.lockedCount}</span>
                 <span className="ops-stat-label">Locked</span>
               </div>
-              {summary.attentionCount > 0 && (
-                <>
-                  <div className="ops-stat-divider" />
-                  <div className="ops-stat ops-stat-attention">
-                    <span className="ops-stat-value">{summary.attentionCount}</span>
-                    <span className="ops-stat-label">Need attention</span>
-                  </div>
-                </>
-              )}
             </div>
+
+            {/* Busy days warning */}
+            {regionStats.topBusyDays.length > 0 && (
+              <div className="ops-busy-days-banner">
+                <ExclamationTriangleIcon className="ops-busy-days-icon" />
+                <span className="ops-busy-days-text">
+                  Busy days ahead:{' '}
+                  {regionStats.topBusyDays.map((bd, i) => (
+                    <React.Fragment key={bd.label}>
+                      {i > 0 && ', '}
+                      <Label
+                        color="orange"
+                        isCompact
+                        className="ops-schedule-chip"
+                        onClick={() => {
+                          handleTimelineDateChange(getStartOfDay(bd.date), getEndOfDay(bd.date));
+                          setWorkshopView('timeline');
+                        }}
+                      >
+                        {bd.label} — {bd.count} workshops ({bd.region})
+                      </Label>
+                    </React.Fragment>
+                  ))}
+                </span>
+              </div>
+            )}
 
             {/* Bulk actions — collapsed by default, below summary */}
             <ExpandableSection
@@ -2243,63 +2306,79 @@ const Ops: React.FC = () => {
                 </SplitItem>
               </Split>
 
-              {/* Filters: sort, schedule, status, region — shared across all views */}
+              {/* Filters: sort, status, region, range — shared across all views */}
               <div className="ops-scope-bar-extra">
-                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
-                <FormSelect
-                  id="ops-sort"
-                  aria-label="Sort workshops"
-                  value={sortMode}
-                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
-                  className="ops-sort-select"
-                >
-                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
-                  <FormSelectOption value="start-desc" label="Start (newest first)" />
-                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
-                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
-                  <FormSelectOption value="users-desc" label="Most seats assigned" />
-                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
-                  <FormSelectOption value="name-desc" label="Name (Z–A)" />
-                  <FormSelectOption value="status-asc" label="Status" />
-                  <FormSelectOption value="lock-asc" label="Locked first" />
-                  <FormSelectOption value="instances-desc" label="Most instances" />
-                  <FormSelectOption value="seats-desc" label="Most seats (total)" />
-                </FormSelect>
-                <span className="ops-filter-inline-label">Starting</span>
-                <div className="ops-schedule-filters">
-                  {SCHEDULE_FILTER_CHIPS.map(c => (
-                    <Label
-                      key={c.value}
-                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
-                      className="ops-schedule-chip"
-                    >
-                      {c.label}
-                    </Label>
-                  ))}
-                </div>
-                <span className="ops-filter-inline-label">Status</span>
-                <div className="ops-schedule-filters">
+                <div className="ops-filter-row">
+                  <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                  <FormSelect
+                    id="ops-sort"
+                    aria-label="Sort workshops"
+                    value={sortMode}
+                    onChange={(_e, val) => setSortMode(val as OpsSortMode)}
+                    className="ops-sort-select"
+                  >
+                    <FormSelectOption value="start-asc" label="Start (oldest first)" />
+                    <FormSelectOption value="start-desc" label="Start (newest first)" />
+                    <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                    <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
+                    <FormSelectOption value="users-desc" label="Most seats assigned" />
+                    <FormSelectOption value="name-asc" label="Name (A–Z)" />
+                    <FormSelectOption value="name-desc" label="Name (Z–A)" />
+                    <FormSelectOption value="status-asc" label="Status" />
+                    <FormSelectOption value="lock-asc" label="Locked first" />
+                    <FormSelectOption value="instances-desc" label="Most instances" />
+                    <FormSelectOption value="seats-desc" label="Most seats (total)" />
+                  </FormSelect>
+                  <span className="ops-filter-inline-label">Status</span>
+                  <div className="ops-schedule-filters">
                   {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
-                    const count = key === 'all' ? workshops.length : workshops.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === key).length;
-                    if (key !== 'all' && count === 0) return null;
+                    const matching = key === 'all' ? workshopsWithRc : workshopsWithRc.filter(w => getWorkshopStatus(w) === key);
+                    const count = matching.length;
+                    const tooltipContent = key === 'all' ? `${count} total workshops` : (
+                      <div style={{ maxHeight: 200, overflow: 'auto' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}: {count}</div>
+                        {matching.slice(0, 15).map(w => {
+                          const seats = getSeats(w);
+                          const inst = getCurrentCount(w) ?? 1;
+                          return (
+                            <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 1 }}>
+                              {displayName(w)} — {inst} inst{seats ? `, ${seats.assigned}/${seats.total} seats` : ''}
+                            </div>
+                          );
+                        })}
+                        {matching.length > 15 && <div style={{ fontSize: 11, opacity: 0.6 }}>…and {matching.length - 15} more</div>}
+                      </div>
+                    );
                     return (
-                      <Label
-                        key={key}
-                        color={statusFilter === key ? 'blue' : color as any}
-                        isCompact
-                        onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
-                        className="ops-schedule-chip"
-                      >
-                        {label} ({count})
-                      </Label>
+                      <Tooltip key={key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={statusFilter === key ? 'blue' : color as any}
+                          isCompact
+                          onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
+                          className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
+                        >
+                          {label} ({count})
+                        </Label>
+                      </Tooltip>
                     );
                   })}
+                  </div>
+                  {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                    <Label
+                      color="grey"
+                      isCompact
+                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                      className="ops-schedule-chip"
+                      style={{ fontStyle: 'italic' }}
+                    >
+                      Clear filters
+                    </Label>
+                  )}
                 </div>
-                <span className="ops-filter-inline-label">Region</span>
-                <div className="ops-schedule-filters">
-                  <Tooltip content={
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Region</span>
+                  <div className="ops-schedule-filters">
+                    <Tooltip content={
                     <div style={{ lineHeight: 1.5, minWidth: 200 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
                       <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
@@ -2355,8 +2434,15 @@ const Ops: React.FC = () => {
                       labelText = 'none';
                     }
 
+                    // Workshops in this region
+                    const regionWorkshops = workshopsWithRc.filter(w => {
+                      const primary = getWorkshopPrimaryRegion(w);
+                      const active = getWorkshopActiveRegions(w);
+                      return primary === r.key || active.includes(r.key);
+                    });
+
                     const tooltipContent = (
-                      <div style={{ lineHeight: 1.5, minWidth: 220 }}>
+                      <div style={{ lineHeight: 1.5, minWidth: 250, maxHeight: 350, overflow: 'auto' }}>
                         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
                         <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>Biz hours: 9am – 5pm {tzCity}</div>
                         <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
@@ -2387,7 +2473,27 @@ const Ops: React.FC = () => {
                           </div>
                         )}
                         {spanning > 0 && (
-                          <div style={{ fontSize: 11, opacity: 0.7 }}>↔ {spanning} cross-region</div>
+                          <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>↔ {spanning} cross-region</div>
+                        )}
+                        {regionWorkshops.length > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Workshops</div>
+                            {regionWorkshops.slice(0, 12).map(w => {
+                              const seats = getSeats(w);
+                              const wInst = getCurrentCount(w) ?? 1;
+                              const status = getWorkshopStatus(w as WorkshopWithResourceClaims);
+                              const statusIcon = status === 'Running' ? '●' : status === 'Failed' ? '✗' : status === 'Scheduled' ? '◔' : '■';
+                              const statusColor = status === 'Running' ? '#48bb78' : status === 'Failed' ? '#fc8181' : status === 'Scheduled' ? '#63b3ed' : '#ecc94b';
+                              return (
+                                <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 2, display: 'flex', gap: 6 }}>
+                                  <span style={{ color: statusColor, flexShrink: 0 }}>{statusIcon}</span>
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(w)}</span>
+                                  <span style={{ opacity: 0.6, flexShrink: 0 }}>{wInst} inst{seats ? ` · ${seats.assigned}/${seats.total}` : ''}</span>
+                                </div>
+                              );
+                            })}
+                            {regionWorkshops.length > 12 && <div style={{ fontSize: 11, opacity: 0.5 }}>…and {regionWorkshops.length - 12} more</div>}
+                          </div>
                         )}
                       </div>
                     );
@@ -2405,75 +2511,61 @@ const Ops: React.FC = () => {
                       </Tooltip>
                     );
                   })}
-                  <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
-                    <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
-                  </Tooltip>
+                    <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                      <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
+                    </Tooltip>
+                  </div>
+                  <span className="ops-filter-inline-label">Range</span>
+                  <div className="ops-schedule-filters ops-date-range-controls">
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
+                  }}>Today</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
+                  }}>This Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    const nextMon = new Date(today);
+                    nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
+                    const nextSun = new Date(nextMon);
+                    nextSun.setDate(nextMon.getDate() + 6);
+                    handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
+                  }}>Next Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(
+                      getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
+                      getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+                    );
+                  }}>This Month</Label>
+                  <DatePicker
+                    value={timelineDateRange.start.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
+                      }
+                    }}
+                    aria-label="Timeline start date"
+                    placeholder="Start"
+                    className="ops-date-picker-compact"
+                  />
+                  <DatePicker
+                    value={timelineDateRange.end.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
+                      }
+                    }}
+                    aria-label="Timeline end date"
+                    placeholder="End"
+                    className="ops-date-picker-compact"
+                  />
+                  </div>
                 </div>
-                {workshopView === 'timeline' && (
-                  <>
-                    <span className="ops-filter-inline-label">Range</span>
-                    <div className="ops-schedule-filters ops-date-range-controls">
-                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                        const today = new Date();
-                        handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
-                      }}>Today</Label>
-                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                        const today = new Date();
-                        handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
-                      }}>This Week</Label>
-                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                        const today = new Date();
-                        const nextMon = new Date(today);
-                        nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
-                        const nextSun = new Date(nextMon);
-                        nextSun.setDate(nextMon.getDate() + 6);
-                        handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
-                      }}>Next Week</Label>
-                      <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                        const today = new Date();
-                        handleTimelineDateChange(
-                          getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
-                          getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
-                        );
-                      }}>This Month</Label>
-                      <DatePicker
-                        value={timelineDateRange.start.toISOString().split('T')[0]}
-                        onChange={(_e, val) => {
-                          if (val) {
-                            const d = new Date(val);
-                            if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
-                          }
-                        }}
-                        aria-label="Timeline start date"
-                        placeholder="Start"
-                        className="ops-date-picker-compact"
-                      />
-                      <DatePicker
-                        value={timelineDateRange.end.toISOString().split('T')[0]}
-                        onChange={(_e, val) => {
-                          if (val) {
-                            const d = new Date(val);
-                            if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
-                          }
-                        }}
-                        aria-label="Timeline end date"
-                        placeholder="End"
-                        className="ops-date-picker-compact"
-                      />
-                    </div>
-                  </>
-                )}
-                {(statusFilter !== 'all' || tableRegionFilter !== 'all' || scheduleFilter !== 'all') && (
-                  <Label
-                    color="grey"
-                    isCompact
-                    onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setScheduleFilter('all'); }}
-                    className="ops-schedule-chip"
-                    style={{ fontStyle: 'italic' }}
-                  >
-                    Clear filters
-                  </Label>
-                )}
               </div>
 
               {workshopView === 'table' && workshopGroups.length > 0 && (
