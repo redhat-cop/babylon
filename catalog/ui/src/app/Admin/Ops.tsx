@@ -17,6 +17,7 @@ import {
   DropdownItem,
   EmptyState,
   EmptyStateBody,
+  ExpandableSection,
   FormSelect,
   FormSelectOption,
   Icon,
@@ -111,7 +112,7 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
-import WorkshopTimeline from '@app/Admin/Ops/WorkshopTimeline';
+import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
@@ -213,7 +214,7 @@ const SIX_MONTHS_MS = 15778800000;
 const OPS_GROUP_PAGE_DEFAULT = 18;
 
 export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
-export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'stop-asc' | 'destroy-asc';
+export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'name-desc' | 'stop-asc' | 'destroy-asc' | 'status-asc' | 'lock-asc' | 'instances-desc' | 'seats-desc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
 export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
@@ -261,15 +262,19 @@ function compareWorkshopsForSort(
   b: Workshop,
   mode: OpsSortMode,
   getSeats: (w: Workshop) => { assigned: number; total: number } | null,
+  getCurrentCount?: (w: Workshop) => number | null,
 ): number {
+  const nameCmp = () => displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
   switch (mode) {
     case 'name-asc':
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    case 'name-desc':
+      return -nameCmp();
     case 'users-desc': {
       const sa = getSeats(a)?.assigned ?? 0;
       const sb = getSeats(b)?.assigned ?? 0;
       if (sb !== sa) return sb - sa;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'start-desc': {
       const ta = getWorkshopScheduleStartMs(a);
@@ -277,7 +282,7 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.NEGATIVE_INFINITY;
       const vb = tb ?? Number.NEGATIVE_INFINITY;
       if (vb !== va) return vb - va;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'stop-asc': {
       const sa = getWorkshopStopMs(a);
@@ -285,7 +290,7 @@ function compareWorkshopsForSort(
       const va = sa ?? Number.POSITIVE_INFINITY;
       const vb = sb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'destroy-asc': {
       const da = getWorkshopDestroyMs(a);
@@ -293,7 +298,35 @@ function compareWorkshopsForSort(
       const va = da ?? Number.POSITIVE_INFINITY;
       const vb = db ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    }
+    case 'status-asc': {
+      const order: Record<string, number> = { 'Running': 0, 'Failed': 1, 'Scheduled': 2, 'Stopped': 3 };
+      const sa = order[getWorkshopStatus(a as WorkshopWithResourceClaims)] ?? 4;
+      const sb = order[getWorkshopStatus(b as WorkshopWithResourceClaims)] ?? 4;
+      if (sa !== sb) return sa - sb;
+      return nameCmp();
+    }
+    case 'lock-asc': {
+      const la = isWorkshopLocked(a) ? 0 : 1;
+      const lb = isWorkshopLocked(b) ? 0 : 1;
+      if (la !== lb) return la - lb;
+      return nameCmp();
+    }
+    case 'instances-desc': {
+      const ca = getCurrentCount?.(a) ?? 0;
+      const cb = getCurrentCount?.(b) ?? 0;
+      if (cb !== ca) return cb - ca;
+      return nameCmp();
+    }
+    case 'seats-desc': {
+      const sa = getSeats(a)?.assigned ?? 0;
+      const sb = getSeats(b)?.assigned ?? 0;
+      if (sb !== sa) return sb - sa;
+      const ta = getSeats(a)?.total ?? 0;
+      const tb = getSeats(b)?.total ?? 0;
+      if (tb !== ta) return tb - ta;
+      return nameCmp();
     }
     case 'start-asc':
     default: {
@@ -302,7 +335,7 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.POSITIVE_INFINITY;
       const vb = tb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
   }
 }
@@ -703,6 +736,9 @@ const Ops: React.FC = () => {
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
   const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
+  const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
 
   const targets = useMemo(() => {
     let list = workshops;
@@ -730,8 +766,17 @@ const Ops: React.FC = () => {
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
     if (scheduleFilter !== 'all') list = list.filter(ws => matchesOpsScheduleFilter(ws, scheduleFilter));
+    if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
+    if (tableRegionFilter !== 'all') {
+      list = list.filter(w => {
+        const wsWithRc = w as WorkshopWithResourceClaims;
+        const primary = getWorkshopPrimaryRegion(wsWithRc);
+        const active = getWorkshopActiveRegions(wsWithRc);
+        return primary === tableRegionFilter || active.includes(tableRegionFilter);
+      });
+    }
     const arr = [...list];
-    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats));
+    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
   }, [
     workshops,
@@ -740,9 +785,12 @@ const Ops: React.FC = () => {
     failedFilter,
     whiteGloveMode,
     scheduleFilter,
+    statusFilter,
+    tableRegionFilter,
     sortMode,
     getFailedCount,
     getSeats,
+    getCurrentCount,
   ]);
 
   const opsCalendarEvents = useMemo(
@@ -994,6 +1042,80 @@ const Ops: React.FC = () => {
 
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
+
+  const DAILY_SUPPORT_LIMIT = 5;
+  const regionStats = useMemo(() => {
+    const emptyRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
+    const counts = emptyRecord();   // deploy region (primary)
+    const instances = emptyRecord();
+    const deploying = emptyRecord();
+    const running = emptyRecord();
+    counts.all = workshops.length;
+
+    for (const ws of workshops) {
+      const wsRc = ws as WorkshopWithResourceClaims;
+      const primary = getWorkshopPrimaryRegion(wsRc);
+      const count = getCurrentCount(ws) ?? 1;
+      const status = getWorkshopStatus(wsRc);
+      instances.all += count;
+      if (primary) {
+        counts[primary]++;
+        instances[primary] += count;
+        if (status === 'Scheduled') deploying[primary]++;
+        if (status === 'Running') running[primary]++;
+      }
+    }
+
+    // Daily peak per region (over next 7 days from today)
+    const dailyPeak: Record<string, { count: number; day: string }> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+
+    for (const r of REGIONS) {
+      let peak = 0;
+      let peakDay = '';
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount = 0;
+        for (const ws of workshops) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs && wsEnd > bizStartMs) dayCount++;
+        }
+        if (dayCount > peak) {
+          peak = dayCount;
+          peakDay = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      }
+      dailyPeak[r.key] = { count: peak, day: peakDay };
+    }
+
+    // Cross-region overlap
+    const spanning: Record<string, number> = {};
+    for (const r of REGIONS) {
+      spanning[r.key] = workshops.filter(ws => {
+        const wsRc = ws as WorkshopWithResourceClaims;
+        const active = getWorkshopActiveRegions(wsRc);
+        return active.includes(r.key) && active.length > 1;
+      }).length;
+    }
+
+    return { counts, instances, deploying, running, dailyPeak, spanning };
+  }, [workshops, getCurrentCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -1802,37 +1924,6 @@ const Ops: React.FC = () => {
                   ))}
                 </FormSelect>
               </div>
-              <div className="ops-scope-bar-extra">
-                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
-                <FormSelect
-                  id="ops-sort"
-                  aria-label="Sort workshops"
-                  value={sortMode}
-                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
-                  className="ops-sort-select"
-                >
-                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
-                  <FormSelectOption value="start-desc" label="Start (newest first)" />
-                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
-                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
-                  <FormSelectOption value="users-desc" label="Most seats assigned" />
-                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
-                </FormSelect>
-                <span className="ops-filter-inline-label">Start window</span>
-                <div className="ops-schedule-filters">
-                  {SCHEDULE_FILTER_CHIPS.map(c => (
-                    <Label
-                      key={c.value}
-                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
-                      className="ops-schedule-chip"
-                    >
-                      {c.label}
-                    </Label>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Summary stats */}
@@ -1919,212 +2010,113 @@ const Ops: React.FC = () => {
               )}
             </div>
 
+            {/* Bulk actions — collapsed by default, below summary */}
+            <ExpandableSection
+              toggleText={`Actions${hasSelection ? ` (${selectedWs.size} selected)` : ''}`}
+              isExpanded={actionsExpanded}
+              onToggle={(_e, expanded) => setActionsExpanded(expanded)}
+              isIndented
+            >
+              <div className="ops-grid ops-operations-grid">
+                <Card>
+                  <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Toggle <code>lock-enabled</code> on workshops.</p>
+                    <div className="ops-button-row">
+                      <Button variant="warning" onClick={() => setShowLockConfirm(true)} isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
+                      <Button variant="warning" onClick={() => setShowUnlockConfirm(true)} isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
+                    </div>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-stop time."><span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extStopDays} min={0} onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))} onPlus={() => setExtStopDays(extStopDays + 1)} onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extStopHours} min={0} onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))} onPlus={() => setExtStopHours(extStopHours + 1)} onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendStop} isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>Extend Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-destroy deadline."><span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extDestroyDays} min={0} onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))} onPlus={() => setExtDestroyDays(extDestroyDays + 1)} onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extDestroyHours} min={0} onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))} onPlus={() => setExtDestroyHours(extDestroyHours + 1)} onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendDestroy} isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>Extend Destroy</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Remove auto-stop schedule."><span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Removes <code>actionSchedule.stop</code> so workshops remain running.</p>
+                    <Button variant="warning" onClick={handleDisableAutostop} isLoading={noAutostopLoading} isDisabled={anyLoading}>Disable Auto-Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
+                  <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale</CardTitle>
+                  <CardBody>
+                    <div style={{ marginBottom: 6 }}>
+                      <NumberInput value={scaleCount} min={0} onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))} onPlus={() => setScaleCount(scaleCount + 1)} onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={4} aria-label="New instance count" />
+                      <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>New instance count</div>
+                    </div>
+                    {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap', marginBottom: 6 }}>
+                        {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} up</Label>}
+                        {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} down</Label>}
+                        {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} same</Label>}
+                      </div>
+                    )}
+                    {(isScaleDown || isScaleZero) && (
+                      <div style={{ marginBottom: 6 }}>
+                        <FormSelect aria-label="Scale down preference" value={scaleDownPreference} onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')} className="ops-scale-pref-select">
+                          <FormSelectOption value="unused" label="Unused first (safest)" />
+                          <FormSelectOption value="used" label="Used first (DANGEROUS)" />
+                        </FormSelect>
+                      </div>
+                    )}
+                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'} onClick={openScaleConfirm} isLoading={scaleLoading} isDisabled={anyLoading}>
+                      {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
+                    </Button>
+                  </CardBody>
+                </Card>
+                <Card className="ops-redeploy-failed">
+                  <CardTitle><RedoIcon className="ops-card-icon" /> Redeploy Failed</CardTitle>
+                  <CardBody>
+                    {failedInstancesAnalysis.totalFailed > 0 ? (
+                      <>
+                        <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                          <strong>{failedInstancesAnalysis.totalFailed}</strong> failed across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                        </p>
+                        <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                          <Button variant="warning" onClick={() => setShowRedeployConfirm(true)} isLoading={redeployLoading} isDisabled={anyLoading}>Redeploy</Button>
+                          <Tooltip content={failedJobsTooltip}>
+                            <Dropdown isOpen={isBatchMenuOpen} onSelect={() => setIsBatchMenuOpen(false)} onOpenChange={setIsBatchMenuOpen}
+                              toggle={(toggleRef) => (<MenuToggle ref={toggleRef} onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)} isDisabled={failedInstancesAnalysis.allJobUrls.length === 0} variant="secondary" icon={<ExternalLinkAltIcon />}>Jobs ({failedInstancesAnalysis.allJobUrls.length})</MenuToggle>)}>
+                              <DropdownList>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>Open 10</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>Open 20</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>Open All ({failedInstancesAnalysis.allJobUrls.length})</DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </Tooltip>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="ops-muted">No failed instances</p>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
+            </ExpandableSection>
+
             {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
               <Alert variant="warning" isInline title="No matches" style={{ marginBottom: 16 }}>
                 {emptyFilterMsg}
               </Alert>
             )}
-
-            <div className="ops-grid ops-operations-grid">
-              {/* Resource Lock */}
-              <Card>
-                <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Toggle <code>lock-enabled</code> on workshops.
-                    Locked resources cannot be modified by non-admin users.
-                  </p>
-                  <div className="ops-button-row">
-                    <Button variant="warning" onClick={() => setShowLockConfirm(true)}
-                      isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
-                      isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Extend Stop */}
-              <Card>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
-                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div className="ops-extend-row">
-                    <NumberInput value={extStopDays} min={0}
-                      onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
-                      onPlus={() => setExtStopDays(extStopDays + 1)}
-                      onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} unit="days" aria-label="Days" />
-                    <NumberInput value={extStopHours} min={0}
-                      onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
-                      onPlus={() => setExtStopHours(extStopHours + 1)}
-                      onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} unit="hrs" aria-label="Hours" />
-                  </div>
-                  <Button variant="warning" onClick={handleExtendStop}
-                    isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
-                    Extend Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Extend Destroy */}
-              <Card>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
-                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div className="ops-extend-row">
-                    <NumberInput value={extDestroyDays} min={0}
-                      onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
-                      onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
-                      onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} unit="days" aria-label="Days" />
-                    <NumberInput value={extDestroyHours} min={0}
-                      onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
-                      onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
-                      onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={2} unit="hrs" aria-label="Hours" />
-                  </div>
-                  <Button variant="warning" onClick={handleExtendDestroy}
-                    isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
-                    Extend Destroy
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Disable Auto-Stop */}
-              <Card>
-                <CardTitle>
-                  <Tooltip content="Remove the auto-stop schedule so workshops keep running until destroy or manual intervention.">
-                    <span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Removes <code>actionSchedule.stop</code> so workshops remain running
-                    until their destroy deadline or manual stop.
-                  </p>
-                  <Button variant="warning" onClick={handleDisableAutostop}
-                    isLoading={noAutostopLoading} isDisabled={anyLoading}>
-                    Disable Auto-Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Scale */}
-              <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
-                <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Sets spec.count to the value below.
-                    This <strong>replaces</strong> the current instance count.
-                  </p>
-                  <div style={{ marginBottom: 6 }}>
-                    <NumberInput value={scaleCount} min={0}
-                      onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
-                      onPlus={() => setScaleCount(scaleCount + 1)}
-                      onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={4} aria-label="New instance count" />
-                    <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                      New instance count
-                    </div>
-                  </div>
-                  {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
-                    <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap' }}>
-                      {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} scale up</Label>}
-                      {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} scale down</Label>}
-                      {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} no change</Label>}
-                    </div>
-                  )}
-                  {(isScaleDown || isScaleZero) && (
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
-                      <FormSelect
-                        aria-label="Scale down preference"
-                        value={scaleDownPreference}
-                        onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')}
-                        className="ops-scale-pref-select"
-                      >
-                        <FormSelectOption value="unused" label="Unused instances first (safest)" />
-                        <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
-                      </FormSelect>
-                    </div>
-                  )}
-                  <div style={{ marginTop: 12 }}>
-                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
-                      onClick={openScaleConfirm}
-                      isLoading={scaleLoading} isDisabled={anyLoading}>
-                      {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
-                    </Button>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Redeploy Failed Services */}
-              <Card isFullHeight className="ops-redeploy-failed">
-                <CardTitle>
-                  <RedoIcon className="ops-card-icon" />
-                  Redeploy Failed Services
-                </CardTitle>
-                <CardBody>
-                  {failedInstancesAnalysis.totalFailed > 0 ? (
-                    <>
-                      <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                        Found <strong>{failedInstancesAnalysis.totalFailed}</strong> failed instance(s) across{' '}
-                        <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
-                      </p>
-                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                        <Button
-                          variant="warning"
-                          onClick={() => setShowRedeployConfirm(true)}
-                          isLoading={redeployLoading}
-                          isDisabled={anyLoading}
-                        >
-                          Redeploy Failed Services
-                        </Button>
-                        <Tooltip content={failedJobsTooltip}>
-                          <Dropdown
-                            isOpen={isBatchMenuOpen}
-                            onSelect={() => setIsBatchMenuOpen(false)}
-                            onOpenChange={setIsBatchMenuOpen}
-                            toggle={(toggleRef) => (
-                              <MenuToggle
-                                ref={toggleRef}
-                                onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)}
-                                isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
-                                variant="secondary"
-                                icon={<ExternalLinkAltIcon />}
-                              >
-                                Open Jobs ({failedInstancesAnalysis.allJobUrls.length})
-                              </MenuToggle>
-                            )}
-                          >
-                            <DropdownList>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>
-                                Open 10 jobs
-                              </DropdownItem>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>
-                                Open 20 jobs
-                              </DropdownItem>
-                              <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>
-                                Open All ({failedInstancesAnalysis.allJobUrls.length} jobs)
-                              </DropdownItem>
-                            </DropdownList>
-                          </Dropdown>
-                        </Tooltip>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="ops-muted">No failed instances found</p>
-                  )}
-                </CardBody>
-              </Card>
-            </div>
 
             {/* Workshop detail table */}
             <div className="ops-workshops-section">
@@ -2222,6 +2214,156 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </SplitItem>
               </Split>
+
+              {/* Filters: sort, schedule, status, region — shared across all views */}
+              <div className="ops-scope-bar-extra">
+                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                <FormSelect
+                  id="ops-sort"
+                  aria-label="Sort workshops"
+                  value={sortMode}
+                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
+                  className="ops-sort-select"
+                >
+                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
+                  <FormSelectOption value="start-desc" label="Start (newest first)" />
+                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
+                  <FormSelectOption value="users-desc" label="Most seats assigned" />
+                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
+                  <FormSelectOption value="name-desc" label="Name (Z–A)" />
+                  <FormSelectOption value="status-asc" label="Status" />
+                  <FormSelectOption value="lock-asc" label="Locked first" />
+                  <FormSelectOption value="instances-desc" label="Most instances" />
+                  <FormSelectOption value="seats-desc" label="Most seats (total)" />
+                </FormSelect>
+                <span className="ops-filter-inline-label">Start window</span>
+                <div className="ops-schedule-filters">
+                  {SCHEDULE_FILTER_CHIPS.map(c => (
+                    <Label
+                      key={c.value}
+                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
+                      className="ops-schedule-chip"
+                    >
+                      {c.label}
+                    </Label>
+                  ))}
+                </div>
+                <span className="ops-filter-inline-label">Status</span>
+                <div className="ops-schedule-filters">
+                  {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
+                    const count = key === 'all' ? workshops.length : workshops.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === key).length;
+                    if (key !== 'all' && count === 0) return null;
+                    return (
+                      <Label
+                        key={key}
+                        color={statusFilter === key ? 'blue' : color as any}
+                        isCompact
+                        onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
+                        className="ops-schedule-chip"
+                      >
+                        {label} ({count})
+                      </Label>
+                    );
+                  })}
+                </div>
+                <span className="ops-filter-inline-label">Region</span>
+                <div className="ops-schedule-filters">
+                  <Label
+                    color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTableRegionFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({regionStats.counts.all})
+                  </Label>
+                  {REGIONS.map(r => {
+                    const count = regionStats.counts[r.key];
+                    const inst = regionStats.instances[r.key];
+                    const deploy = regionStats.deploying[r.key];
+                    const run = regionStats.running[r.key];
+                    const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
+                    const spanning = regionStats.spanning[r.key];
+                    const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+                    const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
+
+                    let labelText: string;
+                    if (count > 0 && peak.count > 0) {
+                      labelText = `${count} deploy · ${peak.count} peak/day`;
+                    } else if (count > 0) {
+                      labelText = `${count} deploy`;
+                    } else if (peak.count > 0) {
+                      labelText = `${peak.count} active/day`;
+                    } else {
+                      labelText = 'none';
+                    }
+
+                    const tooltipContent = (
+                      <div style={{ lineHeight: 1.5, minWidth: 220 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
+                        <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>Biz hours: 9am – 5pm {tzCity}</div>
+                        <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>deploy</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
+                          </div>
+                        </div>
+                        {(deploy > 0 || run > 0) && (
+                          <div style={{ fontSize: 11, marginBottom: 6 }}>
+                            {deploy > 0 && <span>{deploy} scheduled</span>}
+                            {deploy > 0 && run > 0 && <span> · </span>}
+                            {run > 0 && <span>{run} running</span>}
+                          </div>
+                        )}
+                        {peak.count > 0 && peak.day && (
+                          <div style={{ fontSize: 11, padding: '4px 6px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }}>
+                            <strong>Busiest:</strong> {peak.day} — {peak.count} active
+                            {peak.count >= DAILY_SUPPORT_LIMIT && <span style={{ color: '#e53e3e', fontWeight: 600 }}> (soft limit: {DAILY_SUPPORT_LIMIT}/day)</span>}
+                          </div>
+                        )}
+                        {spanning > 0 && (
+                          <div style={{ fontSize: 11, opacity: 0.7 }}>↔ {spanning} cross-region</div>
+                        )}
+                      </div>
+                    );
+
+                    return (
+                      <Tooltip key={r.key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={tableRegionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
+                          isCompact
+                          onClick={() => setTableRegionFilter(tableRegionFilter === r.key ? 'all' : r.key)}
+                          className="ops-schedule-chip"
+                        >
+                          {r.label} — {labelText}
+                        </Label>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+                {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                  <Label
+                    color="grey"
+                    isCompact
+                    onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                    className="ops-schedule-chip"
+                    style={{ fontStyle: 'italic' }}
+                  >
+                    Clear filters
+                  </Label>
+                )}
+              </div>
+
               {workshopView === 'table' && workshopGroups.length > 0 && (
                 <Pagination
                   className="ops-table-pagination"
@@ -2316,13 +2458,38 @@ const Ops: React.FC = () => {
                           aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'} />
                       </th>
                       <th></th>
-                      <th>Name</th>
-                      <th>Status</th>
-                      <th>Lock</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode(sortMode === 'name-asc' ? 'name-desc' : 'name-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by name">
+                          Name {sortMode === 'name-asc' ? <SortAmountDownIcon className="ops-col-sort-icon" /> : sortMode === 'name-desc' ? <SortAmountDownIcon className="ops-col-sort-icon" style={{ transform: 'scaleY(-1)' }} /> : null}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('status-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by status">
+                          Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('lock-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by lock status">
+                          Lock {sortMode === 'lock-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Assets</th>
-                      <th>Instances</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('instances-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by instance count">
+                          Instances {sortMode === 'instances-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Concurrency</th>
-                      <th>Seats</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('seats-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by seats">
+                          Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Registration</th>
                       <th>Password</th>
                       <th>

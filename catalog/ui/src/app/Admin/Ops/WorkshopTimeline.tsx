@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Badge, EmptyState, EmptyStateBody, Label, Tooltip } from '@patternfly/react-core';
+import { Badge, EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
 import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import TimelineControls from './TimelineControls';
 import TimelineSwimlane from './TimelineSwimlane';
@@ -103,11 +103,11 @@ function workshopInDateRange(workshop: WorkshopWithResourceClaims, viewStart: Da
 
 const STORAGE_KEY = 'opsTimelineDateRange';
 
-type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
+export type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
 
-type RegionKey = 'all' | 'emea' | 'na-east' | 'na-west' | 'apac-india' | 'apac-aus';
+export type RegionKey = 'all' | 'emea' | 'na-east' | 'na-west' | 'apac-india' | 'apac-aus';
 
-const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; endUtcH: number }[] = [
+export const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; endUtcH: number }[] = [
   { key: 'apac-aus',   label: 'APAC Aus',     tz: 'Australia/Sydney',  startUtcH: 23,   endUtcH: 31 },  // wraps midnight
   { key: 'apac-india', label: 'APAC India',   tz: 'Asia/Kolkata',      startUtcH: 3.5,  endUtcH: 11.5 },
   { key: 'emea',       label: 'EMEA',         tz: 'Europe/Berlin',     startUtcH: 7,    endUtcH: 15 },
@@ -116,7 +116,7 @@ const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; e
 ];
 
 /** Primary region = classified by workshop start time (which region's 9-5 it kicks off in) */
-function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | null {
+export function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | null {
   const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
   if (!startIso) return null;
   const d = new Date(startIso);
@@ -132,31 +132,56 @@ function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): RegionKey | n
 }
 
 /**
- * All regions a workshop is active during (based on which 9-5 windows
- * the DELIVERY window overlaps — using actionSchedule start/stop, not full lifespan).
- * A workshop might deploy in APAC India (9am IST) and still be running during
- * EMEA business hours, so it spans both regions.
+ * All regions a workshop is active during.
+ * For running workshops: includes regions whose biz hours include "now"
+ * (a running workshop needs support in whichever region is currently working).
+ * For scheduled: uses actionSchedule delivery window overlap.
+ * For stopped/failed: primary only.
  */
-function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
-  // Use actionSchedule (actual delivery window) for overlap detection
+export function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
+  const status = getWorkshopStatus(ws);
+  const primary = getWorkshopPrimaryRegion(ws);
+
+  // Running workshops are active in every region whose biz hours include "now"
+  if (status === 'Running') {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const nowMs = now.getTime();
+    const regions: RegionKey[] = primary ? [primary] : [];
+    for (const r of REGIONS) {
+      if (primary === r.key) continue; // already included
+      const bizStartMs = todayStart.getTime() + r.startUtcH * 3600000;
+      const bizEndMs = r.endUtcH > 24
+        ? todayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+        : todayStart.getTime() + r.endUtcH * 3600000;
+      if (nowMs >= bizStartMs && nowMs < bizEndMs) {
+        regions.push(r.key);
+      }
+    }
+    return regions.length > 0 ? regions : (primary ? [primary] : []);
+  }
+
+  // Stopped/failed: primary region only
+  if (status === 'Stopped' || status === 'Failed') {
+    return primary ? [primary] : [];
+  }
+
+  // Scheduled: use actionSchedule delivery window for overlap detection
   const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
   const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
   if (!startIso) {
-    const primary = getWorkshopPrimaryRegion(ws);
     return primary ? [primary] : [];
   }
 
   const deliveryStart = new Date(startIso);
-  const deliveryEnd = stopIso ? new Date(stopIso) : new Date(deliveryStart.getTime() + 8 * 3600000); // default 8h
+  const deliveryEnd = stopIso ? new Date(stopIso) : new Date(deliveryStart.getTime() + 8 * 3600000);
 
   const durationH = (deliveryEnd.getTime() - deliveryStart.getTime()) / 3600000;
-  // If delivery window is > 24h (e.g., multi-day event), classify by primary only
   if (durationH >= 24) {
-    const primary = getWorkshopPrimaryRegion(ws);
     return primary ? [primary] : [];
   }
 
-  // Check which regions' business hours the delivery window overlaps
   const regions: RegionKey[] = [];
   const startDay = new Date(deliveryStart);
   startDay.setUTCHours(0, 0, 0, 0);
@@ -170,10 +195,7 @@ function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): RegionKey[] {
       regions.push(r.key);
     }
   }
-  return regions.length > 0 ? regions : (() => {
-    const primary = getWorkshopPrimaryRegion(ws);
-    return primary ? [primary] : [];
-  })();
+  return regions.length > 0 ? regions : (primary ? [primary] : []);
 }
 
 const SELECT_BUTTONS: { label: string; status: StatusKey | 'all' | 'none'; color: 'green' | 'red' | 'blue' | 'orange' | 'grey' }[] = [
@@ -224,19 +246,10 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     setDateRange({ start, end });
   }, []);
 
-  const [regionFilter, setRegionFilter] = useState<RegionKey>('all');
-
+  // Region and status filtering is done globally in Ops.tsx — timeline only filters by date range
   const visibleWorkshops = useMemo(() => {
-    let visible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
-    if (regionFilter !== 'all') {
-      visible = visible.filter(w => {
-        const primary = getWorkshopPrimaryRegion(w);
-        const active = getWorkshopActiveRegions(w);
-        return primary === regionFilter || active.includes(regionFilter);
-      });
-    }
-    return visible;
-  }, [workshops, dateRange, regionFilter]);
+    return workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
+  }, [workshops, dateRange]);
 
   const groupedWorkshops = useMemo(() => {
     const grouped: Record<StatusKey, WorkshopWithResourceClaims[]> = {
@@ -247,101 +260,6 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     });
     return grouped;
   }, [visibleWorkshops]);
-
-  const regionStats = useMemo(() => {
-    const allVisible = workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
-    const emptyRegionRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
-
-    const counts = emptyRegionRecord();   // Workshops by deploy region (primary)
-    const instances = emptyRegionRecord(); // Instances by deploy region
-    const deploying = emptyRegionRecord(); // Scheduled workshops per deploy region
-    const running = emptyRegionRecord();   // Running workshops per deploy region
-    const delivering = emptyRegionRecord();// Workshops whose delivery is active during this region's hours
-
-    counts.all = allVisible.length;
-
-    for (const ws of allVisible) {
-      const primary = getWorkshopPrimaryRegion(ws);
-      const count = getCurrentCount(ws) ?? 1;
-      const status = getWorkshopStatus(ws);
-      instances.all += count;
-
-      if (primary) {
-        counts[primary]++;
-        instances[primary] += count;
-        if (status === 'Scheduled') deploying[primary]++;
-        if (status === 'Running') running[primary]++;
-      }
-
-      const active = getWorkshopActiveRegions(ws);
-      for (const rk of active) {
-        delivering[rk]++;
-      }
-    }
-
-    // Daily peak: for each region, find the busiest single day (support load)
-    const dailyPeak: Record<string, { count: number; day: string }> = {};
-    const days: Date[] = [];
-    const cur = new Date(dateRange.start);
-    while (cur <= dateRange.end) {
-      days.push(new Date(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-
-    for (const r of REGIONS) {
-      let peak = 0;
-      let peakDay = '';
-      for (const day of days) {
-        const dayStart = new Date(day);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
-        const bizEndMs = r.endUtcH > 24
-          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
-          : dayStart.getTime() + r.endUtcH * 3600000;
-
-        let dayCount = 0;
-        for (const ws of allVisible) {
-          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
-          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
-          if (!startIso) continue;
-          const wsStart = new Date(startIso).getTime();
-          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
-          if (wsStart < bizEndMs && wsEnd > bizStartMs) dayCount++;
-        }
-        if (dayCount > peak) {
-          peak = dayCount;
-          peakDay = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        }
-      }
-      dailyPeak[r.key] = { count: peak, day: peakDay };
-    }
-
-    // Per-region overlap breakdown
-    const overlapDetail: Record<string, Record<string, number>> = {};
-    for (const r of REGIONS) {
-      overlapDetail[r.key] = {};
-      for (const ws of allVisible) {
-        const active = getWorkshopActiveRegions(ws);
-        if (!active.includes(r.key) || active.length <= 1) continue;
-        for (const other of active) {
-          if (other === r.key) continue;
-          overlapDetail[r.key][other] = (overlapDetail[r.key][other] || 0) + 1;
-        }
-      }
-    }
-
-    const spanning: Record<string, number> = {};
-    for (const r of REGIONS) {
-      spanning[r.key] = new Set(
-        allVisible.filter(ws => {
-          const active = getWorkshopActiveRegions(ws);
-          return active.includes(r.key) && active.length > 1;
-        }).map(ws => `${ws.metadata.namespace}/${ws.metadata.name}`)
-      ).size;
-    }
-
-    return { counts, instances, deploying, running, delivering, spanning, overlapDetail, dailyPeak };
-  }, [workshops, dateRange, getCurrentCount]);
 
   const dateGrid = useMemo(() => {
     const days: Date[] = [];
@@ -407,142 +325,30 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     <div className="timeline-container">
       <TimelineControls startDate={dateRange.start} endDate={dateRange.end} onDateChange={handleDateChange} timezone={timezone} />
 
-      <div className="timeline-quick-select">
-        {SELECT_BUTTONS.map(btn => {
-          const count = btn.status === 'all'
-            ? totalWorkshops
-            : btn.status === 'none'
-              ? selectedWorkshops.size
-              : (groupedWorkshops[btn.status] || []).length;
-          if (btn.status !== 'all' && btn.status !== 'none' && count === 0) return null;
-          return (
-            <Label
-              key={btn.label}
-              color={btn.color as any}
-              isCompact
-              onClick={() => handleQuickSelect(btn.status)}
-              className="timeline-quick-select__btn"
-            >
-              {btn.label}{count > 0 ? ` (${count})` : ''}
-            </Label>
-          );
-        })}
-        {selectedWorkshops.size > 0 && (
-          <Badge isRead className="timeline-quick-select__count">{selectedWorkshops.size} selected</Badge>
-        )}
-      </div>
-
-      <div className="timeline-region-filter">
-        <span className="timeline-region-filter__label">Region:</span>
-        <Label
-          color={regionFilter === 'all' ? 'blue' : 'grey'}
-          onClick={() => setRegionFilter('all')}
-          className="timeline-region-filter__btn"
-        >
-          All — {regionStats.counts.all} workshops · {regionStats.instances.all} instances
-        </Label>
-        {REGIONS.map(r => {
-          const count = regionStats.counts[r.key];
-          const inst = regionStats.instances[r.key];
-          const deploy = regionStats.deploying[r.key];
-          const run = regionStats.running[r.key];
-          const spanning = regionStats.spanning[r.key];
-          const overlaps = regionStats.overlapDetail[r.key] || {};
-          const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
-          const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
-          const DAILY_SUPPORT_LIMIT = 5;
-          // Support capacity = peak workshops active during biz hours on any single day
-          const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
-          // How many are from other regions on the peak day
-          const fromOtherRegions = peak.count > count ? peak.count - count : 0;
-
-          const regionLabelMap: Record<string, string> = {};
-          REGIONS.forEach(rr => { regionLabelMap[rr.key] = rr.label; });
-
-          const tooltipContent = (
-            <div style={{ lineHeight: 1.5, minWidth: 240 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
-              <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 10 }}>Business hours: 9am – 5pm {tzCity}</div>
-
-              <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{count}</div>
-                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>deploy</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
-                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
-                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
-                </div>
-              </div>
-
-              {(deploy > 0 || run > 0) && (
-                <div style={{ marginBottom: 8 }}>
-                  {deploy > 0 && <span style={{ fontSize: 11 }}>{deploy} scheduled · </span>}
-                  {run > 0 && <span style={{ fontSize: 11 }}>{run} running</span>}
-                </div>
-              )}
-
-              {peak.count > 0 && (
-                <div style={{ fontSize: 12, padding: '6px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600 }}>Busiest day:</span> {peak.day} — {peak.count} workshops active during biz hours
-                  {fromOtherRegions > 0 && <span style={{ opacity: 0.8 }}> ({count} deploy here + {fromOtherRegions} from other regions)</span>}
-                  {peak.count >= DAILY_SUPPORT_LIMIT && <div style={{ marginTop: 4, color: '#e53e3e', fontWeight: 600, fontSize: 11 }}>Soft limit: {DAILY_SUPPORT_LIMIT} workshops/day</div>}
-                </div>
-              )}
-
-              {spanning > 0 && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 6 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', opacity: 0.5, marginBottom: 4, letterSpacing: '0.04em' }}>Cross-region</div>
-                  {Object.entries(overlaps).map(([otherKey, n]) => (
-                    <div key={otherKey} style={{ fontSize: 11, lineHeight: 1.7, paddingLeft: 2 }}>
-                      ↔ {n} also active during {regionLabelMap[otherKey] || otherKey}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-
-          // Label: context-aware — different text depending on whether workshops deploy from here or just flow through
-          let labelText: string;
-          if (count > 0 && fromOtherRegions > 0) {
-            // Workshops deploy from here AND flow in from other regions
-            labelText = `${count} deploy · ${peak.count} active/day`;
-          } else if (count > 0) {
-            // Only deploys from here, no cross-region
-            labelText = `${count} deploy · ${inst} inst`;
-          } else if (peak.count > 0) {
-            // Nothing deploys here but workshops are active during biz hours
-            labelText = `${peak.count} active/day (cross-region)`;
-          } else {
-            labelText = 'no activity';
-          }
-
-          return (
-            <Tooltip key={r.key} content={tooltipContent} maxWidth="380px">
-              <Label
-                color={regionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
-                onClick={() => setRegionFilter(regionFilter === r.key ? 'all' : r.key)}
-                className="timeline-region-filter__btn"
-              >
-                {r.label} — {labelText}
-                {spanning > 0 && <span className="timeline-region-overlap"> ↔{spanning}</span>}
-              </Label>
-            </Tooltip>
-          );
-        })}
-      </div>
-
       {totalWorkshops === 0 ? (
         <EmptyState>
           <EmptyStateBody>No workshops match the selected filters</EmptyStateBody>
         </EmptyState>
       ) : (
         <>
+          {dateGrid.length === 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Label
+                color="blue"
+                isCompact
+                onClick={() => {
+                  const day = dateGrid[0];
+                  handleDateChange(getStartOfDay(getMonday(day)), getEndOfDay(getSunday(day)));
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                ← Back to week
+              </Label>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>
+                {formatDateCell(dateGrid[0], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+          )}
           <div className="timeline-date-grid">
             {nowPercent !== null && (
               <div className="timeline-now-marker" style={{ left: `${nowPercent}%` }} title="Now" />

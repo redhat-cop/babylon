@@ -114,16 +114,18 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 6px 12px;
+  padding-top: 6px;
   border-top: 1px solid var(--pf-t--global--border--color--default);
 }
 
 .ops-filter-inline-label {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.72rem;
   white-space: nowrap;
   color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .ops-sort-select {
