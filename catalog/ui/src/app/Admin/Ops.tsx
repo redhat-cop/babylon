@@ -2297,9 +2297,7 @@ const Ops: React.FC = () => {
                     );
                   })}
                 </div>
-                <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
-                  <span className="ops-filter-inline-label" style={{ cursor: 'help', borderBottom: '1px dotted var(--pf-t--global--text--color--subtle)' }}>Region ⓘ</span>
-                </Tooltip>
+                <span className="ops-filter-inline-label">Region</span>
                 <div className="ops-schedule-filters">
                   <Tooltip content={
                     <div style={{ lineHeight: 1.5, minWidth: 200 }}>
@@ -2407,6 +2405,9 @@ const Ops: React.FC = () => {
                       </Tooltip>
                     );
                   })}
+                  <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                    <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
+                  </Tooltip>
                 </div>
                 {workshopView === 'timeline' && (
                   <>
