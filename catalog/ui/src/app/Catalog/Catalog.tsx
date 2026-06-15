@@ -488,27 +488,25 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         },
       ],
     };
-    const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
-    // Apply category and favorites filter with OR logic
+    let filteredItems = catalogItemsCpy;
     if ((selectedCategories && selectedCategories.length > 0) || showFavorites) {
-      catalogItemsFuse.remove((ci) => {
-        // Check if item matches any selected category OR is a favorite (OR logic)
+      filteredItems = filteredItems.filter((ci) => {
         const matchesCategory =
           selectedCategories && selectedCategories.length > 0
             ? selectedCategories.some((category) => filterCatalogItemByCategory(ci, category))
             : false;
         const isFav = showFavorites ? filterFavorites(ci, assetsFavList?.bookmarks || []) : false;
-
-        return !matchesCategory && !isFav;
+        return matchesCategory || isFav;
       });
     }
     if (selectedLabels) {
-      catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
+      filteredItems = filteredItems.filter((ci) => filterCatalogItemByLabels(ci, selectedLabels));
     }
     if (isAdmin && selectedAdminFilter) {
-      catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
+      filteredItems = filteredItems.filter((ci) => filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
-    return [catalogItemsFuse, catalogItemsCpy];
+    const catalogItemsFuse = new Fuse(filteredItems, options);
+    return [catalogItemsFuse, filteredItems];
   }, [
     catalogItems,
     compareCatalogItems,
