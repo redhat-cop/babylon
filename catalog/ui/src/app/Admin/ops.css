@@ -177,6 +177,12 @@
   width: 1%;
 }
 
+.ops-col-reg {
+  text-align: center;
+  white-space: nowrap;
+  width: 1%;
+}
+
 .ops-table-pagination {
   margin-bottom: 8px;
 }
@@ -468,9 +474,17 @@
   border-collapse: collapse;
 }
 
+.ops-table-wrap tbody tr {
+  border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 40%, transparent);
+}
+
+.ops-table-wrap tbody tr:nth-child(even):not(.ops-group-header):not(.ops-child-row) {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 30%, transparent);
+}
+
 .ops-table-wrap thead th {
-  padding: 8px 10px;
-  font-size: 0.78rem;
+  padding: 6px 8px;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--pf-t--global--text--color--subtle);
   border-bottom: 2px solid var(--pf-t--global--border--color--default);
@@ -478,9 +492,9 @@
 }
 
 .ops-table-wrap td {
-  padding: 6px 10px;
+  padding: 5px 8px;
   vertical-align: middle;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 /* Checkbox & expand columns — fixed narrow */
@@ -1071,21 +1085,21 @@ a.ops-ws-meta:hover {
    ======================================== */
 
 .ops-operations-grid {
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
-  margin-top: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
 }
 
-/* Minimal padding on all operation cards */
+/* Comfortable padding on operation cards */
 .ops-operations-grid .pf-v6-c-card {
-  --pf-v6-c-card--c-card__body--PaddingBlockStart: 6px;
-  --pf-v6-c-card--c-card__body--PaddingInlineEnd: 8px;
-  --pf-v6-c-card--c-card__body--PaddingBlockEnd: 6px;
-  --pf-v6-c-card--c-card__body--PaddingInlineStart: 8px;
-  --pf-v6-c-card--c-card__title--PaddingBlockStart: 6px;
-  --pf-v6-c-card--c-card__title--PaddingInlineEnd: 8px;
-  --pf-v6-c-card--c-card__title--PaddingBlockEnd: 2px;
-  --pf-v6-c-card--c-card__title--PaddingInlineStart: 8px;
+  --pf-v6-c-card--c-card__body--PaddingBlockStart: 10px;
+  --pf-v6-c-card--c-card__body--PaddingInlineEnd: 12px;
+  --pf-v6-c-card--c-card__body--PaddingBlockEnd: 10px;
+  --pf-v6-c-card--c-card__body--PaddingInlineStart: 12px;
+  --pf-v6-c-card--c-card__title--PaddingBlockStart: 10px;
+  --pf-v6-c-card--c-card__title--PaddingInlineEnd: 12px;
+  --pf-v6-c-card--c-card__title--PaddingBlockEnd: 4px;
+  --pf-v6-c-card--c-card__title--PaddingInlineStart: 12px;
 }
 
 /* Tighter form groups within operation cards */
@@ -1101,11 +1115,11 @@ a.ops-ws-meta:hover {
 
 /* Compact buttons */
 .ops-operations-grid .pf-v6-c-button {
-  --pf-v6-c-button--PaddingBlockStart: 3px;
-  --pf-v6-c-button--PaddingInlineEnd: 8px;
-  --pf-v6-c-button--PaddingBlockEnd: 3px;
-  --pf-v6-c-button--PaddingInlineStart: 8px;
-  font-size: 0.78rem;
+  --pf-v6-c-button--PaddingBlockStart: 4px;
+  --pf-v6-c-button--PaddingInlineEnd: 10px;
+  --pf-v6-c-button--PaddingBlockEnd: 4px;
+  --pf-v6-c-button--PaddingInlineStart: 10px;
+  font-size: 0.8rem;
 }
 
 /* Compact number inputs */
@@ -1127,10 +1141,10 @@ a.ops-ws-meta:hover {
 /* Extend Stop/Destroy row — two NumberInputs side by side */
 .ops-extend-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
+  flex-wrap: nowrap;
+  margin-bottom: 8px;
 }
 
 /* Reduce icon size in card titles */
@@ -1145,11 +1159,11 @@ a.ops-ws-meta:hover {
   word-break: break-word;
 }
 
-/* Compact descriptions in operation cards */
+/* Descriptions in operation cards */
 .ops-operations-grid .ops-desc {
-  margin-bottom: 4px;
-  font-size: 0.72rem;
-  line-height: 1.3;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 /* Tighter button row spacing */

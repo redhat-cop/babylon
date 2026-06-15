@@ -132,9 +132,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const instanceText = instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
 
   const formatShortDate = useCallback((d: Date): string => {
-    return d.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone,
-    });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone });
   }, [timezone]);
 
   const formatFullDate = useCallback((iso: string): string => {

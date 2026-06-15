@@ -175,6 +175,7 @@ export function distributeProvisionCountsRespectingAssigned(
   return result;
 }
 
+
 function seatColorClass(assigned: number, total: number): string {
   if (total <= 0 || assigned <= 0) return '';
   const pct = assigned / total;
@@ -738,19 +739,17 @@ const Ops: React.FC = () => {
     } as WorkshopWithResourceClaims));
   }, [workshops, resourceClaimsByWorkshop]);
 
-  const targets = useMemo(() => {
+  // Base-filtered list: applies white glove, search, and stage filters.
+  // Used by regionStats and status counts so chips reflect the visible scope.
+  const baseFilteredWorkshops = useMemo((): WorkshopWithResourceClaims[] => {
     let list: Workshop[] = workshopsWithRc;
-
-    // Multi-term free-text search (partial match)
     if (workshopSearchText) {
       const searchTerms = parseSearchTerms(workshopSearchText);
       if (searchTerms.length > 0) {
         list = list.filter(w => {
           const name = displayName(w).toLowerCase();
-          const wsName = w.metadata.name.toLowerCase();
-          const ns = w.metadata.namespace.toLowerCase();
-
-          // Match if ANY search term found in name, wsName, or namespace
+          const wsName = w.metadata?.name?.toLowerCase() || '';
+          const ns = w.metadata?.namespace?.toLowerCase() || '';
           return searchTerms.some(term =>
             name.includes(term) ||
             wsName.includes(term) ||
@@ -759,10 +758,16 @@ const Ops: React.FC = () => {
         });
       }
     }
-
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
-    if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
+    return list as WorkshopWithResourceClaims[];
+  }, [workshopsWithRc, workshopSearchText, stageFilter, whiteGloveMode]);
+
+  const targets = useMemo(() => {
+    let list: Workshop[] = baseFilteredWorkshops;
+
+    // Search, stage, and white-glove already applied in baseFilteredWorkshops
+    if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
     if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
     if (attentionFilter) list = list.filter(w => {
       const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
@@ -781,11 +786,8 @@ const Ops: React.FC = () => {
     arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
   }, [
-    workshops,
-    workshopSearchText,
-    stageFilter,
+    baseFilteredWorkshops,
     failedFilter,
-    whiteGloveMode,
     statusFilter,
     attentionFilter,
     tableRegionFilter,
@@ -1052,9 +1054,9 @@ const Ops: React.FC = () => {
     const instances = emptyRecord();
     const deploying = emptyRecord();
     const running = emptyRecord();
-    counts.all = workshopsWithRc.length;
+    counts.all = baseFilteredWorkshops.length;
 
-    for (const ws of workshopsWithRc) {
+    for (const ws of baseFilteredWorkshops) {
       const primary = getWorkshopPrimaryRegion(ws);
       const count = getCurrentCount(ws) ?? 1;
       const status = getWorkshopStatus(ws);
@@ -1089,7 +1091,7 @@ const Ops: React.FC = () => {
           ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
           : dayStart.getTime() + r.endUtcH * 3600000;
         let dayCount = 0;
-        for (const ws of workshopsWithRc) {
+        for (const ws of baseFilteredWorkshops) {
           const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
           const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
           if (!startIso) continue;
@@ -1116,7 +1118,7 @@ const Ops: React.FC = () => {
           ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
           : dayStart.getTime() + r.endUtcH * 3600000;
         let dayCount2 = 0;
-        for (const ws of workshopsWithRc) {
+        for (const ws of baseFilteredWorkshops) {
           const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
           const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
           if (!startIso) continue;
@@ -1134,30 +1136,30 @@ const Ops: React.FC = () => {
         }
       }
     }
-    // Deduplicate — keep highest count per date
+    // Deduplicate — keep highest count per date+region, then sort by date
     const busyDayMap = new Map<string, typeof busyDays[0]>();
     for (const bd of busyDays) {
-      const key = bd.date.toISOString().split('T')[0];
+      const key = `${bd.date.toISOString().split('T')[0]}:${bd.region}`;
       const existing = busyDayMap.get(key);
       if (!existing || bd.count > existing.count) {
         busyDayMap.set(key, bd);
       }
     }
     const topBusyDays = Array.from(busyDayMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+      .sort((a, b) => a.date.getTime() - b.date.getTime() || b.count - a.count)
+      .slice(0, 5);
 
     // Cross-region overlap
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
-      spanning[r.key] = workshopsWithRc.filter(ws => {
+      spanning[r.key] = baseFilteredWorkshops.filter(ws => {
         const active = getWorkshopActiveRegions(ws);
         return active.includes(r.key) && active.length > 1;
       }).length;
     }
 
     return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
-  }, [workshopsWithRc, getCurrentCount]);
+  }, [baseFilteredWorkshops, getCurrentCount]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -1702,7 +1704,7 @@ const Ops: React.FC = () => {
 
   const multiNsBanner = isMultiNs ? (
     <Alert variant="warning" isInline title="Multi-namespace mode active" className="ops-multi-ns-banner">
-      Operations will affect workshops across <strong>{activeNamespaces.length}</strong> namespaces.
+      Operations will affect workshops across <strong>{platformMode ? 'all' : activeNamespaces.length}</strong> namespaces.
       Double-check the scope before executing any operation.
     </Alert>
   ) : null;
@@ -2284,7 +2286,7 @@ const Ops: React.FC = () => {
                   <span className="ops-filter-inline-label">Status</span>
                   <div className="ops-schedule-filters">
                   {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
-                    const matching = key === 'all' ? workshopsWithRc : workshopsWithRc.filter(w => getWorkshopStatus(w) === key);
+                    const matching = key === 'all' ? baseFilteredWorkshops : baseFilteredWorkshops.filter(w => getWorkshopStatus(w) === key);
                     const count = matching.length;
                     const tooltipContent = key === 'all' ? `${count} total workshops` : (
                       <div style={{ maxHeight: 200, overflow: 'auto' }}>
@@ -2388,7 +2390,7 @@ const Ops: React.FC = () => {
                     }
 
                     // Workshops in this region
-                    const regionWorkshops = workshopsWithRc.filter(w => {
+                    const regionWorkshops = baseFilteredWorkshops.filter(w => {
                       const primary = getWorkshopPrimaryRegion(w);
                       const active = getWorkshopActiveRegions(w);
                       return primary === r.key || active.includes(r.key);
@@ -2468,6 +2470,8 @@ const Ops: React.FC = () => {
                       <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
                     </Tooltip>
                   </div>
+                </div>
+                <div className="ops-filter-row">
                   <span className="ops-filter-inline-label">Range</span>
                   <div className="ops-schedule-filters ops-date-range-controls">
                   <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
@@ -2525,7 +2529,7 @@ const Ops: React.FC = () => {
                     <span className="ops-busy-days-text">
                       Busy days ahead:{' '}
                       {regionStats.topBusyDays.map((bd, i) => (
-                        <React.Fragment key={bd.label}>
+                        <React.Fragment key={`${bd.label}-${bd.region}`}>
                           {i > 0 && ', '}
                           <Label
                             color="orange"
@@ -2667,7 +2671,7 @@ const Ops: React.FC = () => {
                           Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
                         </Button>
                       </th>
-                      <th>Registration</th>
+                      <th className="ops-col-reg">Reg</th>
                       <th>Password</th>
                       <th>
                         <Button variant="plain" isInline onClick={() => setSortMode('stop-asc')}
@@ -2859,7 +2863,7 @@ const Ops: React.FC = () => {
                             {firstWs.spec?.openRegistration !== false ? (
                               <Label color="green" isCompact>Open</Label>
                             ) : (
-                              <Label color="blue" isCompact>Pre-registration</Label>
+                              <Label color="blue" isCompact>Pre-reg</Label>
                             )}
                           </td>
                           <td>
