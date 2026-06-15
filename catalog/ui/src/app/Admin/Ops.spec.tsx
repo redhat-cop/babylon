@@ -294,8 +294,7 @@ describe('Ops Component', () => {
       await renderOps();
       await waitFor(() => {
         const tz = screen.getByLabelText('Timezone');
-        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        expect(tz).toHaveValue(browserTz);
+        expect(tz).toHaveValue(Intl.DateTimeFormat().resolvedOptions().timeZone);
       });
     });
 
