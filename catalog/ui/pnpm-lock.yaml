@@ -260,8 +260,8 @@ importers:
         specifier: ^3.3.4
         version: 3.3.4(webpack@5.107.2)
       svg-url-loader:
-        specifier: ^8.0.0
-        version: 8.0.0(webpack@5.107.2)
+        specifier: ^8.1.0
+        version: 8.1.0(webpack@5.107.2)
       terser-webpack-plugin:
         specifier: ^5.6.1
         version: 5.6.1(postcss@8.5.15)(webpack@5.107.2)
@@ -5011,8 +5011,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  svg-url-loader@8.0.0:
-    resolution: {integrity: sha512-5doSXvl18hY1fGsRLdhWAU5jgzgxJ06/gc/26cpuDnN0xOz1HmmfhkpL29SSrdIvhtxQ1UwGzmk7wTT/l48mKw==}
+  svg-url-loader@8.1.0:
+    resolution: {integrity: sha512-8Mf5g0R44VSiTQnSXT6qCSHwCO3VwZAOcm+o0FB80wGGeZNDzKBPKc8gtfIbSfNPmnE8SHv/+e49vO2NVHEmKA==}
     engines: {node: '>=14'}
     peerDependencies:
       webpack: ^5.0.0
@@ -11493,7 +11493,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svg-url-loader@8.0.0(webpack@5.107.2):
+  svg-url-loader@8.1.0(webpack@5.107.2):
     dependencies:
       file-loader: 6.2.0(webpack@5.107.2)
       webpack: 5.107.2(postcss@8.5.15)(webpack-cli@7.0.3)
