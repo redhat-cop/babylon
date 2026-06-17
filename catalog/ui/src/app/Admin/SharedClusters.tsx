@@ -22,14 +22,12 @@ import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import TimeInterval from '@app/components/TimeInterval';
 import ServiceStatus from '@app/Services/ServiceStatus';
-import { displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT, compareK8sObjectsArr } from '@app/util';
+import { displayName, BABYLON_DOMAIN, FETCH_BATCH_LIMIT, SHARED_CLUSTERS_NAMESPACE, compareK8sObjectsArr } from '@app/util';
 import Modal, { useModal } from '@app/Modal/Modal';
 import Footer from '@app/components/Footer';
 import ServicesAction from '@app/Services/ServicesAction';
 
 import './admin.css';
-
-const SHARED_CLUSTERS_NAMESPACE = 'shared-clusters';
 
 type ClusterGroup = {
   catalogItemName: string;
