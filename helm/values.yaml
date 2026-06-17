@@ -344,7 +344,7 @@ catalogManager:
       cpu: 100m
       memory: 368Mi
   db:
-    deploy: false
+    deploy: true
     secretName: gpte-db-secrets
   salesforceApi:
     deploy: true
