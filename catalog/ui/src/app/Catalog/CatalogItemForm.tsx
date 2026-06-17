@@ -158,12 +158,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
+  const hasSandboxHostPurpose = catalogItem.spec.parameters?.some((p) => p.name === 'sandbox_host_purpose');
+  const initialServiceNamespace = hasSandboxHostPurpose
+    ? { name: 'shared-clusters', displayName: 'shared-clusters' }
+    : userNamespace;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
       type: 'init',
       catalogItem,
-      serviceNamespace: userNamespace,
+      serviceNamespace: initialServiceNamespace,
       user: { groups, roles, isAdmin },
       purposeOpts,
       sfdc_enabled,
