@@ -53,6 +53,7 @@ import {
   isLabDeveloper,
   randomString,
   READY_BY_LEAD_TIME_MS,
+  SHARED_CLUSTERS_NAMESPACE,
 } from '@app/util';
 import Editor from '@app/components/Editor/Editor';
 import useSession from '@app/utils/useSession';
@@ -158,12 +159,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
+  const hasSandboxHostPurpose = catalogItem.spec.parameters?.some((p) => p.name === 'sandbox_host_purpose');
+  const initialServiceNamespace = hasSandboxHostPurpose
+    ? { name: SHARED_CLUSTERS_NAMESPACE, displayName: SHARED_CLUSTERS_NAMESPACE }
+    : userNamespace;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
       type: 'init',
       catalogItem,
-      serviceNamespace: userNamespace,
+      serviceNamespace: initialServiceNamespace,
       user: { groups, roles, isAdmin },
       purposeOpts,
       sfdc_enabled,

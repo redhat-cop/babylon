@@ -184,6 +184,11 @@ const Navigation: React.FC = () => {
         </NavLink>
       </NavItem>
       <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/sharedclusters') ? 'pf-m-current' : ''} to="/admin/sharedclusters">
+          Shared Clusters
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">
           Workshops
         </ExactNavLink>

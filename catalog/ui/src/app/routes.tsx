@@ -41,6 +41,7 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
+const SharedClusters = React.lazy(() => import('@app/Admin/SharedClusters'));
 const SystemStatus = React.lazy(() => import('@app/Admin/SystemStatus'));
 const Ops = React.lazy(() => import('@app/Admin/Ops'));
 const Activity = React.lazy(() => import('@app/Activity'));
@@ -196,6 +197,12 @@ const appRoutes: IAppRoute[] = [
     component: Ops,
     path: '/admin/ops',
     title: 'Babylon | Workshop Control',
+    accessControl: 'admin',
+  },
+  {
+    component: SharedClusters,
+    path: '/admin/sharedclusters',
+    title: 'Babylon | Shared Clusters',
     accessControl: 'admin',
   },
   {
