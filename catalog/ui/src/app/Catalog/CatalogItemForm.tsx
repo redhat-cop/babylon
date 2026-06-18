@@ -324,9 +324,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameterValues[parameterState.name] = parameterState.value;
       }
     }
-    parameterValues['purpose'] = formState.purpose;
-    parameterValues['purpose_activity'] = formState.activity;
-    parameterValues['purpose_explanation'] = formState.explanation;
+    if (isSharedCluster(catalogItem)) {
+      parameterValues['purpose'] = 'shared-clusters';
+      parameterValues['purpose_activity'] = 'shared-clusters';
+    } else {
+      parameterValues['purpose'] = formState.purpose;
+      parameterValues['purpose_activity'] = formState.activity;
+      parameterValues['purpose_explanation'] = formState.explanation;
+    }
 
     try {
       if (catalogItem.spec.externalUrl) {
