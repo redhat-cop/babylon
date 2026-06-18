@@ -106,19 +106,23 @@ const AutoStopDestroy: React.FC<{
   let showNoAutoStop = false;
   if (type === 'auto-stop') {
     if (time > Date.now() + 15778800000) {
-      // If is more than 6months show no auto-stop
       showNoAutoStop = true;
     } else if (resourceClaim?.status?.lifespan?.end) {
-      // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
       if (time >= autoDestroyTime) {
         showNoAutoStop = true;
       }
     } else if (destroyTimestamp) {
-      // if Auto-Stop is greater than Auto-Destroy, show no auto-stop
       if (time >= destroyTimestamp) {
         showNoAutoStop = true;
       }
+    }
+  }
+
+  let showNoAutoDestroy = false;
+  if (type === 'auto-destroy') {
+    if (time > Date.now() + 31557600000) {
+      showNoAutoDestroy = true;
     }
   }
 
@@ -133,8 +137,10 @@ const AutoStopDestroy: React.FC<{
         className={className}
         size="sm"
       >
-        {showNoAutoStop ? (
-          <span style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>No auto-stop</span>
+        {showNoAutoStop || showNoAutoDestroy ? (
+          <span style={{ marginRight: 'var(--pf-t--global--spacer--sm)' }}>
+            {showNoAutoStop ? 'No auto-stop' : 'No auto-destroy'}
+          </span>
         ) : (
           <>
             <LocalTimestamp variant="short" time={time} />

@@ -106,6 +106,10 @@ export function getStatusFromCatalogItem(
   return { name: 'Operational', disabled: false, incidentUrl: null };
 }
 
+export function isSharedCluster(catalogItem: CatalogItem) {
+  return catalogItem.spec.parameters?.some((p) => p.name === 'sandbox_host_purpose');
+}
+
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
   const sa = catalogItem.spec.supportedActions;
   if (sa !== undefined && !('stop' in sa)) {

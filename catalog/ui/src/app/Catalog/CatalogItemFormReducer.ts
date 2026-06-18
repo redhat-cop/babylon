@@ -2,7 +2,7 @@ import React from 'react';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
-import { isAutoStopDisabled } from './catalog-utils';
+import { isAutoStopDisabled, isSharedCluster } from './catalog-utils';
 
 type ConditionValues = {
   [name: string]: boolean | number | string | string[] | undefined;
@@ -269,12 +269,20 @@ function initDates(catalogItem: CatalogItem, currTime?: number) {
   if (currTime) {
     _currTime = currTime;
   }
+  if (isSharedCluster(catalogItem)) {
+    const fiveYears = parseDuration('5y');
+    return {
+      startDate: currTime ? new Date(currTime) : null,
+      stopDate: new Date(_currTime + fiveYears),
+      endDate: new Date(_currTime + fiveYears),
+    };
+  }
   return {
-    startDate: currTime ? new Date(currTime) : null, // Provisioning start date is the current time
+    startDate: currTime ? new Date(currTime) : null,
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
-      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')), // Base on provisioning date
-    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')), // Base on provisioning date
+      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 

@@ -69,7 +69,7 @@ import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from '
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import CatalogItemFormStartModal from './CatalogItemFormStartModal';
-import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
+import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled, isSharedCluster } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
@@ -159,8 +159,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
-  const hasSandboxHostPurpose = catalogItem.spec.parameters?.some((p) => p.name === 'sandbox_host_purpose');
-  const initialServiceNamespace = hasSandboxHostPurpose
+  const initialServiceNamespace = isSharedCluster(catalogItem)
     ? { name: SHARED_CLUSTERS_NAMESPACE, displayName: SHARED_CLUSTERS_NAMESPACE }
     : userNamespace;
   const [formState, dispatchFormState] = useReducer(
