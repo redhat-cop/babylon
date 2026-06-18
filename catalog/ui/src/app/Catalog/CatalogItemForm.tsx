@@ -159,7 +159,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
-  const initialServiceNamespace = isSharedCluster(catalogItem)
+  const initialServiceNamespace = isSharedCluster(catalogItem, isAdmin)
     ? { name: SHARED_CLUSTERS_NAMESPACE, displayName: SHARED_CLUSTERS_NAMESPACE }
     : userNamespace;
   const [formState, dispatchFormState] = useReducer(
@@ -324,14 +324,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         parameterValues[parameterState.name] = parameterState.value;
       }
     }
-    if (isSharedCluster(catalogItem)) {
-      parameterValues['purpose'] = 'shared-clusters';
-      parameterValues['purpose_activity'] = 'shared-clusters';
-    } else {
-      parameterValues['purpose'] = formState.purpose;
-      parameterValues['purpose_activity'] = formState.activity;
-      parameterValues['purpose_explanation'] = formState.explanation;
-    }
+    parameterValues['purpose'] = formState.purpose;
+    parameterValues['purpose_activity'] = formState.activity;
+    parameterValues['purpose_explanation'] = formState.explanation;
 
     try {
       if (catalogItem.spec.externalUrl) {

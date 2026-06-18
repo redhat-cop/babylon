@@ -795,6 +795,70 @@ async def catalog_item_check_availability(request):
         url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
+@routes.get("/api/resourceclaims/{uuid}/sandbox/placements")
+async def sandbox_placements(request):
+    service_uuid = request.match_info.get('uuid')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{sandbox_api}/api/v1/placements",
+        params={"service_uuid": service_uuid},
+    )
+
+@routes.post("/api/resourceclaims/{uuid}/sandbox/placements")
+async def sandbox_placements_onboard(request):
+    service_uuid = request.match_info.get('uuid')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    request_data = await request.json()
+    kind = request_data.get('kind')
+    count = request_data.get('count')
+    if not kind:
+        raise web.HTTPBadRequest(reason="kind is required")
+    if count is None:
+        raise web.HTTPBadRequest(reason="count is required")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="POST",
+        url=f"{sandbox_api}/api/v1/placements",
+        data=json.dumps({
+            "service_uuid": service_uuid,
+            "resources": [{"kind": kind, "count": count}],
+        }),
+    )
+
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")
 async def catalog_item_metrics(request):
     asset_uuid = request.match_info.get('asset_uuid')

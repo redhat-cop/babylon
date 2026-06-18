@@ -2556,6 +2556,8 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
   ASSET_METRICS: ({ asset_uuid, environment }: { asset_uuid: string; environment?: string }) =>
     `/api/catalog_item/metrics/${asset_uuid}${environment ? `?environment=${environment}` : ''}`,
+  SANDBOX_PLACEMENTS: ({ serviceUuid }: { serviceUuid: string }) =>
+    `/api/resourceclaims/${serviceUuid}/sandbox/placements`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2837,6 +2839,15 @@ export async function updateSystemStatus(status: Partial<SystemStatus>): Promise
   const response = await apiFetch(apiPaths.SYSTEM_STATUS(), {
     method: 'PATCH',
     body: JSON.stringify(status),
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+}
+
+export async function onboardSandboxPlacements(serviceUuid: string, kind: string, count: number): Promise<unknown> {
+  const response = await apiFetch(apiPaths.SANDBOX_PLACEMENTS({ serviceUuid }), {
+    method: 'POST',
+    body: JSON.stringify({ kind, count }),
     headers: { 'Content-Type': 'application/json' },
   });
   return response.json();

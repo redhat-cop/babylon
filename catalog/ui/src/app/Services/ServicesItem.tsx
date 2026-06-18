@@ -60,6 +60,7 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
+  onboardSandboxPlacements,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -120,6 +121,8 @@ import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ReorderModal from '@app/components/ReorderModal';
@@ -359,6 +362,18 @@ const ServicesItemComponent: React.FC<{
       : null,
     silentFetcher,
   );
+
+  const isSharedClusterItem = !!(resourceClaim.spec?.provider?.parameterValues as Record<string, unknown>)?.sandbox_host_purpose;
+  const {
+    data: placementsData,
+    mutate: mutatePlacements,
+  } = useSWR(
+    isSharedClusterItem ? apiPaths.SANDBOX_PLACEMENTS({ serviceUuid: resourceClaim.metadata.uid }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  const [onboardCount, setOnboardCount] = useState(1);
+  const [onboardLoading, setOnboardLoading] = useState(false);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -1193,6 +1208,73 @@ const ServicesItemComponent: React.FC<{
                       <ServiceStatus resourceClaim={resourceClaim} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  {isSharedClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Active Placements</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {Array.isArray(placementsData) && placementsData.length > 0
+                          ? placementsData[0].resource_count
+                          : 0}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
+                  {isSharedClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Sandbox API Status</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {Array.isArray(placementsData) && placementsData.length > 0 ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                            Onboarded to Sandbox API
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+                            <Alert
+                              variant="warning"
+                              isInline
+                              isPlain
+                              title="This cluster is not registered with the Sandbox API"
+                            >
+                              <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
+                            </Alert>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Placements</span>
+                              <NumberInput
+                                value={onboardCount}
+                                min={1}
+                                max={100}
+                                onMinus={() => setOnboardCount(Math.max(1, onboardCount - 1))}
+                                onPlus={() => setOnboardCount(onboardCount + 1)}
+                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                  const val = parseInt((event.target as HTMLInputElement).value, 10);
+                                  if (!isNaN(val) && val >= 1) setOnboardCount(val);
+                                }}
+                                widthChars={3}
+                              />
+                              <Button
+                                variant="primary"
+                                isLoading={onboardLoading}
+                                isDisabled={onboardLoading}
+                                onClick={async () => {
+                                  setOnboardLoading(true);
+                                  try {
+                                    await onboardSandboxPlacements(resourceClaim.metadata.uid, 'OcpSandbox', onboardCount);
+                                    mutatePlacements();
+                                  } finally {
+                                    setOnboardLoading(false);
+                                  }
+                                }}
+                              >
+                                Onboard to Sandbox API
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
                   {!isManagedInstance && sfdc_enabled ? (
                     <DescriptionListGroup>
