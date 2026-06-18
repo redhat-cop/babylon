@@ -343,9 +343,6 @@ catalogManager:
     requests:
       cpu: 100m
       memory: 368Mi
-  db:
-    deploy: true
-    secretName: gpte-db-secrets
   salesforceApi:
     deploy: true
     secretName: babylon-catalog-manager-salesforce-api
