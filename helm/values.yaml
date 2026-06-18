@@ -335,7 +335,7 @@ catalogManager:
   image:
     repository: quay.io/redhat-gpte/babylon-catalog-manager
     pullPolicy: Always
-    tag: v1.0.18
+    tag: v1.1.0
   resources:
     limits:
       cpu: "1"
