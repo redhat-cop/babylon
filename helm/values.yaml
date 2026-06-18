@@ -335,7 +335,7 @@ catalogManager:
   image:
     repository: quay.io/redhat-gpte/babylon-catalog-manager
     pullPolicy: Always
-    tag: v1.0.18
+    tag: v1.1.0
   resources:
     limits:
       cpu: "1"
@@ -343,9 +343,6 @@ catalogManager:
     requests:
       cpu: 100m
       memory: 368Mi
-  db:
-    deploy: true
-    secretName: gpte-db-secrets
   salesforceApi:
     deploy: true
     secretName: babylon-catalog-manager-salesforce-api
