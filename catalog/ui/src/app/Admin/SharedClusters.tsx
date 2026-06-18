@@ -309,7 +309,6 @@ const SharedClusters: React.FC = () => {
               <tr>
                 <th style={{ width: '40px' }}></th>
                 <th>Name</th>
-                <th>Project</th>
                 <th>Purpose</th>
                 <th>Status</th>
                 <th>Placements</th>
@@ -341,7 +340,6 @@ const SharedClusters: React.FC = () => {
                           {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
                         </Label>
                       </td>
-                      <td>{SHARED_CLUSTERS_NAMESPACE}</td>
                       <td></td>
                       <td>
                         <span
@@ -368,7 +366,6 @@ const SharedClusters: React.FC = () => {
                                 {cluster.metadata.name}
                               </Link>
                             </td>
-                            <td>{cluster.metadata.namespace}</td>
                             <td>{getClusterPurpose(cluster)}</td>
                             <td>
                               <ServiceStatus resourceClaim={cluster} />
