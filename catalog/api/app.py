@@ -866,7 +866,11 @@ async def sandbox_onboard(request):
     annotations = copy.deepcopy(sandbox_host.get('annotations', {}))
     for key, value in annotations.items():
         if isinstance(value, str) and '{{' in value:
-            annotations[key] = sandbox_host_purpose
+            annotations[key] = re.sub(
+                r'\{\{\s*(\w+)\s*\}\}',
+                lambda m: str(parameter_values.get(m.group(1), m.group(0))),
+                value,
+            )
 
     config = {
         'name': cluster_name,
