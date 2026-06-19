@@ -835,7 +835,6 @@ async def sandbox_onboard(request):
     )
 
     parameter_values = resource_claim.get('spec', {}).get('provider', {}).get('parameterValues', {})
-    sandbox_host_purpose = parameter_values.get('sandbox_host_purpose', '')
     provider_name = resource_claim.get('spec', {}).get('provider', {}).get('name', '')
     if not provider_name:
         raise web.HTTPBadRequest(reason="ResourceClaim has no provider name")
