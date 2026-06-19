@@ -821,9 +821,65 @@ async def sandbox_placements(request):
         params={"service_uuid": service_uuid},
     )
 
-@routes.post("/api/resourceclaims/{uuid}/sandbox/placements")
-async def sandbox_placements_onboard(request):
-    service_uuid = request.match_info.get('uuid')
+@routes.post("/api/resourceclaims/{namespace}/{name}/sandbox/onboard")
+async def sandbox_onboard(request):
+    namespace = request.match_info.get('namespace')
+    name = request.match_info.get('name')
+
+    resource_claim = await custom_objects_api.get_namespaced_custom_object(
+        group='poolboy.gpte.redhat.com',
+        version='v1',
+        namespace=namespace,
+        plural='resourceclaims',
+        name=name,
+    )
+
+    parameter_values = resource_claim.get('spec', {}).get('provider', {}).get('parameterValues', {})
+    sandbox_host_purpose = parameter_values.get('sandbox_host_purpose', '')
+    provider_name = resource_claim.get('spec', {}).get('provider', {}).get('name', '')
+    if not provider_name:
+        raise web.HTTPBadRequest(reason="ResourceClaim has no provider name")
+
+    agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
+        group='gpte.redhat.com',
+        version='v1',
+        namespace='babylon-config',
+        plural='agnosticvcomponents',
+        name=provider_name,
+    )
+
+    meta = agnosticv_component.get('spec', {}).get('definition', {}).get('__meta__', {})
+    sandbox_host = meta.get('sandbox_host')
+    if not sandbox_host:
+        raise web.HTTPBadRequest(reason="AgnosticV component has no sandbox_host configuration")
+
+    guid = resource_claim.get('status', {}).get('resourceHandle', {}).get('name', '')
+    resources = resource_claim.get('status', {}).get('resources', [])
+    anarchy_subject = resources[0].get('state', {}) if resources else {}
+    anarchy_vars = anarchy_subject.get('spec', {}).get('vars', {})
+    provision_data = anarchy_vars.get('provision_data', {})
+
+    api_url = provision_data.get('openshift_api_url', '')
+    ingress_domain = provision_data.get('openshift_ingress_domain', '')
+    cluster_name = guid or name
+
+    annotations = copy.deepcopy(sandbox_host.get('annotations', {}))
+    for key, value in annotations.items():
+        if isinstance(value, str) and '{{' in value:
+            annotations[key] = sandbox_host_purpose
+
+    config = {
+        'name': cluster_name,
+        'api_url': api_url,
+        'ingress_domain': ingress_domain,
+        'annotations': annotations,
+    }
+
+    for key in ['max_placements', 'max_cpu_usage_percentage', 'max_memory_usage_percentage',
+                'quota_required', 'deployer_admin_sa_token_ttl',
+                'deployer_admin_sa_token_refresh_interval', 'deployer_admin_sa_token_target_var']:
+        if key in sandbox_host:
+            config[key] = sandbox_host[key]
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
@@ -837,26 +893,15 @@ async def sandbox_placements_onboard(request):
             if not access_token:
                 raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
 
-    request_data = await request.json()
-    kind = request_data.get('kind')
-    count = request_data.get('count')
-    if not kind:
-        raise web.HTTPBadRequest(reason="kind is required")
-    if count is None:
-        raise web.HTTPBadRequest(reason="count is required")
-
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
     return await api_proxy(
         headers=headers,
-        method="POST",
-        url=f"{sandbox_api}/api/v1/placements",
-        data=json.dumps({
-            "service_uuid": service_uuid,
-            "resources": [{"kind": kind, "count": count}],
-        }),
+        method="PUT",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}",
+        data=json.dumps(config),
     )
 
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")

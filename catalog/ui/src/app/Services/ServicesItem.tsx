@@ -60,7 +60,7 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
-  onboardSandboxPlacements,
+  onboardSandboxApi,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -372,7 +372,6 @@ const ServicesItemComponent: React.FC<{
     silentFetcher,
     { shouldRetryOnError: false, suspense: false },
   );
-  const [onboardCount, setOnboardCount] = useState(1);
   const [onboardLoading, setOnboardLoading] = useState(false);
 
   const [serviceAlias, setServiceAlias] = useState(
@@ -1239,37 +1238,22 @@ const ServicesItemComponent: React.FC<{
                             >
                               <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
                             </Alert>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Placements</span>
-                              <NumberInput
-                                value={onboardCount}
-                                min={1}
-                                max={100}
-                                onMinus={() => setOnboardCount(Math.max(1, onboardCount - 1))}
-                                onPlus={() => setOnboardCount(onboardCount + 1)}
-                                onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                                  const val = parseInt((event.target as HTMLInputElement).value, 10);
-                                  if (!isNaN(val) && val >= 1) setOnboardCount(val);
-                                }}
-                                widthChars={3}
-                              />
-                              <Button
-                                variant="primary"
-                                isLoading={onboardLoading}
-                                isDisabled={onboardLoading}
-                                onClick={async () => {
-                                  setOnboardLoading(true);
-                                  try {
-                                    await onboardSandboxPlacements(resourceClaim.metadata.uid, 'OcpSandbox', onboardCount);
-                                    mutatePlacements();
-                                  } finally {
-                                    setOnboardLoading(false);
-                                  }
-                                }}
-                              >
-                                Onboard to Sandbox API
-                              </Button>
-                            </div>
+                            <Button
+                              variant="primary"
+                              isLoading={onboardLoading}
+                              isDisabled={onboardLoading}
+                              onClick={async () => {
+                                setOnboardLoading(true);
+                                try {
+                                  await onboardSandboxApi(serviceNamespaceName, resourceClaimName);
+                                  mutatePlacements();
+                                } finally {
+                                  setOnboardLoading(false);
+                                }
+                              }}
+                            >
+                              Onboard to Sandbox API
+                            </Button>
                           </div>
                         )}
                       </DescriptionListDescription>

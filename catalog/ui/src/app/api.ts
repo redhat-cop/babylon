@@ -2558,6 +2558,8 @@ export const apiPaths = {
     `/api/catalog_item/metrics/${asset_uuid}${environment ? `?environment=${environment}` : ''}`,
   SANDBOX_PLACEMENTS: ({ serviceUuid }: { serviceUuid: string }) =>
     `/api/resourceclaims/${serviceUuid}/sandbox/placements`,
+  SANDBOX_ONBOARD: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/api/resourceclaims/${namespace}/${name}/sandbox/onboard`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2844,11 +2846,9 @@ export async function updateSystemStatus(status: Partial<SystemStatus>): Promise
   return response.json();
 }
 
-export async function onboardSandboxPlacements(serviceUuid: string, kind: string, count: number): Promise<unknown> {
-  const response = await apiFetch(apiPaths.SANDBOX_PLACEMENTS({ serviceUuid }), {
+export async function onboardSandboxApi(namespace: string, name: string): Promise<unknown> {
+  const response = await apiFetch(apiPaths.SANDBOX_ONBOARD({ namespace, name }), {
     method: 'POST',
-    body: JSON.stringify({ kind, count }),
-    headers: { 'Content-Type': 'application/json' },
   });
   return response.json();
 }
