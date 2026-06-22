@@ -795,6 +795,210 @@ async def catalog_item_check_availability(request):
         url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
+@routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}/placements")
+async def sandbox_cluster_placements(request):
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/placements",
+    )
+
+@routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}")
+async def sandbox_cluster_config(request):
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}",
+    )
+
+@routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/enable")
+async def sandbox_cluster_enable(request):
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="PUT",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/enable",
+    )
+
+@routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/disable")
+async def sandbox_cluster_disable(request):
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="PUT",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/disable",
+    )
+
+@routes.delete("/api/sandbox/ocp-shared-cluster-configurations/{name}/offboard")
+async def sandbox_cluster_offboard(request):
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="DELETE",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/offboard",
+    )
+
+@routes.post("/api/sandbox/ocp-shared-cluster-configurations/{guid}/onboard")
+async def sandbox_onboard(request):
+    guid = request.match_info.get('guid')
+
+    resource_handle = await custom_objects_api.get_namespaced_custom_object(
+        group='poolboy.gpte.redhat.com',
+        version='v1',
+        namespace='poolboy',
+        plural='resourcehandles',
+        name=guid,
+    )
+
+    parameter_values = resource_handle.get('spec', {}).get('provider', {}).get('parameterValues', {})
+    provider_name = resource_handle.get('spec', {}).get('provider', {}).get('name', '')
+    if not provider_name:
+        raise web.HTTPBadRequest(reason="ResourceHandle has no provider name")
+
+    agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
+        group='gpte.redhat.com',
+        version='v1',
+        namespace='babylon-config',
+        plural='agnosticvcomponents',
+        name=provider_name,
+    )
+
+    meta = agnosticv_component.get('spec', {}).get('definition', {}).get('__meta__', {})
+    sandbox_host = meta.get('sandbox_host')
+    if not sandbox_host:
+        raise web.HTTPBadRequest(reason="AgnosticV component has no sandbox_host configuration")
+
+    provision_data = resource_handle.get('status', {}).get('summary', {}).get('provision_data', {})
+    api_url = provision_data.get('openshift_api_url', '')
+    ingress_domain = provision_data.get('openshift_cluster_ingress_domain', '')
+
+    annotations = copy.deepcopy(sandbox_host.get('annotations', {}))
+    for key, value in annotations.items():
+        if isinstance(value, str) and '{{' in value:
+            annotations[key] = re.sub(
+                r'\{\{\s*(\w+)\s*\}\}',
+                lambda m: str(parameter_values.get(m.group(1), m.group(0))),
+                value,
+            )
+
+    config = {
+        'name': guid,
+        'api_url': api_url,
+        'ingress_domain': ingress_domain,
+        'annotations': annotations,
+    }
+
+    for key in ['max_placements', 'max_cpu_usage_percentage', 'max_memory_usage_percentage',
+                'quota_required', 'deployer_admin_sa_token_ttl',
+                'deployer_admin_sa_token_refresh_interval', 'deployer_admin_sa_token_target_var']:
+        if key in sandbox_host:
+            config[key] = sandbox_host[key]
+
+    async with aiohttp.ClientSession() as session:
+        login_headers = {
+            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+        }
+        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="PUT",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{guid}",
+        data=json.dumps(config),
+    )
+
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")
 async def catalog_item_metrics(request):
     asset_uuid = request.match_info.get('asset_uuid')

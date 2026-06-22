@@ -60,6 +60,10 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
+  onboardSandboxApi,
+  enableSandboxCluster,
+  disableSandboxCluster,
+  offboardSandboxCluster,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -120,6 +124,7 @@ import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ReorderModal from '@app/components/ReorderModal';
@@ -359,6 +364,30 @@ const ServicesItemComponent: React.FC<{
       : null,
     silentFetcher,
   );
+
+  const isSharedClusterItem = !!(resourceClaim.spec?.provider?.parameterValues as Record<string, unknown>)?.sandbox_host_purpose;
+  const clusterName = resourceClaim.status?.resourceHandle?.name || '';
+  const {
+    data: placementsData,
+    mutate: mutatePlacements,
+  } = useSWR(
+    isSharedClusterItem && clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  const isOnboarded = !!placementsData?.placements;
+  const {
+    data: clusterConfigData,
+    mutate: mutateClusterConfig,
+  } = useSWR(
+    isSharedClusterItem && clusterName && isOnboarded ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  const isClusterEnabled = clusterConfigData?.valid === true;
+  const [onboardLoading, setOnboardLoading] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
+  const [offboardLoading, setOffboardLoading] = useState(false);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -1193,6 +1222,102 @@ const ServicesItemComponent: React.FC<{
                       <ServiceStatus resourceClaim={resourceClaim} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  {isSharedClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Active Placements</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {placementsData?.placements ? placementsData.placements.length : 0}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
+                  {isSharedClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Sandbox API Status</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {isOnboarded ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                              Onboarded — {isClusterEnabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                            <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                              <Button
+                                variant={isClusterEnabled ? 'secondary' : 'primary'}
+                                isDanger={isClusterEnabled}
+                                isLoading={toggleLoading}
+                                isDisabled={toggleLoading || offboardLoading || !clusterConfigData}
+                                onClick={async () => {
+                                  setToggleLoading(true);
+                                  try {
+                                    if (isClusterEnabled) {
+                                      await disableSandboxCluster(clusterName);
+                                    } else {
+                                      await enableSandboxCluster(clusterName);
+                                    }
+                                    mutateClusterConfig();
+                                  } finally {
+                                    setToggleLoading(false);
+                                  }
+                                }}
+                              >
+                                {isClusterEnabled ? 'Disable' : 'Enable'}
+                              </Button>
+                              {!isClusterEnabled ? (
+                                <Button
+                                  variant="secondary"
+                                  isDanger
+                                  isLoading={offboardLoading}
+                                  isDisabled={offboardLoading || toggleLoading}
+                                  onClick={async () => {
+                                    setOffboardLoading(true);
+                                    try {
+                                      await offboardSandboxCluster(clusterName);
+                                      mutatePlacements();
+                                      mutateClusterConfig();
+                                    } finally {
+                                      setOffboardLoading(false);
+                                    }
+                                  }}
+                                >
+                                  Offboard
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+                            <Alert
+                              variant="warning"
+                              isInline
+                              isPlain
+                              title="This cluster is not registered with the Sandbox API"
+                            >
+                              <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
+                            </Alert>
+                            <Button
+                              style={{ alignSelf: 'flex-start' }}
+                              variant="primary"
+                              isLoading={onboardLoading}
+                              isDisabled={onboardLoading}
+                              onClick={async () => {
+                                setOnboardLoading(true);
+                                try {
+                                  await onboardSandboxApi(clusterName);
+                                  mutatePlacements();
+                                } finally {
+                                  setOnboardLoading(false);
+                                }
+                              }}
+                            >
+                              Onboard to Sandbox API
+                            </Button>
+                          </div>
+                        )}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
                   {!isManagedInstance && sfdc_enabled ? (
                     <DescriptionListGroup>

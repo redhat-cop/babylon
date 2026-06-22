@@ -270,11 +270,11 @@ function initDates(catalogItem: CatalogItem, currTime?: number) {
     _currTime = currTime;
   }
   return {
-    startDate: currTime ? new Date(currTime) : null, // Provisioning start date is the current time
+    startDate: currTime ? new Date(currTime) : null,
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
-      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')), // Base on provisioning date
-    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')), // Base on provisioning date
+      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 

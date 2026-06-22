@@ -48,6 +48,120 @@
 }
 
 /* ========================================
+   Shared Clusters table
+   ======================================== */
+
+.shared-clusters-table-wrap {
+  overflow-x: auto;
+}
+
+.shared-clusters-table-wrap table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.shared-clusters-table-wrap thead th {
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--pf-t--global--border--color--default);
+  white-space: nowrap;
+}
+
+.shared-clusters-table-wrap td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+.shared-clusters-table-wrap tbody tr {
+  border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 40%, transparent);
+}
+
+.shared-clusters-group-header {
+  background: var(--pf-t--global--background--color--secondary--default);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.shared-clusters-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular));
+}
+
+.shared-clusters-expand-cell {
+  text-align: center;
+  width: 28px;
+}
+
+.shared-clusters-expand-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  transition: transform 0.15s ease;
+}
+
+.shared-clusters-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 97%, var(--pf-t--global--text--color--subtle));
+  border-left: 2px solid var(--pf-t--global--color--status--info--default);
+}
+
+.shared-clusters-status-cell {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.shared-clusters-status-cell > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, transparent);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.shared-clusters-muted {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.shared-clusters-name-link {
+  color: var(--pf-t--global--color--brand--default);
+  text-decoration: none;
+}
+
+.shared-clusters-name-link:hover {
+  text-decoration: underline;
+}
+
+/* Dark mode */
+:root.pf-v6-theme-dark .shared-clusters-table-wrap thead th {
+  border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-table-wrap tbody tr {
+  border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 50%, transparent);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-group-header {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 92%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-status-cell > div {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, transparent);
+}
+
+/* ========================================
    Compact Operation Cards
    ======================================== */
 

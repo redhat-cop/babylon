@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import useSWR from 'swr';
 import { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import {
+  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
@@ -16,7 +18,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, deleteResourceClaim, fetcher } from '@app/api';
+import { apiPaths, deleteResourceClaim, fetcher, silentFetcher } from '@app/api';
 import { ResourceClaim, ResourceClaimList } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
@@ -103,6 +105,16 @@ function keywordMatch(r: ResourceClaim, keyword: string): boolean {
   if (purpose.toLowerCase().includes(kw)) return true;
   return false;
 }
+
+const PlacementsCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
+  const { data } = useSWR(
+    clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  if (!data?.placements) return <span className="shared-clusters-muted">-</span>;
+  return <span>{data.placements.length}</span>;
+};
 
 const SharedClusters: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -198,7 +210,9 @@ const SharedClusters: React.FC = () => {
   );
 
   const resourceClaims: ResourceClaim[] = useMemo(
-    () => [].concat(...(resourceClaimsPages || []).map((page) => page.items)).filter(filterResourceClaim),
+    () => [].concat(...(resourceClaimsPages || []).map((page) => page.items))
+      .filter((rc: ResourceClaim) => !rc.metadata.deletionTimestamp)
+      .filter(filterResourceClaim),
     [filterResourceClaim, resourceClaimsPages],
   );
 
@@ -304,94 +318,101 @@ const SharedClusters: React.FC = () => {
         </PageSection>
       ) : (
         <PageSection hasBodyWrapper={false} key="body" className="admin-body">
-          <table className="pf-v6-c-table pf-m-grid-md" role="grid">
-            <thead>
-              <tr>
-                <th style={{ width: '40px' }}></th>
-                <th>Name</th>
-                <th>Purpose</th>
-                <th>Status</th>
-                <th>Placements</th>
-                <th>Sandbox API</th>
-                <th>Created At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group) => {
-                const groupKey = `${group.catalogItemNamespace}/${group.catalogItemName}`;
-                const isExpanded = expandedGroups.has(groupKey);
-                const clusterCount = group.clusters.length;
-                const statusSummary = getGroupStatusSummary(group.clusters);
-                const allRunning = group.clusters.every((c) => getClusterStatus(c) === 'Running');
+          <div className="shared-clusters-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '28px' }}></th>
+                  <th>Name</th>
+                  <th>Purpose</th>
+                  <th>Status</th>
+                  <th>Placements</th>
+                  <th>Sandbox API</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group) => {
+                  const groupKey = `${group.catalogItemNamespace}/${group.catalogItemName}`;
+                  const isExpanded = expandedGroups.has(groupKey);
+                  const clusterCount = group.clusters.length;
+                  const statusSummary = getGroupStatusSummary(group.clusters);
 
-                return (
-                  <React.Fragment key={groupKey}>
-                    <tr
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => toggleGroup(groupKey)}
-                    >
-                      <td style={{ width: '40px', textAlign: 'center' }}>
-                        {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
-                      </td>
-                      <td>
-                        <strong>{group.catalogItemDisplayName} (Cluster)</strong>{' '}
-                        <Label isCompact>
-                          {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
-                        </Label>
-                      </td>
-                      <td></td>
-                      <td>
-                        <span
-                          className={allRunning ? 'service-status--running' : 'service-status--in-progress'}
-                          style={{ textTransform: 'capitalize' }}
-                        >
-                          {statusSummary}
-                        </span>
-                      </td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                    {isExpanded
-                      ? group.clusters.map((cluster) => (
-                          <tr key={cluster.metadata.uid}>
-                            <td></td>
-                            <td style={{ paddingLeft: 'var(--pf-t--global--spacer--xl)' }}>
-                              <Link
-                                to={`/services/${cluster.metadata.namespace}/${cluster.metadata.name}`}
-                                style={{ color: 'var(--pf-t--color--orange--60)' }}
-                              >
-                                {cluster.metadata.name}
-                              </Link>
-                            </td>
-                            <td>{getClusterPurpose(cluster)}</td>
-                            <td>
-                              <ServiceStatus resourceClaim={cluster} />
-                            </td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td>
-                              <TimeInterval toTimestamp={cluster.metadata.creationTimestamp} />
-                            </td>
-                            <td>
-                              <button
-                                className="pf-v6-c-button pf-m-plain"
-                                onClick={() => showDeleteModal(cluster)}
-                                aria-label={`Delete ${cluster.metadata.name}`}
-                              >
-                                <TrashIcon />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      : null}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <React.Fragment key={groupKey}>
+                      <tr
+                        className="shared-clusters-group-header"
+                        onClick={() => toggleGroup(groupKey)}
+                      >
+                        <td className="shared-clusters-expand-cell">
+                          {isExpanded ? (
+                            <AngleDownIcon className="shared-clusters-expand-icon" />
+                          ) : (
+                            <AngleRightIcon className="shared-clusters-expand-icon" />
+                          )}
+                        </td>
+                        <td>
+                          <strong>{group.catalogItemDisplayName} (Cluster)</strong>{' '}
+                          <Label isCompact color="blue">
+                            {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
+                          </Label>
+                        </td>
+                        <td></td>
+                        <td>
+                          <div className="shared-clusters-status-cell">
+                            <div>{statusSummary}</div>
+                          </div>
+                        </td>
+                        <td className="shared-clusters-muted">-</td>
+                        <td className="shared-clusters-muted">-</td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                      {isExpanded
+                        ? group.clusters.map((cluster) => (
+                            <tr key={cluster.metadata.uid} className="shared-clusters-child-row">
+                              <td></td>
+                              <td>
+                                <Link
+                                  to={`/services/${cluster.metadata.namespace}/${cluster.metadata.name}`}
+                                  className="shared-clusters-name-link"
+                                >
+                                  {cluster.metadata.name}
+                                </Link>
+                              </td>
+                              <td>{getClusterPurpose(cluster)}</td>
+                              <td>
+                                <div className="shared-clusters-status-cell">
+                                  <ServiceStatus resourceClaim={cluster} />
+                                </div>
+                              </td>
+                              <td>
+                                <PlacementsCell clusterName={cluster.status?.resourceHandle?.name || ''} />
+                              </td>
+                              <td className="shared-clusters-muted">-</td>
+                              <td>
+                                <TimeInterval toTimestamp={cluster.metadata.creationTimestamp} />
+                              </td>
+                              <td>
+                                <Button
+                                  variant="plain"
+                                  size="sm"
+                                  onClick={() => showDeleteModal(cluster)}
+                                  aria-label={`Delete ${cluster.metadata.name}`}
+                                >
+                                  <TrashIcon />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        : null}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {!isReachingEnd ? <EmptyState icon={LoadingIcon} variant="full"></EmptyState> : null}
         </PageSection>
       )}
