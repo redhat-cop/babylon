@@ -18,7 +18,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { BABYLON_DOMAIN, compareK8sObjects } from '@app/util';
 import { ResourceClaim, ResourceHandle } from '@app/types';

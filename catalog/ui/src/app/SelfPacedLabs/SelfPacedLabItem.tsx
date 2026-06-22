@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import MonacoEditor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,

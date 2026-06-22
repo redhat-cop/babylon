@@ -26,7 +26,7 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   apiPaths,
   createResourcePoolScaling,

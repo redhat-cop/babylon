@@ -16,7 +16,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
 import { ResourceProvider, ResourceProviderList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';

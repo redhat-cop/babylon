@@ -21,7 +21,7 @@ import {
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyRun, fetcher, retryAnarchyRun } from '@app/api';
 import { AnarchyRun } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';

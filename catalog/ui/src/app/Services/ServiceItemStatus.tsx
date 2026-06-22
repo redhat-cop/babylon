@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 import { BABYLON_DOMAIN } from '@app/util';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { AnarchySubject, ResourceClaim, ResourceClaimSpecResourceTemplate } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 
