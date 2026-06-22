@@ -22,7 +22,7 @@ RUN npm install -g pnpm@11.1.2
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 COPY ./ ./
-RUN pnpm run build
+RUN NODE_ENV=production pnpm run build
 
 # Server image
 FROM registry.access.redhat.com/ubi8/nginx-118:latest
