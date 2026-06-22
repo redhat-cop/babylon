@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,

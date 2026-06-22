@@ -17,7 +17,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyAction, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
 import { AnarchyAction, AnarchyRunList } from '@app/types';

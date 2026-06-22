@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';

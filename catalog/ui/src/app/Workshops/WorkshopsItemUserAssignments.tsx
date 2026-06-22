@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   ActionGroup,
   Button,

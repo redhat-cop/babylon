@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useSWR, { mutate } from 'swr';
 import { DragDropSort, DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
 import {

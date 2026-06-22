@@ -5,7 +5,7 @@ import { Checkbox, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } 
 import { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useMatchMutate from '@app/utils/useMatchMutate';
 
 const formFieldStyle: CSSProperties = {
