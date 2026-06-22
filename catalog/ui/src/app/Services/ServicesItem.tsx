@@ -90,6 +90,7 @@ import {
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
   DEMO_DOMAIN,
+  extractErrorMessage,
   getWhiteGloved,
   parseSalesforceItems,
 } from '@app/util';
@@ -118,6 +119,7 @@ import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
+import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
@@ -369,6 +371,7 @@ const ServicesItemComponent: React.FC<{
   const clusterName = resourceClaim.status?.resourceHandle?.name || '';
   const {
     data: placementsData,
+    isLoading: placementsLoading,
     mutate: mutatePlacements,
   } = useSWR(
     isSharedClusterItem && clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
@@ -385,9 +388,13 @@ const ServicesItemComponent: React.FC<{
     { shouldRetryOnError: false, suspense: false },
   );
   const isClusterEnabled = clusterConfigData?.valid === true;
+  const isClusterLocked = clusterConfigData?.settings?.locked === true;
+  const clusterLockMessage = clusterConfigData?.settings?.lock_message as string | undefined;
   const [onboardLoading, setOnboardLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
   const [offboardLoading, setOffboardLoading] = useState(false);
+  const [sandboxError, setSandboxError] = useState<string | null>(null);
+  const [sandboxInfo, setSandboxInfo] = useState<string | null>(null);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -1236,53 +1243,89 @@ const ServicesItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Sandbox API Status</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {isOnboarded ? (
+                        {placementsLoading ? (
+                          <Spinner size="md" />
+                        ) : isOnboarded ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                               <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
                               Onboarded — {isClusterEnabled ? 'Enabled' : 'Disabled'}
+                              {isClusterLocked ? (
+                                <Tooltip content={clusterLockMessage || 'Cluster configuration is locked'}>
+                                  <LockIcon />
+                                </Tooltip>
+                              ) : null}
                             </span>
+                            {sandboxError ? (
+                              <Alert variant="danger" isInline isPlain title={sandboxError} />
+                            ) : null}
+                            {sandboxInfo ? (
+                              <Alert variant="info" isInline isPlain title={sandboxInfo} />
+                            ) : null}
                             <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                              <Button
-                                variant={isClusterEnabled ? 'secondary' : 'primary'}
-                                isDanger={isClusterEnabled}
-                                isLoading={toggleLoading}
-                                isDisabled={toggleLoading || offboardLoading || !clusterConfigData}
-                                onClick={async () => {
-                                  setToggleLoading(true);
-                                  try {
-                                    if (isClusterEnabled) {
-                                      await disableSandboxCluster(clusterName);
-                                    } else {
-                                      await enableSandboxCluster(clusterName);
-                                    }
-                                    mutateClusterConfig();
-                                  } finally {
-                                    setToggleLoading(false);
-                                  }
-                                }}
+                              <Tooltip
+                                content={isClusterLocked ? (clusterLockMessage || 'Cluster configuration is locked') : ''}
+                                trigger={isClusterLocked ? 'mouseenter focus' : 'manual'}
                               >
-                                {isClusterEnabled ? 'Disable' : 'Enable'}
-                              </Button>
-                              {!isClusterEnabled ? (
                                 <Button
-                                  variant="secondary"
-                                  isDanger
-                                  isLoading={offboardLoading}
-                                  isDisabled={offboardLoading || toggleLoading}
+                                  variant={isClusterEnabled ? 'secondary' : 'primary'}
+                                  isDanger={isClusterEnabled}
+                                  isLoading={toggleLoading}
+                                  isDisabled={toggleLoading || offboardLoading || !clusterConfigData || isClusterLocked}
                                   onClick={async () => {
-                                    setOffboardLoading(true);
+                                    setToggleLoading(true);
+                                    setSandboxError(null);
+                                    setSandboxInfo(null);
                                     try {
-                                      await offboardSandboxCluster(clusterName);
-                                      mutatePlacements();
+                                      if (isClusterEnabled) {
+                                        await disableSandboxCluster(clusterName);
+                                      } else {
+                                        await enableSandboxCluster(clusterName);
+                                      }
                                       mutateClusterConfig();
+                                    } catch (err) {
+                                      const message = await extractErrorMessage(err, `Failed to ${isClusterEnabled ? 'disable' : 'enable'} cluster`);
+                                      setSandboxError(message);
                                     } finally {
-                                      setOffboardLoading(false);
+                                      setToggleLoading(false);
                                     }
                                   }}
                                 >
-                                  Offboard
+                                  {isClusterEnabled ? 'Disable' : 'Enable'}
                                 </Button>
+                              </Tooltip>
+                              {!isClusterEnabled ? (
+                                <Tooltip
+                                  content={isClusterLocked ? (clusterLockMessage || 'Cluster configuration is locked') : ''}
+                                  trigger={isClusterLocked ? 'mouseenter focus' : 'manual'}
+                                >
+                                  <Button
+                                    variant="secondary"
+                                    isDanger
+                                    isLoading={offboardLoading}
+                                    isDisabled={offboardLoading || toggleLoading || isClusterLocked}
+                                    onClick={async () => {
+                                      setOffboardLoading(true);
+                                      setSandboxError(null);
+                                      setSandboxInfo(null);
+                                      try {
+                                        const result = await offboardSandboxCluster(clusterName) as { request_id?: string; status?: string; message?: string };
+                                        if (result?.request_id && result?.status !== 'success') {
+                                          setSandboxInfo(result.message || 'Offboarding in progress. The cluster will be removed once cleanup completes.');
+                                        }
+                                        mutatePlacements();
+                                        mutateClusterConfig();
+                                      } catch (err) {
+                                        const message = await extractErrorMessage(err, 'Failed to offboard cluster');
+                                        setSandboxError(message);
+                                      } finally {
+                                        setOffboardLoading(false);
+                                      }
+                                    }}
+                                  >
+                                    Offboard
+                                  </Button>
+                                </Tooltip>
                               ) : null}
                             </div>
                           </div>
@@ -1296,6 +1339,9 @@ const ServicesItemComponent: React.FC<{
                             >
                               <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
                             </Alert>
+                            {sandboxError ? (
+                              <Alert variant="danger" isInline isPlain title={sandboxError} />
+                            ) : null}
                             <Button
                               style={{ alignSelf: 'flex-start' }}
                               variant="primary"
@@ -1303,9 +1349,14 @@ const ServicesItemComponent: React.FC<{
                               isDisabled={onboardLoading}
                               onClick={async () => {
                                 setOnboardLoading(true);
+                                setSandboxError(null);
+                                setSandboxInfo(null);
                                 try {
                                   await onboardSandboxApi(clusterName);
                                   mutatePlacements();
+                                } catch (err) {
+                                  const message = await extractErrorMessage(err, 'Failed to onboard cluster');
+                                  setSandboxError(message);
                                 } finally {
                                   setOnboardLoading(false);
                                 }

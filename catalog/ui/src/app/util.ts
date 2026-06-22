@@ -546,12 +546,21 @@ export function getFirstSalesforceItem(annotations: Record<string, string>): Sal
 export function upsertSalesforceItem(annotations: Record<string, string>, newItem: SalesforceItem): void {
   const items = parseSalesforceItems(annotations);
   const existingIndex = items.findIndex(item => item.type === newItem.type);
-  
+
   if (existingIndex >= 0) {
     items[existingIndex] = newItem;
   } else {
     items.push(newItem);
   }
-  
+
   setSalesforceItems(annotations, items);
+}
+
+export async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {
+  try {
+    const body = await (err as Response).json();
+    return body?.message || fallback;
+  } catch {
+    return fallback;
+  }
 }
