@@ -2556,10 +2556,12 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
   ASSET_METRICS: ({ asset_uuid, environment }: { asset_uuid: string; environment?: string }) =>
     `/api/catalog_item/metrics/${asset_uuid}${environment ? `?environment=${environment}` : ''}`,
-  SANDBOX_PLACEMENTS: ({ serviceUuid }: { serviceUuid: string }) =>
-    `/api/resourceclaims/${serviceUuid}/sandbox/placements`,
-  SANDBOX_ONBOARD: ({ namespace, name }: { namespace: string; name: string }) =>
-    `/api/resourceclaims/${namespace}/${name}/sandbox/onboard`,
+  SANDBOX_CLUSTER_PLACEMENTS: ({ clusterName }: { clusterName: string }) =>
+    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/placements`,
+  SANDBOX_CLUSTER_CONFIG: ({ clusterName }: { clusterName: string }) =>
+    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}`,
+  SANDBOX_ONBOARD: ({ clusterName }: { clusterName: string }) =>
+    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/onboard`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2846,8 +2848,29 @@ export async function updateSystemStatus(status: Partial<SystemStatus>): Promise
   return response.json();
 }
 
-export async function onboardSandboxApi(namespace: string, name: string): Promise<unknown> {
-  const response = await apiFetch(apiPaths.SANDBOX_ONBOARD({ namespace, name }), {
+export async function enableSandboxCluster(clusterName: string): Promise<unknown> {
+  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/enable`, {
+    method: 'PUT',
+  });
+  return response.json();
+}
+
+export async function disableSandboxCluster(clusterName: string): Promise<unknown> {
+  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/disable`, {
+    method: 'PUT',
+  });
+  return response.json();
+}
+
+export async function offboardSandboxCluster(clusterName: string): Promise<unknown> {
+  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/offboard`, {
+    method: 'DELETE',
+  });
+  return response.json();
+}
+
+export async function onboardSandboxApi(clusterName: string): Promise<unknown> {
+  const response = await apiFetch(apiPaths.SANDBOX_ONBOARD({ clusterName }), {
     method: 'POST',
   });
   return response.json();

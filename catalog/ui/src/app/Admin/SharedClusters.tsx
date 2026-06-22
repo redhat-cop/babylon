@@ -106,14 +106,14 @@ function keywordMatch(r: ResourceClaim, keyword: string): boolean {
   return false;
 }
 
-const PlacementsCell: React.FC<{ serviceUuid: string }> = ({ serviceUuid }) => {
+const PlacementsCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
   const { data } = useSWR(
-    serviceUuid ? apiPaths.SANDBOX_PLACEMENTS({ serviceUuid }) : null,
+    clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
     silentFetcher,
     { shouldRetryOnError: false, suspense: false },
   );
-  if (!data || !Array.isArray(data) || data.length === 0) return <span className="shared-clusters-muted">-</span>;
-  return <span>{data[0].resource_count}</span>;
+  if (!data?.placements) return <span className="shared-clusters-muted">-</span>;
+  return <span>{data.placements.length}</span>;
 };
 
 const SharedClusters: React.FC = () => {
@@ -388,7 +388,7 @@ const SharedClusters: React.FC = () => {
                                 </div>
                               </td>
                               <td>
-                                <PlacementsCell serviceUuid={cluster.metadata.uid} />
+                                <PlacementsCell clusterName={cluster.status?.resourceHandle?.name || ''} />
                               </td>
                               <td className="shared-clusters-muted">-</td>
                               <td>
