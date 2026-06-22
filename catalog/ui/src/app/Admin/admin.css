@@ -136,6 +136,19 @@
   text-decoration: underline;
 }
 
+.shared-clusters-onboarded {
+  color: var(--pf-t--global--color--status--success--default);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.shared-clusters-not-onboarded {
+  color: var(--pf-t--global--color--status--warning--default);
+  white-space: nowrap;
+}
+
 /* Dark mode */
 :root.pf-v6-theme-dark .shared-clusters-table-wrap thead th {
   border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
