@@ -17,6 +17,7 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, deleteResourceClaim, fetcher, silentFetcher } from '@app/api';
 import { ResourceClaim, ResourceClaimList } from '@app/types';
@@ -107,13 +108,102 @@ function keywordMatch(r: ResourceClaim, keyword: string): boolean {
 }
 
 const PlacementsCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
+  const { data: placementsData } = useSWR(
+    clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  const { data: configData } = useSWR(
+    clusterName ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, suspense: false },
+  );
+  const count = placementsData?.placements?.length ?? 0;
+  const max = configData?.max_placements;
+  if (!placementsData?.placements && !configData) return <span className="shared-clusters-muted">-</span>;
+  if (max != null) return <span>{count} / {max}</span>;
+  return <span>{count}</span>;
+};
+
+const SandboxApiCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
   const { data } = useSWR(
     clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
     silentFetcher,
     { shouldRetryOnError: false, suspense: false },
   );
-  if (!data?.placements) return <span className="shared-clusters-muted">-</span>;
-  return <span>{data.placements.length}</span>;
+  if (data === undefined) return <span className="shared-clusters-muted">-</span>;
+  if (data?.placements) {
+    return (
+      <span className="shared-clusters-onboarded">
+        <CheckCircleIcon /> Onboarded
+      </span>
+    );
+  }
+  return <span className="shared-clusters-not-onboarded">Not onboarded</span>;
+};
+
+const GroupSandboxCells: React.FC<{ clusters: ResourceClaim[] }> = ({ clusters }) => {
+  const clusterNames = useMemo(
+    () => clusters.map((c) => c.status?.resourceHandle?.name).filter(Boolean),
+    [clusters],
+  );
+  const sortedKey = useMemo(() => clusterNames.slice().sort().join(','), [clusterNames]);
+
+  const { data } = useSWR(
+    sortedKey ? `group-sandbox:${sortedKey}` : null,
+    async () => {
+      const results = await Promise.all(
+        clusterNames.map(async (name) => {
+          const [placementsRes, configRes] = await Promise.allSettled([
+            silentFetcher(apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName: name })),
+            silentFetcher(apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName: name })),
+          ]);
+          const placements = placementsRes.status === 'fulfilled' ? placementsRes.value : null;
+          const config = configRes.status === 'fulfilled' ? configRes.value : null;
+          return {
+            count: placements?.placements?.length ?? 0,
+            max: config?.max_placements ?? null,
+            isOnboarded: !!placements?.placements,
+          };
+        }),
+      );
+      return results;
+    },
+    { shouldRetryOnError: false, suspense: false },
+  );
+
+  if (!data) {
+    return (
+      <>
+        <td className="shared-clusters-muted">-</td>
+        <td className="shared-clusters-muted">-</td>
+      </>
+    );
+  }
+
+  const totalCurrent = data.reduce((sum, d) => sum + d.count, 0);
+  const totalMax = data.reduce((sum, d) => sum + (d.max ?? 0), 0);
+  const hasMax = data.some((d) => d.max != null);
+  const onboardedCount = data.filter((d) => d.isOnboarded).length;
+  const totalCount = data.length;
+  const allOnboarded = onboardedCount === totalCount;
+
+  return (
+    <>
+      <td>
+        {hasMax ? `${totalCurrent} / ${totalMax}` : totalCurrent}
+      </td>
+      <td>
+        <span className={allOnboarded ? 'shared-clusters-onboarded' : 'shared-clusters-not-onboarded'}>
+          {allOnboarded ? (
+            <><CheckCircleIcon /> Onboarded</>
+          ) : (
+            `${onboardedCount}/ ${totalCount} onboarded`
+          )}
+        </span>
+      </td>
+    </>
+  );
 };
 
 const SharedClusters: React.FC = () => {
@@ -364,8 +454,7 @@ const SharedClusters: React.FC = () => {
                             <div>{statusSummary}</div>
                           </div>
                         </td>
-                        <td className="shared-clusters-muted">-</td>
-                        <td className="shared-clusters-muted">-</td>
+                        <GroupSandboxCells clusters={group.clusters} />
                         <td></td>
                         <td></td>
                       </tr>
@@ -390,7 +479,9 @@ const SharedClusters: React.FC = () => {
                               <td>
                                 <PlacementsCell clusterName={cluster.status?.resourceHandle?.name || ''} />
                               </td>
-                              <td className="shared-clusters-muted">-</td>
+                              <td>
+                                <SandboxApiCell clusterName={cluster.status?.resourceHandle?.name || ''} />
+                              </td>
                               <td>
                                 <TimeInterval toTimestamp={cluster.metadata.creationTimestamp} />
                               </td>

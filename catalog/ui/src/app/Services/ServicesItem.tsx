@@ -1223,7 +1223,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {isSharedClusterItem ? (
+                  {isSharedClusterItem && clusterName ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Active Placements</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1232,7 +1232,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {isSharedClusterItem ? (
+                  {isSharedClusterItem && clusterName ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Sandbox API Status</DescriptionListTerm>
                       <DescriptionListDescription>
