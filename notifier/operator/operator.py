@@ -398,7 +398,6 @@ async def get_deployer_log(deployer_job, logger):
                 f"https://{hostname}/api/v2/jobs/{deployer_job.job_id}/stdout/?format=txt",
                 auth = aiohttp.BasicAuth(user, password),
                 raise_for_status = True,
-                verify_ssl = False,
             ) as response:
                 return await response.text()
     except Exception as err:
