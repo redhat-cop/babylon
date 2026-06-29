@@ -45,6 +45,11 @@ spec:
             secretKeyRef:
               name: sandbox-api
               key: sandbox-api-token
+        - name: SHARED_CLUSTER_MANAGER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sandbox-api-shared-cluster-manager
+              key: shared-cluster-manager-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

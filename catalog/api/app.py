@@ -32,6 +32,7 @@ ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-rati
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
+shared_cluster_manager_token = os.environ.get('SHARED_CLUSTER_MANAGER_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
@@ -801,7 +802,7 @@ async def sandbox_cluster_placements(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
@@ -826,7 +827,7 @@ async def sandbox_cluster_config(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
@@ -851,7 +852,7 @@ async def sandbox_cluster_enable(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
@@ -876,7 +877,7 @@ async def sandbox_cluster_disable(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
@@ -901,7 +902,7 @@ async def sandbox_cluster_offboard(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
@@ -978,7 +979,7 @@ async def sandbox_onboard(request):
 
     async with aiohttp.ClientSession() as session:
         login_headers = {
-            "Authorization": f"Bearer {sandbox_api_authorization_token}"
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
         async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:

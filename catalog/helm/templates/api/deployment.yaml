@@ -51,6 +51,11 @@ spec:
             secretKeyRef:
               name: {{ include "babylonCatalog.sandboxApiSecretName" . }}
               key: sandbox-api-token
+        - name: SHARED_CLUSTER_MANAGER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.sharedClusterManagerSecretName" . }}
+              key: shared-cluster-manager-token
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:

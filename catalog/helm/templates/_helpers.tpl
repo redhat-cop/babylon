@@ -227,3 +227,10 @@ Sandbox API secret name
 {{- define "babylonCatalog.sandboxApiSecretName" -}}
   {{- .Values.sandboxApi.secretName }}
 {{- end -}}
+
+{{/*
+Shared Cluster Manager secret name
+*/}}
+{{- define "babylonCatalog.sharedClusterManagerSecretName" -}}
+  {{- .Values.sharedClusterManager.secretName }}
+{{- end -}}

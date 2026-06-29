@@ -127,3 +127,7 @@ salesforceApi:
 sandboxApi:
   deploy: true
   secretName: sandbox-api
+
+sharedClusterManager:
+  deploy: true
+  secretName: sandbox-api-shared-cluster-manager
