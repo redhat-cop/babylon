@@ -77,16 +77,14 @@ class CatalogItem(K8sObject):
                     parameter_values[parameter.name] = all_job_vars[parameter.name]
             elif parameter.default is not None:
                 parameter_values[parameter.name] = parameter.default
+
         resource_provider = await self.get_resource_provider(cache=True)
         try:
             resource_provider_resources = await resource_provider.get_resources(
                 parameter_values=parameter_values,
                 cache=True,
             )
-        except (TypeError, jinja2.exceptions.UndefinedError):
-            if self.name == 'summit-2026.lb1390-hashi-aap.event' and resource_pool.name == 'summit-2026.lb1390-hashi-aap.event':
-                raise
-
+        except (TypeError, jinja2.exceptions.UndefinedError) as err:
             # Template evaluation failed, so must not match
             return False
 
@@ -137,10 +135,10 @@ class CatalogItemSpec:
             CatalogItemSpecLifespan(definition['lifespan'])
             if 'lifespan' in definition else None
         )
-        self.parameters = (
+        self.parameters = [
             CatalogItemSpecParameter(item)
             for item in definition.get('parameters', [])
-        )
+        ]
         self.runtime = (
             CatalogItemSpecLifespan(definition['runtime'])
             if 'runtime' in definition else None
