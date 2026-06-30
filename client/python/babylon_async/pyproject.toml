@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "babylon_async"
+version = "0.0.1"
+authors = [
+  { name="Johnathan Kupferer", email="jkupfere@redhat.com" },
+]
+description = "Babylon asynchronous library package"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/redhat-cop/babylon"
+Issues = "https://github.com/redhat-cop/babylon/issues"
