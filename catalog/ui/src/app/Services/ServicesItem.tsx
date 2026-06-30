@@ -389,6 +389,8 @@ const ServicesItemComponent: React.FC<{
   );
   const isClusterEnabled = clusterConfigData?.valid === true;
   const isClusterLocked = clusterConfigData?.settings?.locked === true;
+  const summaryState = resourceClaim.status?.summary?.state;
+  const isProvisioned = summaryState === 'started';
   const clusterLockMessage = clusterConfigData?.settings?.lock_message as string | undefined;
   const [onboardLoading, setOnboardLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
@@ -1342,28 +1344,33 @@ const ServicesItemComponent: React.FC<{
                             {sandboxError ? (
                               <Alert variant="danger" isInline isPlain title={sandboxError} />
                             ) : null}
-                            <Button
-                              style={{ alignSelf: 'flex-start' }}
-                              variant="primary"
-                              isLoading={onboardLoading}
-                              isDisabled={onboardLoading}
-                              onClick={async () => {
-                                setOnboardLoading(true);
-                                setSandboxError(null);
-                                setSandboxInfo(null);
-                                try {
-                                  await onboardSandboxApi(clusterName);
-                                  mutatePlacements();
-                                } catch (err) {
-                                  const message = await extractErrorMessage(err, 'Failed to onboard cluster');
-                                  setSandboxError(message);
-                                } finally {
-                                  setOnboardLoading(false);
-                                }
-                              }}
+                            <Tooltip
+                              content="The service must be fully provisioned before onboarding"
+                              trigger={!isProvisioned ? 'mouseenter focus' : 'manual'}
                             >
-                              Onboard to Sandbox API
-                            </Button>
+                              <Button
+                                style={{ alignSelf: 'flex-start' }}
+                                variant="primary"
+                                isLoading={onboardLoading}
+                                isDisabled={onboardLoading || !isProvisioned}
+                                onClick={async () => {
+                                  setOnboardLoading(true);
+                                  setSandboxError(null);
+                                  setSandboxInfo(null);
+                                  try {
+                                    await onboardSandboxApi(clusterName);
+                                    mutatePlacements();
+                                  } catch (err) {
+                                    const message = await extractErrorMessage(err, 'Failed to onboard cluster');
+                                    setSandboxError(message);
+                                  } finally {
+                                    setOnboardLoading(false);
+                                  }
+                                }}
+                              >
+                                Onboard to Sandbox API
+                              </Button>
+                            </Tooltip>
                           </div>
                         )}
                       </DescriptionListDescription>
