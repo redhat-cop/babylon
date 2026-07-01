@@ -61,6 +61,7 @@
   text-transform: capitalize;
 }
 
+.catalog-item-details__estimated-cost .pf-v6-c-description-list__text,
 .catalog-item-details__estimated-time .pf-v6-c-description-list__text,
 .catalog-item-details__last-update .pf-v6-c-description-list__text,
 .catalog-item-details__last-provision .pf-v6-c-description-list__text {

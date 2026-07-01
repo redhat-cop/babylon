@@ -51,6 +51,14 @@ export function getRating(catalogItem: CatalogItem): { ratingScore: number; tota
   }
   return null;
 }
+export type CostTier = 1 | 2 | 3;
+
+export function getCostTier(hourlyCost: number): CostTier {
+  if (hourlyCost <= 0.5) return 1;
+  if (hourlyCost <= 1.5) return 2;
+  return 3;
+}
+
 export function formatCurrency(value: number) {
   if (isNaN(value)) return null;
   const currencyFormatter = new Intl.NumberFormat('en-US', {

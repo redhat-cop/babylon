@@ -1,0 +1,20 @@
+.cost-tier-display {
+  display: inline-flex;
+  gap: 1px;
+  cursor: default;
+}
+
+.cost-tier-display__sign {
+  font-size: var(--pf-t--global--font--size--md);
+  line-height: 1;
+}
+
+.cost-tier-display__sign--active {
+  color: var(--pf-t--color--red--50, #ee0000);
+  font-weight: var(--pf-t--global--font--weight--400);
+}
+
+.cost-tier-display__sign--inactive {
+  color: var(--pf-t--color--gray--60);
+  opacity: 0.4;
+}

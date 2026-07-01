@@ -54,7 +54,6 @@ import {
   getRating,
   CUSTOM_LABELS,
   sortLabels,
-  formatCurrency,
   getLastSuccessfulProvisionTime,
   convertToGitHubUrl,
   getStatus,
@@ -65,6 +64,7 @@ import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import useHelpLink from '@app/utils/useHelpLink';
 import useSWRImmutable from 'swr/immutable';
 import UptimeDisplay from '@app/components/UptimeDisplay';
+import CostTierDisplay from '@app/components/CostTierDisplay';
 import { StarIcon } from '@patternfly/react-icons/dist/js/icons/star-icon';
 import { OutlinedStarIcon } from '@patternfly/react-icons/dist/js/icons/outlined-star-icon';
 
@@ -388,20 +388,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
               {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
-                  <DescriptionListTerm>
-                    Estimated Hourly Cost
-                    <Tooltip content="Estimated hourly cost if not stopped.">
-                      <InfoAltIcon
-                        style={{
-                          paddingTop: 'var(--pf-t--global--spacer--xs)',
-                          marginLeft: 'var(--pf-t--global--spacer--xs)',
-                          width: 'var(--pf-t--global--icon--size--font--xs)',
-                        }}
-                      />
-                    </Tooltip>
-                  </DescriptionListTerm>
+                  <DescriptionListTerm>Cost</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {formatCurrency(metrics?.medianLifetimeCostByHour * 1.1)}
+                    <CostTierDisplay hourlyCost={metrics.medianLifetimeCostByHour * 1.1} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}
