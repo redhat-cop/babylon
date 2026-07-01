@@ -1,3 +1,4 @@
+import json
 import kubernetes_asyncio
 import re
 
@@ -221,8 +222,15 @@ class ResourceClaim:
         for status_resource in self.definition['status']['resources']:
             resource_state = status_resource['state']
             if resource_state['kind'] == 'AnarchySubject':
-                message_body.extend(resource_state['spec'].get('vars', {}).get('provision_message_body', []))
-        return message_body
+                raw = resource_state['spec'].get('vars', {}).get('provision_message_body', [])
+                if isinstance(raw, str):
+                    try:
+                        raw = json.loads(raw)
+                    except (json.JSONDecodeError, TypeError):
+                        raw = [raw]
+                if isinstance(raw, list):
+                    message_body.extend(raw)
+        return [m for m in message_body if isinstance(m, str) and m.strip()]
 
     @property
     def provision_messages(self):
