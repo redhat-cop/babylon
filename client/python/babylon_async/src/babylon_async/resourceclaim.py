@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Mapping
+from typing import Any, List, Mapping
 
 from datetime import datetime, timedelta
 
@@ -14,14 +14,6 @@ class ResourceClaim(K8sObject):
     kind = "ResourceClaim"
     plural = "resourceclaims"
     api_group_version = f"{api_group}/{api_version}"
-
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = ResourceClaimSpec(definition['spec'])
-        self.status = (
-            ResourceClaimStatus(definition['status'])
-            if 'status' in definition else None
-        )
 
     @property
     def asset_uuid(self) -> str|None:
@@ -104,10 +96,20 @@ class ResourceClaim(K8sObject):
         return timedelta(seconds=pytimeparse.parse(self.status.summary['runtime_maximum']))
 
     @property
+    def spec(self) -> ResourceClaimSpec:
+        return ResourceClaimSpec(self.__definition['spec'])
+
+    @property
     def state(self) -> str|None:
         if self.status is None or self.status.summary is None:
             return None
         return self.status.summary.get('state')
+
+    @property
+    def status(self) -> ResourceClaimStatus|None:
+        if 'status' not in self.__definition:
+            return None
+        return ResourceClaimStatus(self.__definition['status'])
 
     @property
     def white_glove(self) -> bool:
@@ -137,148 +139,171 @@ class ResourceClaim(K8sObject):
             return self.metadata.labels.get('babylon.gpte.redhat.com/workshop-uid')
         return None
 
+
 class ResourceClaimSpec:
     def __init__(self, definition):
-        self.definition = definition
-        self.auto_detatch = (
-            ResourceClaimSpecAutoDetatch(definition['autoDetatch'])
-            if 'autoDetatch' in definition else None
-        )
-        self.lifespan = (
-            ResourceClaimSpecLifespan(definition['lifespan'])
-            if 'lifespan' in definition else None
-        )
-        self.provider = (
-            ResourceClaimSpecProvider(definition['provider'])
-            if 'provider' in definition else None
-        )
+        self.__definition = definition
 
-class ResourceClaimSpecAutoDetach:
+    @property
+    def auto_detatch(self) -> ResourceClaimSpecAutoDetatch|None:
+        if 'autoDetatch' not in self.__definition:
+            return None
+        return ResourceClaimSpecAutoDetatch(self.__definition['autoDetatch'])
+
+    @property
+    def lifespan(self) -> ResourceClaimSpecLifespan|None:
+        if 'lifespan' not in self.__definition:
+            return None
+        return ResourceClaimSpecLifespan(self.__definition['lifespan'])
+
+    @property
+    def provider(self) -> ResourceClaimSpecProvider|None:
+        if 'provider' not in self.__definition:
+            return None
+        return ResourceClaimSpecProvider(self.__definition['provider'])
+
+
+class ResourceClaimSpecAutoDetatch:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def when(self) -> str:
-        return self.definition['when']
+        return self.__definition['when']
 
 class ResourceClaimSpecLifespan:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def end(self) -> datetime|None:
-        if 'end' in self.definition:
-            return datetime.strptime(self.definition['end'], '%Y-%m-%dT%H:%M:%S%z')
+        if 'end' in self.__definition:
+            return datetime.strptime(self.__definition['end'], '%Y-%m-%dT%H:%M:%S%z')
         return None
 
 class ResourceClaimSpecProvider:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def name(self) -> str:
-        return self.definition['name']
+        return self.__definition['name']
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
-        return self.definition['parameterValues']
+        return self.__definition['parameterValues']
 
 class ResourceClaimStatus:
     def __init__(self, definition):
-        self.definition = definition
-        self.lifespan = (
-            ResourceClaimStatusLifespan(definition['lifespan'])
-            if 'lifespan' in definition else None
-        )
-        self.provider = (
-            ResourceClaimStatusProvider(definition['provider'])
-            if 'provider' in definition else None
-        )
-        self.resource_handle = (
-            ResourceReference(definition['resourceHandle'])
-            if 'resourceHandle' in definition else None
-        )
-        self.resources = (
-            [ResourceClaimStatusResource(item) for item in definition['resources']]
-            if 'resources' in definition else None
-        )
+        self.__definition = definition
 
     @property
     def healthy(self) -> bool|None:
-        return self.definition.get('healthy')
+        return self.__definition.get('healthy')
+
+    @property
+    def lifespan(self) -> ResourceClaimStatusLifespan|None:
+        if 'lifespan' not in self.__definition:
+            return None
+        return ResourceClaimStatusLifespan(self.__definition['lifespan'])
+
+    @property
+    def provider(self) -> ResourceClaimStatusProvider|None:
+        if 'provider' not in self.__definition:
+            return None
+        return ResourceClaimStatusProvider(self.__definition['provider'])
 
     @property
     def ready(self) -> bool|None:
-        return self.definition.get('ready')
+        return self.__definition.get('ready')
+
+    @property
+    def resource_handle(self) -> ResourceReference|None:
+        if 'resourceHandle' not in self.__definition:
+            return None
+        return ResourceReference(self.__definition['resourceHandle'])
+
+    @property
+    def resources(self) -> List[ResourceClaimStatusResource]|None:
+        if 'resources' not in self.__definition:
+            return None
+        return [
+            ResourceClaimStatusResource(item)
+            for item in self.__definition['resources']
+        ]
 
     @property
     def summary(self) -> Mapping|None:
-        return self.definition.get('summary')
+        return self.__definition.get('summary')
 
 class ResourceClaimStatusLifespan:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def end(self) -> datetime|None:
-        if 'end' in self.definition:
-            return datetime.strptime(self.definition['end'], '%Y-%m-%dT%H:%M:%S%z')
+        if 'end' in self.__definition:
+            return datetime.strptime(self.__definition['end'], '%Y-%m-%dT%H:%M:%S%z')
         return None
 
     @property
     def first_ready(self) -> datetime|None:
-        if 'firstReady' in self.definition:
-            return datetime.strptime(self.definition['firstReady'], '%Y-%m-%dT%H:%M:%S%z')
+        if 'firstReady' in self.__definition:
+            return datetime.strptime(self.__definition['firstReady'], '%Y-%m-%dT%H:%M:%S%z')
         return None
 
     @property
     def maximum(self) -> timedelta|None:
-        if 'maximum' in self.definition:
-            return timedelta(seconds=pytimeparse.parse(self.definition['maximum']))
+        if 'maximum' in self.__definition:
+            return timedelta(seconds=pytimeparse.parse(self.__definition['maximum']))
         return None
 
     @property
     def relative_maximum(self) -> timedelta|None:
-        if 'relativeMaximum' in self.definition:
-            return timedelta(seconds=pytimeparse.parse(self.definition['relativeMaximum']))
+        if 'relativeMaximum' in self.__definition:
+            return timedelta(seconds=pytimeparse.parse(self.__definition['relativeMaximum']))
         return None
 
 class ResourceClaimStatusProvider:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def name(self) -> str:
-        return self.definition['name']
+        return self.__definition['name']
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
-        return self.definition['parameterValues']
+        return self.__definition['parameterValues']
 
 class ResourceClaimStatusResource:
     def __init__(self, definition):
-        self.definition = definition
-        self.provider = (
-            ResourceReference(definition['provider'])
-            if 'provider' in definition else None
-        )
-        self.reference = (
-            ResourceReference(definition['reference'])
-            if 'reference' in definition else None
-        )
+        self.__definition = definition
 
     @property
     def healthy(self) -> bool|None:
-        return self.definition.get('healthy')
+        return self.__definition.get('healthy')
 
     @property
     def name(self) -> str|None:
-        return self.definition.get('name')
+        return self.__definition.get('name')
+
+    @property
+    def provider(self) -> ResourceReference|None:
+        if 'provider' not in self.__definition:
+            return None
+        return ResourceReference(self.__definition['provider'])
 
     @property
     def ready(self) -> bool|None:
-        return self.definition.get('ready')
+        return self.__definition.get('ready')
+
+    @property
+    def reference(self) -> ResourceReference|None:
+        if 'reference' not in self.__definition:
+            return None
+        return ResourceReference(self.__definition['reference'])
 
     @property
     def state(self) -> Mapping|None:
-        return self.definition.get('state')
+        return self.__definition.get('state')

@@ -1,13 +1,8 @@
 from __future__ import annotations
-from typing import Any, Mapping
-
-from datetime import datetime, timedelta
-
-import pytimeparse
+from typing import Any, List, Mapping
 
 from .k8s_object import K8sObject
 from .poolboy_templating import check_condition, recursive_process_template_strings
-from .resourcereference import ResourceReference
 
 class ResourceProvider(K8sObject):
     api_group = "poolboy.gpte.redhat.com"
@@ -15,13 +10,6 @@ class ResourceProvider(K8sObject):
     kind = "ResourceProvider"
     plural = "resourceproviders"
     api_group_version = f"{api_group}/{api_version}"
-
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = ResourceProviderSpec(definition['spec'])
-
-    def __str__(self):
-        return f"ResourceProvider {self.name}"
 
     @property
     def has_template_definition(self) -> bool:
@@ -37,7 +25,11 @@ class ResourceProvider(K8sObject):
 
     @property
     def resource_name(self) -> str:
-        return self.definition.get('resourceName') or self.name
+        return self.__definition.get('resourceName') or self.name
+
+    @property
+    def spec(self) -> ResourceProviderSpec:
+        return ResourceProviderSpec(self.__definition['spec'])
 
     @property
     def vars(self) -> Mapping[str, Any]:
@@ -69,7 +61,6 @@ class ResourceProvider(K8sObject):
         resource_name: str|None=None,
     ):
         """Generate spec resources as used in ResourceHandle with given parameter_values"""
-        linked_resource_providers = await self.get_linked_resource_providers(cache=cache)
 
         parameter_values = {
             **self.get_parameter_defaults(parameter_values=parameter_values),
@@ -94,7 +85,9 @@ class ResourceProvider(K8sObject):
                         key: recursive_process_template_strings(
                             value,
                             variables={
-                                **resource_provider.get_parameter_defaults(parameter_values=parameter_values),
+                                **resource_provider.get_parameter_defaults(
+                                    parameter_values=parameter_values
+                                ),
                                 **parameter_values,
                             },
                             template_variables={
@@ -129,54 +122,58 @@ class ResourceProvider(K8sObject):
 
 class ResourceProviderSpec:
     def __init__(self, definition):
-        self.definition = definition
-        self.linked_resource_providers = [
-            ResourceProviderSpecLinkedResourceProvider(item)
-            for item in definition.get('linkedResourceProviders', [])
-        ]
-        self.parameters = [
-            ResourceProviderSpecParameter(item)
-            for item in definition.get('parameters', [])
-        ]
-        self.template = (
-            ResourceProviderSpecTemplate(definition['template'])
-            if 'template' in definition else None
-        )
+        self.__definition = definition
 
     @property
     def default(self) -> Mapping:
-        return self.definition.get('default', {})
+        return self.__definition.get('default', {})
 
     @property
     def has_template_definition(self) -> bool:
-        return 'override' in self.definition or (
+        return 'override' in self.__definition or (
             self.template is not None and
             self.template.definition is not None
         )
 
     @property
+    def linked_resource_providers(self) -> List[ResourceProviderSpecLinkedResourceProvider]:
+        return [
+            ResourceProviderSpecLinkedResourceProvider(item)
+            for item in self.__definition.get('linkedResourceProviders', [])
+        ]
+
+    @property
+    def parameters(self) -> List[ResourceProviderSpecParameter]:
+        return [
+            ResourceProviderSpecParameter(item)
+            for item in self.__definition.get('parameters', [])
+        ]
+
+    @property
     def match_ignore(self) -> list[str]:
-        return self.definition.get('match_ignore', [])
+        return self.__definition.get('match_ignore', [])
 
     @property
     def override(self) -> Mapping:
-        return self.definition.get('override', {})
+        return self.__definition.get('override', {})
 
     @property
     def resource_name(self) -> str|None:
-        return self.definition.get('resourceName')
+        return self.__definition.get('resourceName')
+
+    @property
+    def template(self) -> ResourceProviderSpecTemplate|None:
+        if 'template' not in self.__definition:
+            return None
+        return ResourceProviderSpecTemplate(self.__definition['template'])
 
     @property
     def vars(self) -> Mapping[str, Any]:
-        return self.definition.get('vars', {})
+        return self.__definition.get('vars', {})
 
 class ResourceProviderSpecLinkedResourceProvider:
     def __init__(self, definition):
         self.__definition = definition
-        self.template_vars = [
-            ResourceProviderSpecLinkedResourceProviderTemplateVar(item)
-            for item in definition.get('templateVars', [])
-        ]
 
     @property
     def name(self) -> str:
@@ -189,6 +186,13 @@ class ResourceProviderSpecLinkedResourceProvider:
     @property
     def resource_name(self) -> str:
         return self.__definition.get('resourceName', self.name)
+
+    @property
+    def template_vars(self) -> List[ResourceProviderSpecLinkedResourceProviderTemplateVar]:
+        return [
+            ResourceProviderSpecLinkedResourceProviderTemplateVar(item)
+            for item in self.__definition.get('templateVars', [])
+        ]
 
     @property
     def wait_for(self) -> str|None:
@@ -228,18 +232,16 @@ class ResourceProviderSpecLinkedResourceProviderTemplateVar:
 class ResourceProviderSpecParameter:
     def __init__(self, definition):
         self.__definition = definition
-        self.default = (
-            ResourceProviderSpecParameterDefault(definition['default'])
-            if 'default' in definition else None
-        )
-        self.validation = (
-            ResourceProviderSpecParameterValidation(definition['validation'])
-            if 'validation' in definition else None
-        )
 
     @property
     def allow_update(self) -> bool:
         return self.__definition.get('allowUpdate', False)
+
+    @property
+    def default(self) -> ResourceProviderSpecParameterDefault|None:
+        if 'default' not in self.__definition:
+            return None
+        return ResourceProviderSpecParameterDefault(self.__definition['default'])
 
     @property
     def name(self) -> str:
@@ -249,6 +251,12 @@ class ResourceProviderSpecParameter:
     def required(self) -> bool:
         return self.__definition.get('required', False)
 
+    @property
+    def validation(self) -> ResourceProviderSpecParameterValidation|None:
+        if 'validation' not in self.__definition:
+            return None
+        return ResourceProviderSpecParameterValidation(self.__definition['validation'])
+
     def get_default(self, variables:Mapping, template_variables:Mapping) -> Any:
         if self.default is not None:
             if self.default.template is not None:
@@ -257,7 +265,7 @@ class ResourceProviderSpecParameter:
                     variables=variables,
                     template_variables=template_variables,
                 )
-            elif self.default.value is not None:
+            if self.default.value is not None:
                 return self.default.value
 
         if self.validation is not None and self.validation.openapi_v3_schema is not None:

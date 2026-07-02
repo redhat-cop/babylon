@@ -1,9 +1,5 @@
 from __future__ import annotations
-from typing import Any, Mapping
-
-from datetime import datetime, timedelta
-
-import pytimeparse
+from typing import Any, List, Mapping
 
 from .k8s_object import K8sObject
 from .resourcereference import ResourceReference
@@ -15,24 +11,29 @@ class ResourcePool(K8sObject):
     plural = "resourcepools"
     api_group_version = f"{api_group}/{api_version}"
 
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = ResourcePoolSpec(definition['spec'])
+    @property
+    def spec(self) -> ResourcePoolSpec:
+        return ResourcePoolSpec(self.__definition['spec'])
 
-    def __str__(self):
-        return f"ResourcePool {self.name}"
 
 class ResourcePoolSpec:
     def __init__(self, definition):
-        self.definition = definition
-        self.resources = [
-            ResourcePoolSpecResource(item) for item in definition.get('resources', [])
+        self.__definition = definition
+
+    @property
+    def resources(self) -> List[ResourcePoolSpecResource]:
+        return [
+            ResourcePoolSpecResource(item)
+            for item in self.__definition.get('resources', [])
         ]
 
 class ResourcePoolSpecResource:
     def __init__(self, definition):
-        self.definition = definition
-        self.provider = ResourcePoolSpecResourceProvider(definition['provider'])
+        self.__definition = definition
+
+    @property
+    def provider(self) -> ResourcePoolSpecResourceProvider:
+        return ResourcePoolSpecResourceProvider(self.__definition['provider'])
 
     @property
     def template(self) -> Mapping[str, Any]:

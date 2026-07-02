@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Generator, Mapping
+from typing import Generator, List, Mapping
 
 import os
 
 import kubernetes_asyncio
 from inflection import singularize
 from kubernetes_asyncio.client import (
-    ApiClient, AppsV1Api, CoreV1Api, CustomObjectsApi,
+    ApiClient, CoreV1Api, CustomObjectsApi,
     ApiException as KubernetesApiException
 )
 
@@ -81,7 +81,7 @@ class BabylonClient:
         }
         if namespace is not None:
             resource_attributes['namespace'] = namespace
-        (data, status, headers) = await self.api_client.call_api(
+        (data, status, _) = await self.api_client.call_api(
             '/apis/authorization.k8s.io/v1/selfsubjectaccessreviews',
             'POST',
             auth_settings=['BearerToken'],
@@ -145,7 +145,7 @@ class BabylonClient:
                 version=version,
             )
         except KubernetesApiException as exception:
-            raise BabylonApiException(kubernetes_api_exception=exception)
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
     async def list_object(self,
         plural:str,
@@ -332,18 +332,16 @@ class BabylonClient:
         async for catalog_item in CatalogItem.list(
             client=self,
             label_selector=label_selector,
+            namespace=namespace,
         ):
             yield catalog_item
 
     # Namespace methods
-    async def get_namespace(self, name:str) -> Namespace:
-        return await Namespace.get(client=self, name=name)
-
     async def get_current_user_service_namespace(self) -> Namespace:
         # Getting the current user service namespace involves checking access
         # and some guesswork. If the user is not an admin they will net be able
         # to list either namespaces or projects.
-        n = 0;
+        n = 0
         user = await self.get_user('~')
         base_name = "user-" + user.metadata.name.replace('.', '-').replace('@', '-')
         while n < 10:
@@ -356,7 +354,7 @@ class BabylonClient:
                         raise
             else:
                 if await self.check_access(
-                    group=ResourceClaim.group,
+                    group=ResourceClaim.api_group,
                     namespace=name,
                     plural=ResourceClaim.plural,
                     verb="update",

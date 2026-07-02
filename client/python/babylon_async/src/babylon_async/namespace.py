@@ -8,6 +8,3 @@ class Namespace(K8sObject):
     kind = "Namespace"
     plural = "namespaces"
     api_group_version = "v1"
-
-    def __init__(self, client, definition:Mapping):
-        super().__init__(client, definition)

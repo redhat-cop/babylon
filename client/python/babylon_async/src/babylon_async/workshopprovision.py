@@ -11,14 +11,6 @@ class WorkshopProvision(K8sObject):
     plural = "workshopprovisions"
     api_group_version = f"{api_group}/{api_version}"
 
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = WorkshopProvisionSpec(definition['spec'])
-        self.status = (
-            WorkshopProvisionStatus(definition['status'])
-            if 'status' in definition else None
-        )
-
     @property
     def parameter_values(self) -> Mapping:
         return self.spec.parameters
@@ -27,13 +19,26 @@ class WorkshopProvision(K8sObject):
     def resource_provider_name(self) -> str:
         return self.spec.catalog_item.name
 
+    @property
+    def spec(self) -> WorkshopProvisionSpec:
+        return WorkshopProvisionSpec(self.__definition['spec'])
+
+    @property
+    def status(self) -> WorkshopProvisionStatus|None:
+        if 'status' not in self.__definition:
+            return None
+        return WorkshopProvisionStatus(self.__definition['status'])
+
     async def get_resource_provider(self) -> ResourceProvider:
         return await self.client.get_resource_provider(name=self.resource_provider_name)
 
 class WorkshopProvisionSpec:
     def __init__(self, definition):
         self.__definition = definition
-        self.catalog_item = WorkshopProvisionSpecCatalogItem(definition['catalogItem'])
+
+    @property
+    def catalog_item(self) -> WorkshopProvisionSpecCatalogItem:
+        return WorkshopProvisionSpecCatalogItem(self.__definition['catalogItem'])
 
     @property
     def parameters(self) -> Mapping:

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Any, Mapping
 
 from datetime import datetime
 
@@ -8,7 +7,6 @@ from kubernetes_asyncio.client import (
 )
 
 from .k8s_object import K8sObject
-from .resourcereference import ResourceReference
 
 class AnarchyRun(K8sObject):
     api_group = "anarchy.gpte.redhat.com"
@@ -16,14 +14,6 @@ class AnarchyRun(K8sObject):
     kind = "AnarchyRun"
     plural = "anarchyruns"
     api_group_version = f"{api_group}/{api_version}"
-
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = AnarchyRunSpec(definition['spec'])
-        self.status = (
-            AnarchyRunStatus(definition['status'])
-            if 'status' in definition else None
-        )
 
     @property
     def is_active(self) -> bool:
@@ -48,6 +38,10 @@ class AnarchyRun(K8sObject):
         return None
 
     @property
+    def spec(self) -> AnarchyRunSpec:
+        return AnarchyRunSpec(self.__definition['spec'])
+
+    @property
     def state(self) -> str|None:
         value = self.metadata.labels.get('anarchy.gpte.redhat.com/runner')
         if value in {'canceled', 'failed', 'pending', 'queued', 'successful'}:
@@ -55,6 +49,12 @@ class AnarchyRun(K8sObject):
         if value.startswith('anarchy-runner-'):
             return 'running'
         return None
+
+    @property
+    def status(self) -> AnarchyRunStatus|None:
+        if 'status' not in self.__definition:
+            return None
+        return AnarchyRunStatus(self.__definition['status'])
 
     async def check_runner_pod_exists(self) -> bool:
         if self.runner_pod_name is None:
@@ -74,37 +74,37 @@ class AnarchyRun(K8sObject):
         await self.patch({
             "metadata": {
                 "labels": {
-                    "anarchy.gpte.redhat.com/runner": "pending",
+                    "anarchy.gpte.redhat.com/runner": value,
                 }
             }
         })
 
 class AnarchyRunSpec:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
 class AnarchyRunStatus:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def retry_after_datetime(self) -> datetime|None:
         ts = self.retry_after_timestamp
         if ts is None:
             return None
-        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z') 
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
 
     @property
     def retry_after_timestamp(self) -> str|None:
-        return self.definition.get('retryAfter')
+        return self.__definition.get('retryAfter')
 
     @property
     def run_post_datetime(self) -> datetime|None:
         ts = self.run_post_timestamp
         if ts is None:
             return None
-        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z') 
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
 
     @property
     def run_post_timestamp(self) -> str|None:
-        return self.definition.get('runPostTimestamp')
+        return self.__definition.get('runPostTimestamp')

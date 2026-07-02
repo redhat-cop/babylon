@@ -1,23 +1,23 @@
 class ResourceReference:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
     @property
     def api_version(self) -> str:
-        return self.definition['apiVersion']
+        return self.__definition['apiVersion']
 
     @property
     def kind(self) -> str:
-        return self.definition['kind']
+        return self.__definition['kind']
 
     @property
     def name(self) -> str:
-        return self.definition['name']
+        return self.__definition['name']
 
     @property
     def namespace(self) -> str|None:
-        return self.definition.get('namespace')
+        return self.__definition.get('namespace')
 
     @property
     def uid(self) -> str|None:
-        return self.definition.get('uid')
+        return self.__definition.get('uid')

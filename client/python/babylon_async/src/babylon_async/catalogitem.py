@@ -1,6 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any
+from typing import Any, List, Mapping
 
 from datetime import datetime, timedelta
 
@@ -26,10 +26,6 @@ class CatalogItem(K8sObject):
     plural = "catalogitems"
     api_group_version = f"{api_group}/{api_version}"
 
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = CatalogItemSpec(definition['spec'])
-
     @property
     def asset_uuid(self) -> str:
         return self.metadata.labels.get('gpte.redhat.com/asset-uuid')
@@ -53,6 +49,10 @@ class CatalogItem(K8sObject):
     @property
     def provider(self) -> str:
         return self.metadata.labels.get('babylon.gpte.redhat.com/Provider')
+
+    @property
+    def spec(self) -> CatalogItemSpec:
+        return CatalogItemSpec(self.__definition['spec'])
 
     async def check_resource_pool_match(self,
         resource_pool: ResourcePool,
@@ -84,7 +84,7 @@ class CatalogItem(K8sObject):
                 parameter_values=parameter_values,
                 cache=True,
             )
-        except (TypeError, jinja2.exceptions.UndefinedError) as err:
+        except (TypeError, jinja2.exceptions.UndefinedError):
             # Template evaluation failed, so must not match
             return False
 
@@ -119,34 +119,22 @@ class CatalogItem(K8sObject):
 class CatalogItemSpec:
     def __init__(self, definition):
         self.__definition = definition
-        self.agnosticv_repo = (
-            CatalogItemSpecAgnosticvRepo(definition['agnosticvRepo'])
-            if 'agnosticvRepo' in definition else None
-        )
-        self.description = (
-            CatalogItemSpecDescription(definition['description'])
-            if 'description' in definition else None
-        )
-        self.last_update = (
-            CatalogItemSpecLastUpdate(definition['lastUpdate'])
-            if 'lastUpdate' in definition else None
-        )
-        self.lifespan = (
-            CatalogItemSpecLifespan(definition['lifespan'])
-            if 'lifespan' in definition else None
-        )
-        self.parameters = [
-            CatalogItemSpecParameter(item)
-            for item in definition.get('parameters', [])
-        ]
-        self.runtime = (
-            CatalogItemSpecLifespan(definition['runtime'])
-            if 'runtime' in definition else None
-        )
+
+    @property
+    def agnosticv_repo(self) -> CatalogItemSpecAgnosticvRepo|None:
+        if 'agnosticvRepo' not in self.__definition:
+            return None
+        return CatalogItemSpecAgnosticvRepo(self.__definition['agnosticvRepo'])
 
     @property
     def category(self) -> str:
         return self.__definition['category']
+
+    @property
+    def description(self) -> CatalogItemSpecDescription|None:
+        if 'description' not in self.__definition:
+            return None
+        return CatalogItemSpecDescription(self.__definition['description'])
 
     @property
     def display_name(self) -> str:
@@ -157,10 +145,35 @@ class CatalogItemSpec:
         return self.__definition.get('externalUrl')
 
     @property
+    def last_update(self) -> CatalogItemSpecLastUpdate|None:
+        if 'last_update' not in self.__definition:
+            return None
+        return CatalogItemSpecLastUpdate(self.__definition['last_update'])
+
+    @property
+    def lifespan(self) -> CatalogItemSpecLifespan|None:
+        if 'lifespan' not in self.__definition:
+            return None
+        return CatalogItemSpecLifespan(self.__definition['lifespan'])
+
+    @property
+    def parameters(self) -> List[CatalogItemSpecParameter]:
+        return [
+            CatalogItemSpecParameter(item)
+            for item in self.__definition.get('parameters', [])
+        ]
+
+    @property
     def provision_time_estimate(self) -> timedelta|None:
         if 'provisionTimeEstimate' not in self.__definition:
             return None
         return timedelta(seconds=pytimeparse.parse(self.__definition['provisionTimeEstimate']))
+
+    @property
+    def runtime(self) -> CatalogItemSpecRuntime|None:
+        if 'runtime' not in self.__definition:
+            return None
+        return CatalogItemSpecRuntime(self.__definition['runtime'])
 
     @property
     def terms_of_service(self) -> str|None:
@@ -181,7 +194,10 @@ class CatalogItemSpec:
 class CatalogItemSpecAgnosticvRepo:
     def __init__(self, definition):
         self.__definition = definition
-        self.git = CatalogItemSpecAgnosticvRepoGit(definition['git'])
+
+    @property
+    def git(self) -> CatalogItemSpecAgnosticvRepoGit:
+        return CatalogItemSpecAgnosticvRepoGit(self.__definition['git'])
 
     @property
     def name(self) -> str:
@@ -214,7 +230,10 @@ class CatalogItemSpecDescription:
 class CatalogItemSpecLastUpdate:
     def __init__(self, definition):
         self.__definition = definition
-        self.git = CatalogItemSpecLastUpdateGit(definition['git'])
+
+    @property
+    def git(self) -> CatalogItemSpecLastUpdateGit:
+        return CatalogItemSpecLastUpdateGit(self.__definition['git'])
 
 class CatalogItemSpecLastUpdateGit:
     def __init__(self, definition):

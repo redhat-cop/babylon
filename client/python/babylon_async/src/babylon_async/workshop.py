@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Any, Mapping
+from typing import Generator
 
 from .k8s_object import K8sObject
+from .workshopprovision import WorkshopProvision
 
 class Workshop(K8sObject):
     api_group = "babylon.gpte.redhat.com"
@@ -10,13 +11,15 @@ class Workshop(K8sObject):
     plural = "workshops"
     api_group_version = f"{api_group}/{api_version}"
 
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = WorkshopSpec(definition['spec'])
-        self.status = (
-            WorkshopStatus(definition['status'])
-            if 'status' in definition else None
-        )
+    @property
+    def spec(self) -> WorkshopSpec:
+        return WorkshopSpec(self.__definition['spec'])
+
+    @property
+    def status(self) -> WorkshopStatus|None:
+        if 'status' not in self.__definition:
+            return None
+        return WorkshopStatus(self.__definition['status'])
 
     async def list_workshop_provisions(self) -> Generator[WorkshopProvision, None, None]:
         async for workshop_provision in self.client.list_workshop_provisions(

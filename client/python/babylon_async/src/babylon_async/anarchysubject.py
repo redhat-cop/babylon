@@ -1,8 +1,10 @@
 from __future__ import annotations
-from typing import Any, Generator, Mapping
+from typing import Generator
 
 from .k8s_object import K8sObject
 from .resourcereference import ResourceReference
+
+from .anarchyrun import AnarchyRun
 
 class AnarchySubject(K8sObject):
     api_group = "anarchy.gpte.redhat.com"
@@ -11,13 +13,15 @@ class AnarchySubject(K8sObject):
     plural = "anarchysubjects"
     api_group_version = f"{api_group}/{api_version}"
 
-    def __init__(self, client, definition):
-        super().__init__(client, definition)
-        self.spec = AnarchySubjectSpec(definition['spec'])
-        self.status = (
-            AnarchySubjectStatus(definition['status'])
-            if 'status' in definition else None
-        )
+    @property
+    def spec(self) -> AnarchySubjectSpec:
+        return AnarchySubjectSpec(self.__definition['spec'])
+
+    @property
+    def status(self) -> AnarchySubjectStatus|None:
+        if 'status' not in self.__definition:
+            return None
+        return AnarchySubjectStatus(self.__definition['status'])
 
     async def get_anarchy_run(self, name:str) -> AnarchyRun:
         return await self.client.get_anarchy_run(
@@ -31,7 +35,7 @@ class AnarchySubject(K8sObject):
 
 class AnarchySubjectSpec:
     def __init__(self, definition):
-        self.definition = definition
+        self.__definition = definition
 
 class AnarchySubjectStatus:
     def __init__(self, definition):
@@ -46,7 +50,7 @@ class AnarchySubjectStatusRuns:
         self.__definition = definition
 
     @property
-    def active(self) -> list[AnarchySubjectStatusRunsActive]:
+    def active(self) -> list[ResourceReference]:
         return [
             ResourceReference(item) for item in self.__definition.get('active', [])
         ]
