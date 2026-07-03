@@ -53,8 +53,8 @@ importers:
         specifier: ^6.5.1
         version: 6.5.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@patternfly/react-icons':
-        specifier: ^6.5.1
-        version: 6.5.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^6.6.0
+        version: 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@patternfly/react-styles':
         specifier: ^6.5.1
         version: 6.5.1
@@ -1539,12 +1539,6 @@ packages:
 
   '@patternfly/react-drag-drop@6.5.1':
     resolution: {integrity: sha512-10mo7ETrD4voyIUpzjtX8Z+cuQYnXPOHV5vuqhInArgSUiVi7OOqSJFG6iBnn7OCSKAMMakHdHkHRtOLiOO1Mw==}
-    peerDependencies:
-      react: ^17 || ^18 || ^19
-      react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-icons@6.5.1':
-    resolution: {integrity: sha512-CnuPvTTs4MMWx8CAUkmnY690ouN1bbHjunsyXu3QxvGOmzbztP+wS4BdiLS8TIXOIH80Yb7KPhnF8VkA+CduOA==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -7350,16 +7344,11 @@ snapshots:
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@patternfly/react-core': 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@patternfly/react-icons': 6.5.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@patternfly/react-icons': 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@patternfly/react-styles': 6.5.1
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       resize-observer-polyfill: 1.5.1
-
-  '@patternfly/react-icons@6.5.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
-    dependencies:
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
 
   '@patternfly/react-icons@6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
