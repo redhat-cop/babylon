@@ -31,8 +31,8 @@ class BabylonClient:
         await client.init()
         return client
 
-    def __init__(self):
-        self.api_client:ApiClient|None = None
+    def __init__(self, api_client:ApiClient=None):
+        self.api_client = api_client
         self.core_v1_api:CoreV1Api|None = None
         self.custom_objects_api:CustomObjectsApi|None = None
         self.is_admin:bool = False
@@ -48,14 +48,16 @@ class BabylonClient:
         await self.api_client.close()
 
     async def init(self) -> None:
-        if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
-            # If running in a container then use incluster config
-            kubernetes_asyncio.config.load_incluster_config()
-        else:
-            # Default to using user's kube config
-            await kubernetes_asyncio.config.load_kube_config()
+        if self.api_client is None:
+            if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
+                # If running in a container then use incluster config
+                kubernetes_asyncio.config.load_incluster_config()
+            else:
+                # Default to using user's kube config
+                await kubernetes_asyncio.config.load_kube_config()
 
-        self.api_client = ApiClient()
+            self.api_client = ApiClient()
+
         self.core_v1_api = CoreV1Api(self.api_client)
         self.custom_objects_api = CustomObjectsApi(self.api_client)
         await self.__init_is_admin()
