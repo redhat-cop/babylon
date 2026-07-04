@@ -38,6 +38,13 @@ class ClusterTenantPool(K8sObject):
             self.__definition['spec'],
         )
 
+    @property
+    def status(self) -> ClusterTenantPoolStatus|None:
+        """Status of ClusterTenantPool"""
+        if 'status' not in self.__definition:
+            return None
+        return ClusterTenantPoolStatus(self.__definition['status'])
+
 
 class ClusterTenantPoolSpec:
     """Configuration for ClusterTenantPool"""
@@ -50,6 +57,12 @@ class ClusterTenantPoolSpec:
         return ClusterTenantPoolSpecClusterProvisioning(
             self.__definition['clusterProvisioning'],
         )
+
+    @property
+    def max_clusters(self) -> int|None:
+        """Maximum number of clusters to provision. If undefined then no
+        maximum is applied."""
+        return self.__definition.get('maxClusters')
 
     @property
     def min_available_sandbox_placements(self) -> int:
@@ -199,3 +212,47 @@ class ClusterTenantPoolSpecTenantPoolResourceProvider:
     def parameter_values(self) -> Mapping[str, Any]:
         """Parameter values used when creating the tenant ResourceHandle"""
         return self.__definition.get('parameterValues', {})
+
+class ClusterTenantPoolStatus:
+    """Status of ClusterTenantPool"""
+    def __init__(self, definition):
+        self.__definition = definition
+
+    @property
+    def clusters(self) -> List[ClusterTenantPoolStatusCluster]|None:
+        if 'clusters' not in self.__definition:
+            return None
+        return [
+            ClusterTenantPoolStatusCluster(item)
+            for item in self.__definition['clusters']
+        ]
+
+class ClusterTenantPoolStatusCluster:
+    """Status of cluster in ClusterTenantPool"""
+    def __init__(self, definition):
+        self.__definition = definition
+
+    @property
+    def resource_claim_name(self) -> str:
+        """ResourceClaim name used to request the cluster."""
+        return self.__definition['resourceClaimName']
+
+    @property
+    def sandbox_api_state(self) -> str:
+        """Sandbox API state may be:
+
+        pending - Cluster is being provisioned and will be
+        registered with the SandboxAPI when ready.
+
+        available - Cluster has been on-boarded to the
+        SandboxAPI and is available for placements.
+
+        disabled - Cluster is currently disabled in the
+        SandboxAPI.
+
+        removed - Cluster was found removed from the
+        SandboxAPI. As this indicates a manual override the
+        cluster will not be made available again by the
+        babylon-cluster-tenant-pool-manager."""
+
+        return self.__definition['sandboxApiState']
