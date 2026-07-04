@@ -87,6 +87,10 @@ class K8sObject:
         return self.metadata.creation_timestamp
 
     @property
+    def is_deleting(self) -> bool:
+        return self.metadata.deletion_timestamp is not None
+
+    @property
     def metadata(self) -> K8sObjectMetadata:
         return K8sObjectMetadata(
             self._definition['metadata'],
@@ -198,6 +202,16 @@ class K8sObjectMetadata:
     @property
     def creation_timestamp(self) -> str:
         return self._definition['creationTimestamp']
+
+    @property
+    def deletion_datetime(self) -> datetime|None:
+        if 'deletionTimestamp' not in self._definition:
+            return None
+        return datetime.strptime(self._definition['deletionTimestamp'], '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def deletion_timestamp(self) -> str|None:
+        return self._definition['deletionTimestamp']
 
     @property
     def finalizers(self) -> List[str]|None:
