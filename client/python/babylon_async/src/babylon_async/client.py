@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator, List, Mapping
+from typing import Any, Generator, List, Mapping
 
 import os
 
@@ -113,6 +113,45 @@ class BabylonClient:
     #    pass
 
     # Generic methods
+    async def create_object(self,
+        definition:Mapping[str,Any],
+        plural:str,
+        version:str,
+        group:str|None=None,
+        namespace:str|None=None,
+    ) -> Mapping:
+        try:
+            if group is None:
+                singular = singularize(plural)
+                if namespace is None:
+                    return self.api_client.sanitize_for_serialization(
+                        await getattr(self.core_v1_api, f"read_{singular}")(definition)
+                    )
+                return self.api_client.sanitize_for_serialization(
+                    await getattr(
+                        self.core_v1_api, f"create_namespaced_{singular}"
+                    )(namespace, definition)
+                )
+            if namespace is None:
+                return await self.custom_objects_api.create_cluster_custom_object(
+                    body=definition,
+                    group=group,
+                    name=name,
+                    plural=plural,
+                    version=version,
+                )
+            return await self.custom_objects_api.create_namespaced_custom_object(
+                body=definition,
+                group=group,
+                name=name,
+                namespace=namespace,
+                plural=plural,
+                version=version,
+            )
+        except KubernetesApiException as exception:
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
+
+
     async def get_object(self,
         plural:str,
         name:str,
@@ -383,6 +422,24 @@ class BabylonClient:
             yield namespace
 
     # ResourceClaim methods
+    async def create_resource_claim(self,
+        namespace:str,
+        provider_name:str,
+        auto_detach:bool=False,
+        name:str|None=None,
+        owner:K8sObject|None=None,
+        parameter_values:Mapping[str,Any]={},
+    ):
+        return await ResourceClaim.create(
+            auto_detatch=auto_detatch,
+            client=self,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+            parameter_values=parameter_values,
+            provider_name=provider_name,
+        )
+
     async def get_resource_claim(self, name:str, namespace:str) -> ResourceClaim:
         return await ResourceClaim.get(client=self, name=name, namespace=namespace)
 

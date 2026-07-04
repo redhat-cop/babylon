@@ -15,6 +15,37 @@ class ResourceClaim(K8sObject):
     plural = "resourceclaims"
     api_group_version = f"{api_group}/{api_version}"
 
+    @classmethod
+    async def create(cls, client,
+        namespace:str,
+        provider_name:str,
+        auto_detatch:bool=False,
+        name:str|None=None,
+        owner:K8sObject|None=None,
+        parameter_values:Mapping[str,Any]={},
+    ):
+        if name is None:
+            name = f"{provider_name}-*"
+        definition = {
+            "spec": {
+                "provider": {
+                    "name": provider_name,
+                    "parameterValues": parameter_values,
+                }
+            }
+        }
+        if auto_detach:
+            definition["spec"] = {
+                "when": "status.resources | json_query(\"[?state.spec.vars.current_state == 'provision-failed']\") | length != 0",
+            }
+
+        return cls.super().create(
+            definition=definition,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+        )
+
     @property
     def asset_uuid(self) -> str|None:
         # Fetching asset uuid from status is more reliable than annotations

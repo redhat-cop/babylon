@@ -124,14 +124,14 @@ class ClusterTenantPoolSpecClusterProvisioning:
         self._definition = definition
 
     @property
-    def resource_provider(self) -> ClusterTenantPoolSpecClusterProvisioningResourceProvider:
+    def provider(self) -> ClusterTenantPoolSpecClusterProvisioningProvider:
         """Configuration for provisioning clusters which provide capacity for tenants."""
-        return ClusterTenantPoolSpecClusterProvisioningResourceProvider(
+        return ClusterTenantPoolSpecClusterProvisioningProvider(
             self._definition['resourceProvider'],
         )
 
 
-class ClusterTenantPoolSpecClusterProvisioningResourceProvider:
+class ClusterTenantPoolSpecClusterProvisioningProvider:
     """Configuration for provisioning clusters which provide capacity for tenants."""
     def __init__(self, definition):
         self._definition = definition
@@ -215,20 +215,20 @@ class ClusterTenantPoolSpecTenantPool:
         """Short hash identifier for the tenant pool."""
         return sha1(
             json.dumps({
-                "name": self.resource_provider.name,
-                "parameterValues": self.resource_provider.parameter_values,
+                "name": self.provider.name,
+                "parameterValues": self.provider.parameter_values,
             }).encode('utf-8')
         ).hexdigest()
 
     @property
-    def resource_provider(self) -> ClusterTenantPoolSpecTenantPoolResourceProvider:
+    def provider(self) -> ClusterTenantPoolSpecTenantPoolProvider:
         """ResourceProvider configuration used to provision pooled
         ResourceHandles for the tenant."""
-        return ClusterTenantPoolSpecTenantPoolResourceProvider(
+        return ClusterTenantPoolSpecTenantPoolProvider(
             self._definition['resourceProvider'],
         )
 
-class ClusterTenantPoolSpecTenantPoolResourceProvider:
+class ClusterTenantPoolSpecTenantPoolProvider:
     """ResourceProvider configuration used to provision pooled ResourceHandles
     for the tenant."""
     def __init__(self, definition):

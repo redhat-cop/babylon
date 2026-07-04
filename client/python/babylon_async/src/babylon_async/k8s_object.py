@@ -7,6 +7,34 @@ from typing import List
 
 class K8sObject:
     @classmethod
+    async def create(cls, client,
+        definition:Mapping,
+        name:str|None=None,
+        namespace:str|None=None,
+        owner:K8sObject|None=None
+    ):
+        if 'metadata' not in definition:
+            definition['metadata'] = {}
+
+        if name is not None:
+            if name.endswith('*'):
+                definition['metadata']['generateName'] = name[:-1]
+            else:
+                definition['metadata']['name'] = name
+
+        if owner is not None:
+            definition['metadata']['ownerReferences'] = [owner.as_owner_reference()]
+
+        definition = await client.create_object(
+            definition=definition,
+            group=cls.api_group,
+            namespace=namespace,
+            plural=cls.plural,
+            version=cls.api_version,
+        )
+        return cls(client=client, definition=definition)
+
+    @classmethod
     async def get(cls, client, name:str, namespace:str|None=None, cache:bool=False):
         if cache and hasattr(cls, '__cache__') and (name, namespace) in cls.__cache__:
             return cls.__cache__.get((name, namespace))
@@ -79,7 +107,19 @@ class K8sObject:
             setattr(cls, '__cache__', {})
         cls.__cache__[(self.name, self.namespace)] = self
 
+    def as_owner_reference(self,
+        block_owner_deletion:bool|None=None,
+        controller:bool=True,
+    ) -> mapping:
+        """Return reference mapping to object for use as owner reference."""
+        ret = self.as_reference()
+        if block_owner_deletion is not None:
+            ret['blockOwnerDeletion'] = block_owner_deletion
+        ret['controller'] = controller
+        return ret
+
     def as_reference(self) -> Mapping:
+        """Return reference mapping to object."""
         ret = {
             "apiVersion": self.api_group_version,
             "kind": self.kind,
