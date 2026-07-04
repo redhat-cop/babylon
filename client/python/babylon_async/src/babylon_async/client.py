@@ -26,8 +26,8 @@ from .workshopprovision import WorkshopProvision
 
 class BabylonClient:
     @classmethod
-    async def create(cls) -> BabylonClient:
-        client = cls()
+    async def create(cls, api_client:ApiClient=None) -> BabylonClient:
+        client = cls(api_client=api_client)
         await client.init()
         return client
 
