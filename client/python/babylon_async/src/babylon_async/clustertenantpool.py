@@ -127,7 +127,7 @@ class ClusterTenantPoolSpecClusterProvisioning:
     def provider(self) -> ClusterTenantPoolSpecClusterProvisioningProvider:
         """Configuration for provisioning clusters which provide capacity for tenants."""
         return ClusterTenantPoolSpecClusterProvisioningProvider(
-            self._definition['resourceProvider'],
+            self._definition['provider'],
         )
 
 
@@ -225,7 +225,7 @@ class ClusterTenantPoolSpecTenantPool:
         """ResourceProvider configuration used to provision pooled
         ResourceHandles for the tenant."""
         return ClusterTenantPoolSpecTenantPoolProvider(
-            self._definition['resourceProvider'],
+            self._definition['provider'],
         )
 
 class ClusterTenantPoolSpecTenantPoolProvider:
