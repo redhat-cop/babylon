@@ -39,7 +39,7 @@ class ResourceClaim(K8sObject):
                 "when": "status.resources | json_query(\"[?state.spec.vars.current_state == 'provision-failed']\") | length != 0",
             }
 
-        return super(ResourceClaim, cls).create(
+        return await super(ResourceClaim, cls).create(
             client=client,
             definition=definition,
             name=name,
