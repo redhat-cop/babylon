@@ -114,7 +114,7 @@ class ClusterTenantPool(K8sObject):
                 if cluster.resource_claim_name != name:
                     continue
                 try:
-                    self.patch_status([{
+                    await self.patch_status([{
                         "op": "test",
                         "path": f"/status/clusters/{idx}/resourceClaimName",
                         "value": name,
