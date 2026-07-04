@@ -138,14 +138,12 @@ class BabylonClient:
                 return await self.custom_objects_api.create_cluster_custom_object(
                     body=definition,
                     group=group,
-                    name=name,
                     plural=plural,
                     version=version,
                 )
             return await self.custom_objects_api.create_namespaced_custom_object(
                 body=definition,
                 group=group,
-                name=name,
                 namespace=namespace,
                 plural=plural,
                 version=version,
