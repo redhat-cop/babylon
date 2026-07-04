@@ -81,7 +81,7 @@ class ClusterTenantPool(K8sObject):
                 patch.append({
                     "op": "add",
                     "path": "/status/clusters",
-                    "value": None,
+                    "value": [],
                 })
 
             patch.append({
