@@ -94,11 +94,9 @@ class ClusterTenantPool(K8sObject):
             })
 
             try:
-                print(f"PATCH {patch}")
                 await self.patch_status(patch)
                 return
             except BabylonApiException as err:
-                print(err)
                 if attempt == retries:
                     raise
                 if err.status != 422:

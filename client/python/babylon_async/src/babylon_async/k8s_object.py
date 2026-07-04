@@ -138,7 +138,6 @@ class K8sObject:
 
     def update_definition(self, definition: Mapping) -> None:
         self._definition = definition
-        self.metadata = K8sObjectMetadata(definition['metadata'])
 
     async def patch(self, patch: Mapping|List[Mapping]) -> None:
         """Apply patch to object and update definition."""
