@@ -1,4 +1,5 @@
 from .client import BabylonClient
+from .exceptions import BabylonApiException
 
 from .anarchyrun import AnarchyRun
 from .anarchysubject import AnarchySubject
