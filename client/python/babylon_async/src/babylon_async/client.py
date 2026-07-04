@@ -127,7 +127,7 @@ class BabylonClient:
                 singular = singularize(plural)
                 if namespace is None:
                     return self.api_client.sanitize_for_serialization(
-                        await getattr(self.core_v1_api, f"read_{singular}")(definition)
+                        await getattr(self.core_v1_api, f"create_{singular}")(definition)
                     )
                 return self.api_client.sanitize_for_serialization(
                     await getattr(
@@ -151,6 +151,41 @@ class BabylonClient:
         except KubernetesApiException as exception:
             raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
+    async def delete_object(self,
+        name:str,
+        plural:str,
+        version:str,
+        group:str|None=None,
+        namespace:str|None=None,
+    ) -> Mapping:
+        try:
+            if group is None:
+                singular = singularize(plural)
+                if namespace is None:
+                    return self.api_client.sanitize_for_serialization(
+                        await getattr(self.core_v1_api, f"delete_{singular}")(name)
+                    )
+                return self.api_client.sanitize_for_serialization(
+                    await getattr(
+                        self.core_v1_api, f"delete_namespaced_{singular}"
+                    )(name, namespace)
+                )
+            if namespace is None:
+                return await self.custom_objects_api.delete_cluster_custom_object(
+                    group=group,
+                    name=name,
+                    plural=plural,
+                    version=version,
+                )
+            return await self.custom_objects_api.delete_namespaced_custom_object(
+                group=group,
+                name=name,
+                namespace=namespace,
+                plural=plural,
+                version=version,
+            )
+        except KubernetesApiException as exception:
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
     async def get_object(self,
         plural:str,

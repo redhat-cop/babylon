@@ -139,6 +139,15 @@ class K8sObject:
     def update_definition(self, definition: Mapping) -> None:
         self._definition = definition
 
+    async def delete(self) -> None:
+        await self.client.delete_object(
+            group=self.api_group,
+            name=self.metadata.name,
+            namespace=self.metadata.namespace,
+            plural=self.plural,
+            version=self.api_version,
+        )
+
     async def patch(self, patch: Mapping|List[Mapping]) -> None:
         """Apply patch to object and update definition."""
         definition = await self.client.patch_object(
