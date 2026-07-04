@@ -72,7 +72,7 @@ class ClusterTenantPool(K8sObject):
                         "clusters": [],
                     }
                 })
-            else self.status.clusters is None:
+            elif self.status.clusters is None:
                 patch.append({
                     "op": "test",
                     "path": "/status/clusters",
