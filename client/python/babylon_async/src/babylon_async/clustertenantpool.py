@@ -5,6 +5,7 @@ import json
 from hashlib import sha1
 from typing import Any, List, Mapping
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 
 class ClusterTenantPool(K8sObject):
@@ -44,6 +45,32 @@ class ClusterTenantPool(K8sObject):
         if 'status' not in self.__definition:
             return None
         return ClusterTenantPoolStatus(self.__definition['status'])
+
+    async def remove_cluster_from_status(self, name:str) -> None:
+        """Remove cluster named by resource claim from status."""
+        while True:
+            # Loop until successfully removed
+            found = False
+            for idx, cluster in reversed(list(enumerate(self.status.clusters))):
+                if cluster.resource_claim_name != name:
+                    continue
+                found = True
+                try:
+                    self.patch_status([{
+                        "op": "test",
+                        "path": f"/status/clusters/{idx}/resourceClaimName",
+                        "value": name,
+                    }, {
+                        "op": "remove",
+                        "path": f"/status/clusters/{idx}",
+                    }])
+                except BabylonApiException as err:
+                    if err.status != 422:
+                        raise
+            if not found:
+                # Cluster did not appear in status, so consider it removed.
+                return
+
 
 
 class ClusterTenantPoolSpec:
