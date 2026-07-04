@@ -21,6 +21,12 @@ class ClusterTenantPool(K8sObject):
         return self.spec.cluster_provisioning
 
     @property
+    def max_clusters(self) -> int|None:
+        """Maximum number of clusters to provision. If undefined then no
+        maximum is applied."""
+        return self.spec.max_clusters
+
+    @property
     def min_available_sandbox_placements(self) -> int:
         """Minimum number of unassigned sandbox placements to maintain
         on shared clusters. A new shared cluster will be provisioned
