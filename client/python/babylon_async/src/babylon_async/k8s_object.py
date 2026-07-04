@@ -119,6 +119,7 @@ class K8sObject:
         if block_owner_deletion is not None:
             ret['blockOwnerDeletion'] = block_owner_deletion
         ret['controller'] = controller
+        ret['uid'] = self.uid
         return ret
 
     def as_reference(self) -> Mapping:
@@ -162,6 +163,16 @@ class K8sObject:
             version=self.api_version,
         )
         self.update_definition(definition)
+
+    async def refresh(self): -> None:
+        """Refetch object to refresh definition"""
+        self.definition = self.client.get_object(
+            group=self.api_gorup,
+            name=self.metadata.name,
+            namespace=self.metadata.namespace,
+            plural=self.plural,
+            version=self.api_version,
+        )
 
 
 class K8sObjectMetadata:

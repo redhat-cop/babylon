@@ -50,15 +50,69 @@ class ClusterTenantPool(K8sObject):
             return None
         return ClusterTenantPoolStatus(self._definition['status'])
 
-    async def remove_cluster_from_status(self, name:str) -> None:
+    async def add_cluster_to_status(self,
+        name:str,
+        retries:int=10,
+        sandbox_api_state:str="pending"
+    ) -> None:
+        """Add cluster named by resource claim to status."""
+        for attempt in range(retries+1):
+            # Loop until successfully added
+            patch = []
+            if self.status is None:
+                patch.append({
+                    "op": "test",
+                    "path": "/status",
+                    "value": None,
+                })
+                patch.append({
+                    "op": "add",
+                    "path": "/status",
+                    "value": {
+                        "clusters": [],
+                    }
+                })
+            else self.status.clusters is None:
+                patch.append({
+                    "op": "test",
+                    "path": "/status/clusters",
+                    "value": None,
+                })
+                patch.append({
+                    "op": "add",
+                    "path": "/status/clusters",
+                    "value": None,
+                })
+
+            patch.append({
+                "op": "add",
+                "path": "/status/clusters/-",
+                "value": {
+                    "resourceClaimName": name,
+                    "sandboxApiState": sandbox_api_state,
+                }
+            })
+
+            try:
+                self.patch_status(patch)
+                return
+            except BabylonApiException as err:
+                if attempt == retries:
+                    raise
+                if err.status != 422:
+                    raise
+                await self.refresh()
+
+    async def remove_cluster_from_status(self,
+        name:str,
+        retries:int=10,
+    ) -> None:
         """Remove cluster named by resource claim from status."""
-        while True:
+        for attempt in range(retries+1):
             # Loop until successfully removed
-            found = False
             for idx, cluster in reversed(list(enumerate(self.status.clusters))):
                 if cluster.resource_claim_name != name:
                     continue
-                found = True
                 try:
                     self.patch_status([{
                         "op": "test",
@@ -69,12 +123,13 @@ class ClusterTenantPool(K8sObject):
                         "path": f"/status/clusters/{idx}",
                     }])
                 except BabylonApiException as err:
+                    if attempt == retries:
+                        raise
                     if err.status != 422:
                         raise
-            if not found:
-                # Cluster did not appear in status, so consider it removed.
-                return
-
+                    await self.refresh()
+                    continue
+            return
 
 
 class ClusterTenantPoolSpec:
