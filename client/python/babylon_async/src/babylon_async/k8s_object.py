@@ -13,6 +13,9 @@ class K8sObject:
         namespace:str|None=None,
         owner:K8sObject|None=None
     ):
+        definition['apiVersion'] = cls.api_group_version
+        definition['kind'] = cls.kind
+
         if 'metadata' not in definition:
             definition['metadata'] = {}
 

@@ -21,7 +21,7 @@ class BabylonApiException(Exception):
         if self.kubernetes_api_exception is not None:
             if self.kubernetes_api_exception.headers:
                 error_message += "HTTP response headers: {0}\n".format(
-                    self.headers)
+                    self.kubernetes_api_exception.headers)
 
             if self.kubernetes_api_exception.body:
                 error_message += "HTTP response body: {0}\n".format(self.kubernetes_api_exception.body)
