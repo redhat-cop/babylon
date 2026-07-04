@@ -433,7 +433,7 @@ class BabylonClient:
         parameter_values:Mapping[str,Any]={},
     ):
         return await ResourceClaim.create(
-            auto_detatch=auto_detatch,
+            auto_detach=auto_detach,
             client=self,
             name=name,
             namespace=namespace,

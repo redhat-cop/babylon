@@ -19,7 +19,7 @@ class ResourceClaim(K8sObject):
     async def create(cls, client,
         namespace:str,
         provider_name:str,
-        auto_detatch:bool=False,
+        auto_detach:bool=False,
         name:str|None=None,
         owner:K8sObject|None=None,
         parameter_values:Mapping[str,Any]={},
@@ -176,10 +176,10 @@ class ResourceClaimSpec:
         self._definition = definition
 
     @property
-    def auto_detatch(self) -> ResourceClaimSpecAutoDetatch|None:
-        if 'autoDetatch' not in self._definition:
+    def auto_detach(self) -> ResourceClaimSpecAutoDetach|None:
+        if 'autoDetach' not in self._definition:
             return None
-        return ResourceClaimSpecAutoDetatch(self._definition['autoDetatch'])
+        return ResourceClaimSpecAutoDetach(self._definition['autoDetach'])
 
     @property
     def lifespan(self) -> ResourceClaimSpecLifespan|None:
@@ -194,7 +194,7 @@ class ResourceClaimSpec:
         return ResourceClaimSpecProvider(self._definition['provider'])
 
 
-class ResourceClaimSpecAutoDetatch:
+class ResourceClaimSpecAutoDetach:
     def __init__(self, definition):
         self._definition = definition
 
