@@ -15,13 +15,13 @@ class AnarchySubject(K8sObject):
 
     @property
     def spec(self) -> AnarchySubjectSpec:
-        return AnarchySubjectSpec(self.__definition['spec'])
+        return AnarchySubjectSpec(self._definition['spec'])
 
     @property
     def status(self) -> AnarchySubjectStatus|None:
-        if 'status' not in self.__definition:
+        if 'status' not in self._definition:
             return None
-        return AnarchySubjectStatus(self.__definition['status'])
+        return AnarchySubjectStatus(self._definition['status'])
 
     async def get_anarchy_run(self, name:str) -> AnarchyRun:
         return await self.client.get_anarchy_run(
@@ -35,22 +35,22 @@ class AnarchySubject(K8sObject):
 
 class AnarchySubjectSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
 class AnarchySubjectStatus:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def runs(self) -> AnarchySubjectStatusRuns:
-        return AnarchySubjectStatusRuns(self.__definition.get('runs', {}))
+        return AnarchySubjectStatusRuns(self._definition.get('runs', {}))
 
 class AnarchySubjectStatusRuns:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def active(self) -> list[ResourceReference]:
         return [
-            ResourceReference(item) for item in self.__definition.get('active', [])
+            ResourceReference(item) for item in self._definition.get('active', [])
         ]

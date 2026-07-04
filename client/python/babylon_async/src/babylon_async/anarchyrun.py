@@ -39,7 +39,7 @@ class AnarchyRun(K8sObject):
 
     @property
     def spec(self) -> AnarchyRunSpec:
-        return AnarchyRunSpec(self.__definition['spec'])
+        return AnarchyRunSpec(self._definition['spec'])
 
     @property
     def state(self) -> str|None:
@@ -52,9 +52,9 @@ class AnarchyRun(K8sObject):
 
     @property
     def status(self) -> AnarchyRunStatus|None:
-        if 'status' not in self.__definition:
+        if 'status' not in self._definition:
             return None
-        return AnarchyRunStatus(self.__definition['status'])
+        return AnarchyRunStatus(self._definition['status'])
 
     async def check_runner_pod_exists(self) -> bool:
         if self.runner_pod_name is None:
@@ -81,11 +81,11 @@ class AnarchyRun(K8sObject):
 
 class AnarchyRunSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
 class AnarchyRunStatus:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def retry_after_datetime(self) -> datetime|None:
@@ -96,7 +96,7 @@ class AnarchyRunStatus:
 
     @property
     def retry_after_timestamp(self) -> str|None:
-        return self.__definition.get('retryAfter')
+        return self._definition.get('retryAfter')
 
     @property
     def run_post_datetime(self) -> datetime|None:
@@ -107,4 +107,4 @@ class AnarchyRunStatus:
 
     @property
     def run_post_timestamp(self) -> str|None:
-        return self.__definition.get('runPostTimestamp')
+        return self._definition.get('runPostTimestamp')

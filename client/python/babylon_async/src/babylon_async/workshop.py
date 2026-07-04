@@ -13,13 +13,13 @@ class Workshop(K8sObject):
 
     @property
     def spec(self) -> WorkshopSpec:
-        return WorkshopSpec(self.__definition['spec'])
+        return WorkshopSpec(self._definition['spec'])
 
     @property
     def status(self) -> WorkshopStatus|None:
-        if 'status' not in self.__definition:
+        if 'status' not in self._definition:
             return None
-        return WorkshopStatus(self.__definition['status'])
+        return WorkshopStatus(self._definition['status'])
 
     async def list_workshop_provisions(self) -> Generator[WorkshopProvision, None, None]:
         async for workshop_provision in self.client.list_workshop_provisions(
@@ -30,8 +30,8 @@ class Workshop(K8sObject):
 
 class WorkshopSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
 class WorkshopStatus:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition

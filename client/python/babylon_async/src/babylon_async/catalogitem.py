@@ -52,7 +52,7 @@ class CatalogItem(K8sObject):
 
     @property
     def spec(self) -> CatalogItemSpec:
-        return CatalogItemSpec(self.__definition['spec'])
+        return CatalogItemSpec(self._definition['spec'])
 
     async def check_resource_pool_match(self,
         resource_pool: ResourcePool,
@@ -118,178 +118,178 @@ class CatalogItem(K8sObject):
 
 class CatalogItemSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def agnosticv_repo(self) -> CatalogItemSpecAgnosticvRepo|None:
-        if 'agnosticvRepo' not in self.__definition:
+        if 'agnosticvRepo' not in self._definition:
             return None
-        return CatalogItemSpecAgnosticvRepo(self.__definition['agnosticvRepo'])
+        return CatalogItemSpecAgnosticvRepo(self._definition['agnosticvRepo'])
 
     @property
     def category(self) -> str:
-        return self.__definition['category']
+        return self._definition['category']
 
     @property
     def description(self) -> CatalogItemSpecDescription|None:
-        if 'description' not in self.__definition:
+        if 'description' not in self._definition:
             return None
-        return CatalogItemSpecDescription(self.__definition['description'])
+        return CatalogItemSpecDescription(self._definition['description'])
 
     @property
     def display_name(self) -> str:
-        return self.__definition['displayName']
+        return self._definition['displayName']
 
     @property
     def external_url(self) -> str|None:
-        return self.__definition.get('externalUrl')
+        return self._definition.get('externalUrl')
 
     @property
     def last_update(self) -> CatalogItemSpecLastUpdate|None:
-        if 'last_update' not in self.__definition:
+        if 'last_update' not in self._definition:
             return None
-        return CatalogItemSpecLastUpdate(self.__definition['last_update'])
+        return CatalogItemSpecLastUpdate(self._definition['last_update'])
 
     @property
     def lifespan(self) -> CatalogItemSpecLifespan|None:
-        if 'lifespan' not in self.__definition:
+        if 'lifespan' not in self._definition:
             return None
-        return CatalogItemSpecLifespan(self.__definition['lifespan'])
+        return CatalogItemSpecLifespan(self._definition['lifespan'])
 
     @property
     def parameters(self) -> List[CatalogItemSpecParameter]:
         return [
             CatalogItemSpecParameter(item)
-            for item in self.__definition.get('parameters', [])
+            for item in self._definition.get('parameters', [])
         ]
 
     @property
     def provision_time_estimate(self) -> timedelta|None:
-        if 'provisionTimeEstimate' not in self.__definition:
+        if 'provisionTimeEstimate' not in self._definition:
             return None
-        return timedelta(seconds=pytimeparse.parse(self.__definition['provisionTimeEstimate']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['provisionTimeEstimate']))
 
     @property
     def runtime(self) -> CatalogItemSpecRuntime|None:
-        if 'runtime' not in self.__definition:
+        if 'runtime' not in self._definition:
             return None
-        return CatalogItemSpecRuntime(self.__definition['runtime'])
+        return CatalogItemSpecRuntime(self._definition['runtime'])
 
     @property
     def terms_of_service(self) -> str|None:
-        return self.__definition.get('termsOfService')
+        return self._definition.get('termsOfService')
 
     @property
     def workshop_lab_ui_redirect(self) -> bool|None:
-        return self.__definition.get('workshopLabUiRedirect')
+        return self._definition.get('workshopLabUiRedirect')
 
     @property
     def workshop_ui_max_instances(self) -> bool|None:
-        return self.__definition.get('workshopUiMaxInstances')
+        return self._definition.get('workshopUiMaxInstances')
 
     @property
     def workshop_user_mode(self) -> str:
-        return self.__definition.get('workshopUserMode')
+        return self._definition.get('workshopUserMode')
 
 class CatalogItemSpecAgnosticvRepo:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def git(self) -> CatalogItemSpecAgnosticvRepoGit:
-        return CatalogItemSpecAgnosticvRepoGit(self.__definition['git'])
+        return CatalogItemSpecAgnosticvRepoGit(self._definition['git'])
 
     @property
     def name(self) -> str:
-        return self.__definition['name']
+        return self._definition['name']
 
 class CatalogItemSpecAgnosticvRepoGit:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def ref(self) -> str:
-        return self.__definition['ref']
+        return self._definition['ref']
 
     @property
     def url(self) -> str:
-        return self.__definition['url']
+        return self._definition['url']
 
 class CatalogItemSpecDescription:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def content(self) -> str:
-        return self.__definition['content']
+        return self._definition['content']
 
     @property
     def format(self) -> str:
-        return self.__definition['format']
+        return self._definition['format']
 
 class CatalogItemSpecLastUpdate:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def git(self) -> CatalogItemSpecLastUpdateGit:
-        return CatalogItemSpecLastUpdateGit(self.__definition['git'])
+        return CatalogItemSpecLastUpdateGit(self._definition['git'])
 
 class CatalogItemSpecLastUpdateGit:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def author(self) -> str:
-        return self.__definition['author']
+        return self._definition['author']
 
     @property
     def committer(self) -> str:
-        return self.__definition['committer']
+        return self._definition['committer']
 
     @property
     def hash(self) -> str:
-        return self.__definition['hash']
+        return self._definition['hash']
 
     @property
     def message(self) -> str:
-        return self.__definition['message']
+        return self._definition['message']
 
     @property
     def when_author(self) -> datetime:
-        return datetime.strptime(self.__definition['when_author'], '%Y-%m-%dT%H:%M:%S%z')
+        return datetime.strptime(self._definition['when_author'], '%Y-%m-%dT%H:%M:%S%z')
 
     @property
     def when_committer(self) -> datetime:
-        return datetime.strptime(self.__definition['when_committer'], '%Y-%m-%dT%H:%M:%S%z')
+        return datetime.strptime(self._definition['when_committer'], '%Y-%m-%dT%H:%M:%S%z')
 
 class CatalogItemSpecLifespan:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def default(self) -> timedelta:
-        return timedelta(seconds=pytimeparse.parse(self.__definition['default']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['default']))
 
     @property
     def maximum(self) -> timedelta:
-        return timedelta(seconds=pytimeparse.parse(self.__definition['maximum']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['maximum']))
 
     @property
     def relative_maximum(self) -> timedelta:
-        return timedelta(seconds=pytimeparse.parse(self.__definition['relativeMaximum']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['relativeMaximum']))
 
 class CatalogItemSpecParameter:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def annotation(self) -> str|None:
-        return self.__definition.get('annotation')
+        return self._definition.get('annotation')
 
     @property
     def description(self) -> str|None:
-        return self.__definition.get('description')
+        return self._definition.get('description')
 
     @property
     def default(self) -> Any:
@@ -299,34 +299,34 @@ class CatalogItemSpecParameter:
 
     @property
     def form_label(self) -> str|None:
-        return self.__definition.get('formLabel')
+        return self._definition.get('formLabel')
 
     @property
     def form_require_condition(self) -> str|None:
-        return self.__definition.get('formRequireCondition')
+        return self._definition.get('formRequireCondition')
 
     @property
     def name(self) -> str:
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def openapi_v3_schema(self) -> Mapping|None:
-        return self.__definition.get('openAPIV3Schema')
+        return self._definition.get('openAPIV3Schema')
 
     @property
     def openapi_v3_schema_validator(self) -> openapi_schema_validator.OAS30Validator|None:
-        schema = self.__definition.get('openAPIV3Schema')
+        schema = self._definition.get('openAPIV3Schema')
         if schema is None:
             return None
         return openapi_schema_validator.OAS30Validator(schema)
 
     @property
     def required(self) -> bool:
-        return self.__definition.get('required', False)
+        return self._definition.get('required', False)
 
     @property
     def validation(self) -> str|None:
-        return self.__definition.get('validation')
+        return self._definition.get('validation')
 
     def validate(self, value:Any) -> bool:
         # This ideally would also check `validation`, but these checks are
@@ -341,12 +341,12 @@ class CatalogItemSpecParameter:
 
 class CatalogItemSpecRuntime:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def default(self) -> timedelta:
-        return timedelta(seconds=pytimeparse.parse(self.__definition['default']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['default']))
 
     @property
     def maximum(self) -> timedelta:
-        return timedelta(seconds=pytimeparse.parse(self.__definition['maximum']))
+        return timedelta(seconds=pytimeparse.parse(self._definition['maximum']))

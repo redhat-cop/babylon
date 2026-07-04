@@ -35,16 +35,14 @@ class ClusterTenantPool(K8sObject):
     @property
     def spec(self) -> ClusterTenantPoolSpec:
         """Configuration for ClusterTenantPool"""
-        return ClusterTenantPoolSpec(
-            self.__definition['spec'],
-        )
+        return ClusterTenantPoolSpec(self._definition['spec'])
 
     @property
     def status(self) -> ClusterTenantPoolStatus|None:
         """Status of ClusterTenantPool"""
-        if 'status' not in self.__definition:
+        if 'status' not in self._definition:
             return None
-        return ClusterTenantPoolStatus(self.__definition['status'])
+        return ClusterTenantPoolStatus(self._definition['status'])
 
     async def remove_cluster_from_status(self, name:str) -> None:
         """Remove cluster named by resource claim from status."""
@@ -76,33 +74,33 @@ class ClusterTenantPool(K8sObject):
 class ClusterTenantPoolSpec:
     """Configuration for ClusterTenantPool"""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def cluster_provisioning(self) -> ClusterTenantPoolSpecClusterProvisioning:
         """Configuration for provisioning clusters which provide capacity for tenants."""
         return ClusterTenantPoolSpecClusterProvisioning(
-            self.__definition['clusterProvisioning'],
+            self._definition['clusterProvisioning'],
         )
 
     @property
     def max_clusters(self) -> int|None:
         """Maximum number of clusters to provision. If undefined then no
         maximum is applied."""
-        return self.__definition.get('maxClusters')
+        return self._definition.get('maxClusters')
 
     @property
     def min_available_sandbox_placements(self) -> int:
         """Minimum number of unassigned sandbox placements to maintain
         on shared clusters. A new shared cluster will be provisioned
         if less than this number remain."""
-        return self.__definition.get('minAvailableSandboxPlacements', 0)
+        return self._definition.get('minAvailableSandboxPlacements', 0)
 
     @property
     def sandbox_host(self) -> ClusterTenantPoolSpecSandboxHost:
         """Configuration for registering clusters as tenant hosts with the Sandbax API."""
         return ClusterTenantPoolSpecSandboxHost(
-            self.__definition['sandboxHost'],
+            self._definition['sandboxHost'],
         )
 
     @property
@@ -110,60 +108,60 @@ class ClusterTenantPoolSpec:
         """Configuration to maintain pools of provisioned tenant items."""
         return [
             ClusterTenantPoolSpecTenantPool(item)
-            for item in self.__definition.get('tenantPools', [])
+            for item in self._definition.get('tenantPools', [])
         ]
 
 
 class ClusterTenantPoolSpecClusterProvisioning:
     """Configuration for provisioning clusters which provide capacity for tenants."""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def resource_provider(self) -> ClusterTenantPoolSpecClusterProvisioningResourceProvider:
         """Configuration for provisioning clusters which provide capacity for tenants."""
         return ClusterTenantPoolSpecClusterProvisioningResourceProvider(
-            self.__definition['resourceProvider'],
+            self._definition['resourceProvider'],
         )
 
 
 class ClusterTenantPoolSpecClusterProvisioningResourceProvider:
     """Configuration for provisioning clusters which provide capacity for tenants."""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def name(self) -> str:
         """ResourceProvider name"""
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
         """Parameter values used when creating the tenant ResourceHandle"""
-        return self.__definition.get('parameterValues', {})
+        return self._definition.get('parameterValues', {})
 
 
 class ClusterTenantPoolSpecSandboxHost:
     """Configuration for registering clusters as tenant hosts with the Sandbax API."""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def annotations(self) -> Mapping[str, str]:
         """Annotations used to onboard provisioned clusters to the sandbox
         API."""
-        return self.__definition['annotations']
+        return self._definition['annotations']
 
     @property
     def deployer_admin_sa_token_refresh_interval(self) -> str:
         """Admin service account token refresh. Defaults to `3h` if unset."""
-        return self.__definition.get('deployer_admin_sa_token_refresh_interval', '3h')
+        return self._definition.get('deployer_admin_sa_token_refresh_interval', '3h')
 
     @property
     def deployer_admin_sa_token_target_var(self) -> str:
         """Variable to set in tenant deployment.
         Defaults to `openshift_cluster_admin_token` if unspecified."""
-        return self.__definition.get(
+        return self._definition.get(
             'deployer_admin_sa_token_target_var',
             'openshift_cluster_admin_token',
         )
@@ -172,39 +170,39 @@ class ClusterTenantPoolSpecSandboxHost:
     def deployer_admin_sa_token_ttl(self) -> str:
         """Service Account token refresh interval.
         Defaults to `6h` if unset."""
-        return self.__definition.get('deployer_admin_sa_token_ttl', '6h')
+        return self._definition.get('deployer_admin_sa_token_ttl', '6h')
 
     @property
     def max_cpu_usage_percentage(self) -> int|None:
         """Maximum CPU utilization on host to allow tenant placement."""
-        return self.__definition.get('max_cpu_usage_percentage')
+        return self._definition.get('max_cpu_usage_percentage')
 
     @property
     def max_memory_usage_percentage(self) -> int|None:
         """Maximum memory utilization on host to allow tenant placement."""
-        return self.__definition.get('max_memory_usage_percentage')
+        return self._definition.get('max_memory_usage_percentage')
 
     @property
     def max_placements(self) -> int:
         """Maximum number of tenant placements supported by this host."""
-        return self.__definition['max_placements']
+        return self._definition['max_placements']
 
     @property
     def quota_required(self) -> bool:
         """Configure whether tenant sandbox request must include quota."""
-        return self.__definition.get('quota_required', False)
+        return self._definition.get('quota_required', False)
 
 
 class ClusterTenantPoolSpecTenantPool:
     """Configuration to keep a pool of provisioned tenant items."""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def min_available(self) -> int:
         """Minimum number of unbound ResourceHandles to maintain pooled and
         available for ResourceClaims."""
-        return self.__definition.get('minAvailable', 0)
+        return self._definition.get('minAvailable', 0)
 
     @property
     def hash_identifier(self) -> str:
@@ -221,48 +219,48 @@ class ClusterTenantPoolSpecTenantPool:
         """ResourceProvider configuration used to provision pooled
         ResourceHandles for the tenant."""
         return ClusterTenantPoolSpecTenantPoolResourceProvider(
-            self.__definition['resourceProvider'],
+            self._definition['resourceProvider'],
         )
 
 class ClusterTenantPoolSpecTenantPoolResourceProvider:
     """ResourceProvider configuration used to provision pooled ResourceHandles
     for the tenant."""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def name(self) -> str:
         """ResourceProvider name"""
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
         """Parameter values used when creating the tenant ResourceHandle"""
-        return self.__definition.get('parameterValues', {})
+        return self._definition.get('parameterValues', {})
 
 class ClusterTenantPoolStatus:
     """Status of ClusterTenantPool"""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def clusters(self) -> List[ClusterTenantPoolStatusCluster]|None:
-        if 'clusters' not in self.__definition:
+        if 'clusters' not in self._definition:
             return None
         return [
             ClusterTenantPoolStatusCluster(item)
-            for item in self.__definition['clusters']
+            for item in self._definition['clusters']
         ]
 
 class ClusterTenantPoolStatusCluster:
     """Status of cluster in ClusterTenantPool"""
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def resource_claim_name(self) -> str:
         """ResourceClaim name used to request the cluster."""
-        return self.__definition['resourceClaimName']
+        return self._definition['resourceClaimName']
 
     @property
     def sandbox_api_state(self) -> str:
@@ -282,4 +280,4 @@ class ClusterTenantPoolStatusCluster:
         cluster will not be made available again by the
         babylon-cluster-tenant-pool-manager."""
 
-        return self.__definition['sandboxApiState']
+        return self._definition['sandboxApiState']

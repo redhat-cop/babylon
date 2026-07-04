@@ -13,27 +13,27 @@ class ResourcePool(K8sObject):
 
     @property
     def spec(self) -> ResourcePoolSpec:
-        return ResourcePoolSpec(self.__definition['spec'])
+        return ResourcePoolSpec(self._definition['spec'])
 
 
 class ResourcePoolSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def resources(self) -> List[ResourcePoolSpecResource]:
         return [
             ResourcePoolSpecResource(item)
-            for item in self.__definition.get('resources', [])
+            for item in self._definition.get('resources', [])
         ]
 
 class ResourcePoolSpecResource:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def provider(self) -> ResourcePoolSpecResourceProvider:
-        return ResourcePoolSpecResourceProvider(self.__definition['provider'])
+        return ResourcePoolSpecResourceProvider(self._definition['provider'])
 
     @property
     def template(self) -> Mapping[str, Any]:
@@ -41,20 +41,20 @@ class ResourcePoolSpecResource:
 
 class ResourcePoolSpecResourceProvider:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def api_version(self) -> str:
-        return self.__definition.get('apiVersion')
+        return self._definition.get('apiVersion')
 
     @property
     def kind(self) -> str:
-        return self.__definition.get('kind')
+        return self._definition.get('kind')
 
     @property
     def name(self) -> str:
-        return self.__definition.get('name')
+        return self._definition.get('name')
 
     @property
     def namespace(self) -> str:
-        return self.__definition.get('namespace')
+        return self._definition.get('namespace')

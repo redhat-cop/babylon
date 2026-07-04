@@ -40,7 +40,7 @@ class K8sObject:
 
     def __init__(self, client, definition):
         self.client = client
-        self.__definition = definition
+        self._definition = definition
 
     def __str__(self) -> str:
         if self.namespace is None:
@@ -58,7 +58,7 @@ class K8sObject:
     @property
     def metadata(self) -> K8sObjectMetadata:
         return K8sObjectMetadata(
-            self.__definition['metadata'],
+            self._definition['metadata'],
         )
 
     @property
@@ -90,10 +90,10 @@ class K8sObject:
         return ret
 
     def get_definition(self) -> Mapping:
-        return deepcopy(self.__definition)
+        return deepcopy(self._definition)
 
     def update_definition(self, definition: Mapping) -> None:
-        self.__definition = definition
+        self._definition = definition
         self.metadata = K8sObjectMetadata(definition['metadata'])
 
     async def patch(self, patch: Mapping|List[Mapping]) -> None:
@@ -123,69 +123,69 @@ class K8sObject:
 
 class K8sObjectMetadata:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def annotations(self) -> Mapping[str, str]:
-        return self.__definition.get('annotations', {})
+        return self._definition.get('annotations', {})
 
     @property
     def creation_datetime(self) -> datetime:
-        return datetime.strptime(self.__definition['creationTimestamp'], '%Y-%m-%dT%H:%M:%S%z')
+        return datetime.strptime(self._definition['creationTimestamp'], '%Y-%m-%dT%H:%M:%S%z')
 
     @property
     def creation_timestamp(self) -> str:
-        return self.__definition['creationTimestamp']
+        return self._definition['creationTimestamp']
 
     @property
     def finalizers(self) -> List[str]|None:
-        return self.__definition.get('finalizers')
+        return self._definition.get('finalizers')
 
     @property
     def labels(self) -> Mapping[str, str]:
-        return self.__definition.get('labels', {})
+        return self._definition.get('labels', {})
 
     @property
     def name(self) -> str:
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def namespace(self) -> str|None:
-        return self.__definition.get('namespace')
+        return self._definition.get('namespace')
 
     @property
     def owner_references(self) -> List[K8sObjectMetadataOwnerReference]|None:
-        if 'ownerReferences' not in self.__definition:
+        if 'ownerReferences' not in self._definition:
             return None
         return [
             K8sObjectMetadataOwnerReference(item)
-            for item in self.__definition['ownerReferences']
+            for item in self._definition['ownerReferences']
         ]
 
     @property
     def uid(self) -> str:
-        return self.__definition.get('uid')
+        return self._definition.get('uid')
 
 class K8sObjectMetadataOwnerReference:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def api_version(self) -> str:
-        return self.__definition['apiVersion']
+        return self._definition['apiVersion']
 
     @property
     def controller(self) -> bool:
-        return self.__definition['controller']
+        return self._definition['controller']
 
     @property
     def kind(self) -> str:
-        return self.__definition['kind']
+        return self._definition['kind']
 
     @property
     def name(self) -> str:
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def uid(self) -> str:
-        return self.__definition['uid']
+        return self._definition['uid']

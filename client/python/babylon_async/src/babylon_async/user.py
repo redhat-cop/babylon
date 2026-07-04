@@ -13,8 +13,8 @@ class User(K8sObject):
     @property
     def groups(self) -> List[str]|None:
         """Groups list is populated by the OpenShift API only when fetching current user, `~`"""
-        return self.__definition.get('groups')
+        return self._definition.get('groups')
 
     @property
     def identities(self) -> List[str]:
-        return self.__definition.get('identities', [])
+        return self._definition.get('identities', [])

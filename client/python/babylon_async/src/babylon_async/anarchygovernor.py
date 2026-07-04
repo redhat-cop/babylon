@@ -22,7 +22,7 @@ class AnarchyGovernor(K8sObject):
 
     @property
     def spec(self) -> AnarchyGovernorSpec:
-        return AnarchyGovernorSpec(self.__definition)
+        return AnarchyGovernorSpec(self._definition)
 
     @property
     def vars(self) -> Mapping:
@@ -30,44 +30,44 @@ class AnarchyGovernor(K8sObject):
 
 class AnarchyGovernorSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def job_vars(self) -> Mapping:
-        return self.__definition.get('vars', {}).get('job_vars', {})
+        return self._definition.get('vars', {}).get('job_vars', {})
 
     @property
     def vars(self) -> Mapping:
-        return self.__definition.get('vars', {})
+        return self._definition.get('vars', {})
 
 class SandboxSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def alias(self) -> str|None:
-        return self.__definition.get('alias')
+        return self._definition.get('alias')
 
     @property
     def annotations(self) -> Mapping[str, str]|None:
-        return self.__definition.get('annotations')
+        return self._definition.get('annotations')
 
     @property
     def cloud_selector(self) -> Mapping[str, str]|None:
-        return self.__definition.get('cloud_selector')
+        return self._definition.get('cloud_selector')
 
     @property
     def kind(self) -> str:
-        return self.__definition['kind']
+        return self._definition['kind']
 
     @property
     def namespace_suffix(self) -> str|None:
-        return self.__definition.get('namespace_suffix')
+        return self._definition.get('namespace_suffix')
 
     @property
     def quota(self) -> Mapping[str, str]|None:
-        return self.__definition.get('quota')
+        return self._definition.get('quota')
 
     @property
     def var(self) -> str|None:
-        return self.__definition.get('var')
+        return self._definition.get('var')

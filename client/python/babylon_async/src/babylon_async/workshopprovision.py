@@ -21,41 +21,41 @@ class WorkshopProvision(K8sObject):
 
     @property
     def spec(self) -> WorkshopProvisionSpec:
-        return WorkshopProvisionSpec(self.__definition['spec'])
+        return WorkshopProvisionSpec(self._definition['spec'])
 
     @property
     def status(self) -> WorkshopProvisionStatus|None:
-        if 'status' not in self.__definition:
+        if 'status' not in self._definition:
             return None
-        return WorkshopProvisionStatus(self.__definition['status'])
+        return WorkshopProvisionStatus(self._definition['status'])
 
     async def get_resource_provider(self) -> ResourceProvider:
         return await self.client.get_resource_provider(name=self.resource_provider_name)
 
 class WorkshopProvisionSpec:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def catalog_item(self) -> WorkshopProvisionSpecCatalogItem:
-        return WorkshopProvisionSpecCatalogItem(self.__definition['catalogItem'])
+        return WorkshopProvisionSpecCatalogItem(self._definition['catalogItem'])
 
     @property
     def parameters(self) -> Mapping:
-        return self.__definition.get('parameters')
+        return self._definition.get('parameters')
 
 class WorkshopProvisionSpecCatalogItem:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
 
     @property
     def name(self) -> str:
-        return self.__definition['name']
+        return self._definition['name']
 
     @property
     def namespace(self) -> str:
-        return self.__definition['namespace']
+        return self._definition['namespace']
 
 class WorkshopProvisionStatus:
     def __init__(self, definition):
-        self.__definition = definition
+        self._definition = definition
