@@ -40,6 +40,7 @@ class ResourceClaim(K8sObject):
             }
 
         return super(ResourceClaim, cls).create(
+            client=client,
             definition=definition,
             name=name,
             namespace=namespace,
