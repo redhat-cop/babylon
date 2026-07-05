@@ -21,6 +21,14 @@ class ClusterTenantPool(K8sObject):
         return self.spec.cluster_provisioning
 
     @property
+    def clusters(self) -> List[ClusterTenantPoolStatusCluster]:
+        """Return clusters from status if defined else empty list."""
+        status = self.status
+        if status is None:
+            return []
+        return self.status.clusters or []
+
+    @property
     def max_clusters(self) -> int|None:
         """Maximum number of clusters to provision. If undefined then no
         maximum is applied."""
@@ -306,6 +314,7 @@ class ClusterTenantPoolStatus:
 
     @property
     def clusters(self) -> List[ClusterTenantPoolStatusCluster]|None:
+        """Return clusters from status if defined."""
         if 'clusters' not in self._definition:
             return None
         return [
