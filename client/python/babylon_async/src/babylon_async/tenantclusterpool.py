@@ -8,20 +8,20 @@ from typing import Any, List, Mapping
 from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 
-class ClusterTenantPool(K8sObject):
+class TenantClusterPool(K8sObject):
     api_group = "babylon.gpte.redhat.com"
     api_version = "v1"
-    kind = "ClusterTenantPool"
-    plural = "clustertenantpools"
+    kind = "TenantClusterPool"
+    plural = "tenantclusterpools"
     api_group_version = f"{api_group}/{api_version}"
 
     @property
-    def cluster_provisioning(self) -> ClusterTenantPoolSpecClusterProvisioning:
+    def cluster_provisioning(self) -> TenantClusterPoolSpecClusterProvisioning:
         """Configuration for provisioning clusters which provide capacity for tenants."""
         return self.spec.cluster_provisioning
 
     @property
-    def clusters(self) -> List[ClusterTenantPoolStatusCluster]:
+    def clusters(self) -> List[TenantClusterPoolStatusCluster]:
         """Return clusters from status if defined else empty list."""
         status = self.status
         if status is None:
@@ -42,21 +42,21 @@ class ClusterTenantPool(K8sObject):
         return self.spec.min_available_sandbox_placements
 
     @property
-    def sandbox_host(self) -> ClusterTenantPoolSpecSandboxHost:
+    def sandbox_host(self) -> TenantClusterPoolSpecSandboxHost:
         """Configuration for registering clusters as tenant hosts with the Sandbox API."""
         return self.spec.sandbox_host
 
     @property
-    def spec(self) -> ClusterTenantPoolSpec:
-        """Configuration for ClusterTenantPool"""
-        return ClusterTenantPoolSpec(self._definition['spec'])
+    def spec(self) -> TenantClusterPoolSpec:
+        """Configuration for TenantClusterPool"""
+        return TenantClusterPoolSpec(self._definition['spec'])
 
     @property
-    def status(self) -> ClusterTenantPoolStatus|None:
-        """Status of ClusterTenantPool"""
+    def status(self) -> TenantClusterPoolStatus|None:
+        """Status of TenantClusterPool"""
         if 'status' not in self._definition:
             return None
-        return ClusterTenantPoolStatus(self._definition['status'])
+        return TenantClusterPoolStatus(self._definition['status'])
 
     async def add_cluster_to_status(self,
         name:str,
@@ -140,15 +140,15 @@ class ClusterTenantPool(K8sObject):
             return
 
 
-class ClusterTenantPoolSpec:
-    """Configuration for ClusterTenantPool"""
+class TenantClusterPoolSpec:
+    """Configuration for TenantClusterPool"""
     def __init__(self, definition):
         self._definition = definition
 
     @property
-    def cluster_provisioning(self) -> ClusterTenantPoolSpecClusterProvisioning:
+    def cluster_provisioning(self) -> TenantClusterPoolSpecClusterProvisioning:
         """Configuration for provisioning clusters which provide capacity for tenants."""
-        return ClusterTenantPoolSpecClusterProvisioning(
+        return TenantClusterPoolSpecClusterProvisioning(
             self._definition['clusterProvisioning'],
         )
 
@@ -166,35 +166,35 @@ class ClusterTenantPoolSpec:
         return self._definition.get('minAvailableSandboxPlacements', 0)
 
     @property
-    def sandbox_host(self) -> ClusterTenantPoolSpecSandboxHost:
+    def sandbox_host(self) -> TenantClusterPoolSpecSandboxHost:
         """Configuration for registering clusters as tenant hosts with the Sandbax API."""
-        return ClusterTenantPoolSpecSandboxHost(
+        return TenantClusterPoolSpecSandboxHost(
             self._definition['sandboxHost'],
         )
 
     @property
-    def tenant_pools(self) -> List[ClusterTenantPoolSpecTenantPool]:
+    def tenant_pools(self) -> List[TenantClusterPoolSpecTenantPool]:
         """Configuration to maintain pools of provisioned tenant items."""
         return [
-            ClusterTenantPoolSpecTenantPool(item)
+            TenantClusterPoolSpecTenantPool(item)
             for item in self._definition.get('tenantPools', [])
         ]
 
 
-class ClusterTenantPoolSpecClusterProvisioning:
+class TenantClusterPoolSpecClusterProvisioning:
     """Configuration for provisioning clusters which provide capacity for tenants."""
     def __init__(self, definition):
         self._definition = definition
 
     @property
-    def provider(self) -> ClusterTenantPoolSpecClusterProvisioningProvider:
+    def provider(self) -> TenantClusterPoolSpecClusterProvisioningProvider:
         """Configuration for provisioning clusters which provide capacity for tenants."""
-        return ClusterTenantPoolSpecClusterProvisioningProvider(
+        return TenantClusterPoolSpecClusterProvisioningProvider(
             self._definition['provider'],
         )
 
 
-class ClusterTenantPoolSpecClusterProvisioningProvider:
+class TenantClusterPoolSpecClusterProvisioningProvider:
     """Configuration for provisioning clusters which provide capacity for tenants."""
     def __init__(self, definition):
         self._definition = definition
@@ -210,7 +210,7 @@ class ClusterTenantPoolSpecClusterProvisioningProvider:
         return self._definition.get('parameterValues', {})
 
 
-class ClusterTenantPoolSpecSandboxHost:
+class TenantClusterPoolSpecSandboxHost:
     """Configuration for registering clusters as tenant hosts with the Sandbax API."""
     def __init__(self, definition):
         self._definition = definition
@@ -262,7 +262,7 @@ class ClusterTenantPoolSpecSandboxHost:
         return self._definition.get('quota_required', False)
 
 
-class ClusterTenantPoolSpecTenantPool:
+class TenantClusterPoolSpecTenantPool:
     """Configuration to keep a pool of provisioned tenant items."""
     def __init__(self, definition):
         self._definition = definition
@@ -284,14 +284,14 @@ class ClusterTenantPoolSpecTenantPool:
         ).hexdigest()
 
     @property
-    def provider(self) -> ClusterTenantPoolSpecTenantPoolProvider:
+    def provider(self) -> TenantClusterPoolSpecTenantPoolProvider:
         """ResourceProvider configuration used to provision pooled
         ResourceHandles for the tenant."""
-        return ClusterTenantPoolSpecTenantPoolProvider(
+        return TenantClusterPoolSpecTenantPoolProvider(
             self._definition['provider'],
         )
 
-class ClusterTenantPoolSpecTenantPoolProvider:
+class TenantClusterPoolSpecTenantPoolProvider:
     """ResourceProvider configuration used to provision pooled ResourceHandles
     for the tenant."""
     def __init__(self, definition):
@@ -307,23 +307,23 @@ class ClusterTenantPoolSpecTenantPoolProvider:
         """Parameter values used when creating the tenant ResourceHandle"""
         return self._definition.get('parameterValues', {})
 
-class ClusterTenantPoolStatus:
-    """Status of ClusterTenantPool"""
+class TenantClusterPoolStatus:
+    """Status of TenantClusterPool"""
     def __init__(self, definition):
         self._definition = definition
 
     @property
-    def clusters(self) -> List[ClusterTenantPoolStatusCluster]|None:
+    def clusters(self) -> List[TenantClusterPoolStatusCluster]|None:
         """Return clusters from status if defined."""
         if 'clusters' not in self._definition:
             return None
         return [
-            ClusterTenantPoolStatusCluster(item)
+            TenantClusterPoolStatusCluster(item)
             for item in self._definition['clusters']
         ]
 
-class ClusterTenantPoolStatusCluster:
-    """Status of cluster in ClusterTenantPool"""
+class TenantClusterPoolStatusCluster:
+    """Status of cluster in TenantClusterPool"""
     def __init__(self, definition):
         self._definition = definition
 
