@@ -10,6 +10,8 @@ class K8sObject:
     @classmethod
     async def create(cls, client,
         definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
         name:str|None=None,
         namespace:str|None=None,
         owner:K8sObject|None=None
@@ -19,6 +21,12 @@ class K8sObject:
 
         if 'metadata' not in definition:
             definition['metadata'] = {}
+
+        if annotations is not None:
+            definition['metadata']['annotations'] = annotations
+
+        if labels is not None:
+            definition['metadata']['labels'] = labels
 
         if name is not None:
             if name.endswith('*'):
@@ -80,6 +88,14 @@ class K8sObject:
         return f"{self.kind} {self.name} in {self.namespace}"
 
     @property
+    def annotations(self) -> Mapping[str, str]:
+        """Return annotations from metadata or empty dict if no annotations set.
+
+        This is a convenience method as it is easier to check if a annotation is set
+        without need for testing for .metadata.annotations is None"""
+        return self.metadata.annotations or {}
+
+    @property
     def creation_datetime(self) -> datetime:
         return self.metadata.creation_datetime
 
@@ -90,6 +106,14 @@ class K8sObject:
     @property
     def is_deleting(self) -> bool:
         return self.metadata.deletion_timestamp is not None
+
+    @property
+    def labels(self) -> Mapping[str, str]:
+        """Return labels from metadata or empty dict if no labels set.
+
+        This is a convenience method as it is easier to check if a label is set
+        without need for testing for .metadata.labels is None"""
+        return self.metadata.labels or {}
 
     @property
     def metadata(self) -> K8sObjectMetadata:
@@ -187,14 +211,28 @@ class K8sObject:
             version=self.api_version,
         )
 
+    async def set_annotations(self, annotations=Mapping[str, str]) -> None:
+        await self.patch({
+            "metadata": {
+                "annotations": annotations,
+            }
+        })
+
+    async def set_labels(self, labels=Mapping[str,str]) -> None:
+        await self.patch({
+            "metadata": {
+                "labels": labels,
+            }
+        })
+
 
 class K8sObjectMetadata:
     def __init__(self, definition):
         self._definition = definition
 
     @property
-    def annotations(self) -> Mapping[str, str]:
-        return self._definition.get('annotations', {})
+    def annotations(self) -> Mapping[str, str]|None:
+        return self._definition.get('annotations')
 
     @property
     def creation_datetime(self) -> datetime:
@@ -219,8 +257,8 @@ class K8sObjectMetadata:
         return self._definition.get('finalizers')
 
     @property
-    def labels(self) -> Mapping[str, str]:
-        return self._definition.get('labels', {})
+    def labels(self) -> Mapping[str, str]|None:
+        return self._definition.get('labels')
 
     @property
     def name(self) -> str:

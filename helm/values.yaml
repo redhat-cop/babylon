@@ -236,6 +236,23 @@ serviceAccessManager:
       cpu: 200m
       memory: 1Gi
 
+tenantClusterPoolManager:
+  deploy: false
+  image:
+    repository: quay.io/rhpds/babylon-tenant-cluster-pool-manager
+    pullPolicy: IfNotPresent
+    tag: v0.1.0
+  namespace:
+    create: true
+    name: babylon-tenant-cluster-pool-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
 workshopManager:
   api:
     group: babylon.gpte.redhat.com

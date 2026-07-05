@@ -1,0 +1,19 @@
+{{- $tenantClusterPoolManager := .Values.tenantClusterPoolManager }}
+{{- if and $tenantClusterPoolManager.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: babylon-tenant-cluster-pool-manager
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-cluster-pool-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: babylon-tenant-cluster-pool-manager
+subjects:
+- kind: ServiceAccount
+  name: babylon-tenant-cluster-pool-manager
+  namespace: {{ $tenantClusterPoolManager.namespace.name }}
+{{- end }}
