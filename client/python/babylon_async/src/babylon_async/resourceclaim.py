@@ -221,7 +221,7 @@ class ResourceClaim(K8sObject):
         """Set auto-stop schedule to specified datetime."""
         await self.patch([{
             "op": "add",
-            "path": "/spec/parameterValues/stop_timestamp",
+            "path": "/spec/provider/parameterValues/stop_timestamp",
             "value": dt.strftime('%FT%TZ'),
         }])
 
