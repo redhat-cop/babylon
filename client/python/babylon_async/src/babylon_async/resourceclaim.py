@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, List, Mapping
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytimeparse
 
@@ -106,6 +106,22 @@ class ResourceClaim(K8sObject):
         return self.status.summary.get('provision_data')
 
     @property
+    def requested_stop_datetime(self) -> datetime|None:
+        """Return requested stop datetime if set."""
+        ts = self.stop_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def requested_stop_timestamp(self) -> str|None:
+        """Return requested stop timestamp if set."""
+        provider = self.spec.provider
+        if provider is None:
+            return None
+        return provider.parameter_values.get('stop_timestamp')
+
+    @property
     def resource_handle(self) -> ResourceReference|None:
         return self.status.resource_handle
 
@@ -144,6 +160,22 @@ class ResourceClaim(K8sObject):
         return ResourceClaimStatus(self._definition['status'])
 
     @property
+    def stop_datetime(self) -> datetime|None:
+        """Return effective stop datetime if set."""
+        ts = self.stop_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def stop_timestamp(self) -> str|None:
+        """Return effective stop timestamp if set."""
+        provider = self.status.provider
+        if provider is None:
+            return None
+        return provider.parameter_values.get('stop_timestamp')
+
+    @property
     def white_glove(self) -> bool:
         if self.metadata.labels is None:
             return False
@@ -170,6 +202,28 @@ class ResourceClaim(K8sObject):
         if self.metadata.labels is not None:
             return self.metadata.labels.get('babylon.gpte.redhat.com/workshop-uid')
         return None
+
+    async def disable_autostop(self) -> bool:
+        """Set auto-stop schedule such that stop is effectively disabled.
+        Returns boolean indicating if change was made."""
+
+        # Treat stop at 2100-12-31T00:00:00Z as effectively never
+        never = datetime(2100, 12, 31, tzinfo=timezone.utc)
+
+        stop_datetime = self.stop_datetime
+        if stop_datetime is not None and stop_datetime >= never:
+            return False
+
+        await self.set_requested_stop_datetime(never)
+        return True
+
+    async def set_requested_stop_datetime(self, dt:datetime) -> None:
+        """Set auto-stop schedule to specified datetime."""
+        await self.patch([{
+            "op": "add",
+            "path": "/spec/parameterValues/stop_timestamp",
+            "value": dt.strftime('%FT%TZ'),
+        }])
 
 
 class ResourceClaimSpec:
@@ -223,7 +277,7 @@ class ResourceClaimSpecProvider:
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
-        return self._definition['parameterValues']
+        return self._definition.get('parameterValues', {})
 
 class ResourceClaimStatus:
     def __init__(self, definition):
@@ -306,7 +360,7 @@ class ResourceClaimStatusProvider:
 
     @property
     def parameter_values(self) -> Mapping[str, Any]:
-        return self._definition['parameterValues']
+        return self._definition.get('parameterValues', {})
 
 class ResourceClaimStatusResource:
     def __init__(self, definition):
