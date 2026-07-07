@@ -3,6 +3,8 @@ from typing import Any, Mapping
 
 from datetime import datetime, timedelta
 
+import pytimeparse
+
 from .k8s_object import K8sObject
 from .poolboy_templating import timedelta_to_str
 
@@ -109,6 +111,14 @@ class ResourceHandle(K8sObject):
             return None
 
     @property
+    def lifespan_maximum_timedelta(self) -> timedelta:
+        return self.spec.lifespan.maximum_timedelta
+
+    @property
+    def lifespan_relative_maximum_timedelta(self) -> timedelta:
+        return self.spec.lifespan.relative_maximum_timedelta
+
+    @property
     def provision_data(self) -> Mapping|None:
         if self.status is None or self.status.summary is None:
             return None
@@ -189,6 +199,26 @@ class ResourceHandleSpecLifespan:
     def end_timestamp(self) -> str|None:
         """Return requested lifespan end timestamp string if defined"""
         return self._definition.get('end')
+
+    @property
+    def maximum(self) -> str:
+        """Return lifespan maximum"""
+        return self._definition['maximum']
+
+    @property
+    def maximum_timedelta(self) -> timedelta:
+        """Return lifespan maximum as timedelta"""
+        return timedelta(seconds=pytimeparse.parse(self.maximum))
+
+    @property
+    def relative_maximum(self) -> str:
+        """Return lifespan relative maximum"""
+        return self._definition['relativeMaximum']
+
+    @property
+    def relative_maximum_timedelta(self) -> timedelta:
+        """Return lifespan relative maximum as timedelta"""
+        return timedelta(seconds=pytimeparse.parse(self.relative_maximum))
 
 class ResourceHandleSpecProvider:
     def __init__(self, definition):
