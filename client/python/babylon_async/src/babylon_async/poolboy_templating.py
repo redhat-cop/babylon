@@ -240,7 +240,7 @@ def jinja2process(template, omit=None, variables={}, template_variables={}):
         def __float__(self):
             return float(self.__str__())
 
-        def __ge__(self):
+        def __ge__(self, cmp):
             if isinstance(TemplateVariable, cmp):
                 return self.get_typed_value() >= cmp.get_typed_value()
             else:
@@ -252,7 +252,7 @@ def jinja2process(template, omit=None, variables={}, template_variables={}):
         def __getitem__(self, key):
             return self.get_typed_value()[key]
 
-        def __gt__(self):
+        def __gt__(self, cmp):
             if isinstance(TemplateVariable, cmp):
                 return self.get_typed_value() > cmp.get_typed_value()
             else:
@@ -261,7 +261,7 @@ def jinja2process(template, omit=None, variables={}, template_variables={}):
         def __int__(self):
             return int(self.__str__())
 
-        def __le__(self):
+        def __le__(self, cmp):
             if isinstance(TemplateVariable, cmp):
                 return self.get_typed_value() <= cmp.get_typed_value()
             else:
@@ -270,7 +270,7 @@ def jinja2process(template, omit=None, variables={}, template_variables={}):
         def __len__(self):
             return len(self.get_typed_value());
 
-        def __lt__(self):
+        def __lt__(self, cmp):
             if isinstance(TemplateVariable, cmp):
                 return self.get_typed_value() < cmp.get_typed_value()
             else:
