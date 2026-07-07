@@ -56,8 +56,8 @@ importers:
         specifier: ^6.6.0
         version: 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@patternfly/react-styles':
-        specifier: ^6.5.1
-        version: 6.5.1
+        specifier: ^6.6.0
+        version: 6.6.0
       '@patternfly/react-table':
         specifier: ^6.6.0
         version: 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1548,9 +1548,6 @@ packages:
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-styles@6.5.1':
-    resolution: {integrity: sha512-yQMzUbbf6qYM/v3JbPvaCJTgxRbOKoEw229XZmnnM8gDvp8ECiI7LqihrAOK/NA6T6M3DDgsRMd2JurUBhPDEw==}
 
   '@patternfly/react-styles@6.6.0':
     resolution: {integrity: sha512-u/HzJ48Cg6Nb12dIVbj4g31lMDVHPHVKRXkRuPBcuK6MQyAsxSfcyWVivW7Lga8TsNhFW26JWB5ay+IW5xpZ8A==}
@@ -7237,7 +7234,7 @@ snapshots:
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       '@patternfly/react-core': 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@patternfly/react-icons': 6.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@patternfly/react-styles': 6.5.1
+      '@patternfly/react-styles': 6.6.0
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       resize-observer-polyfill: 1.5.1
@@ -7247,8 +7244,6 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       tslib: 2.8.1
-
-  '@patternfly/react-styles@6.5.1': {}
 
   '@patternfly/react-styles@6.6.0': {}
 
