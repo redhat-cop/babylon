@@ -10,7 +10,7 @@ class ResourceHandle(K8sObject):
     api_group = "poolboy.gpte.redhat.com"
     api_version = "v1"
     kind = "ResourceHandle"
-    plural = "resourceclaims"
+    plural = "resourcehandles"
     api_group_version = f"{api_group}/{api_version}"
 
     @classmethod
