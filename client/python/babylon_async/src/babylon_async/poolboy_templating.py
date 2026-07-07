@@ -13,6 +13,24 @@ from strgen import StringGenerator
 
 MAX_RECURSION_DEPTH = 100
 
+def timedelta_to_str(td:timedelta) -> str:
+    total_seconds = int(td.total_seconds())
+    days = total_seconds // 86400
+    hours = (total_seconds % 86400) // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+
+    ret = ""
+    if days > 0:
+        ret += f"{days}d"
+    if hours > 0:
+        ret += f"{hours:d}h"
+    if minutes > 0:
+        ret += f"{minutes}m"
+    if seconds > 0:
+        ret += f"{seconds}s"
+    return ret
+
 class TimeStamp(object):
     def __init__(self, set_datetime=None):
         if not set_datetime:

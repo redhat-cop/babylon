@@ -178,7 +178,7 @@ class K8sObject:
 
     async def refresh(self) -> None:
         """Refetch object to refresh definition"""
-        self.definition = self.client.get_object(
+        self._definition = self.client.get_object(
             group=self.api_gorup,
             name=self.metadata.name,
             namespace=self.metadata.namespace,

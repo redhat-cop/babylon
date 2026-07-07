@@ -16,8 +16,10 @@ from .anarchyrun import AnarchyRun
 from .anarchysubject import AnarchySubject
 from .catalogitem import CatalogItem
 from .exceptions import BabylonApiException
+from .k8s_object import K8sObject
 from .namespace import Namespace
 from .resourceclaim import ResourceClaim
+from .resourcehandle import ResourceHandle
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
 from .user import User
@@ -463,9 +465,11 @@ class BabylonClient:
         auto_detach:bool=False,
         name:str|None=None,
         owner:K8sObject|None=None,
-        parameter_values:Mapping[str,Any]={},
+        parameter_values:Mapping[str,Any]|None=None,
     ):
-        return await ResourceClaim.create(
+        if parameter_values is None:
+            parameter_values = {}
+        return await ResourceClaim.create_with_provider(
             auto_detach=auto_detach,
             client=self,
             name=name,
@@ -488,6 +492,10 @@ class BabylonClient:
             namespace=namespace,
         ):
             yield resource_claim
+
+    # ResourceHandle methods
+    async def get_resource_handle(self, name:str) -> ResourceHandle:
+        return await ResourceHandle.get(client=self, name=name, namespace="poolboy")
 
     # ResourcePool methods
     async def get_resource_pool(self, name:str) -> ResourcePool:

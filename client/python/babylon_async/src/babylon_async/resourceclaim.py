@@ -5,7 +5,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytimeparse
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
+from .resourcehandle import ResourceHandle
 from .resourcereference import ResourceReference
 
 class ResourceClaim(K8sObject):
@@ -16,16 +18,18 @@ class ResourceClaim(K8sObject):
     api_group_version = f"{api_group}/{api_version}"
 
     @classmethod
-    async def create(cls, client,
+    async def create_with_provider(cls, client,
         namespace:str,
         provider_name:str,
         auto_detach:bool=False,
         name:str|None=None,
         owner:K8sObject|None=None,
-        parameter_values:Mapping[str,Any]={},
+        parameter_values:Mapping[str,Any]|None=None,
     ):
         if name is None:
             name = f"{provider_name}-*"
+        if parameter_values is None:
+            parameter_values = {}
         definition = {
             "spec": {
                 "provider": {
@@ -39,7 +43,7 @@ class ResourceClaim(K8sObject):
                 "when": "status.resources | json_query(\"[?state.spec.vars.current_state == 'provision-failed']\") | length != 0",
             }
 
-        return await super(ResourceClaim, cls).create(
+        return await ResourceClaim.create(
             client=client,
             definition=definition,
             name=name,
@@ -100,15 +104,47 @@ class ResourceClaim(K8sObject):
         return self.status.resource_handle.name[5:]
 
     @property
+    def lifespan_end_datetime(self) -> datetime|None:
+        """Return lifespan end if set"""
+        try:
+            return self.status.lifespan.end_datetime
+        except AttributeError:
+            return None
+
+    @property
+    def lifespan_start_datetime(self) -> datetime|None:
+        """Return lifespan start if set"""
+        try:
+            return self.status.lifespan.start_datetime
+        except AttributeError:
+            return None
+
+    @property
     def provision_data(self) -> Mapping|None:
         if self.status is None or self.status.summary is None:
             return None
         return self.status.summary.get('provision_data')
 
     @property
+    def requested_lifespan_end_datetime(self) -> datetime:
+        """Return requested lifespan end datetime."""
+        lifespan = self.spec.lifespan
+        if lifespan is None:
+            return None
+        return lifespan.end_datetime
+
+    @property
+    def requested_lifespan_end_timestamp(self) -> str|None:
+        """Return requested lifespan end as timestamp string"""
+        lifespan = self.spec.lifespan
+        if lifespan is None:
+            return None
+        return lifespan.end_timestamp
+
+    @property
     def requested_stop_datetime(self) -> datetime|None:
         """Return requested stop datetime if set."""
-        ts = self.stop_timestamp
+        ts = self.requested_stop_timestamp
         if ts is None:
             return None
         return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
@@ -116,10 +152,10 @@ class ResourceClaim(K8sObject):
     @property
     def requested_stop_timestamp(self) -> str|None:
         """Return requested stop timestamp if set."""
-        provider = self.spec.provider
-        if provider is None:
+        try:
+            return self.spec.provider.parameter_values.get('stop_timestamp')
+        except AttributeError:
             return None
-        return provider.parameter_values.get('stop_timestamp')
 
     @property
     def resource_handle(self) -> ResourceReference|None:
@@ -127,9 +163,11 @@ class ResourceClaim(K8sObject):
 
     @property
     def resource_handle_name(self) -> str|None:
-        if self.status.resource_handle is None:
+        """Return ResourceHandle name if defined."""
+        try:
+            return self.status.resource_handle.name
+        except AttributeError:
             return None
-        return self.status.resource_handle.name
 
     @property
     def runtime_default(self) -> timedelta|None:
@@ -203,6 +241,19 @@ class ResourceClaim(K8sObject):
             return self.metadata.labels.get('babylon.gpte.redhat.com/workshop-uid')
         return None
 
+    async def disable_autodestroy(self) -> bool:
+        """Set lifespan end such that it is effectively disaled.
+        Returns boolean indicating if change was made."""
+
+        # Treat stop at 2100-12-31T00:00:00Z as effectively never
+        never = datetime(2100, 12, 31, tzinfo=timezone.utc)
+
+        lifespan_end = self.lifespan_end_datetime
+        if lifespan_end is not None and lifespan_end >= never:
+            return False
+
+        await self.set_lifespan_end(never, True)
+
     async def disable_autostop(self) -> bool:
         """Set auto-stop schedule such that stop is effectively disabled.
         Returns boolean indicating if change was made."""
@@ -216,6 +267,47 @@ class ResourceClaim(K8sObject):
 
         await self.set_requested_stop_datetime(never)
         return True
+
+    async def get_resource_handle(self) -> ResourceHandle|None:
+        """Return ResourceHandle associated with this ResourceClaim"""
+        name = self.resource_handle_name
+        if name is None:
+            return None
+        return await self.client.get_resource_handle(name)
+
+    async def set_lifespan_end(self, dt:datetime, override_limits:bool=False) -> None:
+        """Set lifespan end for ResourceClaim.
+        If limit_override is set then also update ResourceHandle to ensure
+        value will be applied."""
+        if override_limits:
+            try:
+                resource_handle = await self.get_resource_handle()
+                if resource_handle:
+                    req_maximum = dt - self.lifespan_start_datetime
+                    req_relative_maximum = dt - datetime.now(timezone.utc)
+
+                    set_values = {"end": dt}
+                    if resource_handle.lifespan_maximum_timedelta < req_maximum:
+                        set_values['maximum'] = req_maximum
+                    if resource_handle.lifespan_relative_maximum_timedelta < req_relative_maximum:
+                        set_values['relative_maximum'] = req_relative_maximum
+
+                    await resource_handle.set_lifespan(**set_values)
+            except BabylonApiException as err:
+                if err.status != 404:
+                    raise
+
+        if dt == self.requested_lifespan_end_datetime:
+            return
+
+        await self.patch({
+            "spec": {
+                "lifespan": {
+                    "end": dt.strftime('%FT%TZ')
+                }
+            }
+        })
+
 
     async def set_requested_stop_datetime(self, dt:datetime) -> None:
         """Set auto-stop schedule to specified datetime."""
@@ -263,9 +355,39 @@ class ResourceClaimSpecLifespan:
 
     @property
     def end(self) -> datetime|None:
-        if 'end' in self._definition:
-            return datetime.strptime(self._definition['end'], '%Y-%m-%dT%H:%M:%S%z')
-        return None
+        """Alias for end_datetime"""
+        return self.end_datetime
+
+    @property
+    def end_datetime(self) -> datetime|None:
+        """Return requested lifespan end as datetime object"""
+        ts = self.end_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def end_timestamp(self) -> str|None:
+        """Return requested lifespan end timestamp string if defined"""
+        return self._definition.get('end')
+
+    @property
+    def start(self) -> datetime|None:
+        """Alias for start_datetime"""
+        return self.start_datetime
+
+    @property
+    def start_datetime(self) -> datetime|None:
+        """Return requested lifespan start as datetime object"""
+        ts = self.start_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def start_timestamp(self) -> str|None:
+        """Return requested lifespan start timestamp string if defined"""
+        return self._definition.get('start')
 
 class ResourceClaimSpecProvider:
     def __init__(self, definition):
@@ -328,9 +450,21 @@ class ResourceClaimStatusLifespan:
 
     @property
     def end(self) -> datetime|None:
-        if 'end' in self._definition:
-            return datetime.strptime(self._definition['end'], '%Y-%m-%dT%H:%M:%S%z')
-        return None
+        """Alias for end_datetime"""
+        return self.end_datetime
+
+    @property
+    def end_datetime(self) -> datetime|None:
+        """Return lifespan end as datetime object"""
+        ts = self.end_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def end_timestamp(self) -> str|None:
+        """Return lifespan end timestamp string if defined"""
+        return self._definition.get('end')
 
     @property
     def first_ready(self) -> datetime|None:
