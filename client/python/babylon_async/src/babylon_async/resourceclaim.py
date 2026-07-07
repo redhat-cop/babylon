@@ -484,6 +484,24 @@ class ResourceClaimStatusLifespan:
             return timedelta(seconds=pytimeparse.parse(self._definition['relativeMaximum']))
         return None
 
+    @property
+    def start(self) -> datetime|None:
+        """Alias for start_datetime"""
+        return self.start_datetime
+
+    @property
+    def start_datetime(self) -> datetime|None:
+        """Return lifespan start as datetime object"""
+        ts = self.start_timestamp
+        if ts is None:
+            return None
+        return datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def start_timestamp(self) -> str|None:
+        """Return lifespan start timestamp string if defined"""
+        return self._definition.get('start')
+
 class ResourceClaimStatusProvider:
     def __init__(self, definition):
         self._definition = definition
