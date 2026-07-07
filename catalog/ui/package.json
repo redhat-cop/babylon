@@ -103,7 +103,7 @@
     "@patternfly/react-core": "^6.6.0",
     "@patternfly/react-drag-drop": "^6.5.1",
     "@patternfly/react-icons": "^6.6.0",
-    "@patternfly/react-styles": "^6.5.1",
+    "@patternfly/react-styles": "^6.6.0",
     "@patternfly/react-table": "^6.6.0",
     "@reduxjs/toolkit": "^2.12.0",
     "asciidoctor": "^4.0.1",
