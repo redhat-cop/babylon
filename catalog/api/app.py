@@ -954,6 +954,7 @@ async def sandbox_onboard(request):
     provision_data = resource_handle.get('status', {}).get('summary', {}).get('provision_data', {})
     api_url = provision_data.get('openshift_api_url', '')
     ingress_domain = provision_data.get('openshift_cluster_ingress_domain', '')
+    token = provision_data.get('openshift_cluster_admin_token', '')
 
     annotations = copy.deepcopy(sandbox_host.get('annotations', {}))
     for key, value in annotations.items():
@@ -964,10 +965,14 @@ async def sandbox_onboard(request):
                 value,
             )
 
+    if not token:
+        raise web.HTTPBadRequest(reason="No openshift_cluster_admin_token found in provision data")
+
     config = {
         'name': guid,
         'api_url': api_url,
         'ingress_domain': ingress_domain,
+        'token': token,
         'annotations': annotations,
     }
 
