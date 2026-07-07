@@ -69,7 +69,7 @@ body,
   }
 }
 
-.pf-v6-c-menu-toggle {
+.pf-v6-c-menu-toggle.pf-v6-c-menu-toggle {
   max-width: 250px;
   width: 100%;
 }
