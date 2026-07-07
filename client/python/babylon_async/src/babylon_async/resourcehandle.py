@@ -147,7 +147,7 @@ class ResourceHandle(K8sObject):
         if isinstance(maximum, timedelta):
             maximum = timedelta_to_str(maximum)
         if isinstance(relative_maximum, timedelta):
-            relative_maximum = timedelta_to_str(maximum)
+            relative_maximum = timedelta_to_str(relative_maximum)
 
         lifespan = {}
         if default is not None:
