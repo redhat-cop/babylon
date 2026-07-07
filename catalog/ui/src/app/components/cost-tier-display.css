@@ -10,7 +10,7 @@
 }
 
 .cost-tier-display__sign--active {
-  color: var(--pf-t--color--red--50, #ee0000);
+  color: #0066cc;
   font-weight: var(--pf-t--global--font--weight--400);
 }
 

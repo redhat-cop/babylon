@@ -6,7 +6,7 @@
   font-size: var(--pf-t--global--icon--size--font--body--sm);
 }
 .hide-controls {
-  width: auto;
+  width: auto !important;
 }
 .hide-controls .pf-v6-c-menu-toggle__controls {
   display: none;
