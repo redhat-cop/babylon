@@ -59,11 +59,12 @@ class TenantClusterPool(K8sObject):
         return TenantClusterPoolStatus(self._definition['status'])
 
     async def add_cluster_to_status(self,
-        name:str,
+        resource_claim_name:str,
         retries:int=10,
         sandbox_api_state:str="pending"
     ) -> None:
         """Add cluster named by resource claim to status."""
+        name = resource_claim_name.split('.', 1)[1].replace('.', '-')
         for attempt in range(retries+1):
             # Loop until successfully added
             patch = []
@@ -96,7 +97,8 @@ class TenantClusterPool(K8sObject):
                 "op": "add",
                 "path": "/status/clusters/-",
                 "value": {
-                    "resourceClaimName": name,
+                    "name": name,
+                    "resourceClaimName": resource_claim_name,
                     "sandboxApiState": sandbox_api_state,
                 }
             })
@@ -112,19 +114,19 @@ class TenantClusterPool(K8sObject):
                 await self.refresh()
 
     async def remove_cluster_from_status(self,
-        name:str,
+        resource_claim_name:str,
         retries:int=10,
     ) -> None:
         """Remove cluster named by resource claim from status."""
         for attempt in range(retries+1):
             for idx, cluster in reversed(list(enumerate(self.status.clusters))):
-                if cluster.resource_claim_name != name:
+                if cluster.resource_claim_name != resource_claim_name:
                     continue
                 try:
                     await self.patch_status([{
                         "op": "test",
                         "path": f"/status/clusters/{idx}/resourceClaimName",
-                        "value": name,
+                        "value": resource_claim_name,
                     }, {
                         "op": "remove",
                         "path": f"/status/clusters/{idx}",
@@ -146,13 +148,13 @@ class TenantClusterPool(K8sObject):
         """Set sandbox api state of cluster in status."""
         for attempt in range(retries+1):
             for idx, cluster in reversed(list(enumerate(self.status.clusters))):
-                if cluster.resource_claim_name != name:
+                if cluster.resource_claim_name != resource_claim_name:
                     continue
                 try:
                     await self.patch_status([{
                         "op": "test",
                         "path": f"/status/clusters/{idx}/resourceClaimName",
-                        "value": name,
+                        "value": resource_claim_name,
                     }, {
                         "op": "add",
                         "path": f"/status/clusters/{idx}/sandboxApiState",
@@ -354,6 +356,11 @@ class TenantClusterPoolStatusCluster:
     """Status of cluster in TenantClusterPool"""
     def __init__(self, definition):
         self._definition = definition
+
+    @property
+    def name(self) -> str:
+        """ResourceClaim name used to request the cluster."""
+        return self._definition['name']
 
     @property
     def resource_claim_name(self) -> str:
