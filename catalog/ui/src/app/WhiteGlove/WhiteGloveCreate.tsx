@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { createWhiteGloveRequest, dateToApiString } from '@app/api';
+import { createWhiteGloveRequest } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { displayName } from '@app/util';
 import CatalogItemSelectorModal from '@app/MultiWorkshops/CatalogItemSelectorModal';
