@@ -8,7 +8,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Checkbox,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
