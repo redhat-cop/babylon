@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiPaths, fetcher, patchWhiteGloveRequest, createWorkshop, createWorkshopProvision } from '@app/api';
+import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
 import { WhiteGloveRequest } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
