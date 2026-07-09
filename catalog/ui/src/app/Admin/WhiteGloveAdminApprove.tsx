@@ -32,7 +32,7 @@ import '@app/Catalog/catalog-item-form.css';
 
 const WhiteGloveAdminApproveContent: React.FC<{ namespace: string; name: string }> = ({ namespace, name }) => {
   const navigate = useNavigate();
-  const { data: wgr, mutate } = useSWR<WhiteGloveRequest>(
+  const { data: wgr } = useSWR<WhiteGloveRequest>(
     apiPaths.WHITE_GLOVE_REQUEST({ namespace, name }),
     fetcher,
   );
