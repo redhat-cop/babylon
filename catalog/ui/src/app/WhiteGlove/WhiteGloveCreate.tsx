@@ -30,7 +30,7 @@ import './white-glove.css';
 
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
-  const { userNamespace, email } = useSession().getSession();
+  const { userNamespace } = useSession().getSession();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
