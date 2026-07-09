@@ -798,13 +798,18 @@ async def catalog_item_check_availability(request):
 
 @routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}/placements")
 async def sandbox_cluster_placements(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -823,13 +828,18 @@ async def sandbox_cluster_placements(request):
 
 @routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}")
 async def sandbox_cluster_config(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -848,13 +858,18 @@ async def sandbox_cluster_config(request):
 
 @routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/enable")
 async def sandbox_cluster_enable(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -873,13 +888,18 @@ async def sandbox_cluster_enable(request):
 
 @routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/disable")
 async def sandbox_cluster_disable(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -898,13 +918,18 @@ async def sandbox_cluster_disable(request):
 
 @routes.delete("/api/sandbox/ocp-shared-cluster-configurations/{name}/offboard")
 async def sandbox_cluster_offboard(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -923,6 +948,11 @@ async def sandbox_cluster_offboard(request):
 
 @routes.post("/api/sandbox/ocp-shared-cluster-configurations/{guid}/onboard")
 async def sandbox_onboard(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     guid = request.match_info.get('guid')
 
     resource_handle = await custom_objects_api.get_namespaced_custom_object(
@@ -982,11 +1012,11 @@ async def sandbox_onboard(request):
         if key in sandbox_host:
             config[key] = sandbox_host[key]
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
