@@ -211,7 +211,7 @@ class K8sObjectMetadata:
 
     @property
     def deletion_timestamp(self) -> str|None:
-        return self._definition['deletionTimestamp']
+        return self._definition.get('deletionTimestamp')
 
     @property
     def finalizers(self) -> List[str]|None:
