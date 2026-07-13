@@ -366,7 +366,13 @@ class WebhookServer:
         base_ref = pull_request.get('base', {}).get('ref', '')
         head_sha = pull_request.get('head', {}).get('sha', '')
         
-        self.logger.info(f"PR webhook: repo={repo_full_name}, action={action}, PR#{pr_number}, head={head_ref}, base={base_ref}")
+        safe_repo_full_name = self._sanitize_for_log(repo_full_name)
+        safe_action = self._sanitize_for_log(action)
+        safe_head_ref = self._sanitize_for_log(head_ref)
+        safe_base_ref = self._sanitize_for_log(base_ref)
+        self.logger.info(
+            f"PR webhook: repo={safe_repo_full_name}, action={safe_action}, PR#{pr_number}, head={safe_head_ref}, base={safe_base_ref}"
+        )
         
         # Debug log for closed PRs to troubleshoot merge detection
         if action == 'closed':
