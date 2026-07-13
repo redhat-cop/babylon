@@ -5,11 +5,9 @@ from schemas import (
     RatingsListSchema,
     RatingSchema,
     RatingCreateSchema,
-    RatingProvisionCreateSchema,
     CatalogItemRatingAverageSchema,
-    WorkshopRequestSchema
 )
-from models import Rating, ProvisionRequest
+from models import Rating
 from .pagination import get_pagination_params
 
 
@@ -113,46 +111,6 @@ async def list_ratings_get(pagination: dict = Depends(get_pagination_params),
     )
 
 
-@router.get("/api/ratings/v1/provisions/{provision_uuid}/email/{email}",
-            response_model=RatingSchema,
-            summary="Get rating by provision UUID and email")
-async def provision_rating_by_email_get(provision_uuid: str,
-                                        email: str,
-                                        include_details: bool = False
-                                        ) -> RatingSchema:
-
-    safe_provision_uuid = _sanitize_for_log(provision_uuid)
-    safe_email = _sanitize_for_log(email)
-    logger.info(f"Getting rating for request {safe_provision_uuid} and email {safe_email}")
-    rating = await Rating.get_provision_rating_by_email(provision_uuid, email)
-
-    if not rating:
-        raise HTTPException(status_code=404, detail="Rating not found")
-
-    return rating.to_dict(include_details)
-
-
-@router.post("/api/ratings/v1/provisions/{provision_uuid}",
-             response_model=RatingSchema,
-             summary="Create or update provision rating",
-             )
-async def provision_rating_post(provision_uuid: str,
-                                new_rating: RatingProvisionCreateSchema,
-                                include_details: bool = False) -> RatingSchema:
-
-    safe_provision_uuid = _sanitize_for_log(provision_uuid)
-    logger.info(f"Creating or updating rating for provision {safe_provision_uuid}")
-    rating = Rating.from_dict(new_rating.model_dump())
-    rating.provision_uuid = provision_uuid
-    try:
-        rating = await rating.save_provision_rating()
-    except Exception as e:
-        logger.error(f"Error saving rating: {e}", stack_info=True)
-        raise HTTPException(status_code=404, detail="Error saving rating") from e
-
-    return rating.to_dict(include_details)
-
-
 @router.get("/api/ratings/v1/request/{request_uid}/email/{email}",
             response_model=RatingSchema,
             summary="Get rating by request UID and email")
@@ -210,14 +168,3 @@ async def request_rating_post(request_uid: str,
     return rating.to_dict(include_details)
 
 
-@router.get("/api/ratings/v1/workshop/{workshop_id}",
-            response_model=WorkshopRequestSchema,
-            summary="Get request ID by workshop ID")
-async def workshop_rating_get(workshop_id: str) -> WorkshopRequestSchema:
-    safe_workshop_id = _sanitize_for_log(workshop_id)
-    logger.info(f"Getting request ID for workshop {safe_workshop_id}")
-    request = await ProvisionRequest.get_request_workshop(workshop_id)
-    if not request:
-        raise HTTPException(status_code=404, detail="Workshop not found")
-
-    return {'request_id': request.id if request else None}
