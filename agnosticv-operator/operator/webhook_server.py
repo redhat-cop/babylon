@@ -396,7 +396,11 @@ class WebhookServer:
             webhook_secret = await self.get_webhook_secret(agnosticv_repo)
             self.logger.debug(f"PR webhook secret check for {agnosticv_repo.name}: secret_configured={webhook_secret is not None}")
             if not self.verify_github_signature(payload_body, signature, webhook_secret):
-                self.logger.warning(f"Invalid PR webhook signature for {agnosticv_repo.name}: signature={signature[:20]}..." if signature else "No signature provided")
+                safe_signature_preview = self._sanitize_for_log(signature)[:20] if signature else None
+                self.logger.warning(
+                    f"Invalid PR webhook signature for {agnosticv_repo.name}: signature={safe_signature_preview}..."
+                    if safe_signature_preview else "No signature provided"
+                )
                 continue
             
             try:
