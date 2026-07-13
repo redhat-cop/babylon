@@ -226,7 +226,7 @@ class WebhookServer:
                     'timestamp': current_time
                 }
                 
-                self.logger.debug(f"Cached webhook secret from Kubernetes secret {webhook_secret_name}")
+                self.logger.debug("Cached webhook secret from Kubernetes secret")
                 return decoded_secret
             return None
         except Exception as e:
