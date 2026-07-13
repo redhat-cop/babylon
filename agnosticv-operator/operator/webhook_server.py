@@ -240,7 +240,7 @@ class WebhookServer:
             cache_key = f"{agnosticv_repo.namespace}/{webhook_secret_name}"
             if cache_key in self.webhook_secret_cache:
                 del self.webhook_secret_cache[cache_key]
-                self.logger.debug(f"Cleared webhook secret cache for {cache_key}")
+                self.logger.debug("Cleared webhook secret cache entry")
         else:
             # Clear entire cache
             self.webhook_secret_cache.clear()
