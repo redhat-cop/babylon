@@ -43,7 +43,7 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [salesforceId, setSalesforceId] = useState('');
   const [skipSalesforce, setSkipSalesforce] = useState(false);
   const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
-  const [eventDate, setEventDate] = useState<string>('');
+  const [eventDate] = useState<string>('');
   const [eventEndDate] = useState<string>('');
   const [notes, setNotes] = useState('');
 
