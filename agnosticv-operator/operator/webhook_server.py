@@ -111,7 +111,11 @@ class WebhookServer:
             repo_url = repository.get('clone_url', '')
             
             if not repo_full_name or not repo_url:
-                self.logger.warning(f"Missing required repository fields: full_name={repo_full_name}, clone_url={repo_url}")
+                safe_repo_full_name = (repo_full_name or "").replace('\r', '').replace('\n', '')
+                safe_repo_url = (repo_url or "").replace('\r', '').replace('\n', '')
+                self.logger.warning(
+                    f"Missing required repository fields: full_name={safe_repo_full_name}, clone_url={safe_repo_url}"
+                )
                 return web.json_response({
                     "error": "Missing required repository fields"
                 }, status=400)
