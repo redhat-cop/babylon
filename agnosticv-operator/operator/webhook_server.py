@@ -74,8 +74,12 @@ class WebhookServer:
             
             # Read payload
             payload_body = await request.read()
+
+            # Sanitize user-controlled header values before logging to prevent log injection
+            safe_event_type = (event_type or "").replace('\r', '').replace('\n', '')
+            safe_delivery_id = (delivery_id or "").replace('\r', '').replace('\n', '')
             
-            self.logger.info(f"Received GitHub webhook: event={event_type}, delivery={delivery_id}")
+            self.logger.info(f"Received GitHub webhook: event={safe_event_type}, delivery={safe_delivery_id}")
             
             # Only handle push and pull_request events
             if event_type not in ['push', 'pull_request']:
