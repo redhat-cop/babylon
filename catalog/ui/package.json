@@ -98,7 +98,7 @@
     "@lexical/rich-text": "^0.44.0",
     "@lexical/selection": "^0.44.0",
     "@lexical/table": "^0.44.0",
-    "@lexical/utils": "^0.44.0",
+    "@lexical/utils": "^0.47.0",
     "@monaco-editor/react": "^4.7.0",
     "@patternfly/react-core": "^6.6.0",
     "@patternfly/react-drag-drop": "^6.5.1",
