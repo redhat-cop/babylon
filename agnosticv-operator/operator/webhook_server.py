@@ -83,7 +83,7 @@ class WebhookServer:
             
             # Only handle push and pull_request events
             if event_type not in ['push', 'pull_request']:
-                self.logger.debug(f"Ignoring unsupported event: {event_type}")
+                self.logger.debug(f"Ignoring unsupported event: {safe_event_type}")
                 return web.json_response({
                     "status": "ignored",
                     "reason": f"Event type '{event_type}' not supported"
