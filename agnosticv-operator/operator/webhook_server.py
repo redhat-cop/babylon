@@ -119,10 +119,11 @@ class WebhookServer:
             # Find matching AgnosticVRepo(s) for signature verification
             agnosticv_repos = await self.find_matching_repos(repo_full_name, repo_url, event_type, payload)
             if not agnosticv_repos:
-                self.logger.debug(f"No matching AgnosticVRepo found for {repo_full_name}")
+                safe_repo_full_name = (repo_full_name or "").replace('\r', '').replace('\n', '')
+                self.logger.debug(f"No matching AgnosticVRepo found for {safe_repo_full_name}")
                 return web.json_response({
                     "status": "ignored",
-                    "reason": f"No matching AgnosticVRepo found for {repo_full_name}"
+                    "reason": f"No matching AgnosticVRepo found for {safe_repo_full_name}"
                 }, status=200)
             
             # Process based on event type
