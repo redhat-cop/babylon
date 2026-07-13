@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 class ResourceReference:
     def __init__(self, definition):
         self.definition = definition

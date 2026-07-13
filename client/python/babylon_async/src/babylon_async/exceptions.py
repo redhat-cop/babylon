@@ -1,3 +1,4 @@
+from __future__ import annotations
 from kubernetes_asyncio.client import ApiException as KubernetesApiException
 
 class BabylonApiException(Exception):
