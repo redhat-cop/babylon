@@ -64,7 +64,7 @@
     "postcss": "^8.5.16",
     "postcss-custom-media": "^8.0.2",
     "postcss-loader": "^7.3.4",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.5",
     "prop-types": "^15.8.1",
     "raw-loader": "^4.0.2",
     "rimraf": "^6.1.3",
