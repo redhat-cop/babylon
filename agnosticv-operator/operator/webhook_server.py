@@ -284,7 +284,10 @@ class WebhookServer:
             self.logger.warning(f"Invalid commits field type: {type(commits)}")
             commits = []  # Use empty list as fallback
         
-        self.logger.info(f"Push webhook: repo={repo_full_name}, branch={branch_name}, commits={len(commits)}")
+        # Sanitize user-controlled values before logging to prevent log injection
+        safe_repo_full_name = (repo_full_name or '').replace('\r', '').replace('\n', '')
+        safe_branch_name = (branch_name or '').replace('\r', '').replace('\n', '')
+        self.logger.info(f"Push webhook: repo={safe_repo_full_name}, branch={safe_branch_name}, commits={len(commits)}")
         
         results = []
         for agnosticv_repo in agnosticv_repos:
