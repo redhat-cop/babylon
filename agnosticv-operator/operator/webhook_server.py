@@ -207,7 +207,7 @@ class WebhookServer:
         if cache_key in self.webhook_secret_cache:
             cached_entry = self.webhook_secret_cache[cache_key]
             if current_time - cached_entry['timestamp'] < self.cache_ttl:
-                self.logger.debug(f"Using cached webhook secret for {webhook_secret_name}")
+                self.logger.debug("Using cached webhook secret")
                 return cached_entry['secret']
             else:
                 # Cache expired, remove entry
