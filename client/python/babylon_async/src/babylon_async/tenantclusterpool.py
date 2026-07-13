@@ -42,6 +42,12 @@ class TenantClusterPool(K8sObject):
         return self.spec.min_available_sandbox_placements
 
     @property
+    def min_clusters(self) -> int:
+        """Minimum number of clusters to provision. If undefined then no
+        minimum is applied."""
+        return self.spec.min_clusters or 0
+
+    @property
     def sandbox_host(self) -> TenantClusterPoolSpecSandboxHost:
         """Configuration for registering clusters as tenant hosts with the Sandbox API."""
         return self.spec.sandbox_host
@@ -194,6 +200,12 @@ class TenantClusterPoolSpec:
         on shared clusters. A new shared cluster will be provisioned
         if less than this number remain."""
         return self._definition.get('minAvailableSandboxPlacements', 0)
+
+    @property
+    def min_clusters(self) -> int:
+        """Maximum number of clusters to provision. If undefined then no
+        minimum is applied."""
+        return self._definition.get('minClusters', 0)
 
     @property
     def sandbox_host(self) -> TenantClusterPoolSpecSandboxHost:
