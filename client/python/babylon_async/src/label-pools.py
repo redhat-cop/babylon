@@ -2,8 +2,6 @@
 
 import asyncio
 
-from copy import deepcopy
-
 from babylon_async import BabylonClient, CatalogItem, ResourcePool
 
 def catalog_item_label(catalog_item):

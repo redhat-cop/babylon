@@ -88,8 +88,7 @@ class TimeStamp(object):
 def error_if_undefined(result):
     if isinstance(result, jinja2.Undefined):
         result._fail_with_undefined_error()
-    else:
-        return result
+    return result
 
 def seconds_to_interval(seconds:int) -> str:
     if seconds % 86400 == 0:
@@ -351,5 +350,6 @@ def __recursive_strip_omit(value, omit):
         return [
             __recursive_strip_omit(item, omit=omit) for item in value if item != omit
         ]
-    elif value != omit:
-        return value
+    elif value == omit:
+        return None
+    return value

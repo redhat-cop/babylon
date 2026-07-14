@@ -253,6 +253,7 @@ class ResourceClaim(K8sObject):
             return False
 
         await self.set_lifespan_end(never, True)
+        return True
 
     async def disable_autostop(self) -> bool:
         """Set auto-stop schedule such that stop is effectively disabled.
