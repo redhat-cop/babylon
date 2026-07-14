@@ -427,7 +427,8 @@ class WebhookServer:
                 elif action == 'closed':
                     # PR closed - remove from tracking (all repos, regardless of preloadPullRequests)
                     merged = pull_request.get('merged', False)
-                    self.logger.info(f"PR #{pr_number} closed: merged={merged}, state={safe_pr_state}")
+                    safe_merged = self._sanitize_for_log(merged)
+                    self.logger.info(f"PR #{pr_number} closed: merged={safe_merged}, state={safe_pr_state}")
                     await self.trigger_pr_cleanup(agnosticv_repo, pr_number, head_ref, merged)
                     results.append({
                         "repo": agnosticv_repo.name,
