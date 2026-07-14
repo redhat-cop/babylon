@@ -28,7 +28,6 @@ system_status_configmap_name = os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylo
 groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
-ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
@@ -565,13 +564,16 @@ async def provision_rating_post(request):
 
 
 @routes.get("/api/user-manager/bookmarks")
-async def provision_rating_get(request):
+async def bookmark_get(request):
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}",
+        url=f"{reporting_api}/bookmark/v1/{email}",
     )
 
 @routes.post("/api/user-manager/bookmarks")
@@ -579,11 +581,15 @@ async def bookmark_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+        url=f"{reporting_api}/bookmark/v1/",
     )
 
 @routes.delete("/api/user-manager/bookmarks")
@@ -591,10 +597,13 @@ async def bookmark_delete(request):
     user = await get_proxy_user(request)
     asset_uuid = request.query.get("asset_uuid")
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
+        url=f"{reporting_api}/bookmark/v1/{email}/{asset_uuid}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}")
