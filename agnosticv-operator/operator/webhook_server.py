@@ -345,11 +345,12 @@ class WebhookServer:
         
         # If no repos have preloadPullRequests enabled, skip processing for opened/reopened/synchronize
         action = payload.get('action', '')
+        safe_action = self._sanitize_for_log(action)
         if action in ['opened', 'reopened', 'synchronize'] and not preload_repos:
-            self.logger.debug(f"Ignoring PR {action}: no repositories have preloadPullRequests enabled")
+            self.logger.debug(f"Ignoring PR {safe_action}: no repositories have preloadPullRequests enabled")
             return web.json_response({
                 "status": "ignored",
-                "reason": f"No repositories have preloadPullRequests enabled for action '{action}'"
+                "reason": f"No repositories have preloadPullRequests enabled for action '{safe_action}'"
             }, status=200)
         
         pull_request = payload.get('pull_request', {})
@@ -390,10 +391,10 @@ class WebhookServer:
         
         # Only process specific actions
         if action not in ['opened', 'closed', 'reopened', 'synchronize']:
-            self.logger.debug(f"Ignoring PR action: {action}")
+            self.logger.debug(f"Ignoring PR action: {safe_action}")
             return web.json_response({
                 "status": "ignored",
-                "reason": f"PR action '{action}' not supported"
+                "reason": f"PR action '{safe_action}' not supported"
             }, status=200)
         
         results = []
