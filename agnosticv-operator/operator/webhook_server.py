@@ -298,7 +298,7 @@ class WebhookServer:
         for agnosticv_repo in agnosticv_repos:
             # Check if this repo's branch matches the pushed branch
             if agnosticv_repo.git_ref != branch_name:
-                self.logger.debug(f"Skipping {agnosticv_repo.name}: branch mismatch ({agnosticv_repo.git_ref} != {branch_name})")
+                self.logger.debug(f"Skipping {agnosticv_repo.name}: branch mismatch ({agnosticv_repo.git_ref} != {safe_branch_name})")
                 continue
                 
             # SECURITY: Verify webhook signature for this repo
