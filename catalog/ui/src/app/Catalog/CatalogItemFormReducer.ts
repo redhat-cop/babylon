@@ -1,4 +1,5 @@
 import React from 'react';
+import { Parser } from 'expr-eval';
 import { checkSalesforceId } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
@@ -138,20 +139,10 @@ type FormStateParameterGroup = {
 const checkSalesforceIdRegex = /\bcheck_salesforce_id\(\s*(\w+)\s*\)/g;
 
 export function checkCondition(condition: string, vars: ConditionValues): boolean {
-  const checkFunction = new Function(
-    Object.entries(vars)
-      .map(([k, v]) => 'const ' + k + ' = ' + JSON.stringify(v) + ';')
-      .join('\n') +
-      'return (' +
-      condition +
-      ');',
-  );
-  const ret: boolean | Error = checkFunction();
-  if (ret instanceof Error) {
-    throw ret;
-  } else {
-    return Boolean(ret);
-  }
+  const parser = new Parser();
+  const expr = parser.parse(condition);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Boolean(expr.evaluate(vars as any));
 }
 
 // Because salesforce checks are asynchronous they need to be resolved before checking the condition logic
