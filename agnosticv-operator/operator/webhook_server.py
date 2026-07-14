@@ -387,7 +387,9 @@ class WebhookServer:
         # Debug log for closed PRs to troubleshoot merge detection
         if action == 'closed':
             merged_field = pull_request.get('merged')
-            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={merged_field}, merged_at={pull_request.get('merged_at')}, state={pr_state}")
+            safe_merged_field = self._sanitize_for_log(merged_field)
+            safe_merged_at = self._sanitize_for_log(pull_request.get('merged_at'))
+            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={safe_merged_field}, merged_at={safe_merged_at}, state={pr_state}")
         
         # Only process specific actions
         if action not in ['opened', 'closed', 'reopened', 'synchronize']:
