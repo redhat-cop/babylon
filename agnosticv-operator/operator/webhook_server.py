@@ -389,7 +389,7 @@ class WebhookServer:
             merged_field = pull_request.get('merged')
             safe_merged_field = self._sanitize_for_log(merged_field)
             safe_merged_at = self._sanitize_for_log(pull_request.get('merged_at'))
-            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={safe_merged_field}, merged_at={safe_merged_at}, state={pr_state}")
+            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={safe_merged_field}, merged_at={safe_merged_at}, state={safe_pr_state}")
         
         # Only process specific actions
         if action not in ['opened', 'closed', 'reopened', 'synchronize']:
