@@ -28,7 +28,6 @@ system_status_configmap_name = os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylo
 groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
-ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
@@ -537,10 +536,13 @@ async def provision_rating_get(request):
     request_uid = request.match_info.get('request_uid')
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}",
+        url=f"{reporting_api}/rating/v1/request/{request_uid}/email/{email}",
     )
 
 @routes.post("/api/ratings/request/{request_uid}")
@@ -549,22 +551,29 @@ async def provision_rating_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}",
+        url=f"{reporting_api}/rating/v1/request/{request_uid}",
     )
 
 
 @routes.get("/api/user-manager/bookmarks")
-async def provision_rating_get(request):
+async def bookmark_get(request):
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}",
+        url=f"{reporting_api}/bookmark/v1/{email}",
     )
 
 @routes.post("/api/user-manager/bookmarks")
@@ -572,11 +581,15 @@ async def bookmark_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+        url=f"{reporting_api}/bookmark/v1/",
     )
 
 @routes.delete("/api/user-manager/bookmarks")
@@ -584,10 +597,25 @@ async def bookmark_delete(request):
     user = await get_proxy_user(request)
     asset_uuid = request.query.get("asset_uuid")
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
+        url=f"{reporting_api}/bookmark/v1/{email}/{asset_uuid}",
+    )
+
+@routes.get("/api/ratings/catalogitem/{asset_uuid}")
+async def catalog_item_rating_average(request):
+    asset_uuid = request.match_info.get('asset_uuid')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/catalog/{asset_uuid}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
@@ -597,10 +625,26 @@ async def provision_rating_get_history(request):
     session = await get_user_session(request, user)
     if not session.get('admin'):
         raise web.HTTPForbidden()
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/catalogitem/{asset_uuid}/history",
+        url=f"{reporting_api}/rating/v1/catalog/{asset_uuid}/history",
+    )
+
+@routes.get("/api/ratings/list")
+async def ratings_list(request):
+    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
+    queryString = f"?{query_params}" if query_params else ""
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/list{queryString}",
     )
 
 @routes.get("/api/admin/incidents")
