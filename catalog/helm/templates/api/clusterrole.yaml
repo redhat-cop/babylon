@@ -13,8 +13,15 @@ rules:
   - users
   verbs:
   - get
-  - impersonate
   - list
+- apiGroups:
+  - ""
+  - user.openshift.io
+  resources:
+  - users
+  - groups
+  verbs:
+  - impersonate
 - apiGroups:
   - ""
   resources:
