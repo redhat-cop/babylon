@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Any, List, Mapping
 
 from .k8s_object import K8sObject
-from .resourcereference import ResourceReference
 
 class ResourcePool(K8sObject):
     api_group = "poolboy.gpte.redhat.com"

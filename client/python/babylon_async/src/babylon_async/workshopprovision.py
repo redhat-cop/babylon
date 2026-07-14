@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Mapping
+from typing import Mapping
 
 from .k8s_object import K8sObject
 from .resourceprovider import ResourceProvider
