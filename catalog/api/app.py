@@ -608,6 +608,7 @@ async def bookmark_delete(request):
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}")
 async def catalog_item_rating_average(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -636,6 +637,7 @@ async def provision_rating_get_history(request):
 
 @routes.get("/api/ratings/list")
 async def ratings_list(request):
+    await get_proxy_user(request)
     query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
     queryString = f"?{query_params}" if query_params else ""
     headers = {
@@ -649,6 +651,7 @@ async def ratings_list(request):
 
 @routes.get("/api/admin/incidents")
 async def incidents_get(request):
+    await get_proxy_user(request)
     return await api_proxy(
         headers=request.headers,
         method="GET",
@@ -708,6 +711,7 @@ async def create_support(request):
 
 @routes.get("/api/salesforce/accounts")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
@@ -727,6 +731,7 @@ async def list_sfdc_accounts(request):
     )
 @routes.get("/api/salesforce/accounts/{account_id}")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     account_id = request.match_info.get('account_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -743,6 +748,7 @@ async def list_sfdc_accounts(request):
 
 @routes.get("/api/salesforce/{salesforce_id}")
 async def salesforce_id_validation(request):
+    await get_proxy_user(request)
     salesforce_id = request.match_info.get('salesforce_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1081,6 +1087,7 @@ async def sandbox_onboard(request):
 
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")
 async def catalog_item_metrics(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1093,6 +1100,7 @@ async def catalog_item_metrics(request):
 
 @routes.get("/api/catalog_incident/active-incidents")
 async def catalog_item_active_incidents(request):
+    await get_proxy_user(request)
     stage = request.query.get("stage")
     queryString = ""
     if stage:
@@ -1108,6 +1116,7 @@ async def catalog_item_active_incidents(request):
 
 @routes.get("/api/catalog_incident/last-incident/{asset_uuid}/{stage}")
 async def catalog_item_last_incident(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     headers = {
@@ -1121,6 +1130,10 @@ async def catalog_item_last_incident(request):
 
 @routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")
 async def catalog_item_incidents(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     data = await request.json()
@@ -1154,6 +1167,7 @@ async def external_item_request(request):
 
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
+    await get_proxy_user(request)
     request_id = request.match_info.get('request_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1166,6 +1180,7 @@ async def usage_cost_request(request):
 
 @routes.get("/api/usage-cost/workshop/{workshop_id}")
 async def usage_cost_workshop(request):
+    await get_proxy_user(request)
     workshop_id = request.match_info.get('workshop_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
