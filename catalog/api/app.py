@@ -441,7 +441,8 @@ async def get_auth_cli_redirect(request):
     cookie so the CLI can use both for subsequent API calls.
     """
     callback = request.query.get('callback', '')
-    if not callback or not callback.startswith('http://localhost'):
+    parsed_callback = urlparse(callback) if callback else None
+    if not parsed_callback or parsed_callback.scheme != 'http' or parsed_callback.hostname not in ('localhost', '127.0.0.1'):
         raise web.HTTPBadRequest(reason="Missing or invalid 'callback' parameter (must be http://localhost)")
 
     user = await get_proxy_user(request)
