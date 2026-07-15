@@ -9,7 +9,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import aiohttp
 from aiohttp import web
@@ -543,7 +543,7 @@ async def provision_rating_get(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/rating/v1/request/{request_uid}/email/{email}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}/email/{quote(email, safe='')}",
     )
 
 @routes.post("/api/ratings/request/{request_uid}")
@@ -560,7 +560,7 @@ async def provision_rating_post(request):
         data=json.dumps(data),
         headers=headers,
         method="POST",
-        url=f"{reporting_api}/rating/v1/request/{request_uid}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}",
     )
 
 
@@ -574,7 +574,7 @@ async def bookmark_get(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/bookmark/v1/{email}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}",
     )
 
 @routes.post("/api/user-manager/bookmarks")
@@ -604,7 +604,7 @@ async def bookmark_delete(request):
     return await api_proxy(
         headers=headers,
         method="DELETE",
-        url=f"{reporting_api}/bookmark/v1/{email}/{asset_uuid}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}/{quote(asset_uuid, safe='')}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}")
@@ -616,7 +616,7 @@ async def catalog_item_rating_average(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/rating/v1/catalog/{asset_uuid}",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
@@ -632,13 +632,12 @@ async def provision_rating_get_history(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/rating/v1/catalog/{asset_uuid}/history",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}/history",
     )
 
 @routes.get("/api/ratings/list")
 async def ratings_list(request):
-    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
-    queryString = f"?{query_params}" if query_params else ""
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
@@ -683,7 +682,7 @@ async def update_incident(request):
         data=json.dumps(data),
         headers=request.headers,
         method="POST",
-        url=f"{admin_api}/api/admin/v1/incidents/{incident_id}",
+        url=f"{admin_api}/api/admin/v1/incidents/{quote(incident_id, safe='')}",
     )
 
 @routes.post("/api/admin/workshop/support")
@@ -712,19 +711,16 @@ async def list_sfdc_accounts(request):
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = ""
+    params = {}
     salesType = request.query.get("sales_type")
     accountValue = request.query.get("value")
     if salesType:
-        queryString = f"sales_type={salesType}"
-    if accountValue:
-        queryString = f"{queryString}&value={accountValue}"
-    else:
-        queryString = f"{queryString}&value=''"
+        params["sales_type"] = salesType
+    params["value"] = accountValue if accountValue else "''"
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts?{queryString}",
+        url=f"{reporting_api}/search/accounts?{urlencode(params)}",
     )
 @routes.get("/api/salesforce/accounts/{account_id}")
 async def list_sfdc_accounts(request):
@@ -732,14 +728,14 @@ async def list_sfdc_accounts(request):
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"account_id={account_id}"
+    params = {"account_id": account_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts/sfdc?{queryString}",
+        url=f"{reporting_api}/search/accounts/sfdc?{urlencode(params)}",
     )
 
 @routes.get("/api/salesforce/{salesforce_id}")
@@ -748,14 +744,14 @@ async def salesforce_id_validation(request):
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"salesforce_id={salesforce_id}"
+    params = {"salesforce_id": salesforce_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/sales_validation/check?{queryString}",
+        url=f"{reporting_api}/sales_validation/check?{urlencode(params)}",
     )
 
 # Expects a request body with the following structure:
@@ -868,7 +864,7 @@ async def sandbox_cluster_placements(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/placements",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/placements",
     )
 
 @routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}")
@@ -898,7 +894,7 @@ async def sandbox_cluster_config(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}",
     )
 
 @routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/enable")
@@ -928,7 +924,7 @@ async def sandbox_cluster_enable(request):
     return await api_proxy(
         headers=headers,
         method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/enable",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/enable",
     )
 
 @routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/disable")
@@ -958,7 +954,7 @@ async def sandbox_cluster_disable(request):
     return await api_proxy(
         headers=headers,
         method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/disable",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/disable",
     )
 
 @routes.delete("/api/sandbox/ocp-shared-cluster-configurations/{name}/offboard")
@@ -988,7 +984,7 @@ async def sandbox_cluster_offboard(request):
     return await api_proxy(
         headers=headers,
         method="DELETE",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/offboard",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/offboard",
     )
 
 @routes.post("/api/sandbox/ocp-shared-cluster-configurations/{guid}/onboard")
@@ -1076,7 +1072,7 @@ async def sandbox_onboard(request):
     return await api_proxy(
         headers=headers,
         method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{guid}",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(guid, safe='')}",
         data=json.dumps(config),
     )
 
@@ -1089,7 +1085,7 @@ async def catalog_item_metrics(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_item/metrics/{asset_uuid}?use_cache=true",
+        url=f"{reporting_api}/catalog_item/metrics/{quote(asset_uuid, safe='')}?use_cache=true",
     )
 
 @routes.get("/api/catalog_incident/active-incidents")
@@ -1097,7 +1093,7 @@ async def catalog_item_active_incidents(request):
     stage = request.query.get("stage")
     queryString = ""
     if stage:
-        queryString = f"?stage={stage}"
+        queryString = f"?{urlencode({'stage': stage})}"
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
@@ -1117,7 +1113,7 @@ async def catalog_item_last_incident(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_incident/last-incident/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/last-incident/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
 @routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")
@@ -1133,7 +1129,7 @@ async def catalog_item_incidents(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/catalog_incident/incidents/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/incidents/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
 @routes.post("/api/external_item/{asset_uuid}")
@@ -1150,7 +1146,7 @@ async def external_item_request(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/external_item/{asset_uuid}/request",
+        url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
 
 @routes.get("/api/usage-cost/request/{request_id}")
@@ -1162,7 +1158,7 @@ async def usage_cost_request(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/request/{request_id}",
+        url=f"{reporting_api}/usage-cost/request/{quote(request_id, safe='')}",
     )
 
 @routes.get("/api/usage-cost/workshop/{workshop_id}")
@@ -1174,7 +1170,7 @@ async def usage_cost_workshop(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
+        url=f"{reporting_api}/usage-cost/workshop/{quote(workshop_id, safe='')}",
     )
 
 @routes.get("/api/users/activity")
@@ -1186,9 +1182,7 @@ async def user_activity(request):
     if impersonate_user and session.get('admin'):
         email = impersonate_user
 
-    # Forward all query parameters
-    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
-    queryString = f"?{query_params}" if query_params else ""
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
 
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1196,7 +1190,7 @@ async def user_activity(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/users/activity/{email}{queryString}",
+        url=f"{reporting_api}/users/activity/{quote(email, safe='')}{queryString}",
     )
 
 @routes.get("/api/event/{multi_workshop_id}")
