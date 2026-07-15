@@ -63,6 +63,12 @@ spec:
         {{- end }}
         image: {{ $agnosticv.operator.image.repository }}:{{ $agnosticv.operator.image.tag }}
         imagePullPolicy: {{ $agnosticv.operator.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         livenessProbe:
           failureThreshold: 5
           initialDelaySeconds: 30

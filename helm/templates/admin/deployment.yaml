@@ -68,6 +68,12 @@ spec:
               name: {{ $admin.servicenow.secretName | default "babylon-admin-servicenow" }}
         image: {{ $admin.image.repository }}:{{ $admin.image.tag }}
         imagePullPolicy: {{ $admin.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         resources:
           {{- toYaml $admin.resources | nindent 10 }}
         livenessProbe:

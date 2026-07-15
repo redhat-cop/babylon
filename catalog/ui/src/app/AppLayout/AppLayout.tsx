@@ -7,6 +7,7 @@ import useDocumentTitle from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
 import Navigation from './Navigation';
 import { publicFetcher } from '@app/api';
+import dompurify from 'dompurify';
 import useSWRImmutable from 'swr/immutable';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { NotificationDrawerProvider, useNotificationDrawer } from './NotificationDrawerContext';
@@ -86,7 +87,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
           >
             <div>
-              <div dangerouslySetInnerHTML={{ __html: partnerHeaderHtml }}></div>
+              <div dangerouslySetInnerHTML={{ __html: dompurify.sanitize(partnerHeaderHtml || '') }}></div>
             </div>
           </PageSection>
         ) : null}
