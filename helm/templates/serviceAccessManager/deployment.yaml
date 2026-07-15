@@ -26,6 +26,12 @@ spec:
       - name: service-access-manager
         image: {{ $serviceAccessManager.image.repository }}:{{ $serviceAccessManager.image.tag }}
         imagePullPolicy: {{ $serviceAccessManager.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         resources:
           {{- toYaml $serviceAccessManager.resources | nindent 10 }}
         livenessProbe:

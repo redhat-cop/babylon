@@ -29,6 +29,12 @@ spec:
       - name: status
         image: {{ $status.image.repository }}:{{ $status.image.tag }}
         imagePullPolicy: {{ $status.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:
