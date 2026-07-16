@@ -101,7 +101,7 @@
     "@lexical/utils": "^0.44.0",
     "@monaco-editor/react": "^4.7.0",
     "@patternfly/react-core": "^6.6.0",
-    "@patternfly/react-drag-drop": "^6.5.1",
+    "@patternfly/react-drag-drop": "^6.6.0",
     "@patternfly/react-icons": "^6.6.0",
     "@patternfly/react-styles": "^6.6.0",
     "@patternfly/react-table": "^6.6.0",
