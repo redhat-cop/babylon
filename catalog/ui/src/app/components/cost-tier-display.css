@@ -1,11 +1,24 @@
 .cost-tier-display {
   display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  cursor: default;
+}
+
+.cost-tier-display__amount {
+  font-size: var(--pf-t--global--font--size--md);
+  font-weight: var(--pf-t--global--font--weight--400);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.cost-tier-display__tier {
+  display: inline-flex;
   gap: 1px;
   cursor: default;
 }
 
 .cost-tier-display__sign {
-  font-size: var(--pf-t--global--font--size--md);
+  font-size: var(--pf-t--global--font--size--xs);
   line-height: 1;
 }
 
