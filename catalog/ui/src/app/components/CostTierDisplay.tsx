@@ -11,27 +11,23 @@ const CostTierDisplay: React.FC<{ hourlyCost: number }> = ({ hourlyCost }) => {
   const formattedCost = formatCurrency(hourlyCost);
 
   return (
-    <Tooltip
-      content={
-        <div>
-          <div>{formattedCost}/hr</div>
-          <div>Cost level: {tierLabels[tier - 1]}</div>
-        </div>
-      }
-    >
-      <span className="cost-tier-display" tabIndex={0}>
-        {[1, 2, 3].map((level) => (
-          <span
-            key={level}
-            className={`cost-tier-display__sign ${
-              level <= tier ? 'cost-tier-display__sign--active' : 'cost-tier-display__sign--inactive'
-            }`}
-          >
-            $
-          </span>
-        ))}
-      </span>
-    </Tooltip>
+    <span className="cost-tier-display" tabIndex={0}>
+      <span className="cost-tier-display__amount">{formattedCost}/hr</span>
+      <Tooltip content={`Cost level: ${tierLabels[tier - 1]}`}>
+        <span className="cost-tier-display__tier" tabIndex={0}>
+          {[1, 2, 3].map((level) => (
+            <span
+              key={level}
+              className={`cost-tier-display__sign ${
+                level <= tier ? 'cost-tier-display__sign--active' : 'cost-tier-display__sign--inactive'
+              }`}
+            >
+              $
+            </span>
+          ))}
+        </span>
+      </Tooltip>
+    </span>
   );
 };
 
