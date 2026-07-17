@@ -906,6 +906,42 @@ export type SelfPacedLabWithResourceClaims = SelfPacedLab & {
 };
 export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims | SelfPacedLabWithResourceClaims;
 
+export interface WhiteGloveRequest extends K8sObject {
+  spec: WhiteGloveRequestSpec;
+  status?: WhiteGloveRequestStatus;
+}
+
+export interface WhiteGloveRequestSpec {
+  catalogItemName: string;
+  catalogItemNamespace: string;
+  displayName?: string;
+  purpose?: string;
+  activity?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  slackChannel?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+}
+
+export interface WhiteGloveRequestStatus {
+  state: 'pending-approval' | 'approved' | 'rejected' | 'provisioning' | 'running';
+  jiraTicketId?: string;
+  jiraTicketUrl?: string;
+  assignee?: string;
+  rejectionReason?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  serviceName?: string;
+  serviceNamespace?: string;
+}
+
+export interface WhiteGloveRequestList {
+  items: WhiteGloveRequest[];
+  metadata: K8sObjectListMeta;
+}
+
 export type Incident = {
   id: number;
   incident_type: 'general';

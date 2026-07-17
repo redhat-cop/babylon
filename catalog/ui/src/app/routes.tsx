@@ -45,6 +45,11 @@ const SharedClusters = React.lazy(() => import('@app/Admin/SharedClusters'));
 const SystemStatus = React.lazy(() => import('@app/Admin/SystemStatus'));
 const Ops = React.lazy(() => import('@app/Admin/Ops'));
 const Activity = React.lazy(() => import('@app/Activity'));
+const WhiteGloveList = React.lazy(() => import('@app/WhiteGlove/WhiteGloveList'));
+const WhiteGloveCreate = React.lazy(() => import('@app/WhiteGlove/WhiteGloveCreate'));
+const WhiteGloveDetail = React.lazy(() => import('@app/WhiteGlove/WhiteGloveDetail'));
+const WhiteGloveAdminList = React.lazy(() => import('@app/Admin/WhiteGloveAdminList'));
+const WhiteGloveAdminApprove = React.lazy(() => import('@app/Admin/WhiteGloveAdminApprove'));
 
 const appRoutes: IAppRoute[] = [
   {
@@ -101,6 +106,21 @@ const appRoutes: IAppRoute[] = [
     component: Activity,
     path: '/activity',
     title: 'Babylon | My Activity',
+  },
+  {
+    component: WhiteGloveCreate,
+    path: '/white-glove/create',
+    title: 'Babylon | New White Glove Request',
+  },
+  {
+    component: WhiteGloveDetail,
+    path: '/white-glove/:namespace/:name',
+    title: 'Babylon | White Glove Request',
+  },
+  {
+    component: WhiteGloveList,
+    path: '/white-glove',
+    title: 'Babylon | White Glove Requests',
   },
   {
     component: MultiWorkshopCreate,
@@ -191,6 +211,24 @@ const appRoutes: IAppRoute[] = [
     component: Ops,
     path: '/admin/ops/:namespace',
     title: 'Babylon | Workshop Control',
+    accessControl: 'admin',
+  },
+  {
+    component: WhiteGloveAdminApprove,
+    path: '/admin/white-glove-requests/:namespace/:name/approve',
+    title: 'Babylon | Approve White Glove Request',
+    accessControl: 'admin',
+  },
+  {
+    component: WhiteGloveDetail,
+    path: '/admin/white-glove-requests/:namespace/:name',
+    title: 'Babylon | White Glove Request',
+    accessControl: 'admin',
+  },
+  {
+    component: WhiteGloveAdminList,
+    path: '/admin/white-glove-requests',
+    title: 'Babylon | White Glove Requests',
     accessControl: 'admin',
   },
   {

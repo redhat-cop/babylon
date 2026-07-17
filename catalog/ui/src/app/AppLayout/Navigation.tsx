@@ -73,20 +73,30 @@ const Navigation: React.FC = () => {
   );
 
   const serviceNavigation = userNamespace ? (
-    <NavItem>
-      <NavLink
-        to={`/services/${userNamespace.name}`}
-        className={
-          location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
-          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
-            ? 'pf-m-current'
-            : ''
-        }
-      >
-        My Services
-      </NavLink>
-    </NavItem>
+    <>
+      <NavItem>
+        <NavLink
+          to={`/services/${userNamespace.name}`}
+          className={
+            location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+            location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+            location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+              ? 'pf-m-current'
+              : ''
+          }
+        >
+          My Services
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink
+          to="/white-glove"
+          className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
+        >
+          White Glove Requests
+        </NavLink>
+      </NavItem>
+    </>
   ) : null;
 
   const activityNavigation = (
@@ -176,6 +186,11 @@ const Navigation: React.FC = () => {
           to="/admin/resourceproviders"
         >
           ResourceProviders
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink className={locationStartsWith('/admin/white-glove-requests') ? 'pf-m-current' : ''} to="/admin/white-glove-requests">
+          White Glove Requests
         </NavLink>
       </NavItem>
       <NavItem>
