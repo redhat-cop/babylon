@@ -236,6 +236,10 @@ const ComponentDetailsList: React.FC<{
                                   <a href={value} target="_blank" rel="noopener noreferrer">
                                     <code>{value}</code>
                                   </a>
+                                ) : value.length > 200 ? (
+                                  <div className="services-item__provision-data--long-value">
+                                    <code>{value}</code>
+                                  </div>
                                 ) : (
                                   <code>{value}</code>
                                 )
@@ -1562,7 +1566,7 @@ const ServicesItemComponent: React.FC<{
                             Components
                           </h3>
                         </header>
-                        <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                        <Accordion asDefinitionList={false}>
                           {children}
                         </Accordion>
                       </section>
@@ -1628,7 +1632,7 @@ const ServicesItemComponent: React.FC<{
                             key={idx}
                             condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
-                              <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                              <Accordion asDefinitionList={false}>
                                 <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
                                   <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
                                     {componentDisplayName}
