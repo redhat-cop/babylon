@@ -10,7 +10,7 @@ else
   pip install -r requirements.txt
 fi
 
-cp -a ../client/python/babylon_async/src/babylon_async venv/lib/python3.14/site-packages/
+cp -a ../client/python/babylon_async/src/babylon_async venv/lib/python3.*/site-packages/
 
 oc get clusterkopfpeering.kopf.dev babylon-tenant-cluster-pool-manager >/dev/null 2>&1 ||  oc create -f - <<EOF
 apiVersion: kopf.dev/v1
