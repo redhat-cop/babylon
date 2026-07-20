@@ -197,5 +197,5 @@ class SandboxAPI:
                     "Authorization": f"Bearer {self.__access_token}",
                 }
             ) as resp:
-                if resp.status != 200:
+                if resp.status not in {200, 404}:
                     resp.raise_for_status()

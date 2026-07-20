@@ -197,7 +197,6 @@ async def handle_tenant_cluster_deleted(
         )
     await tenant_cluster_pool.remove_cluster_from_status(cluster.resource_claim_name)
 
-
 async def handle_tenant_cluster_offboard(
     tenant_cluster_pool: TenantClusterPool,
     cluster,
