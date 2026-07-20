@@ -5,7 +5,8 @@ from datetime import datetime
 from time import time
 from typing import List, Mapping
 
-import aiohttp
+from aiohttp import ClientSession
+
 import kopf
 
 class OcpSharedClusterConfiguration:
@@ -52,7 +53,7 @@ class SandboxAPI:
         self.__access_token = None
         self.__access_token_exp = None
         self.__auth_token = auth_token
-        self.__base_url = base_url
+        self.__client_session = ClientSession(base_url=base_url)
         self.__lock = asyncio.Lock()
 
     async def connect(self) -> None:
@@ -61,21 +62,20 @@ class SandboxAPI:
         async with self.__lock:
             if self.__access_token is not None and self.__access_token_exp - 10 > time():
                 return
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{self.__base_url}/api/v1/login",
-                    headers={
-                        "Authorization": f"Bearer {self.__auth_token}"
-                    }
-                ) as resp:
-                    if resp.status != 200:
-                        raise kopf.TemporaryError(f"SandboxAPI login failed: {resp.status}")
-                    resp_data = await resp.json()
-                    self.__access_token = resp_data['access_token']
-                    self.__access_token_exp = datetime.strptime(
-                        resp_data['access_token_exp'],
-                        "%Y-%m-%dT%H:%M:%S%z"
-                    ).timestamp()
+            async with self.__client_session.get(
+                "/api/v1/login",
+                headers={
+                    "Authorization": f"Bearer {self.__auth_token}"
+                }
+            ) as resp:
+                if resp.status != 200:
+                    raise kopf.TemporaryError(f"SandboxAPI login failed: {resp.status}")
+                resp_data = await resp.json()
+                self.__access_token = resp_data['access_token']
+                self.__access_token_exp = datetime.strptime(
+                    resp_data['access_token_exp'],
+                    "%Y-%m-%dT%H:%M:%S%z"
+                ).timestamp()
 
     #pylint: disable=R0913
     #pylint: disable=R0914
@@ -88,13 +88,34 @@ class SandboxAPI:
         deployer_admin_sa_token_ttl:str,
         ingress_domain:str,
         max_placements:int,
-        max_cpu_usage_percentage:int|None,
-        max_memory_usage_percentage:int|None,
         name:str,
         quota_required:bool,
         token:str,
+        max_cpu_usage_percentage:int|None=None,
+        max_memory_usage_percentage:int|None=None,
     ) -> None:
-        """Register cluster with Sandbox API"""
+        """Create ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        annotations : dict
+        api_url: str
+        name : str
+        deployer_admin_sa_token_refresh_interval  :  str
+        deployer_admin_sa_token_target_var : str
+        deployer_admin_sa_token_ttl : str
+        ingress_domain : str
+        max_placements : int
+        name : str
+        quota_required : bool
+        token : str
+        max_cpu_usage_percentage : int, optional
+        max_memory_usage_percentage : int, optional
+
+        Returns
+        -------
+        None
+        """
         config = {
             "annotations": annotations,
             "api_url": api_url,
@@ -113,89 +134,142 @@ class SandboxAPI:
             config['max_memory_usage_percentage'] = max_memory_usage_percentage
 
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                },
-                json=config,
-            ) as resp:
-                if resp.status not in (200, 201):
-                    resp.raise_for_status()
+        async with self.__client_session.put(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            },
+            json=config,
+        ) as resp:
+            if resp.status not in (200, 201):
+                resp.raise_for_status()
 
     async def disable_ocp_shared_cluster_configuration(self,
         name: str,
     ) -> None:
+        """Disable ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        name : str
+            Name of cluster to enable
+
+        Returns
+        -------
+        None
+        """
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}/disable",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                }
-            ) as resp:
-                if resp.status != 200:
-                    resp.raise_for_status()
+        async with self.__client_session.put(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}/disable",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            }
+        ) as resp:
+            if resp.status != 200:
+                resp.raise_for_status()
 
     async def enable_ocp_shared_cluster_configuration(self,
         name: str,
     ) -> None:
+        """Enable ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        name : str
+            Name of cluster to enable
+
+        Returns
+        -------
+        None
+        """
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}/enable",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                }
-            ) as resp:
-                if resp.status != 200:
-                    resp.raise_for_status()
+        async with self.__client_session.put(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}/enable",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            }
+        ) as resp:
+            if resp.status != 200:
+                resp.raise_for_status()
 
     async def get_ocp_shared_cluster_configuration(self,
         name: str,
     ) -> OcpSharedClusterConfiguration|None:
+        """Get ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        name : str
+            Name of cluster configuration to get
+
+        Returns
+        -------
+        OcpSharedClusterConfiguration object if found, None otherwise.
+        """
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                }
-            ) as resp:
-                if resp.status == 404:
-                    return None
-                if resp.status != 200:
-                    resp.raise_for_status()
-                data = await resp.json()
-                return OcpSharedClusterConfiguration(data)
+        async with self.__client_session.get(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            }
+        ) as resp:
+            if resp.status == 404:
+                return None
+            if resp.status != 200:
+                resp.raise_for_status()
+            data = await resp.json()
+            return OcpSharedClusterConfiguration(data)
 
     async def get_ocp_shared_cluster_configuration_placements(self,
         name: str,
     ) -> List[Mapping]:
+        """Get placements for ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        name : str
+            Name of cluster to get placements for
+
+        Returns
+        -------
+        Placements list as returned by the Sandbox API
+        """
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}/placements",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                }
-            ) as resp:
-                if resp.status != 200:
-                    resp.raise_for_status()
-                data = await resp.json()
-                return data['placements']
+        async with self.__client_session.get(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}/placements",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            }
+        ) as resp:
+            if resp.status != 200:
+                resp.raise_for_status()
+            data = await resp.json()
+            return data['placements']
 
     async def remove_ocp_shared_cluster_configuration(self,
         name: str,
-    ) -> None:
+    ) -> bool:
+        """Remove ocp-shared-cluster-configuration.
+
+        Parameters
+        ----------
+        name : str
+            Name of cluster to remove.
+
+        Returns
+        -------
+        Boolean indicating whether cluster was removed. False indicates cluster
+        was not found.
+        """
         await self.connect()
-        async with aiohttp.ClientSession() as session:
-            async with session.delete(
-                f"{self.__base_url}/api/v1/ocp-shared-cluster-configurations/{name}/offboard",
-                headers={
-                    "Authorization": f"Bearer {self.__access_token}",
-                }
-            ) as resp:
-                if resp.status not in {200, 404}:
-                    resp.raise_for_status()
+        async with self.__client_session.delete(
+            f"/api/v1/ocp-shared-cluster-configurations/{name}/offboard",
+            headers={
+                "Authorization": f"Bearer {self.__access_token}",
+            }
+        ) as resp:
+            if resp.status == 200:
+                return True
+            if resp.status == 404:
+                return False
+            resp.raise_for_status()

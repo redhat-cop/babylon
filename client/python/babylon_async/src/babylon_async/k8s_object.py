@@ -40,8 +40,9 @@ class K8sObject:
             on the passed object. Overrides any owner refernces set in the
             definition.
 
-        Returns:
-            The created object
+        Returns
+        -------
+        The created object
         """
         definition['apiVersion'] = cls.api_group_version
         definition['kind'] = cls.kind
