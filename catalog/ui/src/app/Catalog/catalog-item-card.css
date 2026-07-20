@@ -87,7 +87,7 @@
 .catalog-item-card__badge--dev,
 .catalog-item-card__badge--test,
 .catalog-item-card__badge--event {
-  background-color: var(--pf-t--global--icon--color--status--danger--default);
+  background-color: var(--pf-t--global--color--brand--default);
 }
 
 .catalog-badge--sla-featured {
