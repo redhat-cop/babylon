@@ -254,7 +254,7 @@ async def handle_tenant_cluster_with_sandbox_config(
         await clear_tenant_cluster_action(resource_claim)
         await tenant_cluster_pool.set_cluster_sandbox_api_state(
             resource_claim_name=cluster.resource_claim_name,
-            sandbox_api_state="removed",
+            sandbox_api_state="disabled",
         )
         return ClusterState.STARTED, 0
 
