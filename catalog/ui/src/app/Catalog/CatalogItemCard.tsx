@@ -5,7 +5,7 @@ import { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
-import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA } from './catalog-utils';
+import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, getSLABadgeClass } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 
 import './catalog-item-card.css';
@@ -45,13 +45,14 @@ const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick,
   return (
     <div className="catalog-item-card__wrapper">
       <div className="catalog-item-card__badge">
-        {sla && stage === 'prod' ? (
+        {sla ? (
           <Tooltip content={<p>Service Level</p>}>
             <a href="/support" target="_blank" rel="nofollow noreferrer">
-              <Badge className="catalog-item-card__badge--sla">{sla.replace(/_+/g, ' | ')}</Badge>
+              <Badge className={getSLABadgeClass(sla)}>{formatString(sla)}</Badge>
             </a>
           </Tooltip>
-        ) : stage === 'dev' ? (
+        ) : null}
+        {stage === 'dev' ? (
           <Badge className="catalog-item-card__badge--dev">development</Badge>
         ) : stage === 'test' ? (
           <Badge className="catalog-item-card__badge--test">test</Badge>

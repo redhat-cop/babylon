@@ -8,8 +8,7 @@
 }
 .catalog-item-list-item__badge--dev,
 .catalog-item-list-item__badge--test,
-.catalog-item-list-item__badge--event,
-.catalog-item-list-item__badge--sla {
+.catalog-item-list-item__badge--event {
   background-color: var(--pf-t--global--icon--color--status--danger--default);
 }
 

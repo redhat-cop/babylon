@@ -27,17 +27,26 @@ export function getStage(catalogItem: CatalogItem) {
 
 export const SLAs = {
   Featured: 'Featured',
-  Enterprise_Premium: 'Enterprise_Premium',
-  Enterprise_Standard: 'Enterprise_Standard',
+  Supported: 'Supported',
+  Unsupported: 'Unsupported',
   Community: 'Community',
-  External_Support: 'External_Support',
 } as const;
 export type SLA = (typeof SLAs)[keyof typeof SLAs];
-export function getSLA(catalogItem: CatalogItem): SLA | null {
+export function getSLA(catalogItem: CatalogItem): string | null {
   const { domain, key } = CUSTOM_LABELS.SLA;
-  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`];
-  if (!Object.values(SLAs).includes(sla as SLA)) return null;
-  return sla as SLA;
+  return catalogItem.metadata.labels?.[`${domain}/${key}`] || null;
+}
+export function getSLABadgeClass(sla: string): string {
+  switch (sla) {
+    case SLAs.Featured:
+      return 'catalog-badge--sla-featured';
+    case SLAs.Supported:
+      return 'catalog-badge--sla-supported';
+    case SLAs.Unsupported:
+      return 'catalog-badge--sla-unsupported';
+    default:
+      return 'catalog-badge--sla-other';
+  }
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
