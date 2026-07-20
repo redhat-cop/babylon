@@ -211,14 +211,14 @@ class K8sObject:
             version=self.api_version,
         )
 
-    async def set_annotations(self, annotations=Mapping[str, str]) -> None:
+    async def set_annotations(self, annotations: Mapping[str, str]) -> None:
         await self.patch({
             "metadata": {
                 "annotations": annotations,
             }
         })
 
-    async def set_labels(self, labels=Mapping[str,str]) -> None:
+    async def set_labels(self, labels: Mapping[str, str]) -> None:
         await self.patch({
             "metadata": {
                 "labels": labels,
