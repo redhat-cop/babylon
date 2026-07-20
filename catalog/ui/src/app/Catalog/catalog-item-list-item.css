@@ -9,7 +9,7 @@
 .catalog-item-list-item__badge--dev,
 .catalog-item-list-item__badge--test,
 .catalog-item-list-item__badge--event {
-  background-color: var(--pf-t--global--icon--color--status--danger--default);
+  background-color: var(--pf-t--global--color--brand--default);
 }
 
 .catalog-item-list-item__card {
