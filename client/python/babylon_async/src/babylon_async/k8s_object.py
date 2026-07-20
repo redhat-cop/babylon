@@ -16,6 +16,33 @@ class K8sObject:
         namespace:str|None=None,
         owner:K8sObject|None=None
     ):
+        """Create an an object of the class.
+
+        Parameters
+        ----------
+        definition : dict
+            Dictionary representation of object.
+        annotations : dict, optional
+            Annotations to set in definition metadata. Overrides any value set
+            in definition.
+        labels : dict, optional
+            Labels to set in definition metadata. Overrides any value set in
+            definition.
+        name : str, optional
+            Name value to set in definition metadata. Overrides any value set
+            in definition. If it ends in a "*" then "generateName" will be set
+            in metadata instead.
+        namespace: str, optional
+            Namespace value to set in definition metadata. OVerrides any value
+            set in definition.
+        owner : object, optional
+            Sets ownerReferences in metadata by calling "as_owner_reference()"
+            on the passed object. Overrides any owner refernces set in the
+            definition.
+
+        Returns:
+            The created object
+        """
         definition['apiVersion'] = cls.api_group_version
         definition['kind'] = cls.kind
 
