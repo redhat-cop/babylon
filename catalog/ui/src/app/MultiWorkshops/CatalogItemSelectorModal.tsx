@@ -36,6 +36,7 @@ import {
   getStage,
   getStatusFromCatalogItem,
   getSLA,
+  getSLABadgeClass,
   formatString,
   CUSTOM_LABELS,
 } from '@app/Catalog/catalog-utils';
@@ -131,13 +132,14 @@ const SelectableCatalogItemCard: React.FC<{
   return (
     <div className="catalog-item-card__wrapper">
       <div className="catalog-item-card__badge">
-        {sla && stage === 'prod' ? (
+        {sla ? (
           <Tooltip content={<p>Service Level</p>}>
             <a href="/support" target="_blank" rel="nofollow noreferrer">
-              <Badge className="catalog-item-card__badge--sla">{sla.replace(/_+/g, ' | ')}</Badge>
+              <Badge className={getSLABadgeClass(sla)}>{formatString(sla)}</Badge>
             </a>
           </Tooltip>
-        ) : stage === 'dev' ? (
+        ) : null}
+        {stage === 'dev' ? (
           <Badge className="catalog-item-card__badge--dev">development</Badge>
         ) : stage === 'test' ? (
           <Badge className="catalog-item-card__badge--test">test</Badge>
