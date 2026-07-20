@@ -56,6 +56,10 @@ class SandboxAPI:
         self.__client_session = ClientSession(base_url=base_url)
         self.__lock = asyncio.Lock()
 
+    async def close(self) -> None:
+        """Close out sandbox API session"""
+        await self.__client_session.close()
+
     async def connect(self) -> None:
         """Connect to API and establish session unless already established and
         not expired"""

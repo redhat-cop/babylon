@@ -24,6 +24,7 @@ class OperatorRuntime():
     @classmethod
     async def on_cleanup(cls):
         await cls.api_client.close()
+        await cls.sandbox_api.close()
 
     @classmethod
     async def on_startup(cls):
