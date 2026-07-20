@@ -182,7 +182,7 @@ async def handle_tenant_cluster_deleted(
     logger,
 ) -> None:
     """Handle ResourceClaim for tenant cluster deleted."""
-    if not cluster.sandbox_api_state != "removed":
+    if cluster.sandbox_api_state != "removed":
         logger.warning(
             "ResourceClaim %s for %s is deleting but has not been removed for the sandbox api",
             cluster.resource_claim_name,
