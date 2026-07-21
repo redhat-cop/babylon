@@ -24,6 +24,14 @@ spec:
     spec:
       containers:
       - name: tenant-cluster-pool-manager
+        env:
+        - name: SANDBOX_API_URL
+          value: http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080
+        - name: SANDBOX_API_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: sandbox-api
         image: {{ $tenantClusterPoolManager.image.repository }}:{{ $tenantClusterPoolManager.image.tag }}
         imagePullPolicy: {{ $tenantClusterPoolManager.image.pullPolicy }}
         resources:
