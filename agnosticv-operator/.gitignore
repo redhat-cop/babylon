@@ -4,3 +4,4 @@ agnosticvrepo*.yaml
 id_rsa
 id_rsa.pub
 test-helm-values.yaml
+tmp

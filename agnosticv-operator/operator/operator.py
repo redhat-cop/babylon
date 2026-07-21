@@ -6,7 +6,7 @@ import os
 
 from agnosticvrepo import AgnosticVRepo
 from agnosticvcomponent import AgnosticVComponent
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from catalogitem import CatalogItem
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
@@ -20,7 +20,7 @@ webhook_runner = None
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     global webhook_server, webhook_runner
     
-    await Babylon.on_startup()
+    await OperatorRuntime.on_startup()
     await CatalogItem.on_startup()
 
     # Never give up from network errors
@@ -30,7 +30,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     settings.persistence.diffbase_storage = kopf.StatusDiffBaseStorage(field='status.diffBase')
 
     # Use operator domain as finalizer
-    settings.persistence.finalizer = f"agnosticv-operator.{Babylon.agnosticv_api_group}"
+    settings.persistence.finalizer = f"agnosticv-operator.{OperatorRuntime.agnosticv_api_group}"
 
     # Store progress in status. Some objects may be too large to store status in metadata annotations
     settings.persistence.progress_storage = kopf.StatusProgressStorage(field='status.kopf.progress')
@@ -75,7 +75,7 @@ async def on_cleanup(logger, **_):
         webhook_runner = None
     
     await CatalogItem.on_cleanup()
-    await Babylon.on_cleanup()
+    await OperatorRuntime.on_cleanup()
 
 @kopf.on.create(AgnosticVComponent.api_group, AgnosticVComponent.version, 'agnosticvcomponents')
 async def agnosticvcomponent_create(logger, **kwargs):

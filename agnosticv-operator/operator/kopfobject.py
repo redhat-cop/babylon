@@ -1,7 +1,7 @@
 import kopf
 import kubernetes_asyncio
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 
 class KopfObject:
     @classmethod
@@ -23,7 +23,7 @@ class KopfObject:
         definition['apiVersion'] = cls.api_version
         definition['kind'] = cls.kind
         return cls.from_definition(
-            await Babylon.custom_objects_api.create_namespaced_custom_object(
+            await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
                 group = cls.api_group,
                 namespace = definition['metadata']['namespace'],
                 plural = cls.plural,
@@ -35,14 +35,14 @@ class KopfObject:
     @classmethod
     async def fetch(cls, name, namespace=None):
         if namespace == None:
-            namespace = Babylon.namespace
+            namespace = OperatorRuntime.namespace
         return cls.from_definition(await cls.fetch_definition(name=name, namespace=namespace))
 
     @classmethod
     async def fetch_definition(cls, name, namespace=None):
         if namespace == None:
-            namespace = Babylon.namespace
-        return await Babylon.custom_objects_api.get_namespaced_custom_object(
+            namespace = OperatorRuntime.namespace
+        return await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
             group = cls.api_group,
             name = name,
             namespace = namespace,
@@ -54,7 +54,7 @@ class KopfObject:
     async def list(cls, namespace, label_selector=None, batch_limit=50):
         _continue = None
         while True:
-            resp = await Babylon.custom_objects_api.list_namespaced_custom_object(
+            resp = await OperatorRuntime.custom_objects_api.list_namespaced_custom_object(
                 group = cls.api_group,
                 namespace = namespace,
                 plural = cls.plural,
@@ -136,7 +136,7 @@ class KopfObject:
         self.uid = metadata['uid']
 
     async def delete(self):
-        definition = await Babylon.custom_objects_api.delete_namespaced_custom_object(
+        definition = await OperatorRuntime.custom_objects_api.delete_namespaced_custom_object(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
@@ -147,7 +147,7 @@ class KopfObject:
             self.update_from_definition(definition)
 
     async def merge_patch(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
@@ -159,7 +159,7 @@ class KopfObject:
         self.update_from_definition(definition)
 
     async def merge_patch_status(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object_status(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
@@ -171,7 +171,7 @@ class KopfObject:
         self.update_from_definition(definition)
 
     async def json_patch(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
@@ -183,7 +183,7 @@ class KopfObject:
         self.update_from_definition(definition)
 
     async def json_patch_status(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object_status(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,

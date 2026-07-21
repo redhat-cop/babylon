@@ -5,10 +5,14 @@ from typing import Mapping
 import jinja2
 import kopf
 import kubernetes_asyncio
-from babylon import Babylon
-from kopfobject import KopfObject
+
 from str2bool import str2bool
 from uuid import UUID
+
+from babylon_async import TenantClusterPool
+
+from operatorruntime import OperatorRuntime
+from kopfobject import KopfObject
 
 import agnosticvrepo
 
@@ -93,11 +97,11 @@ def intersect_catalog_supported_actions(action_maps):
     return supported_actions
 
 class AgnosticVComponent(KopfObject):
-    api_group = Babylon.agnosticv_api_group
-    api_version = f"{Babylon.agnosticv_api_group}/{Babylon.agnosticv_version}"
+    api_group = OperatorRuntime.agnosticv_api_group
+    api_version = f"{OperatorRuntime.agnosticv_api_group}/{OperatorRuntime.agnosticv_version}"
     kind = 'AgnosticVComponent'
     plural = 'agnosticvcomponents'
-    version = Babylon.agnosticv_version
+    version = OperatorRuntime.agnosticv_version
 
     @property
     def __meta__(self):
@@ -401,10 +405,10 @@ class AgnosticVComponent(KopfObject):
     @property
     def resource_provider_ref(self):
         return {
-            "apiVersion": f"{Babylon.resource_broker_api_version}",
+            "apiVersion": f"{OperatorRuntime.resource_broker_api_version}",
             "kind": "ResourceProvider",
             "name": self.name,
-            "namespace": Babylon.resource_broker_namespace,
+            "namespace": OperatorRuntime.resource_broker_namespace,
         }
 
     @property
@@ -463,14 +467,14 @@ class AgnosticVComponent(KopfObject):
 
     def __anarchy_governor_definition(self):
         definition = {
-            "apiVersion": Babylon.anarchy_api_version,
+            "apiVersion": OperatorRuntime.anarchy_api_version,
             "kind": "AnarchyGovernor",
             "metadata": {
                 "annotations": {
-                    f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
+                    f"{OperatorRuntime.agnosticv_api_group}/last-update": json.dumps(self.last_update),
                 },
                 "labels": {
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
+                    f"{OperatorRuntime.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
                 "name": self.name,
                 "namespace": self.anarchy_namespace,
@@ -613,21 +617,21 @@ class AgnosticVComponent(KopfObject):
         namespace = self.catalog_item_namespace
 
         definition = {
-            "apiVersion": Babylon.catalog_api_version,
+            "apiVersion": OperatorRuntime.catalog_api_version,
             "kind": "CatalogItem",
             "metadata": {
                 "name": self.name,
                 "namespace": namespace,
                 "annotations": {
                     # FIXME - These should not be in annotations
-                    f"{Babylon.catalog_api_group}/description": self.catalog_description_content,
-                    f"{Babylon.catalog_api_group}/descriptionFormat": self.catalog_description_format,
-                    f"{Babylon.catalog_api_group}/displayName": self.catalog_display_name,
-                    f"{Babylon.catalog_api_group}/keywords": ','.join(self.catalog_keywords),
+                    f"{OperatorRuntime.catalog_api_group}/description": self.catalog_description_content,
+                    f"{OperatorRuntime.catalog_api_group}/descriptionFormat": self.catalog_description_format,
+                    f"{OperatorRuntime.catalog_api_group}/displayName": self.catalog_display_name,
+                    f"{OperatorRuntime.catalog_api_group}/keywords": ','.join(self.catalog_keywords),
                 },
                 "labels": {
-                    f"{Babylon.catalog_api_group}/category": self.catalog_category,
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
+                    f"{OperatorRuntime.catalog_api_group}/category": self.catalog_category,
+                    f"{OperatorRuntime.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
             },
             "spec": {
@@ -649,10 +653,10 @@ class AgnosticVComponent(KopfObject):
 
         # FIXME - weird default behavior from agnosticv-operator
         if self.catalog_icon:
-            definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = json.dumps(self.catalog_icon)
+            definition['metadata']['annotations'][f"{OperatorRuntime.catalog_api_group}/icon"] = json.dumps(self.catalog_icon)
             definition['spec']['icon'] = self.catalog_icon
         else:
-            definition['metadata']['annotations'][f"{Babylon.catalog_api_group}/icon"] = ''
+            definition['metadata']['annotations'][f"{OperatorRuntime.catalog_api_group}/icon"] = ''
 
         if self.catalog_num_users_parameter is not None:
             definition['spec']['numUsersParameter'] = self.catalog_num_users_parameter
@@ -661,13 +665,13 @@ class AgnosticVComponent(KopfObject):
             definition['spec']['accessControl'] = self.access_control
 
         for key, value in self.catalog_labels.items():
-            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/{key}"] = value
+            definition['metadata']['labels'][f"{OperatorRuntime.catalog_api_group}/{key}"] = value
 
         for key, value in self.reporting_labels.items():
-            definition['metadata']['labels'][f"{Babylon.reporting_domain}/{key}"] = value
+            definition['metadata']['labels'][f"{OperatorRuntime.reporting_domain}/{key}"] = value
 
         if self.stage in ('dev', 'test', 'prod', 'event'):
-            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/stage"] = self.stage
+            definition['metadata']['labels'][f"{OperatorRuntime.catalog_api_group}/stage"] = self.stage
         
         if self.catalog_parameters != None:
             definition['spec']['parameters'] = []
@@ -720,7 +724,7 @@ class AgnosticVComponent(KopfObject):
 
                 if linked_component.display_name:
                     definition['metadata']['annotations'][
-                        f"{Babylon.catalog_api_group}/displayNameComponent{idx}"
+                        f"{OperatorRuntime.catalog_api_group}/displayNameComponent{idx}"
                     ] = linked_component.display_name
 
             if self.deployer_type:
@@ -758,17 +762,17 @@ class AgnosticVComponent(KopfObject):
 
     def __resource_provider_definition(self):
         definition = {
-            "apiVersion": Babylon.resource_broker_api_version,
+            "apiVersion": OperatorRuntime.resource_broker_api_version,
             "kind": "ResourceProvider",
             "metadata": {
                 "annotations": {
-                    f"{Babylon.agnosticv_api_group}/last-update": json.dumps(self.last_update),
+                    f"{OperatorRuntime.agnosticv_api_group}/last-update": json.dumps(self.last_update),
                 },
                 "labels": {
-                    f"{Babylon.agnosticv_api_group}/asset-uuid": self.asset_uuid,
+                    f"{OperatorRuntime.agnosticv_api_group}/asset-uuid": self.asset_uuid,
                 },
                 "name": self.name,
-                "namespace": Babylon.resource_broker_namespace,
+                "namespace": OperatorRuntime.resource_broker_namespace,
             },
             "spec": {
                 "healthCheck": "spec.vars.current_state | default('') not in ('provision-canceled', 'provision-error', 'provision-failed', 'start-error', 'start-failed', 'stop-error', 'stop-failed')",
@@ -917,7 +921,7 @@ class AgnosticVComponent(KopfObject):
             }
             definition['spec']['matchIgnore'] = ["/spec/vars/action_schedule(/.*)?"]
             definition['spec']['override'] = {
-                "apiVersion": f"{Babylon.anarchy_api_version}",
+                "apiVersion": f"{OperatorRuntime.anarchy_api_version}",
                 "kind": "AnarchySubject",
                 "metadata": {
                     "name": self.name + "-{{ guid }}{% if resource_index | int > 0 or (resource_reference.name | default('')).endswith('-0') %}-{{ resource_index }}{% endif %}",
@@ -1031,8 +1035,8 @@ class AgnosticVComponent(KopfObject):
                 })
 
         if not self.catalog_disable:
-            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemName"] = self.name
-            definition['metadata']['labels'][f"{Babylon.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
+            definition['metadata']['labels'][f"{OperatorRuntime.catalog_api_group}/catalogItemName"] = self.name
+            definition['metadata']['labels'][f"{OperatorRuntime.catalog_api_group}/catalogItemNamespace"] = self.catalog_item_namespace
             definition['spec']['statusSummaryTemplate']['catalog_item_name'] = self.name
             definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
@@ -1150,35 +1154,35 @@ class AgnosticVComponent(KopfObject):
     async def __create_catalog_item(self, definition, logger):
         name = definition['metadata']['name']
         namespace = definition['metadata']['namespace']
-        await Babylon.custom_objects_api.create_namespaced_custom_object(
+        await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
             body = definition,
-            group = Babylon.catalog_api_group,
+            group = OperatorRuntime.catalog_api_group,
             namespace = namespace,
             plural = 'catalogitems',
-            version = Babylon.catalog_version,
+            version = OperatorRuntime.catalog_version,
         )
         logger.info(f"Created CatalogItem {name} in {namespace}")
 
     async def __create_anarchy_governor(self, definition, logger):
         name = definition['metadata']['name']
         namespace = definition['metadata']['namespace']
-        anarchy_governor = await Babylon.custom_objects_api.create_namespaced_custom_object(
+        anarchy_governor = await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
             body = definition,
-            group = Babylon.anarchy_api_group,
+            group = OperatorRuntime.anarchy_api_group,
             namespace = namespace,
             plural = 'anarchygovernors',
-            version = Babylon.anarchy_version,
+            version = OperatorRuntime.anarchy_version,
         )
         logger.info(f"Created AnarchyGovernor {name} in {namespace}")
         return anarchy_governor
 
     async def __create_resource_provider(self, definition, logger):
-        await Babylon.custom_objects_api.create_namespaced_custom_object(
+        await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
             body = definition,
-            group = Babylon.resource_broker_api_group,
-            namespace = Babylon.resource_broker_namespace,
+            group = OperatorRuntime.resource_broker_api_group,
+            namespace = OperatorRuntime.resource_broker_namespace,
             plural = 'resourceproviders',
-            version = Babylon.resource_broker_version,
+            version = OperatorRuntime.resource_broker_version,
         )
         logger.info(f"Created ResourceProvider {self.name}")
 
@@ -1207,12 +1211,12 @@ class AgnosticVComponent(KopfObject):
         definition = self.__anarchy_governor_definition()
         current_state = None
         try:
-            current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                group = Babylon.anarchy_api_group,
+            current_state = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                group = OperatorRuntime.anarchy_api_group,
                 name = definition['metadata']['name'],
                 namespace = anarchy_namespace,
                 plural = 'anarchygovernors',
-                version = Babylon.anarchy_version,
+                version = OperatorRuntime.anarchy_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status != 404:
@@ -1248,12 +1252,12 @@ class AgnosticVComponent(KopfObject):
             for namespace in deprecated_namespaces:
                 definition['metadata']['namespace'] = namespace
                 try:
-                    state = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                        group = Babylon.anarchy_api_group,
+                    state = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                        group = OperatorRuntime.anarchy_api_group,
                         name = definition['metadata']['name'],
                         namespace = namespace,
                         plural = 'anarchygovernors',
-                        version = Babylon.anarchy_version,
+                        version = OperatorRuntime.anarchy_version,
                     )
                 except kubernetes_asyncio.client.rest.ApiException as e:
                     if e.status == 404:
@@ -1298,12 +1302,12 @@ class AgnosticVComponent(KopfObject):
         definition = self.__catalog_item_definition(agnosticv_repo, supported_actions)
         current_state = None
         try:
-            current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                group = Babylon.catalog_api_group,
+            current_state = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                group = OperatorRuntime.catalog_api_group,
                 name = definition['metadata']['name'],
                 namespace = definition['metadata']['namespace'],
                 plural = 'catalogitems',
-                version = Babylon.catalog_version,
+                version = OperatorRuntime.catalog_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status != 404:
@@ -1332,12 +1336,12 @@ class AgnosticVComponent(KopfObject):
 
         current_state = None
         try:
-            current_state = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                group = Babylon.resource_broker_api_group,
+            current_state = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                group = OperatorRuntime.resource_broker_api_group,
                 name = self.name,
-                namespace = Babylon.resource_broker_namespace,
+                namespace = OperatorRuntime.resource_broker_namespace,
                 plural = 'resourceproviders',
-                version = Babylon.resource_broker_version,
+                version = OperatorRuntime.resource_broker_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status != 404:
@@ -1367,7 +1371,7 @@ class AgnosticVComponent(KopfObject):
             )
 
         merged_definition = merge_dynamic_fields(definition, current_state)
-        merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
+        merged_definition['metadata'].setdefault('annotations', {})[OperatorRuntime.last_update_annotation] = json.dumps(self.last_update)
 
         # FIXME - agnosticv-operator handling of None/null was unpredictable
         if remove_none_values(merged_definition) == remove_none_values(current_state):
@@ -1376,13 +1380,13 @@ class AgnosticVComponent(KopfObject):
 
         logger.info(f"Updating AnarchyGovernor {name} in {namespace}")
         try:
-            return await Babylon.custom_objects_api.replace_namespaced_custom_object(
+            return await OperatorRuntime.custom_objects_api.replace_namespaced_custom_object(
                 body = merged_definition,
-                group = Babylon.anarchy_api_group,
+                group = OperatorRuntime.anarchy_api_group,
                 name = name,
                 namespace = namespace,
                 plural = 'anarchygovernors',
-                version = Babylon.anarchy_version,
+                version = OperatorRuntime.anarchy_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status == 404:
@@ -1414,7 +1418,7 @@ class AgnosticVComponent(KopfObject):
         # Preserve annotation values
         for annotation, value in current_state['metadata'].get('annotations', {}).items():
             if (
-                not annotation.startswith(f"{Babylon.catalog_api_group}/") or
+                not annotation.startswith(f"{OperatorRuntime.catalog_api_group}/") or
                 annotation in (
                     "babylon.gpte.redhat.com/servicenow",
                     "babylon.gpte.redhat.com/ops",
@@ -1425,8 +1429,8 @@ class AgnosticVComponent(KopfObject):
 
         # Preserve label values
         for label, value in current_state['metadata'].get('labels', {}).items():
-            if not label.startswith(f"{Babylon.agnosticv_api_group}/") and (
-                not label.startswith(f"{Babylon.catalog_api_group}/") or
+            if not label.startswith(f"{OperatorRuntime.agnosticv_api_group}/") and (
+                not label.startswith(f"{OperatorRuntime.catalog_api_group}/") or
                 label in (
                     "babylon.gpte.redhat.com/rating",
                     "babylon.gpte.redhat.com/disabled",
@@ -1440,13 +1444,13 @@ class AgnosticVComponent(KopfObject):
 
         logger.info(f"Updating CatalogItem {catalog_item_name} in {catalog_item_namespace}")
         try:
-            await Babylon.custom_objects_api.replace_namespaced_custom_object(
+            await OperatorRuntime.custom_objects_api.replace_namespaced_custom_object(
                 body = merged_definition,
-                group = Babylon.catalog_api_group,
+                group = OperatorRuntime.catalog_api_group,
                 name = catalog_item_name,
                 namespace = catalog_item_namespace,
                 plural = 'catalogitems',
-                version = Babylon.catalog_version,
+                version = OperatorRuntime.catalog_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status == 404:
@@ -1465,7 +1469,7 @@ class AgnosticVComponent(KopfObject):
 
     async def __update_resource_provider(self, current_state, definition, logger, retries):
         merged_definition = merge_dynamic_fields(definition, current_state)
-        merged_definition['metadata'].setdefault('annotations', {})[Babylon.last_update_annotation] = json.dumps(self.last_update)
+        merged_definition['metadata'].setdefault('annotations', {})[OperatorRuntime.last_update_annotation] = json.dumps(self.last_update)
 
         if merged_definition == current_state:
             logger.debug(f"ResourceProvider {self.name} is unchanged.")
@@ -1475,13 +1479,13 @@ class AgnosticVComponent(KopfObject):
 
         logger.info(f"Updating ResourceProvider {self.name}")
         try:
-            await Babylon.custom_objects_api.replace_namespaced_custom_object(
+            await OperatorRuntime.custom_objects_api.replace_namespaced_custom_object(
                 body = merged_definition,
-                group = Babylon.resource_broker_api_group,
+                group = OperatorRuntime.resource_broker_api_group,
                 name = self.name,
-                namespace = Babylon.resource_broker_namespace,
+                namespace = OperatorRuntime.resource_broker_namespace,
                 plural = 'resourceproviders',
-                version = Babylon.resource_broker_version,
+                version = OperatorRuntime.resource_broker_version,
             )
         except kubernetes_asyncio.client.rest.ApiException as e:
             if e.status == 404:
@@ -1541,10 +1545,10 @@ class LinkedComponent:
     @property
     def resource_provider_ref(self):
         return {
-            "apiVersion": f"{Babylon.resource_broker_api_version}",
+            "apiVersion": f"{OperatorRuntime.resource_broker_api_version}",
             "kind": "ResourceProvider",
             "name": self.component_name,
-            "namespace": Babylon.resource_broker_namespace,
+            "namespace": OperatorRuntime.resource_broker_namespace,
         }
 
 

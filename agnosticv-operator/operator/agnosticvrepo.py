@@ -19,7 +19,7 @@ import kopf
 import kubernetes_asyncio
 import pytimeparse
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from agnosticvcomponent import AgnosticVComponent
 from cachedkopfobject import CachedKopfObject
 from onedict.merger import merge
@@ -56,11 +56,11 @@ class AgnosticVExecError(AgnosticVProcessingError):
     pass
 
 class AgnosticVRepo(CachedKopfObject):
-    api_group = Babylon.agnosticv_api_group
-    api_version = f"{Babylon.agnosticv_api_group}/{Babylon.agnosticv_version}"
+    api_group = OperatorRuntime.agnosticv_api_group
+    api_version = f"{OperatorRuntime.agnosticv_api_group}/{OperatorRuntime.agnosticv_version}"
     kind = 'AgnosticVRepo'
     plural = 'agnosticvrepos'
-    version = Babylon.agnosticv_version
+    version = OperatorRuntime.agnosticv_version
 
     git_base_path = f"{app_root}/git"
     cache = {}
@@ -125,7 +125,7 @@ class AgnosticVRepo(CachedKopfObject):
     @property
     def execution_environment_allow_list(self):
         return (
-            Babylon.execution_environment_allow_list +
+            OperatorRuntime.execution_environment_allow_list +
             self.spec.get('execution_environment_allow_list_extra', [])
         )
 
@@ -190,7 +190,7 @@ class AgnosticVRepo(CachedKopfObject):
     @property
     def polling_interval(self):
         return pytimeparse.parse(
-            self.spec.get('pollingInterval', Babylon.default_polling_interval)
+            self.spec.get('pollingInterval', OperatorRuntime.default_polling_interval)
         )
 
     @property
@@ -691,7 +691,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def delete_components(self, logger):
         async for agnosticv_component in AgnosticVComponent.list(
-            label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
+            label_selector = f"{OperatorRuntime.agnosticv_repo_label}={self.name}",
             namespace = self.namespace,
         ):
             logger.info(f"Propagating delete of {self} to {agnosticv_component}")
@@ -990,7 +990,7 @@ class AgnosticVRepo(CachedKopfObject):
         return component_sources, deleted_component_names, error_messages
 
     async def get_github_token(self):
-        secret = await Babylon.core_v1_api.read_namespaced_secret(
+        secret = await OperatorRuntime.core_v1_api.read_namespaced_secret(
             name = self.github_token_secret_name,
             namespace = self.namespace
         )
@@ -1132,7 +1132,7 @@ class AgnosticVRepo(CachedKopfObject):
 
     async def _update_component_pr_list(self, agnosticv_component, pr_number, logger, add=True):
         """Update the list of PRs using this component"""
-        pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+        pr_list_annotation = f"{OperatorRuntime.agnosticv_api_group}/used-by-prs"
         current_prs_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation, '')
         
         # Parse current PR list
@@ -1215,11 +1215,11 @@ class AgnosticVRepo(CachedKopfObject):
         deleted_components = []
         
         async for agnosticv_component in AgnosticVComponent.list(
-            label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
+            label_selector = f"{OperatorRuntime.agnosticv_repo_label}={self.name}",
             namespace = self.namespace,
         ):
             # Check if this component has the "used-by-prs" annotation
-            pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+            pr_list_annotation = f"{OperatorRuntime.agnosticv_api_group}/used-by-prs"
             pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
             
             # Only process components that have the PR tracking annotation
@@ -1403,7 +1403,7 @@ class AgnosticVRepo(CachedKopfObject):
         if should_run_curative_cleanup:
             logger.info(f"Running curative cleanup for orphaned PR metadata (last run: {self.last_curative_cleanup_time})")
             async for agnosticv_component in AgnosticVComponent.list(
-                label_selector=f"{Babylon.agnosticv_repo_label}={self.name}",
+                label_selector=f"{OperatorRuntime.agnosticv_repo_label}={self.name}",
                 namespace=self.namespace,
             ):
                 if agnosticv_component.pull_request_number:
@@ -1443,7 +1443,7 @@ class AgnosticVRepo(CachedKopfObject):
 
 
     async def get_ssh_key(self):
-        secret = await Babylon.core_v1_api.read_namespaced_secret(
+        secret = await OperatorRuntime.core_v1_api.read_namespaced_secret(
             name = self.ssh_key_secret_name,
             namespace = self.namespace
         )
@@ -1779,7 +1779,7 @@ class AgnosticVRepo(CachedKopfObject):
                 
                 metadata = {
                     "labels": {
-                        Babylon.agnosticv_repo_label: self.name,
+                        OperatorRuntime.agnosticv_repo_label: self.name,
                     },
                     "name": source.name,
                     "namespace": self.namespace,
@@ -1788,7 +1788,7 @@ class AgnosticVRepo(CachedKopfObject):
                 
                 # Add annotation to track which PRs are using this component
                 if source.pull_request_number:
-                    metadata.setdefault("annotations", {})[f"{Babylon.agnosticv_api_group}/used-by-prs"] = str(source.pull_request_number)
+                    metadata.setdefault("annotations", {})[f"{OperatorRuntime.agnosticv_api_group}/used-by-prs"] = str(source.pull_request_number)
                 
                 try:
                     agnosticv_component = await AgnosticVComponent.create({
@@ -1962,10 +1962,10 @@ class AgnosticVRepo(CachedKopfObject):
             
             async for agnosticv_component in AgnosticVComponent.list(
                 namespace=self.namespace,
-                label_selector=f"{Babylon.agnosticv_repo_label}={self.name}"
+                label_selector=f"{OperatorRuntime.agnosticv_repo_label}={self.name}"
             ):
                 # Skip components that have PR annotations (they're managed by PR logic)
-                pr_annotation = agnosticv_component.annotations.get(f'{Babylon.agnosticv_api_group}/used-by-prs')
+                pr_annotation = agnosticv_component.annotations.get(f'{OperatorRuntime.agnosticv_api_group}/used-by-prs')
                 if pr_annotation:
                     logger.debug(f"Skipping component {agnosticv_component.name} - has PR annotation: {pr_annotation}")
                     continue
@@ -2113,7 +2113,7 @@ class AgnosticVRepo(CachedKopfObject):
         # unless we specifically detected deleted files
         if not changed_only:
             async for agnosticv_component in AgnosticVComponent.list(
-                label_selector = f"{Babylon.agnosticv_repo_label}={self.name}",
+                label_selector = f"{OperatorRuntime.agnosticv_repo_label}={self.name}",
                 namespace = self.namespace,
             ):
                 if agnosticv_component.name not in handled_component_names:
@@ -2340,7 +2340,7 @@ class AgnosticVRepo(CachedKopfObject):
                 existing_components = {}
                 async for agnosticv_component in AgnosticVComponent.list(
                     namespace=self.namespace,
-                    label_selector=f"{Babylon.agnosticv_repo_label}={self.name}"
+                    label_selector=f"{OperatorRuntime.agnosticv_repo_label}={self.name}"
                 ):
                     
                     # Consider components as existing if they are:

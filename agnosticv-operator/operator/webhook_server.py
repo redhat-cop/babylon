@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from aiohttp import web, ClientError
 from agnosticvrepo import AgnosticVRepo
 from agnosticvcomponent import AgnosticVComponent
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 
 
 class WebhookServer:
@@ -220,7 +220,7 @@ class WebhookServer:
         
         # Fetch from Kubernetes
         try:
-            secret = await Babylon.core_v1_api.read_namespaced_secret(
+            secret = await OperatorRuntime.core_v1_api.read_namespaced_secret(
                 name=webhook_secret_name,
                 namespace=agnosticv_repo.namespace
             )
@@ -530,7 +530,7 @@ class WebhookServer:
         """Remove merged PR from used-by-prs annotations on affected components only"""
         try:
             from agnosticvcomponent import AgnosticVComponent
-            from babylon import Babylon
+            from operatorruntime import OperatorRuntime
             import aiohttp
             
             # Validate PR number before using it in URL construction
@@ -606,7 +606,7 @@ class WebhookServer:
                             )
                             
                             # Check if this component has the used-by-prs annotation with our PR
-                            pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+                            pr_list_annotation = f"{OperatorRuntime.agnosticv_api_group}/used-by-prs"
                             pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
                             
                             # Check if this component is affected by this PR (either annotation or spec-based)
@@ -715,7 +715,7 @@ class WebhookServer:
                     
                     async for agnosticv_component in AgnosticVComponent.list(
                         namespace=agnosticv_repo.namespace,
-                        label_selector=f"{Babylon.agnosticv_repo_label}={agnosticv_repo.name}"
+                        label_selector=f"{OperatorRuntime.agnosticv_repo_label}={agnosticv_repo.name}"
                     ):
                         # Check both annotation-based and spec-based PR tracking for compatibility
                         component_pr_numbers = set()
@@ -838,10 +838,10 @@ class WebhookServer:
                 from babylon import Babylon
                 async for agnosticv_component in AgnosticVComponent.list(
                     namespace=agnosticv_repo.namespace,
-                    label_selector=f"{Babylon.agnosticv_repo_label}={agnosticv_repo.name}"
+                    label_selector=f"{OperatorRuntime.agnosticv_repo_label}={agnosticv_repo.name}"
                 ):
                     # Remove this PR from used-by-prs annotations (webhook cleanup should be complete)
-                    pr_list_annotation = f"{Babylon.agnosticv_api_group}/used-by-prs"
+                    pr_list_annotation = f"{OperatorRuntime.agnosticv_api_group}/used-by-prs"
                     pr_list_str = agnosticv_component.metadata.get('annotations', {}).get(pr_list_annotation)
                     
                     if pr_list_str and str(pr_number) in pr_list_str.split(','):

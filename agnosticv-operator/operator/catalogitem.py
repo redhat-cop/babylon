@@ -6,8 +6,8 @@ import os
 
 from datetime import datetime, timezone
 
-from babylon import Babylon
 from k8sobject import K8sObject
+from operatorruntime import OperatorRuntime
 
 from agnosticvcomponent import AgnosticVComponent
 
@@ -16,8 +16,8 @@ logger = logging.getLogger('catalogitem')
 deleted_from_agnosticv_message = "Deleted from AgnosticV"
 
 class CatalogItem(K8sObject):
-    api_group = Babylon.catalog_api_group
-    api_version = Babylon.catalog_version
+    api_group = OperatorRuntime.catalog_api_group
+    api_version = OperatorRuntime.catalog_version
     api_group_version = f"{api_group}/{api_version}"
     kind = "CatalogItem"
     plural = "catalogitems"
@@ -59,9 +59,9 @@ class CatalogItem(K8sObject):
 
     @property
     def has_deleted_ops_annotation(self):
-        if not Babylon.ops_annotation in self.metadata:
+        if not OperatorRuntime.ops_annotation in self.metadata:
             return False
-        value = json.dumps(self.metadata[Babylon.ops_annotation])
+        value = json.dumps(self.metadata[OperatorRuntime.ops_annotation])
         if not value.get('status', {}).get('id') == 'under-maintenance':
             return False
         comments = value.get('comments', [])
@@ -93,12 +93,12 @@ class CatalogItem(K8sObject):
 
     async def delete_if_no_resource_claims(self):
         try:
-            resource_claim_list = await Babylon.custom_objects_api.list_cluster_custom_object(
-                group=Babylon.resource_broker_api_group,
-                label_selector=f"{Babylon.catalog_item_name_label}={self.name},{Babylon.catalog_item_namespace_label}={self.namespace}",
+            resource_claim_list = await OperatorRuntime.custom_objects_api.list_cluster_custom_object(
+                group=OperatorRuntime.resource_broker_api_group,
+                label_selector=f"{OperatorRuntime.catalog_item_name_label}={self.name},{OperatorRuntime.catalog_item_namespace_label}={self.namespace}",
                 limit=1,
                 plural="resourceclaims",
-                version=Babylon.resource_broker_version,
+                version=OperatorRuntime.resource_broker_version,
             )
             if resource_claim_list.get('items'):
                 logger.info(f"Not deleting {self}, ResourceClaims still reference it.")
@@ -111,7 +111,7 @@ class CatalogItem(K8sObject):
                     nowts = datetime.now(timezone.utc).strftime('%FT%TZ')
                     patch.append({
                         "op": "add",
-                        "path": f"/metadata/annotations/{Babylon.ops_annotation.replace('/', '~1')}",
+                        "path": f"/metadata/annotations/{OperatorRuntime.ops_annotation.replace('/', '~1')}",
                         "value": json.dumps({
                             "comments": [{
                                 "author": "agnosticv-operator",
