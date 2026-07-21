@@ -21,7 +21,9 @@ class ResourceClaim(K8sObject):
     async def create_with_provider(cls, client,
         namespace:str,
         provider_name:str,
+        annotations:Mapping[str,str]|None=None,
         auto_detach:bool=False,
+        labels:Mapping[str,str]|None=None,
         name:str|None=None,
         owner:K8sObject|None=None,
         parameter_values:Mapping[str,Any]|None=None,
@@ -44,8 +46,10 @@ class ResourceClaim(K8sObject):
             }
 
         return await ResourceClaim.create(
+            annotations=annotations,
             client=client,
             definition=definition,
+            labels=labels,
             name=name,
             namespace=namespace,
             owner=owner,
@@ -208,6 +212,8 @@ class ResourceClaim(K8sObject):
     @property
     def stop_timestamp(self) -> str|None:
         """Return effective stop timestamp if set."""
+        if self.status is None:
+            return None
         provider = self.status.provider
         if provider is None:
             return None

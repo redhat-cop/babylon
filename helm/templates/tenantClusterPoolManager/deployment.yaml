@@ -1,0 +1,55 @@
+{{- $tenantClusterPoolManager := .Values.tenantClusterPoolManager }}
+{{ if $tenantClusterPoolManager.deploy }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: babylon-tenant-cluster-pool-manager
+  namespace: {{ $tenantClusterPoolManager.namespace.name }}
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-cluster-pool-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "babylon.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: tenant-cluster-pool-manager
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylon.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: tenant-cluster-pool-manager
+    spec:
+      containers:
+      - name: tenant-cluster-pool-manager
+        image: {{ $tenantClusterPoolManager.image.repository }}:{{ $tenantClusterPoolManager.image.tag }}
+        imagePullPolicy: {{ $tenantClusterPoolManager.image.pullPolicy }}
+        resources:
+          {{- toYaml $tenantClusterPoolManager.resources | nindent 10 }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+      {{- with $tenantClusterPoolManager.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $tenantClusterPoolManager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      serviceAccountName: babylon-tenant-cluster-pool-manager
+      terminationGracePeriodSeconds: 30
+      {{- with $tenantClusterPoolManager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $tenantClusterPoolManager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

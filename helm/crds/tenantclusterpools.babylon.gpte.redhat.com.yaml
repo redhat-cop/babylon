@@ -1,0 +1,220 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantclusterpools.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: TenantClusterPool
+    listKind: TenantClusterPoolList
+    plural: tenantclusterpools
+    singular: tenantclusterpool
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Configuration for the babylon-cluster-tenant-manager to maintain
+          capacity for a cluster catalog item and associated tenant items.
+        required:
+        - clusterProvisioning
+        - sandboxHost
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: Specification of TenantClusterPool.
+            type: object
+            properties:
+              clusterProvisioning:
+                description: >-
+                  Configuration for provisioning clusters which provide
+                  capacity for tenants.
+                type: object
+                properties:
+                  provider:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      parameterValues:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    required:
+                    - name
+                required:
+                - provider
+              maxClusters:
+                description: >-
+                  Maximum number of clusters to provision. If undefined then
+                  no maximum is applied.
+                type: integer
+              minAvailableSandboxPlacements:
+                description: >-
+                  Minimum number of unassigned sandbox placements to maintain
+                  on shared clusters. A new shared cluster will be provisioned
+                  if less than this number remain.
+                type: integer
+              minClusters:
+                description: >-
+                  Minimum number of clusters to provision. If undefined then
+                  no minimum is applied.
+                type: integer
+              sandboxHost:
+                description: >-
+                  Configuration for registering clusters as tenant hosts with
+                  the Sandbox API.
+                type: object
+                required:
+                  - annotations
+                  - max_placements
+                properties:
+                  annotations:
+                    type: object
+                    description: >-
+                      Annotations used to onboard provisioned clusters to the sandbox API.
+                      The annotation `purpose` is required on provision.
+                    additionalProperties:
+                      type: string
+                  deployer_admin_sa_token_refresh_interval:
+                    description: >-
+                      Configure service account token refresh.
+                      Defaults to `3h` if unset.
+                    type: string
+                    pattern: "^[0-9]+[hm]$"
+                  deployer_admin_sa_token_target_var:
+                    description: >-
+                      Variable to set in tenant deployment.
+                      Defaults to `openshift_cluster_admin_token` if unspecified.
+                    type: string
+                    pattern: "^[a-zA-Z][a-zA-Z0-9_]*$"
+                  deployer_admin_sa_token_ttl:
+                    description: >-
+                      Configure service account token refresh.
+                      Defaults to `6h` if unset.
+                    type: string
+                    pattern: "^[0-9]+[hm]$"
+                  max_placements:
+                    description: >-
+                      Maximum number of tenant placements supported by this host.
+                    type: integer
+                    minimum: 1
+                  max_cpu_usage_percentage:
+                    description: >-
+                      Maximum CPU utilization on host to allow tenant placement.
+                    type: integer
+                    default: 100
+                    minimum: 1
+                  max_memory_usage_percentage:
+                    description: >-
+                      Maximum memory utilization on host to allow tenant placement.
+                    default: 90
+                    type: integer
+                  quota_required:
+                    description: >-
+                      Configure whether tenant sandbox request must include quota.
+                    type: boolean
+                    default: false
+              tenantPools:
+                description: >-
+                  Configuration to keep a pool of provisioned tenant items.
+                type: array
+                items:
+                  description: >-
+                    Tenant item to maintain pooled in provisions on the
+                    clusters.
+                  type: object
+                  properties:
+                    minAvailable:
+                      description: >-
+                        Minimum number of unbound ResourceHandles to maintain
+                        pooled and available for ResourceClaims.
+                      type: integer
+                    provider:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        parameterValues:
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                      required:
+                      - name
+                  required:
+                  - provider
+          status:
+            description: Status of TenantClusterPool
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              kopf:
+                description: Kopf status storage
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              clusters:
+                description: >-
+                  Clusters managed for this TenantClusterPool
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      description: >-
+                        Name as onboarded into the SandboxAPI
+                      type: string
+                    resourceClaimName:
+                      description: >-
+                        ResourceClaim name used to request the cluster.
+                      type: string
+                    sandboxApiState:
+                      description: >-
+                        Sandbox API state may be:
+
+                        pending - Cluster is being provisioned and will be
+                        registered with the SandboxAPI when ready.
+
+                        available - Cluster has been on-boarded to the
+                        SandboxAPI and is available for placements.
+
+                        disabled - Cluster is currently disabled in the
+                        SandboxAPI.
+
+                        removed - Cluster was found removed from the
+                        SandboxAPI. As this indicates a manual override the
+                        cluster will not be made available again by the
+                        babylon-cluster-tenant-pool-manager.
+                      type: string
+                      enum:
+                      - pending
+                      - available
+                      - disabled
+                      - removed
+                  required:
+                  - resourceClaimName
+                  - sandboxApiState
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -23,6 +23,7 @@ from .resourcehandle import ResourceHandle
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
 from .user import User
+from .tenantclusterpool import TenantClusterPool
 from .workshop import Workshop
 from .workshopprovision import WorkshopProvision
 
@@ -462,7 +463,9 @@ class BabylonClient:
     async def create_resource_claim(self,
         namespace:str,
         provider_name:str,
+        annotations:Mapping[str,str]|None=None,
         auto_detach:bool=False,
+        labels:Mapping[str,str]|None=None,
         name:str|None=None,
         owner:K8sObject|None=None,
         parameter_values:Mapping[str,Any]|None=None,
@@ -470,8 +473,10 @@ class BabylonClient:
         if parameter_values is None:
             parameter_values = {}
         return await ResourceClaim.create_with_provider(
+            annotations=annotations,
             auto_detach=auto_detach,
             client=self,
+            labels=labels,
             name=name,
             namespace=namespace,
             owner=owner,
@@ -524,6 +529,21 @@ class BabylonClient:
             namespace="poolboy",
         ):
             yield resource_provider
+
+    # TenantClusterPool methods
+    async def get_tenant_cluster_pool(self, name:str, namespace:str) -> TenantClusterPool:
+        return await TenantClusterPool.get(client=self, name=name, namespace=namespace)
+
+    async def list_tenant_cluster_pools(self,
+        label_selector:str=None,
+        namespace:str|None=None,
+    ) -> Generator[TenantClusterPool, None, None]:
+        async for tenant_cluster_pool in TenantClusterPool.list(
+            client=self,
+            label_selector=label_selector,
+            namespace=namespace,
+        ):
+            yield tenant_cluster_pool
 
     # User methods
     async def get_current_user(self) -> User:
