@@ -350,7 +350,13 @@ async def handle_tenant_cluster_without_sandbox_config(
 
     # Cluster is not in the sandbox api, but should be.
     await OperatorRuntime.sandbox_api.create_ocp_shared_cluster_configuration(
-        annotations=tenant_cluster_pool.sandbox_host.annotations,
+        annotations={
+            **tenant_cluster_pool.sandbox_host.annotations,
+            "babylon_cluster": OperatorRuntime.babylon_cluster,
+            "guid": resource_claim.guid,
+            "resource_claim_name": resource_claim.name,
+            "resource_claim_namespace": resource_claim.namespace,
+        },
         api_url=resource_claim.provision_data['openshift_api_url'],
         ingress_domain=resource_claim.provision_data['openshift_cluster_ingress_domain'],
         deployer_admin_sa_token_refresh_interval=tenant_cluster_pool.sandbox_host.deployer_admin_sa_token_refresh_interval,

@@ -21,6 +21,7 @@ EOF
 
 cd ./operator
 
+export BABYLON_CLUSTER=$(oc get ingresses.config.openshift.io cluster -o jsonpath="{.spec.domain}" | sed 's/apps\.//')
 export SANDBOX_API_AUTH_TOKEN=$(oc get secret -n babylon-catalog sandbox-api-shared-cluster-manager -o jsonpath={.data.shared-cluster-manager-token} | base64 -d)
 
 exec kopf run \
