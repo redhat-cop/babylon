@@ -335,6 +335,19 @@ async def handle_tenant_cluster_without_sandbox_config(
         )
         return ClusterState.STARTED, 0
 
+    provision_data = resource_claim.provision_data
+    for required_field in (
+        'openshift_api_url',
+        'opneshift_cluster_admin_token',
+        'opneshift_cluster_ingress_domain',
+    ):
+        if required_field not in provision_data:
+            raise kopf.TemporaryError(
+                f"Cluster {cluster.name} {resource_claim} for {tenant_cluster_pool} "
+                f"is missing provision data '{required_field}'",
+                delay=60,
+            )
+
     # Cluster is not in the sandbox api, but should be.
     await OperatorRuntime.sandbox_api.create_ocp_shared_cluster_configuration(
         annotations=tenant_cluster_pool.sandbox_host.annotations,
