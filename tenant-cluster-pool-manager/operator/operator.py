@@ -338,8 +338,8 @@ async def handle_tenant_cluster_without_sandbox_config(
     provision_data = resource_claim.provision_data
     for required_field in (
         'openshift_api_url',
-        'opneshift_cluster_admin_token',
-        'opneshift_cluster_ingress_domain',
+        'openshift_cluster_admin_token',
+        'openshift_cluster_ingress_domain',
     ):
         if required_field not in provision_data:
             raise kopf.TemporaryError(
