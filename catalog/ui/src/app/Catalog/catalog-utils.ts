@@ -27,25 +27,25 @@ export function getStage(catalogItem: CatalogItem) {
 
 export const SLAs = {
   Featured: 'Featured',
-  Supported: 'Supported',
   Unsupported: 'Unsupported',
-  Community: 'Community',
 } as const;
 export type SLA = (typeof SLAs)[keyof typeof SLAs];
 export function getSLA(catalogItem: CatalogItem): string | null {
   const { domain, key } = CUSTOM_LABELS.SLA;
-  return catalogItem.metadata.labels?.[`${domain}/${key}`] || null;
+  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] || null;
+  if (sla === SLAs.Featured || sla === SLAs.Unsupported) {
+    return sla;
+  }
+  return null;
 }
 export function getSLABadgeClass(sla: string): string {
   switch (sla) {
     case SLAs.Featured:
       return 'catalog-badge--sla-featured';
-    case SLAs.Supported:
-      return 'catalog-badge--sla-supported';
     case SLAs.Unsupported:
       return 'catalog-badge--sla-unsupported';
     default:
-      return 'catalog-badge--sla-other';
+      return '';
   }
 }
 

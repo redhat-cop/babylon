@@ -94,16 +94,8 @@
   background-color: var(--pf-t--global--icon--color--status--danger--default);
 }
 
-.catalog-badge--sla-supported {
-  background-color: var(--pf-t--global--icon--color--status--success--default);
-}
-
 .catalog-badge--sla-unsupported {
   background-color: var(--pf-t--color--gray--60);
-}
-
-.catalog-badge--sla-other {
-  background-color: var(--pf-t--global--icon--color--status--custom--default);
 }
 
 .catalog-item-card__subtitle {
