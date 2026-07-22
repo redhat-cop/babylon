@@ -6,6 +6,7 @@ from babylon_async import BabylonClient
 from sandboxapi import SandboxAPI
 
 class OperatorRuntime():
+    babylon_cluster = os.environ.get('BABYLON_CLUSTER', 'unknown')
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
     babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
     poolboy_domain = os.environ.get('POOLBOY_DOMAIN', 'poolboy.gpte.redhat.com')
@@ -23,11 +24,13 @@ class OperatorRuntime():
 
     @classmethod
     async def on_cleanup(cls):
+        """Setup operator runtime on startup"""
         await cls.api_client.close()
         await cls.sandbox_api.close()
 
     @classmethod
     async def on_startup(cls):
+        """Setup operator runtime on startup"""
         if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
             kubernetes_asyncio.config.load_incluster_config()
         else:
