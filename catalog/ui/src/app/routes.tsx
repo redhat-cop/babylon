@@ -41,8 +41,9 @@ const ResourcePoolInstance = React.lazy(() => import('@app/Admin/ResourcePoolIns
 const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'));
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
-const SharedClusters = React.lazy(() => import('@app/Admin/SharedClusters'));
 const SystemStatus = React.lazy(() => import('@app/Admin/SystemStatus'));
+const TenantClusterPools = React.lazy(() => import('@app/Admin/TenantClusterPools'));
+const TenantClusterPoolInstance = React.lazy(() => import('@app/Admin/TenantClusterPoolInstance'));
 const Ops = React.lazy(() => import('@app/Admin/Ops'));
 const Activity = React.lazy(() => import('@app/Activity'));
 
@@ -200,12 +201,6 @@ const appRoutes: IAppRoute[] = [
     accessControl: 'admin',
   },
   {
-    component: SharedClusters,
-    path: '/admin/sharedclusters',
-    title: 'Babylon | Shared Clusters',
-    accessControl: 'admin',
-  },
-  {
     component: SystemStatus,
     path: '/admin/system-status',
     title: 'Babylon | System Status',
@@ -359,6 +354,24 @@ const appRoutes: IAppRoute[] = [
   {
     component: ResourceProviders,
     path: '/admin/resourceproviders',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: TenantClusterPoolInstance,
+    path: '/admin/tenantclusterpools/:namespace/:name/:tab',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: TenantClusterPoolInstance,
+    path: '/admin/tenantclusterpools/:namespace/:name',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: TenantClusterPools,
+    path: '/admin/tenantclusterpools',
     title: 'Babylon | Admin',
     accessControl: 'admin',
   },
