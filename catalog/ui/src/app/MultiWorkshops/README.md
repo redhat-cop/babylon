@@ -9,7 +9,6 @@ The Multi Asset Workshop feature allows organizers to bundle multiple workshop s
 - [Architecture Overview](#architecture-overview)
 - [User Roles](#user-roles)
 - [Routes and Navigation](#routes-and-navigation)
-- [Feature Flag](#feature-flag)
 - [Creating a Multi Asset Workshop](#creating-a-multi-asset-workshop)
 - [Managing a Multi Asset Workshop (Detail Page)](#managing-a-multi-asset-workshop-detail-page)
 - [Listing Multi Asset Workshops](#listing-multi-asset-workshops)
@@ -89,19 +88,8 @@ Data flows through **SWR** (stale-while-revalidate) for server state, with no Re
 
 ### Navigation
 
-- **Side nav**: "Multi Asset Workshop" link appears under the user's namespace when `multiworkshops_enabled` is `true` in the interface config.
+- **Side nav**: "Multi Asset Workshop" link appears under the user's namespace.
 - **Admin nav**: "Multi-Workshops" link under `/admin/multiworkshops` for admin users.
-
----
-
-## Feature Flag
-
-The feature is gated by the `multiworkshops_enabled` flag in the interface configuration.
-
-- **RHPDS** (`catalog/ui/src/public/interfaces/rhpds.json`): `"multiworkshops_enabled": true`
-- **RHDP Partners** (`catalog/ui/src/public/interfaces/rhdp-partners.json`): hidden (not enabled)
-
-The flag controls the visibility of the "Multi Asset Workshop" nav link. The underlying API routes still exist regardless of this flag.
 
 ---
 
