@@ -9,5 +9,6 @@
   "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
   "sfdc_enabled": true,
   "partner_connect_header_enabled": false,
-  "multiworkshops_enabled": true
+  "multiworkshops_enabled": true,
+  "rcars_enabled": true
 }
