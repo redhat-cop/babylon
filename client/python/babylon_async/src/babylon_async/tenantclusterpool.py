@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 
 from hashlib import sha1
 from typing import Any, List, Mapping
 
 from .exceptions import BabylonApiException
+from .agnosticvcomponent import AgnosticVComponent
 from .k8s_object import K8sObject
 
 class TenantClusterPool(K8sObject):
@@ -14,6 +16,36 @@ class TenantClusterPool(K8sObject):
     kind = "TenantClusterPool"
     plural = "tenantclusterpools"
     api_group_version = f"{api_group}/{api_version}"
+
+    @classmethod
+    def agnosticv_to_definition(cls,
+        agnosticv_component: AgnosticVComponent,
+        name: str,
+        namespace: str,
+    ) -> Mapping:
+        sandbox_host = agnosticv_component.definition['__meta__']['sandbox_host']
+        return {
+            "apiVersion": cls.api_group_version,
+            "kind": cls.kind,
+            "metadata": {
+                "name": name,
+                "namespace": namespace,
+            },
+            "spec": {
+                "clusterProvisioning": {
+                    "provider": {
+                        "name": name,
+                        "parameterValues": {
+                            "purpose": "Tenant Cluster",
+                        }
+                    }
+                }
+                "maxClusters": 0,
+                "minAvailableSandboxPlacements": 0,
+                "minClusters": 0,
+                "sandboxHost": deepcopy(sandbox_host),
+            },
+        }
 
     @property
     def cluster_provisioning(self) -> TenantClusterPoolSpecClusterProvisioning:
