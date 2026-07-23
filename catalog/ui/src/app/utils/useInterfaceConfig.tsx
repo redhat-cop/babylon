@@ -18,6 +18,7 @@ type TInterface = {
   sfdc_enabled: boolean;
   partner_connect_header_enabled: boolean;
   multiworkshops_enabled: boolean;
+  rcars_enabled: boolean;
 };
 export function useInterface(userInterface: string) {
   const { data, error } = useSWRImmutable<TInterface>(`./public/interfaces/${userInterface}.json`, publicFetcher);
@@ -43,7 +44,8 @@ export default function useInterfaceConfig() {
       onboarding_support_text: '',
       sfdc_enabled: true,
       partner_connect_header_enabled: false,
-      multiworkshops_enabled: true
+      multiworkshops_enabled: true,
+      rcars_enabled: false
     };
   }
   return data;
