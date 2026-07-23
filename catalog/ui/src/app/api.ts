@@ -15,6 +15,7 @@ import {
   ResourcePool,
   ResourcePoolScaling,
   ResourceProvider,
+  TenantClusterPool,
   ServiceAccessConfig,
   ServiceNamespace,
   SelfPacedLab,
@@ -517,6 +518,10 @@ async function createResourceClaim(definition: ResourceClaim) {
 
 export async function createResourcePool(definition: ResourcePool) {
   return await createK8sObject<ResourcePool>(definition);
+}
+
+export async function createTenantClusterPool(definition: TenantClusterPool) {
+  return await createK8sObject<TenantClusterPool>(definition);
 }
 
 export async function createResourcePoolScaling(definition: ResourcePoolScaling) {
@@ -1187,6 +1192,43 @@ export async function deleteResourceProvider(resourceProvider: ResourceProvider)
     'resourcehandles',
     resourceProvider.metadata.name,
   );
+}
+
+export async function deleteTenantClusterPool(tenantClusterPool: TenantClusterPool) {
+  return await deleteNamespacedCustomObject(
+    BABYLON_DOMAIN,
+    'v1',
+    tenantClusterPool.metadata.namespace,
+    'tenantclusterpools',
+    tenantClusterPool.metadata.name,
+  );
+}
+
+export async function patchTenantClusterPool(
+  namespace: string,
+  name: string,
+  patch: Record<string, unknown>,
+): Promise<TenantClusterPool> {
+  return (await patchNamespacedCustomObject(
+    BABYLON_DOMAIN,
+    'v1',
+    namespace,
+    'tenantclusterpools',
+    name,
+    patch,
+  )) as TenantClusterPool;
+}
+
+export async function setTenantClusterAction(
+  namespace: string,
+  resourceClaimName: string,
+  action: string | null,
+): Promise<ResourceClaim> {
+  const annotationKey = `${BABYLON_DOMAIN}/tenant-cluster-action`;
+  const patch = action
+    ? { metadata: { annotations: { [annotationKey]: JSON.stringify({ action }) } } }
+    : { metadata: { annotations: { [annotationKey]: null } } };
+  return await patchResourceClaim(namespace, resourceClaimName, patch);
 }
 
 export async function deleteWorkshop(workshop: Workshop) {
@@ -2560,8 +2602,6 @@ export const apiPaths = {
     `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/placements`,
   SANDBOX_CLUSTER_CONFIG: ({ clusterName }: { clusterName: string }) =>
     `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}`,
-  SANDBOX_ONBOARD: ({ clusterName }: { clusterName: string }) =>
-    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/onboard`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2823,6 +2863,12 @@ export const apiPaths = {
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   },
   SYSTEM_STATUS: () => `/api/system/status`,
+  TENANT_CLUSTER_POOL: ({ namespace, tenantClusterPoolName }: { namespace: string; tenantClusterPoolName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/tenantclusterpools/${tenantClusterPoolName}`,
+  TENANT_CLUSTER_POOLS: ({ limit, continueId }: { limit: number | string; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/tenantclusterpools?${limit ? `limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
 };
 
 export type SystemStatus = {
@@ -2844,34 +2890,6 @@ export async function updateSystemStatus(status: Partial<SystemStatus>): Promise
     method: 'PATCH',
     body: JSON.stringify(status),
     headers: { 'Content-Type': 'application/json' },
-  });
-  return response.json();
-}
-
-export async function enableSandboxCluster(clusterName: string): Promise<unknown> {
-  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/enable`, {
-    method: 'PUT',
-  });
-  return response.json();
-}
-
-export async function disableSandboxCluster(clusterName: string): Promise<unknown> {
-  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/disable`, {
-    method: 'PUT',
-  });
-  return response.json();
-}
-
-export async function offboardSandboxCluster(clusterName: string): Promise<unknown> {
-  const response = await apiFetch(`/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/offboard`, {
-    method: 'DELETE',
-  });
-  return response.json();
-}
-
-export async function onboardSandboxApi(clusterName: string): Promise<unknown> {
-  const response = await apiFetch(apiPaths.SANDBOX_ONBOARD({ clusterName }), {
-    method: 'POST',
   });
   return response.json();
 }

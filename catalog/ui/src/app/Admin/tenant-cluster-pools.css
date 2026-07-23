@@ -1,0 +1,23 @@
+/* Tenant Cluster Pools table */
+.tenant-pools-table-wrap { overflow-x: auto; }
+.tenant-pools-table-wrap table { width: 100%; table-layout: auto; border-collapse: collapse; }
+.tenant-pools-table-wrap thead th { padding: 8px 10px; font-size: 0.76rem; font-weight: 600; color: var(--pf-t--global--text--color--subtle); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--pf-t--global--border--color--default); white-space: nowrap; }
+.tenant-pools-table-wrap td { padding: 8px 10px; vertical-align: middle; font-size: 0.85rem; }
+.tenant-pools-table-wrap tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 40%, transparent); }
+.tenant-pools-group-header { background: var(--pf-t--global--background--color--secondary--default); cursor: pointer; transition: background 0.1s; }
+.tenant-pools-group-header:hover { background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular)); }
+.tenant-pools-expand-cell { text-align: center; width: 28px; }
+.tenant-pools-expand-icon { color: var(--pf-t--global--text--color--subtle); transition: transform 0.15s ease; }
+.tenant-pools-child-row { background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 97%, var(--pf-t--global--text--color--subtle)); border-left: 2px solid var(--pf-t--global--color--status--info--default); }
+.tenant-pools-muted { color: var(--pf-t--global--text--color--subtle); }
+.tenant-pools-name-link { color: var(--pf-t--global--color--brand--default); text-decoration: none; }
+.tenant-pools-name-link:hover { text-decoration: underline; }
+.tenant-pools-onboarded { color: var(--pf-t--global--color--status--success--default); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.tenant-pools-not-onboarded { color: var(--pf-t--global--color--status--warning--default); white-space: nowrap; }
+
+/* Dark mode */
+:root.pf-v6-theme-dark .tenant-pools-table-wrap thead th { border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white); }
+:root.pf-v6-theme-dark .tenant-pools-table-wrap tbody tr { border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 50%, transparent); }
+:root.pf-v6-theme-dark .tenant-pools-group-header { background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white); }
+:root.pf-v6-theme-dark .tenant-pools-group-header:hover { background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, white); }
+:root.pf-v6-theme-dark .tenant-pools-child-row { background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 92%, white); }
