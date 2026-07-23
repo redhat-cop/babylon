@@ -23,7 +23,7 @@ import { CatalogItem, TenantClusterPool, TenantClusterPoolStatusCluster } from '
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import TimeInterval from '@app/components/TimeInterval';
 import { BABYLON_DOMAIN, compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
-import CatalogItemSelectorModal from '@app/MultiWorkshops/CatalogItemSelectorModal';
+import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
 import Footer from '@app/components/Footer';
