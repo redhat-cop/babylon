@@ -34,7 +34,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
-import { BABYLON_DOMAIN, compareK8sObjects } from '@app/util';
+import { compareK8sObjects } from '@app/util';
 import useSession from '@app/utils/useSession';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
