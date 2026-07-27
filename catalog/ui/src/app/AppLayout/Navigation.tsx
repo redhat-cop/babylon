@@ -77,7 +77,7 @@ const Navigation: React.FC = () => {
             rel="noreferrer noopener"
             className="pf-v6-c-nav__link"
           >
-            RHDP Content Advisor
+            Content Advisor (RCARS)
           </a>
         </NavItem>
       ) : null}
