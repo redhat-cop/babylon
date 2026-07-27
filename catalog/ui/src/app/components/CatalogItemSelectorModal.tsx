@@ -216,6 +216,7 @@ interface CatalogItemSelectorModalProps {
   onClose: () => void;
   onSelect: (catalogItem: CatalogItem | CatalogItem[]) => void;
   title?: string;
+  singleSelect?: boolean;
 }
 
 // Fetch catalog items from multiple namespaces
@@ -427,12 +428,13 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   onClose,
   onSelect,
   title = 'Select Catalog Item',
+  singleSelect = false,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(true);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(!singleSelect);
   const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
   const { catalogNamespaces } = useSession().getSession();
 
@@ -538,13 +540,14 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
               </DropdownList>
             </Dropdown>
 
-            {/* Multi-select checkbox aligned with catalog dropdown */}
-            <Checkbox
-              id="multi-select-toggle"
-              label="Multi-Select"
-              isChecked={isMultiSelectMode}
-              onChange={(_, checked) => handleMultiSelectToggle(checked)}
-            />
+            {!singleSelect ? (
+              <Checkbox
+                id="multi-select-toggle"
+                label="Multi-Select"
+                isChecked={isMultiSelectMode}
+                onChange={(_, checked) => handleMultiSelectToggle(checked)}
+              />
+            ) : null}
           </div>
           <div style={{ maxWidth: '400px' }}>
             <SearchInput

@@ -46,7 +46,7 @@ import {
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
-import CatalogItemSelectorModal from './CatalogItemSelectorModal';
+import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
