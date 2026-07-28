@@ -71,6 +71,7 @@ import {
   ResourceClaim,
   ServiceAccessConfig,
   ServiceActionActions,
+  TenantClusterPool,
   Workshop,
   WorkshopUserAssignment,
   WorkshopUserAssignmentList,
@@ -369,9 +370,26 @@ const ServicesItemComponent: React.FC<{
 
   const tenantClusterPoolAnnotation = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`];
   const isTenantClusterItem = !!tenantClusterPoolAnnotation;
-  const clusterName = isTenantClusterItem
-    ? resourceClaim.metadata.name.replace(/\./g, '-')
-    : resourceClaim.status?.resourceHandle?.name || '';
+  const tenantClusterPoolOwnerRef = isTenantClusterItem
+    ? resourceClaim.metadata.ownerReferences?.find((ref) => ref.kind === 'TenantClusterPool')
+    : undefined;
+  const { data: tenantClusterPool } = useSWR<TenantClusterPool>(
+    tenantClusterPoolOwnerRef
+      ? apiPaths.TENANT_CLUSTER_POOL({
+          namespace: resourceClaim.metadata.namespace,
+          tenantClusterPoolName: tenantClusterPoolOwnerRef.name,
+        })
+      : null,
+    silentFetcher,
+    { shouldRetryOnError: false, refreshInterval: 8000 },
+  );
+  const clusterName = useMemo(() => {
+    if (!isTenantClusterItem) return resourceClaim.status?.resourceHandle?.name || '';
+    const clusterEntry = tenantClusterPool?.status?.clusters?.find(
+      (c) => c.resourceClaimName === resourceClaim.metadata.name,
+    );
+    return clusterEntry?.name || '';
+  }, [isTenantClusterItem, tenantClusterPool, resourceClaim.metadata.name, resourceClaim.status?.resourceHandle?.name]);
   const { data: sandboxPlacementsData, isLoading: sandboxStatusLoading } = useSWR(
     isTenantClusterItem && clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
     silentFetcher,

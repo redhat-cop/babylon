@@ -479,7 +479,7 @@ const TenantClusterPools: React.FC = () => {
                       </tr>
                       {isExpanded
                         ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => {
-                            const clusterName = cluster.resourceClaimName.replace(/\./g, '-');
+                            const clusterName = cluster.name;
                             return (
                               <tr key={idx} className="tenant-pools-child-row">
                                 <td></td>
