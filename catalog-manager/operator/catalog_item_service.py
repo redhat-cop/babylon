@@ -95,3 +95,4 @@ class CatalogItemService:
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.reporting_api} - {e}")
                 raise
+        return False
