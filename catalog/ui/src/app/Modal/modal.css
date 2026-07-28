@@ -4,8 +4,8 @@
 }
 
 .modal-component.pf-v6-c-modal-box .pf-v6-c-modal-box__body {
-  overflow-x: visible;
-  overflow-y: visible;
+  overflow: auto;
+  padding-bottom: var(--pf-t--global--spacer--lg);
 }
 
 .modal-component.pf-v6-c-modal-box .pf-c-dropdown__menu {
