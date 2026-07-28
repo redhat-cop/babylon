@@ -26,7 +26,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { apiPaths, deleteTenantClusterPool, fetcher, patchTenantClusterPool } from '@app/api';
-import { TenantClusterPool } from '@app/types';
+import { SalesforceItem, TenantClusterPool } from '@app/types';
 import { KeyedMutator } from 'swr';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -34,7 +34,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
-import { compareK8sObjects } from '@app/util';
+import { compareK8sObjects, DEMO_DOMAIN } from '@app/util';
 import useSession from '@app/utils/useSession';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
@@ -284,6 +284,41 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                     <DescriptionListTerm>Total Clusters</DescriptionListTerm>
                     <DescriptionListDescription>{clusters.length}</DescriptionListDescription>
                   </DescriptionListGroup>
+
+                  {spec?.clusterProvisioning?.provider?.parameterValues?.purpose ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Purpose</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {spec.clusterProvisioning.provider.parameterValues.purpose as string}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
+                  {tenantClusterPool?.metadata?.annotations?.[`${DEMO_DOMAIN}/salesforce-items`] ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Salesforce Items</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {(JSON.parse(tenantClusterPool.metadata.annotations[`${DEMO_DOMAIN}/salesforce-items`]) as SalesforceItem[]).map(
+                          (item, idx) => (
+                            <Label key={idx} isCompact style={{ marginRight: 4 }}>
+                              {item.type}: {item.id}
+                            </Label>
+                          ),
+                        )}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
+                  {spec?.clusterProvisioning?.provider?.parameterValues
+                    ? Object.entries(spec.clusterProvisioning.provider.parameterValues)
+                        .filter(([key]) => key !== 'purpose')
+                        .map(([key, value]) => (
+                          <DescriptionListGroup key={key}>
+                            <DescriptionListTerm>{key}</DescriptionListTerm>
+                            <DescriptionListDescription>{String(value)}</DescriptionListDescription>
+                          </DescriptionListGroup>
+                        ))
+                    : null}
                 </DescriptionList>
               </StackItem>
 
