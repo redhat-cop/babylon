@@ -240,19 +240,6 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Min Clusters</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <TenantClusterPoolNumberInput
-                        namespace={tenantClusterPoolNamespace}
-                        name={tenantClusterPoolName}
-                        specField="minClusters"
-                        value={spec?.minClusters ?? 0}
-                        mutate={mutate}
-                      />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-
-                  <DescriptionListGroup>
                     <DescriptionListTerm>Max Clusters</DescriptionListTerm>
                     <DescriptionListDescription>
                       <TenantClusterPoolNumberInput
@@ -260,6 +247,21 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                         name={tenantClusterPoolName}
                         specField="maxClusters"
                         value={spec?.maxClusters ?? 0}
+                        min={spec?.minClusters ?? 0}
+                        mutate={mutate}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Min Clusters</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <TenantClusterPoolNumberInput
+                        namespace={tenantClusterPoolNamespace}
+                        name={tenantClusterPoolName}
+                        specField="minClusters"
+                        value={spec?.minClusters ?? 0}
+                        max={spec?.maxClusters ?? 999}
                         mutate={mutate}
                       />
                     </DescriptionListDescription>

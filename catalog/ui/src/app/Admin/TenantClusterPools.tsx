@@ -5,6 +5,8 @@ import {
   EmptyState,
   Form,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Label,
   NumberInput,
   PageSection,
@@ -108,6 +110,7 @@ const CreateTenantClusterPoolForm: React.FC<{
     if (!setOnConfirmCb) return;
     setOnConfirmCb(() => async () => {
       if (!catalogItemName) throw new Error('Please select a catalog item');
+      if (maxClusters < minClusters) throw new Error('Max Clusters must be greater than or equal to Min Clusters');
       const definition: TenantClusterPool = {
         apiVersion: `${BABYLON_DOMAIN}/v1`,
         kind: 'TenantClusterPool',
@@ -164,19 +167,6 @@ const CreateTenantClusterPoolForm: React.FC<{
             <TextInput id="tcp-name" readOnly value={catalogItemName} />
           </FormGroup>
         ) : null}
-        <FormGroup label="Min Clusters" fieldId="tcp-min-clusters">
-          <NumberInput
-            id="tcp-min-clusters"
-            value={minClusters}
-            min={0}
-            onMinus={() => setMinClusters(Math.max(0, minClusters - 1))}
-            onPlus={() => setMinClusters(minClusters + 1)}
-            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-              const val = parseInt((event.target as HTMLInputElement).value, 10);
-              if (!isNaN(val) && val >= 0) setMinClusters(val);
-            }}
-          />
-        </FormGroup>
         <FormGroup label="Max Clusters" fieldId="tcp-max-clusters">
           <NumberInput
             id="tcp-max-clusters"
@@ -189,6 +179,24 @@ const CreateTenantClusterPoolForm: React.FC<{
               if (!isNaN(val) && val >= 0) setMaxClusters(val);
             }}
           />
+        </FormGroup>
+        <FormGroup label="Min Clusters" fieldId="tcp-min-clusters">
+          <NumberInput
+            id="tcp-min-clusters"
+            value={minClusters}
+            min={0}
+            onMinus={() => setMinClusters(Math.max(0, minClusters - 1))}
+            onPlus={() => setMinClusters(minClusters + 1)}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const val = parseInt((event.target as HTMLInputElement).value, 10);
+              if (!isNaN(val) && val >= 0) setMinClusters(val);
+            }}
+          />
+          {minClusters > maxClusters ? (
+            <HelperText>
+              <HelperTextItem variant="error">Min Clusters must be less than or equal to Max Clusters</HelperTextItem>
+            </HelperText>
+          ) : null}
         </FormGroup>
         <FormGroup label="Min Available Sandbox Placements" fieldId="tcp-min-placements">
           <NumberInput
