@@ -370,6 +370,15 @@ const ServicesItemComponent: React.FC<{
 
   const tenantClusterPoolAnnotation = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`];
   const isTenantClusterItem = !!tenantClusterPoolAnnotation;
+  const pendingTenantAction = useMemo(() => {
+    const raw = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-action`];
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw)?.action || null;
+    } catch {
+      return null;
+    }
+  }, [resourceClaim.metadata.annotations]);
   const tenantClusterPoolOwnerRef = isTenantClusterItem
     ? resourceClaim.metadata.ownerReferences?.find((ref) => ref.kind === 'TenantClusterPool')
     : undefined;
@@ -1252,7 +1261,12 @@ const ServicesItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Sandbox API</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {sandboxApiStatus === 'not onboarded' ? (
+                        {pendingTenantAction ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <Spinner size="md" />
+                            {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
+                          </span>
+                        ) : sandboxApiStatus === 'not onboarded' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
                             <Alert
                               variant="warning"
