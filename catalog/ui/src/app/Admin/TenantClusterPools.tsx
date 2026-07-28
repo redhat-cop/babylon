@@ -5,6 +5,8 @@ import {
   EmptyState,
   Form,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Label,
   NumberInput,
   PageSection,
@@ -19,10 +21,14 @@ import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, createTenantClusterPool, deleteTenantClusterPool, fetcherItemsInAllPages, silentFetcher } from '@app/api';
-import { CatalogItem, TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
+import { CatalogItem, CatalogItemSpecParameter, SalesforceItem, TenantClusterPool, TenantClusterPoolStatusCluster, TPurposeOpts } from '@app/types';
+import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
+import DynamicFormInput from '@app/components/DynamicFormInput';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import TimeInterval from '@app/components/TimeInterval';
-import { BABYLON_DOMAIN, compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, compareK8sObjectsArr, DEMO_DOMAIN, displayName, FETCH_BATCH_LIMIT } from '@app/util';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
@@ -96,28 +102,66 @@ const CreateTenantClusterPoolForm: React.FC<{
   setOnConfirmCb?: React.Dispatch<React.SetStateAction<() => Promise<void>>>;
   onCreated: (pool: TenantClusterPool) => void;
 }> = ({ setOnConfirmCb, onCreated }) => {
+  const { sfdc_enabled } = useInterfaceConfig();
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [minClusters, setMinClusters] = useState(0);
   const [maxClusters, setMaxClusters] = useState(0);
   const [minAvailableSandboxPlacements, setMinAvailableSandboxPlacements] = useState(0);
+  const [activity, setActivity] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [explanation, setExplanation] = useState('');
+  const [salesforceItems, setSalesforceItems] = useState<SalesforceItem[]>([]);
+  const [parameterValues, setParameterValues] = useState<Record<string, unknown>>({});
 
   const catalogItemName = selectedCatalogItem?.metadata?.name || '';
+  const purposeOpts: TPurposeOpts = selectedCatalogItem?.spec?.parameters
+    ? selectedCatalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema?.['x-form-options'] || []
+    : [];
+  const dynamicParameters: CatalogItemSpecParameter[] = useMemo(
+    () =>
+      (selectedCatalogItem?.spec?.parameters || []).filter(
+        (p) => p.name !== 'purpose' && p.name !== 'salesforce_id',
+      ),
+    [selectedCatalogItem],
+  );
 
   useEffect(() => {
     if (!setOnConfirmCb) return;
     setOnConfirmCb(() => async () => {
       if (!catalogItemName) throw new Error('Please select a catalog item');
+      if (maxClusters < minClusters) throw new Error('Max Clusters must be greater than or equal to Min Clusters');
+      const annotations: Record<string, string> = {};
+      if (purpose) {
+        annotations[`${DEMO_DOMAIN}/purpose`] = purpose;
+      }
+      if (activity) {
+        annotations[`${DEMO_DOMAIN}/purpose-activity`] = activity;
+      }
+      if (explanation) {
+        annotations[`${DEMO_DOMAIN}/purpose-explanation`] = explanation;
+      }
+      if (salesforceItems.length > 0) {
+        annotations[`${DEMO_DOMAIN}/salesforce-items`] = JSON.stringify(salesforceItems);
+      }
+      const allParameterValues: Record<string, unknown> = { ...parameterValues };
+      if (purpose) {
+        allParameterValues.purpose = purpose;
+      }
       const definition: TenantClusterPool = {
         apiVersion: `${BABYLON_DOMAIN}/v1`,
         kind: 'TenantClusterPool',
         metadata: {
           name: catalogItemName,
           namespace: 'shared-clusters',
+          annotations,
         },
         spec: {
           clusterProvisioning: {
-            provider: { name: catalogItemName },
+            provider: {
+              name: catalogItemName,
+              ...(Object.keys(allParameterValues).length > 0 ? { parameterValues: allParameterValues } : {}),
+            },
           },
           minClusters,
           maxClusters,
@@ -127,7 +171,7 @@ const CreateTenantClusterPoolForm: React.FC<{
       const created = await createTenantClusterPool(definition);
       onCreated(created);
     });
-  }, [catalogItemName, minClusters, maxClusters, minAvailableSandboxPlacements, onCreated, setOnConfirmCb]);
+  }, [catalogItemName, minClusters, maxClusters, minAvailableSandboxPlacements, activity, purpose, explanation, salesforceItems, parameterValues, onCreated, setOnConfirmCb]);
 
   return (
     <>
@@ -164,19 +208,6 @@ const CreateTenantClusterPoolForm: React.FC<{
             <TextInput id="tcp-name" readOnly value={catalogItemName} />
           </FormGroup>
         ) : null}
-        <FormGroup label="Min Clusters" fieldId="tcp-min-clusters">
-          <NumberInput
-            id="tcp-min-clusters"
-            value={minClusters}
-            min={0}
-            onMinus={() => setMinClusters(Math.max(0, minClusters - 1))}
-            onPlus={() => setMinClusters(minClusters + 1)}
-            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-              const val = parseInt((event.target as HTMLInputElement).value, 10);
-              if (!isNaN(val) && val >= 0) setMinClusters(val);
-            }}
-          />
-        </FormGroup>
         <FormGroup label="Max Clusters" fieldId="tcp-max-clusters">
           <NumberInput
             id="tcp-max-clusters"
@@ -189,6 +220,24 @@ const CreateTenantClusterPoolForm: React.FC<{
               if (!isNaN(val) && val >= 0) setMaxClusters(val);
             }}
           />
+        </FormGroup>
+        <FormGroup label="Min Clusters" fieldId="tcp-min-clusters">
+          <NumberInput
+            id="tcp-min-clusters"
+            value={minClusters}
+            min={0}
+            onMinus={() => setMinClusters(Math.max(0, minClusters - 1))}
+            onPlus={() => setMinClusters(minClusters + 1)}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const val = parseInt((event.target as HTMLInputElement).value, 10);
+              if (!isNaN(val) && val >= 0) setMinClusters(val);
+            }}
+          />
+          {minClusters > maxClusters ? (
+            <HelperText>
+              <HelperTextItem variant="error">Min Clusters must be less than or equal to Max Clusters</HelperTextItem>
+            </HelperText>
+          ) : null}
         </FormGroup>
         <FormGroup label="Min Available Sandbox Placements" fieldId="tcp-min-placements">
           <NumberInput
@@ -203,6 +252,33 @@ const CreateTenantClusterPoolForm: React.FC<{
             }}
           />
         </FormGroup>
+        {purposeOpts.length > 0 ? (
+          <ActivityPurposeSelector
+            purposeOpts={purposeOpts}
+            value={{ activity, purpose, explanation }}
+            onChange={(a, p, e) => {
+              if (a !== null) setActivity(a);
+              if (p !== null) setPurpose(p);
+              setExplanation(e || '');
+            }}
+          />
+        ) : null}
+        {sfdc_enabled ? (
+          <SalesforceItemsField
+            items={salesforceItems}
+            onChange={setSalesforceItems}
+          />
+        ) : null}
+        {dynamicParameters.map((param) => (
+          <FormGroup key={param.name} label={param.formLabel || param.name} fieldId={`tcp-param-${param.name}`} isRequired={param.required}>
+            <DynamicFormInput
+              id={`tcp-param-${param.name}`}
+              parameter={param}
+              value={parameterValues[param.name] ?? param.openAPIV3Schema?.default ?? param.value}
+              onChange={(value: unknown) => setParameterValues((prev) => ({ ...prev, [param.name]: value }))}
+            />
+          </FormGroup>
+        ))}
       </Form>
     </>
   );
