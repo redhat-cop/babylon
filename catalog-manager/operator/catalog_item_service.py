@@ -69,6 +69,7 @@ class CatalogItemService:
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.reporting_api} - {e}")
                 raise
+        return Rating(None, 0)
 
     async def get_is_disabled(self):
         if len(self.catalog_item.labels['gpte.redhat.com/asset-uuid']) != 0:
@@ -94,3 +95,4 @@ class CatalogItemService:
             except Exception as e:
                 self.logger.error(f"Invalid connection with {Babylon.reporting_api} - {e}")
                 raise
+        return False
