@@ -26,7 +26,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { apiPaths, deleteTenantClusterPool, fetcher, patchTenantClusterPool } from '@app/api';
-import { SalesforceItem, TenantClusterPool } from '@app/types';
+import { SalesforceItem, TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
 import { KeyedMutator } from 'swr';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -36,7 +36,9 @@ import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
 import { compareK8sObjects, DEMO_DOMAIN } from '@app/util';
 import useSession from '@app/utils/useSession';
+import SandboxApiActions from '@app/components/SandboxApiActions';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useSandboxApi from '@app/utils/useSandboxApi';
 
 import './admin.css';
 
@@ -102,6 +104,49 @@ const TenantClusterPoolNumberInput: React.FC<{
   );
 };
 
+const ClusterRow: React.FC<{
+  cluster: TenantClusterPoolStatusCluster;
+  namespace: string;
+}> = ({ cluster, namespace }) => {
+  const { status, placementCount, updating, performAction } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+
+  return (
+    <Tr>
+      <Td dataLabel="ResourceClaim">
+        <Link to={`/services/${namespace}/${cluster.resourceClaimName}`}>
+          {cluster.resourceClaimName}
+        </Link>
+      </Td>
+      <Td dataLabel="Sandbox API State">
+        <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
+          {cluster.sandboxApiState}
+        </Label>
+      </Td>
+      <Td dataLabel="Sandbox API">
+        {status === 'loading' ? (
+          <Spinner size="sm" />
+        ) : (
+          <Label isCompact color={status === 'available' ? 'green' : status === 'disabled' ? 'red' : 'orange'}>
+            {status === 'available' ? 'Onboarded' : status === 'disabled' ? 'Disabled' : 'Not Onboarded'}
+          </Label>
+        )}
+      </Td>
+      <Td dataLabel="Placements">
+        {status === 'loading' ? <Spinner size="sm" /> : placementCount}
+      </Td>
+      <Td dataLabel="Actions">
+        <SandboxApiActions
+          status={status}
+          updating={updating}
+          performAction={performAction}
+          isDisabled={cluster.sandboxApiState !== 'available'}
+          size="sm"
+        />
+      </Td>
+    </Tr>
+  );
+};
+
 const TenantClusterPoolInstanceComponent: React.FC<{
   tenantClusterPoolName: string;
   tenantClusterPoolNamespace: string;
@@ -141,6 +186,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
   }
 
   const clusters = tenantClusterPool?.status?.clusters || [];
+  const canDelete = clusters.length === 0 || clusters.every((c) => c.sandboxApiState === 'removed' || c.sandboxApiState === 'pending');
   const spec = tenantClusterPool?.spec;
 
   return (
@@ -166,7 +212,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
             <ActionDropdown
               position="right"
               actionDropdownItems={[
-                <ActionDropdownItem key="delete" label="Delete TenantClusterPool" onSelect={confirmThenDelete} />,
+                <ActionDropdownItem key="delete" label="Delete TenantClusterPool" onSelect={confirmThenDelete} isDisabled={!canDelete} />,
                 <ActionDropdownItem
                   key="editInOpenShift"
                   label="Edit in OpenShift Console"
@@ -391,22 +437,14 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                   <Tr>
                     <Th>ResourceClaim</Th>
                     <Th>Sandbox API State</Th>
+                    <Th>Sandbox API</Th>
+                    <Th>Placements</Th>
+                    <Th>Actions</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {clusters.map((cluster, idx) => (
-                    <Tr key={idx}>
-                      <Td dataLabel="ResourceClaim">
-                        <Link to={`/services/${tenantClusterPoolNamespace}/${cluster.resourceClaimName}`}>
-                          {cluster.resourceClaimName}
-                        </Link>
-                      </Td>
-                      <Td dataLabel="Sandbox API State">
-                        <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
-                          {cluster.sandboxApiState}
-                        </Label>
-                      </Td>
-                    </Tr>
+                    <ClusterRow key={idx} cluster={cluster} namespace={tenantClusterPoolNamespace} />
                   ))}
                 </Tbody>
               </Table>

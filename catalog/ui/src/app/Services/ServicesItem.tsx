@@ -60,7 +60,6 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
-  setTenantClusterAction,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -116,7 +115,9 @@ import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
+import SandboxApiActions from '@app/components/SandboxApiActions';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useSandboxApi from '@app/utils/useSandboxApi';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
@@ -399,27 +400,19 @@ const ServicesItemComponent: React.FC<{
     );
     return clusterEntry?.name || '';
   }, [isTenantClusterItem, tenantClusterPool, resourceClaim.metadata.name, resourceClaim.status?.resourceHandle?.name]);
-  const { data: sandboxPlacementsData, isLoading: sandboxStatusLoading } = useSWR(
-    isTenantClusterItem && clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
-    silentFetcher,
-    { shouldRetryOnError: false, refreshInterval: 8000 },
+  const {
+    status: sandboxApiStatus,
+    updating: tenantActionUpdating,
+    performAction: performSandboxAction,
+  } = useSandboxApi(
+    isTenantClusterItem ? clusterName : '',
+    resourceClaim.metadata.namespace,
+    resourceClaim.metadata.name,
   );
-  const { data: sandboxConfigData } = useSWR(
-    isTenantClusterItem && clusterName && sandboxPlacementsData?.placements
-      ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName })
-      : null,
-    silentFetcher,
-    { shouldRetryOnError: false, refreshInterval: 8000 },
-  );
-  const sandboxApiStatus = useMemo(() => {
-    if (!isTenantClusterItem) return null;
-    if (sandboxStatusLoading) return 'loading';
-    if (sandboxPlacementsData?.placements) {
-      return sandboxConfigData?.valid === true ? 'available' : 'disabled';
-    }
-    return 'not onboarded';
-  }, [isTenantClusterItem, sandboxStatusLoading, sandboxPlacementsData, sandboxConfigData]);
-  const [tenantActionUpdating, setTenantActionUpdating] = useState(false);
+  const isRunning = useMemo(() => {
+    const resource = resourceClaim.status?.resources?.[0]?.state;
+    return resource?.kind === 'AnarchySubject' && resource.spec?.vars?.current_state === 'started';
+  }, [resourceClaim.status?.resources]);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -931,7 +924,30 @@ const ServicesItemComponent: React.FC<{
       <PageSection hasBodyWrapper={false} key="head" className="services-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
-            {isAdmin || serviceNamespaces.length > 1 ? (
+            {isAdmin && isTenantClusterItem ? (
+              <Breadcrumb>
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to="/admin/tenantclusterpools" className={className}>
+                      Tenant Cluster Pools
+                    </Link>
+                  )}
+                />
+                {tenantClusterPoolOwnerRef ? (
+                  <BreadcrumbItem
+                    render={({ className }) => (
+                      <Link
+                        to={`/admin/tenantclusterpools/${resourceClaim.metadata.namespace}/${tenantClusterPoolOwnerRef.name}/clusters`}
+                        className={className}
+                      >
+                        {tenantClusterPoolOwnerRef.name}
+                      </Link>
+                    )}
+                  />
+                ) : null}
+                <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
+              </Breadcrumb>
+            ) : isAdmin || serviceNamespaces.length > 1 ? (
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (
@@ -1276,23 +1292,12 @@ const ServicesItemComponent: React.FC<{
                             >
                               <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
                             </Alert>
-                            <Button
-                              style={{ alignSelf: 'flex-start' }}
-                              variant="primary"
-                              isLoading={tenantActionUpdating}
-                              isDisabled={tenantActionUpdating}
-                              onClick={async () => {
-                                setTenantActionUpdating(true);
-                                try {
-                                  await setTenantClusterAction(resourceClaim.metadata.namespace, resourceClaim.metadata.name, 'onboard');
-                                  mutate();
-                                } finally {
-                                  setTenantActionUpdating(false);
-                                }
-                              }}
-                            >
-                              Onboard to Sandbox API
-                            </Button>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                              isDisabled={!isRunning}
+                            />
                           </div>
                         ) : sandboxApiStatus === 'available' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
@@ -1300,66 +1305,22 @@ const ServicesItemComponent: React.FC<{
                               <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
                               Onboarded — Enabled
                             </span>
-                            <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                              <Button
-                                variant="secondary"
-                                isDanger
-                                isLoading={tenantActionUpdating}
-                                isDisabled={tenantActionUpdating}
-                                onClick={async () => {
-                                  setTenantActionUpdating(true);
-                                  try {
-                                    await setTenantClusterAction(resourceClaim.metadata.namespace, resourceClaim.metadata.name, 'disable');
-                                    mutate();
-                                  } finally {
-                                    setTenantActionUpdating(false);
-                                  }
-                                }}
-                              >
-                                Disable
-                              </Button>
-                            </div>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                            />
                           </div>
                         ) : sandboxApiStatus === 'disabled' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                               Onboarded — Disabled
                             </span>
-                            <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                              <Button
-                                variant="primary"
-                                isLoading={tenantActionUpdating}
-                                isDisabled={tenantActionUpdating}
-                                onClick={async () => {
-                                  setTenantActionUpdating(true);
-                                  try {
-                                    await setTenantClusterAction(resourceClaim.metadata.namespace, resourceClaim.metadata.name, 'enable');
-                                    mutate();
-                                  } finally {
-                                    setTenantActionUpdating(false);
-                                  }
-                                }}
-                              >
-                                Enable
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                isDanger
-                                isLoading={tenantActionUpdating}
-                                isDisabled={tenantActionUpdating}
-                                onClick={async () => {
-                                  setTenantActionUpdating(true);
-                                  try {
-                                    await setTenantClusterAction(resourceClaim.metadata.namespace, resourceClaim.metadata.name, 'offboard');
-                                    mutate();
-                                  } finally {
-                                    setTenantActionUpdating(false);
-                                  }
-                                }}
-                              >
-                                Offboard
-                              </Button>
-                            </div>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                            />
                           </div>
                         ) : null}
                       </DescriptionListDescription>

@@ -14,13 +14,14 @@ import {
   SplitItem,
   TextInput,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, createTenantClusterPool, deleteTenantClusterPool, fetcherItemsInAllPages, silentFetcher } from '@app/api';
+import { apiPaths, createTenantClusterPool, deleteTenantClusterPool, fetcherItemsInAllPages } from '@app/api';
 import { CatalogItem, CatalogItemSpecParameter, SalesforceItem, TenantClusterPool, TenantClusterPoolStatusCluster, TPurposeOpts } from '@app/types';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import DynamicFormInput from '@app/components/DynamicFormInput';
@@ -32,7 +33,9 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import Modal, { useModal } from '@app/Modal/Modal';
 import useSWR from 'swr';
+import SandboxApiActions from '@app/components/SandboxApiActions';
 import Footer from '@app/components/Footer';
+import useSandboxApi from '@app/utils/useSandboxApi';
 
 import './admin.css';
 import './tenant-cluster-pools.css';
@@ -53,39 +56,52 @@ function filterPool(pool: TenantClusterPool, keywordFilter: string[]): boolean {
   return true;
 }
 
-const ClusterPlacementsCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
-  const { data: placementsData } = useSWR(
-    clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
-    silentFetcher,
-    { shouldRetryOnError: false, suspense: false },
-  );
-  const { data: configData } = useSWR(
-    clusterName ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName }) : null,
-    silentFetcher,
-    { shouldRetryOnError: false, suspense: false },
-  );
-  const count = placementsData?.placements?.length ?? 0;
-  const max = configData?.max_placements;
-  if (!placementsData?.placements && !configData) return <span className="tenant-pools-muted">-</span>;
-  if (max != null) return <span>{count} / {max}</span>;
-  return <span>{count}</span>;
-};
+const ClusterChildRow: React.FC<{
+  cluster: TenantClusterPoolStatusCluster;
+  namespace: string;
+}> = ({ cluster, namespace }) => {
+  const { status, placementCount, updating, performAction } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
 
-const ClusterSandboxApiCell: React.FC<{ clusterName: string }> = ({ clusterName }) => {
-  const { data } = useSWR(
-    clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
-    silentFetcher,
-    { shouldRetryOnError: false, suspense: false },
+  return (
+    <tr className="tenant-pools-child-row">
+      <td></td>
+      <td>
+        <Link
+          to={`/services/${namespace}/${cluster.resourceClaimName}`}
+          className="tenant-pools-name-link"
+        >
+          {cluster.resourceClaimName}
+        </Link>
+      </td>
+      <td>
+        <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
+          {cluster.sandboxApiState}
+        </Label>
+      </td>
+      <td>{status === 'loading' ? <span className="tenant-pools-muted">-</span> : placementCount}</td>
+      <td>
+        {status === 'loading' ? (
+          <span className="tenant-pools-muted">-</span>
+        ) : status === 'available' ? (
+          <span className="tenant-pools-onboarded"><CheckCircleIcon /> Onboarded</span>
+        ) : status === 'disabled' ? (
+          <span className="tenant-pools-not-onboarded">Disabled</span>
+        ) : (
+          <span className="tenant-pools-not-onboarded">Not onboarded</span>
+        )}
+      </td>
+      <td>
+        <SandboxApiActions
+          status={status}
+          updating={updating}
+          performAction={performAction}
+          isDisabled={cluster.sandboxApiState !== 'available'}
+          size="sm"
+        />
+      </td>
+      <td></td>
+    </tr>
   );
-  if (data === undefined) return <span className="tenant-pools-muted">-</span>;
-  if (data?.placements) {
-    return (
-      <span className="tenant-pools-onboarded">
-        <CheckCircleIcon /> Onboarded
-      </span>
-    );
-  }
-  return <span className="tenant-pools-not-onboarded">Not onboarded</span>;
 };
 
 function sandboxApiStateColor(state: string): 'green' | 'yellow' | 'red' | 'grey' {
@@ -432,6 +448,7 @@ const TenantClusterPools: React.FC = () => {
                   const clusters = pool.status?.clusters || [];
                   const clusterCount = clusters.length;
                   const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
+                  const canDelete = clusterCount === 0 || clusters.every((c) => c.sandboxApiState === 'removed' || c.sandboxApiState === 'pending');
 
                   return (
                     <React.Fragment key={poolKey}>
@@ -464,49 +481,38 @@ const TenantClusterPools: React.FC = () => {
                           <TimeInterval toTimestamp={pool.metadata.creationTimestamp} />
                         </td>
                         <td>
-                          <Button
-                            variant="plain"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              showDeleteModal(pool);
-                            }}
-                            aria-label={`Delete ${pool.metadata.name}`}
-                          >
-                            <TrashIcon />
-                          </Button>
+                          {canDelete ? (
+                            <Button
+                              variant="plain"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                showDeleteModal(pool);
+                              }}
+                              aria-label={`Delete ${pool.metadata.name}`}
+                            >
+                              <TrashIcon />
+                            </Button>
+                          ) : (
+                            <Tooltip content="All clusters must be removed before the pool can be deleted">
+                              <span>
+                                <Button
+                                  variant="plain"
+                                  size="sm"
+                                  isDisabled
+                                  aria-label={`Delete ${pool.metadata.name}`}
+                                >
+                                  <TrashIcon />
+                                </Button>
+                              </span>
+                            </Tooltip>
+                          )}
                         </td>
                       </tr>
                       {isExpanded
-                        ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => {
-                            const clusterName = cluster.name;
-                            return (
-                              <tr key={idx} className="tenant-pools-child-row">
-                                <td></td>
-                                <td>
-                                  <Link
-                                    to={`/services/${pool.metadata.namespace}/${cluster.resourceClaimName}`}
-                                    className="tenant-pools-name-link"
-                                  >
-                                    {cluster.resourceClaimName}
-                                  </Link>
-                                </td>
-                                <td>
-                                  <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
-                                    {cluster.sandboxApiState}
-                                  </Label>
-                                </td>
-                                <td>
-                                  <ClusterPlacementsCell clusterName={clusterName} />
-                                </td>
-                                <td>
-                                  <ClusterSandboxApiCell clusterName={clusterName} />
-                                </td>
-                                <td></td>
-                                <td></td>
-                              </tr>
-                            );
-                          })
+                        ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => (
+                            <ClusterChildRow key={idx} cluster={cluster} namespace={pool.metadata.namespace} />
+                          ))
                         : null}
                     </React.Fragment>
                   );
