@@ -139,7 +139,7 @@ const ClusterRow: React.FC<{
           status={status}
           updating={updating}
           performAction={performAction}
-          isDisabled={cluster.sandboxApiState !== 'available'}
+          isDisabled={cluster.sandboxApiState !== 'available' && cluster.sandboxApiState !== 'removed'}
           size="sm"
         />
       </Td>
