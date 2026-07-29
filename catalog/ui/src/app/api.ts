@@ -520,10 +520,6 @@ export async function createResourcePool(definition: ResourcePool) {
   return await createK8sObject<ResourcePool>(definition);
 }
 
-export async function createTenantClusterPool(definition: TenantClusterPool) {
-  return await createK8sObject<TenantClusterPool>(definition);
-}
-
 export async function createResourcePoolScaling(definition: ResourcePoolScaling) {
   return await createK8sObject<ResourcePoolScaling>(definition);
 }
@@ -1191,16 +1187,6 @@ export async function deleteResourceProvider(resourceProvider: ResourceProvider)
     resourceProvider.metadata.namespace,
     'resourcehandles',
     resourceProvider.metadata.name,
-  );
-}
-
-export async function deleteTenantClusterPool(tenantClusterPool: TenantClusterPool) {
-  return await deleteNamespacedCustomObject(
-    BABYLON_DOMAIN,
-    'v1',
-    tenantClusterPool.metadata.namespace,
-    'tenantclusterpools',
-    tenantClusterPool.metadata.name,
   );
 }
 
