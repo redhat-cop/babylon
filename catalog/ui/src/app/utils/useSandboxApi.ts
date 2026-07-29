@@ -7,6 +7,7 @@ export type SandboxApiStatus = 'loading' | 'not onboarded' | 'available' | 'disa
 interface UseSandboxApiResult {
   status: SandboxApiStatus;
   placementCount: number;
+  maxPlacements: number | null;
   updating: boolean;
   performAction: (action: string) => Promise<void>;
 }
@@ -38,6 +39,7 @@ export default function useSandboxApi(
   }, [isLoading, placementsData, configData]);
 
   const placementCount = placementsData?.placements?.length ?? 0;
+  const maxPlacements: number | null = configData?.max_placements ?? null;
   const [updating, setUpdating] = useState(false);
 
   const performAction = useCallback(async (action: string) => {
@@ -51,5 +53,5 @@ export default function useSandboxApi(
     }
   }, [namespace, resourceClaimName, mutatePlacements, mutateConfig]);
 
-  return { status, placementCount, updating, performAction };
+  return { status, placementCount, maxPlacements, updating, performAction };
 }
