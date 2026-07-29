@@ -1,6 +1,8 @@
 import { useMemo, useState, useCallback } from 'react';
 import useSWR from 'swr';
 import { apiPaths, silentFetcher, setTenantClusterAction } from '@app/api';
+import { ResourceClaim } from '@app/types';
+import { BABYLON_DOMAIN } from '@app/util';
 
 export type SandboxApiStatus = 'loading' | 'not onboarded' | 'available' | 'disabled';
 
@@ -9,6 +11,7 @@ interface UseSandboxApiResult {
   placementCount: number;
   maxPlacements: number | null;
   updating: boolean;
+  pendingAction: string | null;
   performAction: (action: string) => Promise<void>;
 }
 
@@ -29,6 +32,21 @@ export default function useSandboxApi(
     silentFetcher,
     { shouldRetryOnError: false, refreshInterval: 8000 },
   );
+  const { data: resourceClaim } = useSWR<ResourceClaim>(
+    resourceClaimName ? apiPaths.RESOURCE_CLAIM({ namespace, resourceClaimName }) : null,
+    silentFetcher,
+    { shouldRetryOnError: false, refreshInterval: 8000 },
+  );
+
+  const pendingAction = useMemo(() => {
+    const raw = resourceClaim?.metadata?.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-action`];
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw)?.action || null;
+    } catch {
+      return null;
+    }
+  }, [resourceClaim?.metadata?.annotations]);
 
   const status: SandboxApiStatus = useMemo(() => {
     if (isLoading) return 'loading';
@@ -53,5 +71,5 @@ export default function useSandboxApi(
     }
   }, [namespace, resourceClaimName, mutatePlacements, mutateConfig]);
 
-  return { status, placementCount, maxPlacements, updating, performAction };
+  return { status, placementCount, maxPlacements, updating, pendingAction, performAction };
 }
