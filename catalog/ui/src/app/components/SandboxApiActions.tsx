@@ -2,13 +2,30 @@ import React from 'react';
 import { Button, Spinner } from '@patternfly/react-core';
 import { SandboxApiStatus } from '@app/utils/useSandboxApi';
 
+const actionLabels: Record<string, string> = {
+  onboard: 'Onboarding...',
+  offboard: 'Offboarding...',
+  enable: 'Enabling...',
+  disable: 'Disabling...',
+};
+
 const SandboxApiActions: React.FC<{
   status: SandboxApiStatus;
   updating: boolean;
+  pendingAction?: string | null;
   performAction: (action: string) => Promise<void>;
   isDisabled?: boolean;
   size?: 'sm' | 'lg';
-}> = ({ status, updating, performAction, isDisabled = false, size }) => {
+}> = ({ status, updating, pendingAction, performAction, isDisabled = false, size }) => {
+  if (pendingAction) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <Spinner size="sm" />
+        {actionLabels[pendingAction] || 'Processing...'}
+      </span>
+    );
+  }
+
   if (updating) {
     return <Spinner size="sm" />;
   }
