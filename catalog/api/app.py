@@ -18,6 +18,7 @@ import kubernetes_asyncio
 import redis.asyncio as redis
 from hotfix import HotfixKubeApiClient
 from randomstring import random_string
+from audit import audit_log, audit_log_api_action
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -40,24 +41,6 @@ session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
 logging.basicConfig(level=os.environ.get('LOGGING_LEVEL', 'INFO'))
-
-audit_logger = logging.getLogger('audit')
-
-def audit_log(event, user, method=None, path=None, status=None, effective_user=None, body=None, **extra):
-    parts = [datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), event, f"user={user}"]
-    if effective_user and effective_user != user:
-        parts.append(f"effective_user={effective_user}")
-    if method:
-        parts.append(f"method={method}")
-    if path:
-        parts.append(f"path={path}")
-    if status is not None:
-        parts.append(f"status={status}")
-    if body is not None:
-        parts.append(f"body={json.dumps(body, separators=(',', ':'))}")
-    for k, v in extra.items():
-        parts.append(f"{k}={v}")
-    audit_logger.info(' '.join(parts))
 
 def proxy_api_client(session):
     api_client = HotfixKubeApiClient()
@@ -426,7 +409,7 @@ async def get_auth_session(request):
         if interface_name:
             ret['interface'] = interface_name
 
-        audit_log('session_created', user=user['metadata']['name'], admin=user_is_admin)
+        audit_log('session_created', user=user['metadata']['name'], details={'admin': user_is_admin})
         return web.json_response(ret)
     finally:
         await api_client.close()
@@ -1514,7 +1497,7 @@ async def update_system_status(request):
             else:
                 raise
 
-        audit_log('system_status_updated', user=user['metadata']['name'], data=data)
+        audit_log('system_status_updated', user=user['metadata']['name'], details=data)
 
         # Return updated status
         return web.json_response(await get_system_status_from_configmap())
@@ -1678,8 +1661,7 @@ async def openshift_api_proxy(request, api_client=None):
         headers['Content-Type'] = 'application/json'
 
         if request.method != 'GET':
-            audit_log(
-                'api_action',
+            audit_log_api_action(
                 user=session['user'],
                 effective_user=api_client.default_headers.get('Impersonate-User'),
                 method=request.method,
@@ -1695,8 +1677,7 @@ async def openshift_api_proxy(request, api_client=None):
         )
     except kubernetes_asyncio.client.exceptions.ApiException as exception:
         if request.method != 'GET':
-            audit_log(
-                'api_action',
+            audit_log_api_action(
                 user=session['user'],
                 effective_user=api_client.default_headers.get('Impersonate-User'),
                 method=request.method,
