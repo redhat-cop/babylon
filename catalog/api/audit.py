@@ -109,7 +109,8 @@ def _safe_get(obj, *keys):
 def _classify_resourceclaim_patch(body):
     if not isinstance(body, dict):
         return 'update_service'
-    param_values = _safe_get(body, 'spec', 'provider', 'parameterValues') or {}
+    raw_pv = _safe_get(body, 'spec', 'provider', 'parameterValues')
+    param_values = raw_pv if isinstance(raw_pv, dict) else {}
     if _safe_get(body, 'spec', 'lifespan', 'end'):
         return 'retire_service'
     if param_values.get('start_timestamp'):
@@ -117,8 +118,13 @@ def _classify_resourceclaim_patch(body):
     if param_values.get('stop_timestamp'):
         return 'stop_service'
     # Legacy per-resource action_schedule
-    for resource in (_safe_get(body, 'spec', 'resources') or []):
-        schedule = _safe_get(resource, 'template', 'spec', 'vars', 'action_schedule') or {}
+    raw_resources = _safe_get(body, 'spec', 'resources')
+    resources = raw_resources if isinstance(raw_resources, list) else []
+    for resource in resources:
+        if not isinstance(resource, dict):
+            continue
+        raw_schedule = _safe_get(resource, 'template', 'spec', 'vars', 'action_schedule')
+        schedule = raw_schedule if isinstance(raw_schedule, dict) else {}
         if schedule.get('start'):
             return 'start_service'
         if schedule.get('stop'):
@@ -139,7 +145,8 @@ def _classify_workshop_patch(body):
         return 'lock_workshop'
     if lock_label == 'false':
         return 'unlock_workshop'
-    action_schedule = _safe_get(body, 'spec', 'actionSchedule') or {}
+    raw_schedule = _safe_get(body, 'spec', 'actionSchedule')
+    action_schedule = raw_schedule if isinstance(raw_schedule, dict) else {}
     if action_schedule.get('start'):
         return 'start_workshop'
     if action_schedule.get('stop'):
@@ -363,28 +370,31 @@ def extract_details(action, body):
 
 def audit_log(event, user, effective_user=None, action=None, resource_type=None,
               resource_name=None, namespace=None, status=None, details=None, **extra):
-    record = {
-        'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'event': event,
-        'user': user,
-    }
-    if effective_user and effective_user != user:
-        record['effective_user'] = effective_user
-    if action:
-        record['action'] = action
-    if resource_type:
-        record['resource_type'] = resource_type
-    if resource_name:
-        record['resource_name'] = resource_name
-    if namespace:
-        record['namespace'] = namespace
-    if status is not None:
-        record['status'] = status
-    if details:
-        record['details'] = details
-    for k, v in extra.items():
-        record[k] = v
-    audit_logger.info(json.dumps(record, separators=(',', ':')))
+    try:
+        record = {
+            'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'event': event,
+            'user': user,
+        }
+        if effective_user and effective_user != user:
+            record['effective_user'] = effective_user
+        if action:
+            record['action'] = action
+        if resource_type:
+            record['resource_type'] = resource_type
+        if resource_name:
+            record['resource_name'] = resource_name
+        if namespace:
+            record['namespace'] = namespace
+        if status is not None:
+            record['status'] = status
+        if details:
+            record['details'] = details
+        for k, v in extra.items():
+            record[k] = v
+        audit_logger.info(json.dumps(record, separators=(',', ':')))
+    except Exception as exc:
+        logging.getLogger(__name__).warning('audit_log failed: %s', exc)
 
 
 def audit_log_api_action(user, effective_user, method, path, status, body):
@@ -407,12 +417,11 @@ def audit_log_api_action(user, effective_user, method, path, status, body):
                 details=details or None,
             )
         else:
-            # Non-K8s path — log minimally without body
             audit_log(
                 'api_action',
                 user=user,
                 effective_user=effective_user,
-                action=f'{method.lower()}_request',
+                action=f'{str(method).lower()}_request',
                 status=status,
                 details={'path': path},
             )

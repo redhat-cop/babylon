@@ -191,6 +191,55 @@ class TestClassifyAction(unittest.TestCase):
         result = classify_action('PATCH', 'resourceclaims', 'not-a-dict')
         self.assertIsInstance(result, str)
 
+    # --- Malformed body fault tolerance ---
+    def test_patch_resourceclaim_parameterValues_is_list(self):
+        body = {'spec': {'provider': {'parameterValues': ['unexpected', 'list']}}}
+        result = classify_action('PATCH', 'resourceclaims', body)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_resourceclaim_resources_is_string(self):
+        body = {'spec': {'resources': 'not-a-list'}}
+        result = classify_action('PATCH', 'resourceclaims', body)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_resourceclaim_resources_is_int(self):
+        body = {'spec': {'resources': 42}}
+        result = classify_action('PATCH', 'resourceclaims', body)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_resourceclaim_resources_contains_non_dict(self):
+        body = {'spec': {'resources': ['not-a-dict', 123, None]}}
+        result = classify_action('PATCH', 'resourceclaims', body)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_resourceclaim_action_schedule_is_list(self):
+        body = {'spec': {'resources': [{'template': {'spec': {'vars': {'action_schedule': ['bad']}}}}]}}
+        result = classify_action('PATCH', 'resourceclaims', body)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_workshop_actionSchedule_is_list(self):
+        body = {'spec': {'actionSchedule': ['not', 'a', 'dict']}}
+        result = classify_action('PATCH', 'workshops', body)
+        self.assertEqual(result, 'update_workshop')
+
+    def test_patch_workshop_actionSchedule_is_string(self):
+        body = {'spec': {'actionSchedule': 'bad-value'}}
+        result = classify_action('PATCH', 'workshops', body)
+        self.assertEqual(result, 'update_workshop')
+
+    def test_patch_workshop_spec_is_list(self):
+        body = {'spec': ['not', 'a', 'dict']}
+        result = classify_action('PATCH', 'workshops', body)
+        self.assertEqual(result, 'update_workshop')
+
+    def test_patch_resourceclaim_body_is_int(self):
+        result = classify_action('PATCH', 'resourceclaims', 42)
+        self.assertEqual(result, 'update_service')
+
+    def test_patch_workshop_body_is_bool(self):
+        result = classify_action('PATCH', 'workshops', True)
+        self.assertEqual(result, 'update_workshop')
+
 
 class TestExtractDetails(unittest.TestCase):
 
@@ -325,6 +374,15 @@ class TestAuditLog(unittest.TestCase):
         self.assertNotIn('resource_type', record)
         self.assertNotIn('details', record)
 
+    def test_non_serializable_details_does_not_raise(self):
+        # If details somehow contains a non-serializable object, audit_log must not raise
+        audit_log('test_event', user='alice', details={'bad': object()})
+        # No exception = pass
+
+    def test_non_serializable_extra_does_not_raise(self):
+        audit_log('test_event', user='alice', weird_field=object())
+        # No exception = pass
+
 
 class TestAuditLogApiAction(unittest.TestCase):
 
@@ -407,6 +465,46 @@ class TestAuditLogApiAction(unittest.TestCase):
     def test_error_status_logged(self):
         record = self._run('DELETE', '/apis/poolboy.gpte.redhat.com/v1/namespaces/x/resourceclaims/c1', None, status=403)
         self.assertEqual(record['status'], 403)
+
+    # --- Malformed body end-to-end: must always emit JSON, never raise ---
+    def test_body_is_integer(self):
+        record = self._run('PATCH', '/apis/poolboy.gpte.redhat.com/v1/namespaces/x/resourceclaims/c1', 42)
+        self.assertIn('event', record)
+        self.assertIn('user', record)
+
+    def test_body_is_boolean(self):
+        record = self._run('PATCH', '/apis/babylon.gpte.redhat.com/v1/namespaces/x/workshops/w1', True)
+        self.assertIn('event', record)
+
+    def test_body_nested_values_wrong_types(self):
+        body = {'spec': {'provider': {'parameterValues': 'not-a-dict'}, 'resources': 99, 'lifespan': 'bad'}}
+        record = self._run('PATCH', '/apis/poolboy.gpte.redhat.com/v1/namespaces/x/resourceclaims/c1', body)
+        self.assertIn('event', record)
+        self.assertIn('action', record)
+
+    def test_workshop_body_all_wrong_types(self):
+        body = {'spec': {'actionSchedule': 123, 'lifespan': True}, 'metadata': {'labels': 'not-a-dict'}}
+        record = self._run('PATCH', '/apis/babylon.gpte.redhat.com/v1/namespaces/x/workshops/w1', body)
+        self.assertIn('event', record)
+
+    def test_json_patch_with_non_dict_operations(self):
+        body = ['not-a-dict', 42, None, True]
+        record = self._run('PATCH', '/apis/babylon.gpte.redhat.com/v1/namespaces/x/workshopuserassignments/wa1', body)
+        self.assertIn('event', record)
+
+    def test_none_user_does_not_crash(self):
+        # Even if user is None (shouldn't happen, but defensive)
+        record = self._run('DELETE', '/apis/poolboy.gpte.redhat.com/v1/namespaces/x/resourceclaims/c1', None, user=None)
+        self.assertIn('event', record)
+
+    def test_none_method_does_not_crash(self):
+        captured = []
+        import audit as audit_mod
+        with patch.object(audit_mod.audit_logger, 'info', side_effect=lambda msg: captured.append(msg)):
+            audit_log_api_action(user='alice', effective_user=None, method=None, path='/apis/x/v1/y/z', status=200, body=None)
+        self.assertTrue(len(captured) >= 1)
+        record = json.loads(captured[0])
+        self.assertIn('event', record)
 
 
 if __name__ == '__main__':
