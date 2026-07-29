@@ -25,7 +25,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
-import { apiPaths, deleteTenantClusterPool, fetcher, patchTenantClusterPool } from '@app/api';
+import { apiPaths, fetcher, patchTenantClusterPool } from '@app/api';
 import { SalesforceItem, TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
 import { KeyedMutator } from 'swr';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
@@ -169,16 +169,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
     }
   }, [error, showBoundary]);
 
-  async function confirmThenDelete(): Promise<void> {
-    if (confirm(`Delete TenantClusterPool ${tenantClusterPoolName}?`)) {
-      await deleteTenantClusterPool(tenantClusterPool);
-      mutate();
-      navigate('/admin/tenantclusterpools');
-    }
-  }
-
   const clusters = tenantClusterPool?.status?.clusters || [];
-  const canDelete = clusters.length === 0 || clusters.every((c) => c.sandboxApiState === 'removed' || c.sandboxApiState === 'pending');
   const spec = tenantClusterPool?.spec;
 
   return (
@@ -204,7 +195,6 @@ const TenantClusterPoolInstanceComponent: React.FC<{
             <ActionDropdown
               position="right"
               actionDropdownItems={[
-                <ActionDropdownItem key="delete" label="Delete TenantClusterPool" onSelect={confirmThenDelete} isDisabled={!canDelete} />,
                 <ActionDropdownItem
                   key="editInOpenShift"
                   label="Edit in OpenShift Console"
