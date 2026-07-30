@@ -126,10 +126,14 @@ const CatalogItemAdmin: React.FC = () => {
       });
     }
 
+    const statusChanged =
+      status !== (catalogItemIncident?.status || 'Operational') ||
+      isDisabled !== (catalogItemIncident?.disabled ?? false);
+
     await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, stage }), {
       method: 'POST',
       body: JSON.stringify({
-        created_by: userEmail,
+        created_by: statusChanged ? userEmail : catalogItemIncident?.created_by || userEmail,
         disabled: isDisabled,
         status,
         incident_url: incidentUrl,
