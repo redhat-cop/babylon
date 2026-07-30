@@ -89,10 +89,26 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             <div>
               <div
                 dangerouslySetInnerHTML={{
-                  __html: dompurify.sanitize(partnerHeaderHtml || '', {
-                    ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown'],
-                    ADD_ATTR: ['part', 'slot', 'dropdown-width', 'icon', 'name'],
-                  }),
+                  __html: dompurify.sanitize(
+                    (partnerHeaderHtml || '').replace(
+                      /(src|href)="(\/[^"]*?)"/g,
+                      '$1="https://connect.redhat.com$2"',
+                    ),
+                    {
+                      ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown', 'svg', 'path'],
+                      ADD_ATTR: [
+                        'part',
+                        'slot',
+                        'dropdown-width',
+                        'icon',
+                        'name',
+                        'viewBox',
+                        'fill',
+                        'd',
+                        'xmlns',
+                      ],
+                    },
+                  ),
                 }}
               ></div>
             </div>
