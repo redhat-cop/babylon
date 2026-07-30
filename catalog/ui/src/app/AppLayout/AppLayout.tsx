@@ -95,6 +95,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                       '$1="https://connect.redhat.com$2"',
                     ),
                     {
+                      FORCE_BODY: true,
                       ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown', 'svg', 'path'],
                       ADD_ATTR: [
                         'part',
