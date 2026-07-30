@@ -87,7 +87,14 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
           >
             <div>
-              <div dangerouslySetInnerHTML={{ __html: dompurify.sanitize(partnerHeaderHtml || '') }}></div>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: dompurify.sanitize(partnerHeaderHtml || '', {
+                    ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown'],
+                    ADD_ATTR: ['part', 'slot', 'dropdown-width', 'icon', 'name'],
+                  }),
+                }}
+              ></div>
             </div>
           </PageSection>
         ) : null}
