@@ -343,7 +343,7 @@ def extract_details(action, body):
                     if isinstance(parsed, dict) and parsed.get('action'):
                         return {'cluster_action': parsed['action']}
                 except (json.JSONDecodeError, TypeError):
-                    pass
+                    pass  # annotation value is not valid JSON; log without details
             return {}
 
         if action in ('create_workshop', 'create_self_paced_lab', 'create_multi_workshop',
