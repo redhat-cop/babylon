@@ -93,7 +93,7 @@ def parse_k8s_path(path):
                 'name': m.group('name'),
             }
     except Exception:
-        pass
+        pass  # graceful fallback: return None so caller logs without path details
     return None
 
 
@@ -230,7 +230,7 @@ def classify_action(method, plural, body):
 
         return f'{method.lower()}_{plural}'
     except Exception:
-        return 'unknown'
+        return 'unknown'  # body format unrecognized; log the event with generic action
 
 
 def extract_details(action, body):
@@ -365,7 +365,7 @@ def extract_details(action, body):
 
         return {}
     except Exception:
-        return {}
+        return {}  # body format unrecognized; log the event without details
 
 
 def audit_log(event, user, effective_user=None, action=None, resource_type=None,
@@ -437,4 +437,4 @@ def audit_log_api_action(user, effective_user, method, path, status, body):
                 details={'path': path, 'method': method},
             )
         except Exception:
-            pass
+            pass  # last-resort fallback: silently drop rather than crash the request

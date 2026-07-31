@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, '.')
+import audit as audit_mod
 from audit import (
     parse_k8s_path,
     classify_action,
@@ -334,7 +335,7 @@ class TestExtractDetails(unittest.TestCase):
 class TestAuditLog(unittest.TestCase):
 
     def _capture_log(self, *args, **kwargs):
-        with patch.object(__import__('audit').audit_logger, 'info') as mock_info:
+        with patch.object(audit_mod.audit_logger, 'info') as mock_info:
             audit_log(*args, **kwargs)
             self.assertTrue(mock_info.called)
             return json.loads(mock_info.call_args[0][0])
@@ -361,7 +362,7 @@ class TestAuditLog(unittest.TestCase):
         self.assertEqual(record['effective_user'], 'alice')
 
     def test_output_is_valid_json(self):
-        with patch.object(__import__('audit').audit_logger, 'info') as mock_info:
+        with patch.object(audit_mod.audit_logger, 'info') as mock_info:
             audit_log('test_event', user='alice')
             line = mock_info.call_args[0][0]
             parsed = json.loads(line)
@@ -388,7 +389,6 @@ class TestAuditLogApiAction(unittest.TestCase):
 
     def _run(self, method, path, body, status=200, user='alice', effective_user=None):
         captured = []
-        import audit as audit_mod
         with patch.object(audit_mod.audit_logger, 'info', side_effect=lambda msg: captured.append(msg)):
             audit_log_api_action(
                 user=user,
@@ -499,10 +499,9 @@ class TestAuditLogApiAction(unittest.TestCase):
 
     def test_none_method_does_not_crash(self):
         captured = []
-        import audit as audit_mod
         with patch.object(audit_mod.audit_logger, 'info', side_effect=lambda msg: captured.append(msg)):
             audit_log_api_action(user='alice', effective_user=None, method=None, path='/apis/x/v1/y/z', status=200, body=None)
-        self.assertTrue(len(captured) >= 1)
+        self.assertGreaterEqual(len(captured), 1)
         record = json.loads(captured[0])
         self.assertIn('event', record)
 
