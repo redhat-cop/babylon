@@ -1,0 +1,135 @@
+/* ── Status Banner ── */
+.wg-status-banner {
+  border-radius: var(--pf-t--global--border--radius--sm);
+  padding: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg);
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+.wg-status-banner--pending-approval {
+  background-color: #fff8e1;
+  border: 1px solid #e0c060;
+}
+.wg-status-banner--approved {
+  background-color: #e7f1fa;
+  border: 1px solid #b8d4f0;
+}
+.wg-status-banner--provisioning {
+  background-color: #e7f1fa;
+  border: 1px solid #b8d4f0;
+}
+.wg-status-banner--running {
+  background-color: #e9f5e6;
+  border: 1px solid #b3dba9;
+}
+.wg-status-banner--rejected {
+  background-color: #fce8e6;
+  border: 1px solid #e8b0ab;
+}
+
+.wg-status-banner__header {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  margin-bottom: var(--pf-t--global--spacer--xs);
+}
+.wg-status-banner__icon { font-size: 20px; }
+.wg-status-banner--pending-approval .wg-status-banner__icon { color: #795600; }
+.wg-status-banner--approved .wg-status-banner__icon,
+.wg-status-banner--provisioning .wg-status-banner__icon { color: #0066cc; }
+.wg-status-banner--running .wg-status-banner__icon { color: #3e8635; }
+.wg-status-banner--rejected .wg-status-banner__icon { color: #c9190b; }
+
+.wg-status-banner__state {
+  font-size: 18px;
+  font-weight: 700;
+}
+.wg-status-banner__meta {
+  font-size: 13px;
+  color: var(--pf-t--global--text--color--subtle);
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+.wg-status-banner__stepper {
+  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+/* ── Jira Link ── */
+.wg-jira-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0066cc;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wg-jira-link:hover { text-decoration: underline; }
+
+/* ── White Glove Label ── */
+.wg-label {
+  display: inline-block;
+  background-color: #f2f0fc;
+  border: 1px solid #d4ccef;
+  border-radius: 12px;
+  color: #6753ac;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 10px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ── Assignee Card ── */
+.wg-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  background: var(--pf-t--global--background--color--200, #f0f0f0);
+  border-radius: var(--pf-t--global--border--radius--sm);
+}
+.wg-assignee__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #6753ac;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.wg-assignee__name { font-size: 14px; font-weight: 600; }
+.wg-assignee__role { font-size: 12px; color: var(--pf-t--global--text--color--subtle); }
+
+/* ── Notes Block ── */
+.wg-notes-block {
+  background: var(--pf-t--global--background--color--200, #f0f0f0);
+  border-radius: var(--pf-t--global--border--radius--sm);
+  padding: var(--pf-t--global--spacer--md);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Activity Feed ── */
+.wg-comment-input {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--sm);
+  padding: var(--pf-t--global--spacer--md);
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+.wg-comment-input textarea { max-width: 100%; }
+.wg-comment-input__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+/* ── Tab Badge ── */
+.wg-tab-badge {
+  background-color: #c9190b;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}

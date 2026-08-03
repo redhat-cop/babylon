@@ -23,6 +23,7 @@ import {
   Workshop,
   WorkshopProvision,
   MultiWorkshop,
+  WhiteGloveRequest,
   UserList,
   Session,
   Nullable,
@@ -1573,6 +1574,74 @@ export async function patchMultiWorkshop({
   });
 }
 
+export async function createWhiteGloveRequest(data: {
+  catalogItemName: string;
+  catalogItemNamespace: string;
+  displayName: string;
+  purpose?: string;
+  activity?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  namespace: string;
+}): Promise<WhiteGloveRequest> {
+  const session = await getApiSession();
+  const name = generateK8sNameWithSuffix(data.displayName || 'wgr');
+  const definition: WhiteGloveRequest = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'WhiteGloveRequest',
+    metadata: {
+      name,
+      namespace: data.namespace,
+      annotations: {
+        [`${BABYLON_DOMAIN}/created-by`]: session.user,
+        [`${DEMO_DOMAIN}/requester`]: session.user,
+      },
+      labels: {
+        [`${BABYLON_DOMAIN}/catalogItemName`]: data.catalogItemName,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: data.catalogItemNamespace,
+      },
+    },
+    spec: {
+      catalogItemName: data.catalogItemName,
+      catalogItemNamespace: data.catalogItemNamespace,
+      displayName: data.displayName,
+      purpose: data.purpose,
+      activity: data.activity,
+      numberOfUsers: data.numberOfUsers,
+      eventDate: data.eventDate,
+      eventEndDate: data.eventEndDate,
+      notes: data.notes,
+      salesforceItems: data.salesforceItems,
+    },
+  };
+  return await createK8sObject(definition);
+}
+
+export async function patchWhiteGloveRequest({
+  name,
+  namespace,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  patch: Record<string, unknown>;
+}): Promise<WhiteGloveRequest> {
+  return await patchK8sObject({
+    name,
+    namespace,
+    plural: 'whitegloverequests',
+    patch,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+  });
+}
+
+export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
+  return await deleteK8sObject(wgr);
+}
+
 export async function createWorkshopFromAssetWithRetry({
   multiworkshopName,
   multiworkshopUid,
@@ -2664,6 +2733,22 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
+  WHITE_GLOVE_REQUESTS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace?: string;
+    limit?: number | string;
+    continueId?: string;
+    labelSelector?: string;
+  }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/whitegloverequests?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
   PUBLIC_MULTIWORKSHOP: ({ multiWorkshopId }: { multiWorkshopId: string }) =>
