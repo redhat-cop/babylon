@@ -14,7 +14,7 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { createWhiteGloveRequest, dateToApiString } from '@app/api';
+import { createWhiteGloveRequest } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { displayName } from '@app/util';
 import CatalogItemSelectorModal from '@app/MultiWorkshops/CatalogItemSelectorModal';
@@ -30,7 +30,7 @@ import './white-glove.css';
 
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
-  const { userNamespace, email } = useSession().getSession();
+  const { userNamespace } = useSession().getSession();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
@@ -43,8 +43,8 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [salesforceId, setSalesforceId] = useState('');
   const [skipSalesforce, setSkipSalesforce] = useState(false);
   const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
-  const [eventDate, setEventDate] = useState<string>('');
-  const [eventEndDate, setEventEndDate] = useState<string>('');
+  const [eventDate] = useState<string>('');
+  const [eventEndDate] = useState<string>('');
   const [notes, setNotes] = useState('');
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {

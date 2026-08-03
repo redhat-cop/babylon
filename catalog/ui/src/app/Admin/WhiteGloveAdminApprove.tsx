@@ -8,7 +8,6 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Checkbox,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -22,7 +21,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiPaths, fetcher, patchWhiteGloveRequest, createWorkshop, createWorkshopProvision } from '@app/api';
+import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
 import { WhiteGloveRequest } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
@@ -33,7 +32,7 @@ import '@app/Catalog/catalog-item-form.css';
 
 const WhiteGloveAdminApproveContent: React.FC<{ namespace: string; name: string }> = ({ namespace, name }) => {
   const navigate = useNavigate();
-  const { data: wgr, mutate } = useSWR<WhiteGloveRequest>(
+  const { data: wgr } = useSWR<WhiteGloveRequest>(
     apiPaths.WHITE_GLOVE_REQUEST({ namespace, name }),
     fetcher,
   );
