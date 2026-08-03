@@ -1632,7 +1632,7 @@ export async function patchWhiteGloveRequest({
   return await patchK8sObject({
     name,
     namespace,
-    plural: 'whitegolverequests',
+    plural: 'whitegloverequests',
     patch,
     apiVersion: `${BABYLON_DOMAIN}/v1`,
   });
@@ -2734,7 +2734,7 @@ export const apiPaths = {
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
   WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
-    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegolverequests/${name}`,
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
   WHITE_GLOVE_REQUESTS: ({
     namespace,
     limit,
@@ -2746,7 +2746,7 @@ export const apiPaths = {
     continueId?: string;
     labelSelector?: string;
   }) =>
-    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/whitegolverequests?${
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/whitegloverequests?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>

@@ -1,0 +1,116 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: whitegloverequests.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: WhiteGloveRequest
+    listKind: WhiteGloveRequestList
+    plural: whitegloverequests
+    singular: whitegloverequest
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: >-
+          WhiteGloveRequest defines a request for white-glove provisioning of a workshop or service,
+          requiring admin approval before resources are created.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9A-Z]([a-z0-9A-Z\-._]*[a-z0-9A-Z])?$
+                type: string
+            type: object
+          spec:
+            description: Specification of WhiteGloveRequest.
+            type: object
+            required:
+            - catalogItemName
+            - catalogItemNamespace
+            properties:
+              catalogItemName:
+                description: >-
+                  Name of the referenced CatalogItem.
+                type: string
+              catalogItemNamespace:
+                description: >-
+                  Namespace of the referenced CatalogItem.
+                type: string
+              displayName:
+                description: >-
+                  Display name for the white-glove request.
+                type: string
+              purpose:
+                description: >-
+                  Purpose of the white-glove request.
+                type: string
+              activity:
+                description: >-
+                  Activity associated with the purpose.
+                type: string
+              numberOfUsers:
+                description: >-
+                  Number of expected users or attendees.
+                type: integer
+                minimum: 0
+              eventDate:
+                description: >-
+                  Event start date and time.
+                type: string
+                format: date-time
+              eventEndDate:
+                description: >-
+                  Event end date and time.
+                type: string
+                format: date-time
+              notes:
+                description: >-
+                  Free-form notes for the operations team.
+                type: string
+              slackChannel:
+                description: >-
+                  Slack channel for operations team coordination.
+                type: string
+              salesforceItems:
+                description: >-
+                  Array of Salesforce items associated with this request.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      description: >-
+                        Salesforce ID (Opportunity ID, Campaign ID, or Project ID).
+                      type: string
+                    type:
+                      description: >-
+                        Salesforce ID type.
+                      type: string
+                      enum: ['campaign', 'opportunity', 'project']
+                  required:
+                  - id
+                  - type
+          status:
+            description: Status of WhiteGloveRequest.
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

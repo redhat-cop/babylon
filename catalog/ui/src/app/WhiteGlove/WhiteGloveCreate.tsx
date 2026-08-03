@@ -17,7 +17,7 @@ import {
 import { createWhiteGloveRequest } from '@app/api';
 import { CatalogItem } from '@app/types';
 import { displayName } from '@app/util';
-import CatalogItemSelectorModal from '@app/MultiWorkshops/CatalogItemSelectorModal';
+import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
