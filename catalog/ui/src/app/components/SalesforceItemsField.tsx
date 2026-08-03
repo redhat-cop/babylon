@@ -109,7 +109,7 @@ const SalesforceItemsField: React.FC<{
     <>
       {/* Display existing items as read-only input fields */}
       {existingItems.map((item, idx) => (
-        <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16, minWidth: '600px' }}>
+        <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
               <Radio
@@ -149,7 +149,7 @@ const SalesforceItemsField: React.FC<{
                 Id Finder
               </Button>
               <TextInput
-                style={{ minWidth: '300px', flex: 1 }}
+                style={{ flex: 1, minWidth: 0 }}
                 id={`${fieldId}-existing-${idx}`}
                 value={item.id || ''}
                 validated="success"
@@ -180,7 +180,7 @@ const SalesforceItemsField: React.FC<{
 
       {/* Add new item form */}
       {showAddForm && (
-        <div style={{ marginTop: 0, marginBottom: 16, minWidth: '600px', maxWidth: '800px' }}>
+        <div style={{ marginTop: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
               <Radio
@@ -222,7 +222,7 @@ const SalesforceItemsField: React.FC<{
                 Id Finder
               </Button>
               <TextInput
-                style={{ minWidth: '300px', flex: 1 }}
+                style={{ flex: 1, minWidth: 0 }}
                 id={fieldId}
                 value={newItem.id || ''}
                 onChange={(_e, v) => handleIdChange(v as string)}

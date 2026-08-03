@@ -7,6 +7,7 @@ import useDocumentTitle from '@app/utils/useDocumentTitle';
 import useSession from '@app/utils/useSession';
 import Navigation from './Navigation';
 import { publicFetcher } from '@app/api';
+import dompurify from 'dompurify';
 import useSWRImmutable from 'swr/immutable';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { NotificationDrawerProvider, useNotificationDrawer } from './NotificationDrawerContext';
@@ -86,7 +87,31 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             style={{ minHeight: 'auto', padding: 0, zIndex: 999, position: 'relative' }}
           >
             <div>
-              <div dangerouslySetInnerHTML={{ __html: partnerHeaderHtml }}></div>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: dompurify.sanitize(
+                    (partnerHeaderHtml || '').replace(
+                      /(src|href)="(\/[^"]*?)"/g,
+                      '$1="https://connect.redhat.com$2"',
+                    ),
+                    {
+                      FORCE_BODY: true,
+                      ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown', 'svg', 'path'],
+                      ADD_ATTR: [
+                        'part',
+                        'slot',
+                        'dropdown-width',
+                        'icon',
+                        'name',
+                        'viewBox',
+                        'fill',
+                        'd',
+                        'xmlns',
+                      ],
+                    },
+                  ),
+                }}
+              ></div>
             </div>
           </PageSection>
         ) : null}

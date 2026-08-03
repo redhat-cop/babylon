@@ -27,17 +27,26 @@ export function getStage(catalogItem: CatalogItem) {
 
 export const SLAs = {
   Featured: 'Featured',
-  Enterprise_Premium: 'Enterprise_Premium',
-  Enterprise_Standard: 'Enterprise_Standard',
-  Community: 'Community',
-  External_Support: 'External_Support',
+  Unsupported: 'Unsupported',
 } as const;
 export type SLA = (typeof SLAs)[keyof typeof SLAs];
-export function getSLA(catalogItem: CatalogItem): SLA | null {
+export function getSLA(catalogItem: CatalogItem): string | null {
   const { domain, key } = CUSTOM_LABELS.SLA;
-  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`];
-  if (!Object.values(SLAs).includes(sla as SLA)) return null;
-  return sla as SLA;
+  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] || null;
+  if (sla === SLAs.Featured || sla === SLAs.Unsupported) {
+    return sla;
+  }
+  return null;
+}
+export function getSLABadgeClass(sla: string): string {
+  switch (sla) {
+    case SLAs.Featured:
+      return 'catalog-badge--sla-featured';
+    case SLAs.Unsupported:
+      return 'catalog-badge--sla-unsupported';
+    default:
+      return '';
+  }
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
@@ -114,9 +123,6 @@ export function getStatusFromCatalogItem(
   return { name: 'Operational', disabled: false, incidentUrl: null };
 }
 
-export function isSharedCluster(catalogItem: CatalogItem, isAdmin = false) {
-  return isAdmin && catalogItem.spec.parameters?.some((p) => p.name === 'sandbox_host_purpose');
-}
 
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
   const sa = catalogItem.spec.supportedActions;

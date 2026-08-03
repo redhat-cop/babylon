@@ -1,0 +1,64 @@
+{{- $tenantClusterPoolManager := .Values.tenantClusterPoolManager }}
+{{- if and $tenantClusterPoolManager.deploy }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: babylon-tenant-cluster-pool-manager
+  annotations:
+    description: >-
+      Access read cluster resources for babylon-tenant-cluster-pool-manager
+  labels:
+    {{- include "babylon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-cluster-pool-manager
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kopf.dev
+  resources:
+  - clusterkopfpeerings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - tenantclusterpools
+  - tenantclusterpools/status
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - poolboy.gpte.redhat.com
+  resources:
+  - resourceclaims
+  - resourcehandles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}

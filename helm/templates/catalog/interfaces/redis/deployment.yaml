@@ -51,6 +51,12 @@ spec:
               name: babylon-catalog-redis
         image: {{ $redis.image.repository }}:{{ $redis.image.tag }}
         imagePullPolicy: {{ $redis.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         livenessProbe:
           failureThreshold: 3
           initialDelaySeconds: 30

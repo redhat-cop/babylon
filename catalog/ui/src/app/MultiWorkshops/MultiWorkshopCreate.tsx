@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import useServiceQuota from '@app/utils/useServiceQuota';
+import useHelpLink from '@app/utils/useHelpLink';
 import {
   PageSection,
   Title,
@@ -45,7 +46,7 @@ import {
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
-import CatalogItemSelectorModal from './CatalogItemSelectorModal';
+import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
@@ -72,6 +73,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace, isAdmin, serviceNamespaces } = useSession().getSession();
+  const helpLink = useHelpLink();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
@@ -501,7 +503,7 @@ const MultiWorkshopCreate: React.FC = () => {
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
             <a
-              href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
+              href={helpLink}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -759,7 +761,7 @@ const MultiWorkshopCreate: React.FC = () => {
               <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                 Maximum 30 seats allowed.{' '}
                 <a
-                  href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
+                  href={helpLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--pf-t--global--color--brand--default)' }}

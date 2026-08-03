@@ -35,6 +35,12 @@ spec:
         {{- end }}
         image: "{{ $selfpacedlabManager.image.repository }}:{{ $selfpacedlabManager.image.tag }}"
         imagePullPolicy: {{ $selfpacedlabManager.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         resources:
           {{- toYaml $selfpacedlabManager.resources | nindent 10 }}
         livenessProbe:

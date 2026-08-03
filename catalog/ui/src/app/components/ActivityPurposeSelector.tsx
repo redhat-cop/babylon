@@ -124,7 +124,7 @@ const ActivityPurposeSelector: React.FC<{
           </Select>
 
           {purposeOpts.find((p) => p.name === purpose)?.requireUserInput && (
-            <div className="catalog-item-form__group-control--single">
+            <div className="catalog-item-form__group-control--single" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <TextInput
                 aria-label="Specify purpose"
                 placeholder="Specify purpose"

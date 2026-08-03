@@ -20,7 +20,6 @@ export const GPTE_DOMAIN = 'gpte.redhat.com';
 export const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 export const DEMO_DOMAIN = 'demo.redhat.com';
 export const CATALOG_MANAGER_DOMAIN = `catalog-manager.${DEMO_DOMAIN}`;
-export const SHARED_CLUSTERS_NAMESPACE = 'shared-clusters';
 
 // 8 hours in milliseconds - lead time before ready-by date when provisioning starts
 export const READY_BY_LEAD_TIME_MS = 8 * 60 * 60 * 1000;

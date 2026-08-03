@@ -9,7 +9,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import aiohttp
 from aiohttp import web
@@ -28,7 +28,6 @@ system_status_configmap_name = os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylo
 groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
-ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
@@ -442,7 +441,8 @@ async def get_auth_cli_redirect(request):
     cookie so the CLI can use both for subsequent API calls.
     """
     callback = request.query.get('callback', '')
-    if not callback or not callback.startswith('http://localhost'):
+    parsed_callback = urlparse(callback) if callback else None
+    if not parsed_callback or parsed_callback.scheme != 'http' or parsed_callback.hostname not in ('localhost', '127.0.0.1'):
         raise web.HTTPBadRequest(reason="Missing or invalid 'callback' parameter (must be http://localhost)")
 
     user = await get_proxy_user(request)
@@ -537,10 +537,13 @@ async def provision_rating_get(request):
     request_uid = request.match_info.get('request_uid')
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}/email/{quote(email, safe='')}",
     )
 
 @routes.post("/api/ratings/request/{request_uid}")
@@ -549,22 +552,29 @@ async def provision_rating_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}",
     )
 
 
 @routes.get("/api/user-manager/bookmarks")
-async def provision_rating_get(request):
+async def bookmark_get(request):
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}",
     )
 
 @routes.post("/api/user-manager/bookmarks")
@@ -572,11 +582,15 @@ async def bookmark_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+        url=f"{reporting_api}/bookmark/v1/",
     )
 
 @routes.delete("/api/user-manager/bookmarks")
@@ -584,10 +598,26 @@ async def bookmark_delete(request):
     user = await get_proxy_user(request)
     asset_uuid = request.query.get("asset_uuid")
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}/{quote(asset_uuid, safe='')}",
+    )
+
+@routes.get("/api/ratings/catalogitem/{asset_uuid}")
+async def catalog_item_rating_average(request):
+    await get_proxy_user(request)
+    asset_uuid = request.match_info.get('asset_uuid')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
@@ -597,14 +627,32 @@ async def provision_rating_get_history(request):
     session = await get_user_session(request, user)
     if not session.get('admin'):
         raise web.HTTPForbidden()
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/catalogitem/{asset_uuid}/history",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}/history",
+    )
+
+@routes.get("/api/ratings/list")
+async def ratings_list(request):
+    await get_proxy_user(request)
+    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/list{queryString}",
     )
 
 @routes.get("/api/admin/incidents")
 async def incidents_get(request):
+    await get_proxy_user(request)
     return await api_proxy(
         headers=request.headers,
         method="GET",
@@ -638,7 +686,7 @@ async def update_incident(request):
         data=json.dumps(data),
         headers=request.headers,
         method="POST",
-        url=f"{admin_api}/api/admin/v1/incidents/{incident_id}",
+        url=f"{admin_api}/api/admin/v1/incidents/{quote(incident_id, safe='')}",
     )
 
 @routes.post("/api/admin/workshop/support")
@@ -664,53 +712,53 @@ async def create_support(request):
 
 @routes.get("/api/salesforce/accounts")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = ""
+    params = {}
     salesType = request.query.get("sales_type")
     accountValue = request.query.get("value")
     if salesType:
-        queryString = f"sales_type={salesType}"
-    if accountValue:
-        queryString = f"{queryString}&value={accountValue}"
-    else:
-        queryString = f"{queryString}&value=''"
+        params["sales_type"] = salesType
+    params["value"] = accountValue if accountValue else "''"
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts?{queryString}",
+        url=f"{reporting_api}/search/accounts?{urlencode(params)}",
     )
 @routes.get("/api/salesforce/accounts/{account_id}")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     account_id = request.match_info.get('account_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"account_id={account_id}"
+    params = {"account_id": account_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts/sfdc?{queryString}",
+        url=f"{reporting_api}/search/accounts/sfdc?{urlencode(params)}",
     )
 
 @routes.get("/api/salesforce/{salesforce_id}")
 async def salesforce_id_validation(request):
+    await get_proxy_user(request)
     salesforce_id = request.match_info.get('salesforce_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"salesforce_id={salesforce_id}"
+    params = {"salesforce_id": salesforce_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/sales_validation/check?{queryString}",
+        url=f"{reporting_api}/sales_validation/check?{urlencode(params)}",
     )
 
 # Expects a request body with the following structure:
@@ -798,13 +846,18 @@ async def catalog_item_check_availability(request):
 
 @routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}/placements")
 async def sandbox_cluster_placements(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -818,18 +871,23 @@ async def sandbox_cluster_placements(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/placements",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/placements",
     )
 
 @routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}")
 async def sandbox_cluster_config(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
     cluster_name = request.match_info.get('name')
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as http_session:
         login_headers = {
             "Authorization": f"Bearer {shared_cluster_manager_token}"
         }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
             if login_resp.status != 200:
                 raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
             login_data = await login_resp.json()
@@ -843,170 +901,12 @@ async def sandbox_cluster_config(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}",
-    )
-
-@routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/enable")
-async def sandbox_cluster_enable(request):
-    cluster_name = request.match_info.get('name')
-
-    async with aiohttp.ClientSession() as session:
-        login_headers = {
-            "Authorization": f"Bearer {shared_cluster_manager_token}"
-        }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
-            if login_resp.status != 200:
-                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
-            login_data = await login_resp.json()
-            access_token = login_data.get("access_token")
-            if not access_token:
-                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-    }
-    return await api_proxy(
-        headers=headers,
-        method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/enable",
-    )
-
-@routes.put("/api/sandbox/ocp-shared-cluster-configurations/{name}/disable")
-async def sandbox_cluster_disable(request):
-    cluster_name = request.match_info.get('name')
-
-    async with aiohttp.ClientSession() as session:
-        login_headers = {
-            "Authorization": f"Bearer {shared_cluster_manager_token}"
-        }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
-            if login_resp.status != 200:
-                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
-            login_data = await login_resp.json()
-            access_token = login_data.get("access_token")
-            if not access_token:
-                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-    }
-    return await api_proxy(
-        headers=headers,
-        method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/disable",
-    )
-
-@routes.delete("/api/sandbox/ocp-shared-cluster-configurations/{name}/offboard")
-async def sandbox_cluster_offboard(request):
-    cluster_name = request.match_info.get('name')
-
-    async with aiohttp.ClientSession() as session:
-        login_headers = {
-            "Authorization": f"Bearer {shared_cluster_manager_token}"
-        }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
-            if login_resp.status != 200:
-                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
-            login_data = await login_resp.json()
-            access_token = login_data.get("access_token")
-            if not access_token:
-                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-    }
-    return await api_proxy(
-        headers=headers,
-        method="DELETE",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{cluster_name}/offboard",
-    )
-
-@routes.post("/api/sandbox/ocp-shared-cluster-configurations/{guid}/onboard")
-async def sandbox_onboard(request):
-    guid = request.match_info.get('guid')
-
-    resource_handle = await custom_objects_api.get_namespaced_custom_object(
-        group='poolboy.gpte.redhat.com',
-        version='v1',
-        namespace='poolboy',
-        plural='resourcehandles',
-        name=guid,
-    )
-
-    parameter_values = resource_handle.get('spec', {}).get('provider', {}).get('parameterValues', {})
-    provider_name = resource_handle.get('spec', {}).get('provider', {}).get('name', '')
-    if not provider_name:
-        raise web.HTTPBadRequest(reason="ResourceHandle has no provider name")
-
-    agnosticv_component = await custom_objects_api.get_namespaced_custom_object(
-        group='gpte.redhat.com',
-        version='v1',
-        namespace='babylon-config',
-        plural='agnosticvcomponents',
-        name=provider_name,
-    )
-
-    meta = agnosticv_component.get('spec', {}).get('definition', {}).get('__meta__', {})
-    sandbox_host = meta.get('sandbox_host')
-    if not sandbox_host:
-        raise web.HTTPBadRequest(reason="AgnosticV component has no sandbox_host configuration")
-
-    provision_data = resource_handle.get('status', {}).get('summary', {}).get('provision_data', {})
-    api_url = provision_data.get('openshift_api_url', '')
-    ingress_domain = provision_data.get('openshift_cluster_ingress_domain', '')
-    token = provision_data.get('openshift_cluster_admin_token', '')
-
-    annotations = copy.deepcopy(sandbox_host.get('annotations', {}))
-    for key, value in annotations.items():
-        if isinstance(value, str) and '{{' in value:
-            annotations[key] = re.sub(
-                r'\{\{\s*(\w+)\s*\}\}',
-                lambda m: str(parameter_values.get(m.group(1), m.group(0))),
-                value,
-            )
-
-    if not token:
-        raise web.HTTPBadRequest(reason="No openshift_cluster_admin_token found in provision data")
-
-    config = {
-        'name': guid,
-        'api_url': api_url,
-        'ingress_domain': ingress_domain,
-        'token': token,
-        'annotations': annotations,
-    }
-
-    for key in ['max_placements', 'max_cpu_usage_percentage', 'max_memory_usage_percentage',
-                'quota_required', 'deployer_admin_sa_token_ttl',
-                'deployer_admin_sa_token_refresh_interval', 'deployer_admin_sa_token_target_var']:
-        if key in sandbox_host:
-            config[key] = sandbox_host[key]
-
-    async with aiohttp.ClientSession() as session:
-        login_headers = {
-            "Authorization": f"Bearer {shared_cluster_manager_token}"
-        }
-        async with session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
-            if login_resp.status != 200:
-                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
-            login_data = await login_resp.json()
-            access_token = login_data.get("access_token")
-            if not access_token:
-                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-    return await api_proxy(
-        headers=headers,
-        method="PUT",
-        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{guid}",
-        data=json.dumps(config),
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}",
     )
 
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")
 async def catalog_item_metrics(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1014,15 +914,16 @@ async def catalog_item_metrics(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_item/metrics/{asset_uuid}?use_cache=true",
+        url=f"{reporting_api}/catalog_item/metrics/{quote(asset_uuid, safe='')}?use_cache=true",
     )
 
 @routes.get("/api/catalog_incident/active-incidents")
 async def catalog_item_active_incidents(request):
+    await get_proxy_user(request)
     stage = request.query.get("stage")
     queryString = ""
     if stage:
-        queryString = f"?stage={stage}"
+        queryString = f"?{urlencode({'stage': stage})}"
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
@@ -1034,6 +935,7 @@ async def catalog_item_active_incidents(request):
 
 @routes.get("/api/catalog_incident/last-incident/{asset_uuid}/{stage}")
 async def catalog_item_last_incident(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     headers = {
@@ -1042,11 +944,15 @@ async def catalog_item_last_incident(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_incident/last-incident/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/last-incident/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
 @routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")
 async def catalog_item_incidents(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     data = await request.json()
@@ -1058,7 +964,7 @@ async def catalog_item_incidents(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/catalog_incident/incidents/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/incidents/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
 @routes.post("/api/external_item/{asset_uuid}")
@@ -1075,11 +981,12 @@ async def external_item_request(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/external_item/{asset_uuid}/request",
+        url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
 
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
+    await get_proxy_user(request)
     request_id = request.match_info.get('request_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1087,11 +994,12 @@ async def usage_cost_request(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/request/{request_id}",
+        url=f"{reporting_api}/usage-cost/request/{quote(request_id, safe='')}",
     )
 
 @routes.get("/api/usage-cost/workshop/{workshop_id}")
 async def usage_cost_workshop(request):
+    await get_proxy_user(request)
     workshop_id = request.match_info.get('workshop_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1099,7 +1007,7 @@ async def usage_cost_workshop(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
+        url=f"{reporting_api}/usage-cost/workshop/{quote(workshop_id, safe='')}",
     )
 
 @routes.get("/api/users/activity")
@@ -1111,9 +1019,7 @@ async def user_activity(request):
     if impersonate_user and session.get('admin'):
         email = impersonate_user
 
-    # Forward all query parameters
-    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
-    queryString = f"?{query_params}" if query_params else ""
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
 
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -1121,7 +1027,7 @@ async def user_activity(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/users/activity/{email}{queryString}",
+        url=f"{reporting_api}/users/activity/{quote(email, safe='')}{queryString}",
     )
 
 @routes.get("/api/event/{multi_workshop_id}")

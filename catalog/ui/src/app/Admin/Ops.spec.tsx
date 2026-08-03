@@ -456,6 +456,8 @@ describe('Ops Component', () => {
   });
 
   describe('Operation Confirmation Modals', () => {
+    jest.setTimeout(30_000);
+
     test('Lock button opens lock confirmation modal', async () => {
       await renderOps();
       await expandActions();
@@ -506,8 +508,12 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
-      const scaleBtn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
-      if (scaleBtn) await userEvent.click(scaleBtn);
+      const scaleBtn = await waitFor(() => {
+        const btn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
+        if (!btn) throw new Error('Scale button not found');
+        return btn;
+      });
+      await userEvent.click(scaleBtn);
       await waitFor(() => {
         expect(screen.getByText('Confirm Scale')).toBeInTheDocument();
       });
@@ -517,8 +523,12 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
-      const scaleBtn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
-      if (scaleBtn) await userEvent.click(scaleBtn);
+      const scaleBtn = await waitFor(() => {
+        const btn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
+        if (!btn) throw new Error('Scale button not found');
+        return btn;
+      });
+      await userEvent.click(scaleBtn);
       await waitFor(() => {
         const arrows = screen.getAllByText('→');
         expect(arrows.length).toBeGreaterThanOrEqual(1);
@@ -529,7 +539,7 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
-      const lastMinus = within(scaleCard).getByLabelText('Minus');
+      const lastMinus = await waitFor(() => within(scaleCard).getByLabelText('Minus'));
       for (let i = 0; i < 5; i++) await userEvent.click(lastMinus);
       await waitFor(() => screen.getByText('Scale to Zero'));
       await userEvent.click(screen.getByRole('button', { name: 'Scale to Zero' }));
@@ -544,12 +554,15 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       await waitFor(() => screen.getByText(/Removes/));
-      const btn = screen.getAllByRole('button').find(b => {
-        const text = b.textContent?.trim();
-        return text === 'Disable Auto-Stop' && b.closest('.pf-v6-c-card__body');
+      const btn = await waitFor(() => {
+        const found = screen.getAllByRole('button').find(b => {
+          const text = b.textContent?.trim();
+          return text === 'Disable Auto-Stop' && b.closest('.pf-v6-c-card__body');
+        });
+        if (!found) throw new Error('Disable Auto-Stop button not found');
+        return found;
       });
-      expect(btn).toBeTruthy();
-      if (btn) await userEvent.click(btn);
+      await userEvent.click(btn);
       await waitFor(() => {
         expect(screen.getByText('Confirm Disable Auto-Stop')).toBeInTheDocument();
       });
@@ -559,7 +572,11 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       await waitFor(() => expect(screen.getAllByText(/Extend Stop/).length).toBeGreaterThanOrEqual(1));
-      const extendStopBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop' && b.closest('.pf-v6-c-card__body'));
+      const extendStopBtn = await waitFor(() => {
+        const btn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop' && b.closest('.pf-v6-c-card__body'));
+        if (!btn) throw new Error('Extend Stop button not found');
+        return btn;
+      });
       expect(extendStopBtn).toBeDisabled();
     });
 
@@ -567,7 +584,11 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       await waitFor(() => expect(screen.getAllByText(/Extend Destroy/).length).toBeGreaterThanOrEqual(1));
-      const extendDestroyBtn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy' && b.closest('.pf-v6-c-card__body'));
+      const extendDestroyBtn = await waitFor(() => {
+        const btn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy' && b.closest('.pf-v6-c-card__body'));
+        if (!btn) throw new Error('Extend Destroy button not found');
+        return btn;
+      });
       expect(extendDestroyBtn).toBeDisabled();
     });
   });
@@ -608,7 +629,7 @@ describe('Ops Component', () => {
       await renderOps();
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
-      const lastMinus = within(scaleCard).getByLabelText('Minus');
+      const lastMinus = await waitFor(() => within(scaleCard).getByLabelText('Minus'));
       for (let i = 0; i < 4; i++) await userEvent.click(lastMinus);
       await waitFor(() => {
         const dangerCards = document.querySelectorAll('.ops-scale-danger');

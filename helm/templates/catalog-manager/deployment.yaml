@@ -37,6 +37,12 @@ spec:
               key: salesforce-api-token
         image: {{ $catalogManager.image.repository }}:{{ $catalogManager.image.tag }}
         imagePullPolicy: {{ $catalogManager.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         resources:
           {{- toYaml $catalogManager.resources | nindent 10 }}
         livenessProbe:

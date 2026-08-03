@@ -60,10 +60,6 @@ import {
   createServiceAccessConfig,
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
-  onboardSandboxApi,
-  enableSandboxCluster,
-  disableSandboxCluster,
-  offboardSandboxCluster,
 } from '@app/api';
 import {
   AnarchySubject,
@@ -74,6 +70,7 @@ import {
   ResourceClaim,
   ServiceAccessConfig,
   ServiceActionActions,
+  TenantClusterPool,
   Workshop,
   WorkshopUserAssignment,
   WorkshopUserAssignmentList,
@@ -99,6 +96,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import ConditionalWrapper from '@app/components/ConditionalWrapper';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
@@ -117,16 +115,16 @@ import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
+import SandboxApiActions from '@app/components/SandboxApiActions';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useSandboxApi from '@app/utils/useSandboxApi';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
-import LockIcon from '@patternfly/react-icons/dist/js/icons/lock-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ReorderModal from '@app/components/ReorderModal';
@@ -236,6 +234,10 @@ const ComponentDetailsList: React.FC<{
                                   <a href={value} target="_blank" rel="noopener noreferrer">
                                     <code>{value}</code>
                                   </a>
+                                ) : value.length > 200 ? (
+                                  <div className="services-item__provision-data--long-value">
+                                    <code>{value}</code>
+                                  </div>
                                 ) : (
                                   <code>{value}</code>
                                 )
@@ -367,36 +369,50 @@ const ServicesItemComponent: React.FC<{
     silentFetcher,
   );
 
-  const isSharedClusterItem = !!(resourceClaim.spec?.provider?.parameterValues as Record<string, unknown>)?.sandbox_host_purpose;
-  const clusterName = resourceClaim.status?.resourceHandle?.name || '';
-  const {
-    data: placementsData,
-    isLoading: placementsLoading,
-    mutate: mutatePlacements,
-  } = useSWR(
-    isSharedClusterItem && clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
+  const tenantClusterPoolAnnotation = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`];
+  const isTenantClusterItem = !!tenantClusterPoolAnnotation;
+  const pendingTenantAction = useMemo(() => {
+    const raw = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-action`];
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw)?.action || null;
+    } catch {
+      return null;
+    }
+  }, [resourceClaim.metadata.annotations]);
+  const tenantClusterPoolOwnerRef = isTenantClusterItem
+    ? resourceClaim.metadata.ownerReferences?.find((ref) => ref.kind === 'TenantClusterPool')
+    : undefined;
+  const { data: tenantClusterPool } = useSWR<TenantClusterPool>(
+    tenantClusterPoolOwnerRef
+      ? apiPaths.TENANT_CLUSTER_POOL({
+          namespace: resourceClaim.metadata.namespace,
+          tenantClusterPoolName: tenantClusterPoolOwnerRef.name,
+        })
+      : null,
     silentFetcher,
-    { shouldRetryOnError: false, suspense: false },
+    { shouldRetryOnError: false, refreshInterval: 8000 },
   );
-  const isOnboarded = !!placementsData?.placements;
+  const clusterName = useMemo(() => {
+    if (!isTenantClusterItem) return resourceClaim.status?.resourceHandle?.name || '';
+    const clusterEntry = tenantClusterPool?.status?.clusters?.find(
+      (c) => c.resourceClaimName === resourceClaim.metadata.name,
+    );
+    return clusterEntry?.name || '';
+  }, [isTenantClusterItem, tenantClusterPool, resourceClaim.metadata.name, resourceClaim.status?.resourceHandle?.name]);
   const {
-    data: clusterConfigData,
-    mutate: mutateClusterConfig,
-  } = useSWR(
-    isSharedClusterItem && clusterName && isOnboarded ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName }) : null,
-    silentFetcher,
-    { shouldRetryOnError: false, suspense: false },
+    status: sandboxApiStatus,
+    updating: tenantActionUpdating,
+    performAction: performSandboxAction,
+  } = useSandboxApi(
+    isTenantClusterItem ? clusterName : '',
+    resourceClaim.metadata.namespace,
+    resourceClaim.metadata.name,
   );
-  const isClusterEnabled = clusterConfigData?.valid === true;
-  const isClusterLocked = clusterConfigData?.settings?.locked === true;
-  const summaryState = resourceClaim.status?.summary?.state;
-  const isProvisioned = summaryState === 'started';
-  const clusterLockMessage = clusterConfigData?.settings?.lock_message as string | undefined;
-  const [onboardLoading, setOnboardLoading] = useState(false);
-  const [toggleLoading, setToggleLoading] = useState(false);
-  const [offboardLoading, setOffboardLoading] = useState(false);
-  const [sandboxError, setSandboxError] = useState<string | null>(null);
-  const [sandboxInfo, setSandboxInfo] = useState<string | null>(null);
+  const isRunning = useMemo(() => {
+    const resource = resourceClaim.status?.resources?.[0]?.state;
+    return resource?.kind === 'AnarchySubject' && resource.spec?.vars?.current_state === 'started';
+  }, [resourceClaim.status?.resources]);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -630,10 +646,10 @@ const ServicesItemComponent: React.FC<{
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
   
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
+  if (!isTenantClusterItem && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
+  if (!isTenantClusterItem && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers.stop = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
     actionHandlers.runtime = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
@@ -908,7 +924,30 @@ const ServicesItemComponent: React.FC<{
       <PageSection hasBodyWrapper={false} key="head" className="services-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
-            {isAdmin || serviceNamespaces.length > 1 ? (
+            {isAdmin && isTenantClusterItem ? (
+              <Breadcrumb>
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to="/admin/tenantclusterpools" className={className}>
+                      Tenant Cluster Pools
+                    </Link>
+                  )}
+                />
+                {tenantClusterPoolOwnerRef ? (
+                  <BreadcrumbItem
+                    render={({ className }) => (
+                      <Link
+                        to={`/admin/tenantclusterpools/${resourceClaim.metadata.namespace}/${tenantClusterPoolOwnerRef.name}/clusters`}
+                        className={className}
+                      >
+                        {tenantClusterPoolOwnerRef.name}
+                      </Link>
+                    )}
+                  />
+                ) : null}
+                <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
+              </Breadcrumb>
+            ) : isAdmin || serviceNamespaces.length > 1 ? (
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (
@@ -1116,26 +1155,28 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Auto-stop</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <AutoStopDestroy
-                        type="auto-stop"
-                        onClick={() => {
-                          if (!isLocked && !isManagedInstance) {
-                            showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                          }
-                        }}
-                        isDisabled={isLocked || isManagedInstance}
-                        resourceClaim={resourceClaim}
-                        className="services-item__schedule-btn"
-                        time={autoStopTime}
-                        variant="extended"
-                      ></AutoStopDestroy>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                  {!isTenantClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Auto-stop</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <AutoStopDestroy
+                          type="auto-stop"
+                          onClick={() => {
+                            if (!isLocked && !isManagedInstance) {
+                              showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                            }
+                          }}
+                          isDisabled={isLocked || isManagedInstance}
+                          resourceClaim={resourceClaim}
+                          className="services-item__schedule-btn"
+                          time={autoStopTime}
+                          variant="extended"
+                        ></AutoStopDestroy>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
-                  {!externalPlatformUrl && !isManagedInstance && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+                  {!isTenantClusterItem && !externalPlatformUrl && !isManagedInstance && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1232,107 +1273,17 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {isSharedClusterItem && clusterName ? (
+                  {isTenantClusterItem && sandboxApiStatus !== 'loading' ? (
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Active Placements</DescriptionListTerm>
+                      <DescriptionListTerm>Sandbox API</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {placementsData?.placements ? placementsData.placements.length : 0}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
-
-                  {isSharedClusterItem && clusterName ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Sandbox API Status</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        {placementsLoading ? (
-                          <Spinner size="md" />
-                        ) : isOnboarded ? (
+                        {pendingTenantAction ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <Spinner size="md" />
+                            {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
+                          </span>
+                        ) : sandboxApiStatus === 'not onboarded' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
-                              Onboarded — {isClusterEnabled ? 'Enabled' : 'Disabled'}
-                              {isClusterLocked ? (
-                                <Tooltip content={clusterLockMessage || 'Cluster configuration is locked'}>
-                                  <LockIcon />
-                                </Tooltip>
-                              ) : null}
-                            </span>
-                            {sandboxError ? (
-                              <Alert variant="danger" isInline isPlain title={sandboxError} />
-                            ) : null}
-                            {sandboxInfo ? (
-                              <Alert variant="info" isInline isPlain title={sandboxInfo} />
-                            ) : null}
-                            <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                              <Tooltip
-                                content={isClusterLocked ? (clusterLockMessage || 'Cluster configuration is locked') : ''}
-                                trigger={isClusterLocked ? 'mouseenter focus' : 'manual'}
-                              >
-                                <Button
-                                  variant={isClusterEnabled ? 'secondary' : 'primary'}
-                                  isDanger={isClusterEnabled}
-                                  isLoading={toggleLoading}
-                                  isDisabled={toggleLoading || offboardLoading || !clusterConfigData || isClusterLocked}
-                                  onClick={async () => {
-                                    setToggleLoading(true);
-                                    setSandboxError(null);
-                                    setSandboxInfo(null);
-                                    try {
-                                      if (isClusterEnabled) {
-                                        await disableSandboxCluster(clusterName);
-                                      } else {
-                                        await enableSandboxCluster(clusterName);
-                                      }
-                                      mutateClusterConfig();
-                                    } catch (err) {
-                                      const message = await extractErrorMessage(err, `Failed to ${isClusterEnabled ? 'disable' : 'enable'} cluster`);
-                                      setSandboxError(message);
-                                    } finally {
-                                      setToggleLoading(false);
-                                    }
-                                  }}
-                                >
-                                  {isClusterEnabled ? 'Disable' : 'Enable'}
-                                </Button>
-                              </Tooltip>
-                              {!isClusterEnabled ? (
-                                <Tooltip
-                                  content={isClusterLocked ? (clusterLockMessage || 'Cluster configuration is locked') : ''}
-                                  trigger={isClusterLocked ? 'mouseenter focus' : 'manual'}
-                                >
-                                  <Button
-                                    variant="secondary"
-                                    isDanger
-                                    isLoading={offboardLoading}
-                                    isDisabled={offboardLoading || toggleLoading || isClusterLocked}
-                                    onClick={async () => {
-                                      setOffboardLoading(true);
-                                      setSandboxError(null);
-                                      setSandboxInfo(null);
-                                      try {
-                                        const result = await offboardSandboxCluster(clusterName) as { request_id?: string; status?: string; message?: string };
-                                        if (result?.request_id && result?.status !== 'success') {
-                                          setSandboxInfo(result.message || 'Offboarding in progress. The cluster will be removed once cleanup completes.');
-                                        }
-                                        mutatePlacements();
-                                        mutateClusterConfig();
-                                      } catch (err) {
-                                        const message = await extractErrorMessage(err, 'Failed to offboard cluster');
-                                        setSandboxError(message);
-                                      } finally {
-                                        setOffboardLoading(false);
-                                      }
-                                    }}
-                                  >
-                                    Offboard
-                                  </Button>
-                                </Tooltip>
-                              ) : null}
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
                             <Alert
                               variant="warning"
                               isInline
@@ -1341,38 +1292,37 @@ const ServicesItemComponent: React.FC<{
                             >
                               <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
                             </Alert>
-                            {sandboxError ? (
-                              <Alert variant="danger" isInline isPlain title={sandboxError} />
-                            ) : null}
-                            <Tooltip
-                              content="The service must be fully provisioned before onboarding"
-                              trigger={!isProvisioned ? 'mouseenter focus' : 'manual'}
-                            >
-                              <Button
-                                style={{ alignSelf: 'flex-start' }}
-                                variant="primary"
-                                isLoading={onboardLoading}
-                                isDisabled={onboardLoading || !isProvisioned}
-                                onClick={async () => {
-                                  setOnboardLoading(true);
-                                  setSandboxError(null);
-                                  setSandboxInfo(null);
-                                  try {
-                                    await onboardSandboxApi(clusterName);
-                                    mutatePlacements();
-                                  } catch (err) {
-                                    const message = await extractErrorMessage(err, 'Failed to onboard cluster');
-                                    setSandboxError(message);
-                                  } finally {
-                                    setOnboardLoading(false);
-                                  }
-                                }}
-                              >
-                                Onboard to Sandbox API
-                              </Button>
-                            </Tooltip>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                              isDisabled={!isRunning}
+                            />
                           </div>
-                        )}
+                        ) : sandboxApiStatus === 'available' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                              Onboarded — Enabled
+                            </span>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                            />
+                          </div>
+                        ) : sandboxApiStatus === 'disabled' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              Onboarded — Disabled
+                            </span>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                            />
+                          </div>
+                        ) : null}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
@@ -1394,7 +1344,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isManagedInstance && canManageCollaborators ? (
+                  {!isManagedInstance && !isTenantClusterItem && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Share service{' '}
@@ -1439,7 +1389,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isManagedInstance && isAdmin ? (
+                  {!isManagedInstance && !isTenantClusterItem && isAdmin ? (
                     <>
                       <DescriptionListGroup className="services-item__admin-section">
                         <DescriptionListTerm>Admin Settings</DescriptionListTerm>
@@ -1562,7 +1512,7 @@ const ServicesItemComponent: React.FC<{
                             Components
                           </h3>
                         </header>
-                        <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                        <Accordion asDefinitionList={false}>
                           {children}
                         </Accordion>
                       </section>
@@ -1628,7 +1578,7 @@ const ServicesItemComponent: React.FC<{
                             key={idx}
                             condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
                             wrapper={(children) => (
-                              <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
+                              <Accordion asDefinitionList={false}>
                                 <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
                                   <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
                                     {componentDisplayName}

@@ -525,7 +525,9 @@ const SelfPacedLabItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {selfPacedLab.status?.poolCount ? (
+                    {autoStartTime && autoStartTime > Date.now() ? (
+                      <span className="services-item__status--scheduled">Scheduled</span>
+                    ) : selfPacedLab.status?.poolCount ? (
                       <SelfPacedLabStatus poolCount={selfPacedLab.status.poolCount} />
                     ) : (
                       <Spinner size="md" />

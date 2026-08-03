@@ -72,6 +72,12 @@ spec:
         {{- end }}
         image: {{ $notifier.image.repository }}:{{ $notifier.image.tag }}
         imagePullPolicy: {{ $notifier.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         resources:
           {{- toYaml $notifier.resources | nindent 12 }}
         livenessProbe:

@@ -1,0 +1,59 @@
+---
+name: tenant-cluster-pool-manager-publish
+on:
+  push:
+    branches-ignore:
+    - '*'
+    tags:
+    - 'tenant-cluster-pool-manager-v[0-9]*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    env:
+      IMAGE_NAME: babylon-tenant-cluster-pool-manager
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Get image tags
+      id: image_tags
+      run: |
+        # Version is a semantic version tag or semantic version with release number
+        # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
+        # To determine RELEASE, strip off the leading "refs/tags/"
+        RELEASE=${GITHUB_REF#refs/tags/tenant-cluster-pool-manager-}
+        # To determine VERSION, strip off any release number suffix
+        VERSION=${RELEASE/-*/}
+
+        # Only build image if version tag without release number
+        # Releases indicate a change in the repository that should not trigger a new build.
+        if [[ "${VERSION}" == "${RELEASE}" ]]; then
+          # Publish to latest, minor, and patch tags
+          # Ex: latest,v0.1.2,v0.1
+          echo "IMAGE_TAGS=latest ${VERSION%.*} ${VERSION}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Buildah Action
+      id: buildah-build
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2.13
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
+        context: tenant-cluster-pool-manager
+        containerfiles: tenant-cluster-pool-manager/Containerfile
+
+    - name: Push image to registry
+      id: push-to-registry
+      if: steps.image_tags.outputs.IMAGE_TAGS
+      uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2.8
+      with:
+        image: ${{ steps.buildah-build.outputs.image }}
+        tags: ${{ steps.buildah-build.outputs.tags }}
+        registry: ${{ vars.BABYLON_IMAGE_REGISTRY }}/${{ vars.BABYLON_IMAGE_REPOSITORY }}
+        username: ${{ secrets.BABYLON_IMAGE_REGISTRY_USERNAME }}
+        password: ${{ secrets.BABYLON_IMAGE_REGISTRY_PASSWORD }}

@@ -373,12 +373,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
                         <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
-                      ) : attr === CUSTOM_LABELS.SLA.key ? (
-                        value.includes('External') ? (
-                          formatString(value)
-                        ) : (
-                          <Link to="/support">{formatString(value)}</Link>
-                        )
                       ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? null : (
                         formatString(value)
                       )}

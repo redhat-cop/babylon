@@ -32,6 +32,12 @@ spec:
       - name: ui
         image: {{ $ui.image.repository }}:{{ $ui.image.tag }}
         imagePullPolicy: {{ $ui.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:

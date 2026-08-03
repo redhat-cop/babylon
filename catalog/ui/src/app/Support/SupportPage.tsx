@@ -31,7 +31,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
   const { data } = useSWRImmutable('./public/incidents_technical_support.csv', publicFetcher);
   const dataArr = CSVToArray(data);
   function getHelpLink() {
-    return 'https://red.ht/open-support';
+    return 'https://connect.redhat.com/en/support';
   }
 
   function createColumnsFromArr(dataLabel: string, label?: string) {

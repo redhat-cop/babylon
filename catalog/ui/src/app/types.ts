@@ -489,6 +489,46 @@ export interface ResourcePoolScalingStatus {
   state?: string;
 }
 
+export interface TenantClusterPool extends K8sObject {
+  spec: TenantClusterPoolSpec;
+  status?: TenantClusterPoolStatus;
+}
+
+export interface TenantClusterPoolSpec {
+  clusterProvisioning: {
+    provider: { name: string; parameterValues?: Record<string, unknown> };
+  };
+  maxClusters?: number;
+  minClusters?: number;
+  minAvailableSandboxPlacements?: number;
+  sandboxHost?: {
+    annotations: Record<string, string>;
+    max_placements: number;
+    max_cpu_usage_percentage?: number;
+    max_memory_usage_percentage?: number;
+    quota_required?: boolean;
+    deployer_admin_sa_token_refresh_interval?: string;
+    deployer_admin_sa_token_target_var?: string;
+    deployer_admin_sa_token_ttl?: string;
+  };
+  tenantPools?: Array<{
+    minAvailable?: number;
+    provider: { name: string; parameterValues?: Record<string, unknown> };
+  }>;
+}
+
+export interface TenantClusterPoolStatus {
+  clusters?: TenantClusterPoolStatusCluster[];
+  diffBase?: string;
+  kopf?: Record<string, unknown>;
+}
+
+export interface TenantClusterPoolStatusCluster {
+  name?: string;
+  resourceClaimName: string;
+  sandboxApiState: 'pending' | 'available' | 'disabled' | 'removed';
+}
+
 export interface ResourceProvider extends K8sObject {
   spec: ResourceProviderSpec;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { SelfPacedLab, ServiceActionActions } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import { displayName, getStageFromK8sObject } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import TimeInterval from '@app/components/TimeInterval';
@@ -32,6 +33,7 @@ const renderSelfPacedLabRow = ({
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', selfPacedLab }),
   };
   const stage = getStageFromK8sObject(selfPacedLab);
+  const autoStartTime = selfPacedLab.spec.lifespan?.start ? Date.parse(selfPacedLab.spec.lifespan.start) : null;
   const autoDestroyTime = selfPacedLab.spec.lifespan?.end ? Date.parse(selfPacedLab.spec.lifespan.end) : null;
 
   const poolCount = selfPacedLab.status?.poolCount;
@@ -52,7 +54,11 @@ const renderSelfPacedLabRow = ({
     </>
   );
   const guidCell = <span key="selfpacedlab-guid">-</span>;
-  const statusCell = poolCount ? (
+  const statusCell = autoStartTime && autoStartTime > Date.now() ? (
+    <span className="services-item__status--scheduled" key="scheduled">
+      <CheckCircleIcon key="scheduled-icon" /> Scheduled
+    </span>
+  ) : poolCount ? (
     <SelfPacedLabStatus key="selfpacedlab-status" poolCount={poolCount} />
   ) : (
     <span key="selfpacedlab-status">Initializing...</span>

@@ -74,12 +74,16 @@ class WebhookServer:
             
             # Read payload
             payload_body = await request.read()
+
+            # Sanitize user-controlled header values before logging to prevent log injection
+            safe_event_type = (event_type or "").replace('\r', '').replace('\n', '')
+            safe_delivery_id = (delivery_id or "").replace('\r', '').replace('\n', '')
             
-            self.logger.info(f"Received GitHub webhook: event={event_type}, delivery={delivery_id}")
+            self.logger.info(f"Received GitHub webhook: event={safe_event_type}, delivery={safe_delivery_id}")
             
             # Only handle push and pull_request events
             if event_type not in ['push', 'pull_request']:
-                self.logger.debug(f"Ignoring unsupported event: {event_type}")
+                self.logger.debug(f"Ignoring unsupported event: {safe_event_type}")
                 return web.json_response({
                     "status": "ignored",
                     "reason": f"Event type '{event_type}' not supported"
@@ -107,7 +111,11 @@ class WebhookServer:
             repo_url = repository.get('clone_url', '')
             
             if not repo_full_name or not repo_url:
-                self.logger.warning(f"Missing required repository fields: full_name={repo_full_name}, clone_url={repo_url}")
+                safe_repo_full_name = (repo_full_name or "").replace('\r', '').replace('\n', '')
+                safe_repo_url = (repo_url or "").replace('\r', '').replace('\n', '')
+                self.logger.warning(
+                    f"Missing required repository fields: full_name={safe_repo_full_name}, clone_url={safe_repo_url}"
+                )
                 return web.json_response({
                     "error": "Missing required repository fields"
                 }, status=400)
@@ -115,10 +123,11 @@ class WebhookServer:
             # Find matching AgnosticVRepo(s) for signature verification
             agnosticv_repos = await self.find_matching_repos(repo_full_name, repo_url, event_type, payload)
             if not agnosticv_repos:
-                self.logger.debug(f"No matching AgnosticVRepo found for {repo_full_name}")
+                safe_repo_full_name = (repo_full_name or "").replace('\r', '').replace('\n', '')
+                self.logger.debug(f"No matching AgnosticVRepo found for {safe_repo_full_name}")
                 return web.json_response({
                     "status": "ignored",
-                    "reason": f"No matching AgnosticVRepo found for {repo_full_name}"
+                    "reason": f"No matching AgnosticVRepo found for {safe_repo_full_name}"
                 }, status=200)
             
             # Process based on event type
@@ -203,7 +212,7 @@ class WebhookServer:
         if cache_key in self.webhook_secret_cache:
             cached_entry = self.webhook_secret_cache[cache_key]
             if current_time - cached_entry['timestamp'] < self.cache_ttl:
-                self.logger.debug(f"Using cached webhook secret for {webhook_secret_name}")
+                self.logger.debug("Using cached webhook secret")
                 return cached_entry['secret']
             else:
                 # Cache expired, remove entry
@@ -226,7 +235,7 @@ class WebhookServer:
                     'timestamp': current_time
                 }
                 
-                self.logger.debug(f"Cached webhook secret from Kubernetes secret {webhook_secret_name}")
+                self.logger.debug("Cached webhook secret from Kubernetes secret")
                 return decoded_secret
             return None
         except Exception as e:
@@ -240,7 +249,7 @@ class WebhookServer:
             cache_key = f"{agnosticv_repo.namespace}/{webhook_secret_name}"
             if cache_key in self.webhook_secret_cache:
                 del self.webhook_secret_cache[cache_key]
-                self.logger.debug(f"Cleared webhook secret cache for {cache_key}")
+                self.logger.debug("Cleared webhook secret cache entry")
         else:
             # Clear entire cache
             self.webhook_secret_cache.clear()
@@ -280,13 +289,16 @@ class WebhookServer:
             self.logger.warning(f"Invalid commits field type: {type(commits)}")
             commits = []  # Use empty list as fallback
         
-        self.logger.info(f"Push webhook: repo={repo_full_name}, branch={branch_name}, commits={len(commits)}")
+        # Sanitize user-controlled values before logging to prevent log injection
+        safe_repo_full_name = (repo_full_name or '').replace('\r', '').replace('\n', '')
+        safe_branch_name = (branch_name or '').replace('\r', '').replace('\n', '')
+        self.logger.info(f"Push webhook: repo={safe_repo_full_name}, branch={safe_branch_name}, commits={len(commits)}")
         
         results = []
         for agnosticv_repo in agnosticv_repos:
             # Check if this repo's branch matches the pushed branch
             if agnosticv_repo.git_ref != branch_name:
-                self.logger.debug(f"Skipping {agnosticv_repo.name}: branch mismatch ({agnosticv_repo.git_ref} != {branch_name})")
+                self.logger.debug(f"Skipping {agnosticv_repo.name}: branch mismatch ({agnosticv_repo.git_ref} != {safe_branch_name})")
                 continue
                 
             # SECURITY: Verify webhook signature for this repo
@@ -333,11 +345,12 @@ class WebhookServer:
         
         # If no repos have preloadPullRequests enabled, skip processing for opened/reopened/synchronize
         action = payload.get('action', '')
+        safe_action = self._sanitize_for_log(action)
         if action in ['opened', 'reopened', 'synchronize'] and not preload_repos:
-            self.logger.debug(f"Ignoring PR {action}: no repositories have preloadPullRequests enabled")
+            self.logger.debug(f"Ignoring PR {safe_action}: no repositories have preloadPullRequests enabled")
             return web.json_response({
                 "status": "ignored",
-                "reason": f"No repositories have preloadPullRequests enabled for action '{action}'"
+                "reason": f"No repositories have preloadPullRequests enabled for action '{safe_action}'"
             }, status=200)
         
         pull_request = payload.get('pull_request', {})
@@ -358,23 +371,32 @@ class WebhookServer:
             }, status=400)
 
         pr_state = pull_request.get('state', '')
+        safe_pr_state = self._sanitize_for_log(pr_state)
         head_ref = pull_request.get('head', {}).get('ref', '')
         base_ref = pull_request.get('base', {}).get('ref', '')
         head_sha = pull_request.get('head', {}).get('sha', '')
         
-        self.logger.info(f"PR webhook: repo={repo_full_name}, action={action}, PR#{pr_number}, head={head_ref}, base={base_ref}")
+        safe_repo_full_name = self._sanitize_for_log(repo_full_name)
+        safe_action = self._sanitize_for_log(action)
+        safe_head_ref = self._sanitize_for_log(head_ref)
+        safe_base_ref = self._sanitize_for_log(base_ref)
+        self.logger.info(
+            f"PR webhook: repo={safe_repo_full_name}, action={safe_action}, PR#{pr_number}, head={safe_head_ref}, base={safe_base_ref}"
+        )
         
         # Debug log for closed PRs to troubleshoot merge detection
         if action == 'closed':
             merged_field = pull_request.get('merged')
-            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={merged_field}, merged_at={pull_request.get('merged_at')}, state={pr_state}")
+            safe_merged_field = self._sanitize_for_log(merged_field)
+            safe_merged_at = self._sanitize_for_log(pull_request.get('merged_at'))
+            self.logger.debug(f"PR #{pr_number} closed payload debug: merged={safe_merged_field}, merged_at={safe_merged_at}, state={safe_pr_state}")
         
         # Only process specific actions
         if action not in ['opened', 'closed', 'reopened', 'synchronize']:
-            self.logger.debug(f"Ignoring PR action: {action}")
+            self.logger.debug(f"Ignoring PR action: {safe_action}")
             return web.json_response({
                 "status": "ignored",
-                "reason": f"PR action '{action}' not supported"
+                "reason": f"PR action '{safe_action}' not supported"
             }, status=200)
         
         results = []
@@ -386,7 +408,11 @@ class WebhookServer:
             webhook_secret = await self.get_webhook_secret(agnosticv_repo)
             self.logger.debug(f"PR webhook secret check for {agnosticv_repo.name}: secret_configured={webhook_secret is not None}")
             if not self.verify_github_signature(payload_body, signature, webhook_secret):
-                self.logger.warning(f"Invalid PR webhook signature for {agnosticv_repo.name}: signature={signature[:20]}..." if signature else "No signature provided")
+                safe_signature_preview = self._sanitize_for_log(signature)[:20] if signature else None
+                self.logger.warning(
+                    f"Invalid PR webhook signature for {agnosticv_repo.name}: signature={safe_signature_preview}..."
+                    if safe_signature_preview else "No signature provided"
+                )
                 continue
             
             try:
@@ -401,7 +427,8 @@ class WebhookServer:
                 elif action == 'closed':
                     # PR closed - remove from tracking (all repos, regardless of preloadPullRequests)
                     merged = pull_request.get('merged', False)
-                    self.logger.info(f"PR #{pr_number} closed: merged={merged}, state={pr_state}")
+                    safe_merged = self._sanitize_for_log(merged)
+                    self.logger.info(f"PR #{pr_number} closed: merged={safe_merged}, state={safe_pr_state}")
                     await self.trigger_pr_cleanup(agnosticv_repo, pr_number, head_ref, merged)
                     results.append({
                         "repo": agnosticv_repo.name,

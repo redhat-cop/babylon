@@ -65,6 +65,12 @@ spec:
           value: "{{ $api.loggingLevel }}"
         image: {{ $api.image.repository }}:{{ $api.image.tag }}
         imagePullPolicy: {{ $api.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         livenessProbe:
           initialDelaySeconds: 30
           tcpSocket:

@@ -20,7 +20,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { incidents_enabled, ratings_enabled, multiworkshops_enabled, partner_connect_header_enabled } = useInterfaceConfig();
+  const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
@@ -69,6 +69,18 @@ const Navigation: React.FC = () => {
           </a>
         </NavItem>
       ) : null}
+      {rcars_enabled ? (
+        <NavItem>
+          <a
+            href="https://rcars.apps.ocpv-infra01.dal12.infra.demo.redhat.com/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="pf-v6-c-nav__link"
+          >
+            Content Advisor (RCARS)
+          </a>
+        </NavItem>
+      ) : null}
     </NavExpandable>
   );
 
@@ -110,7 +122,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   );
 
-  const multiWorkshopNavigation = userNamespace && multiworkshops_enabled ? (
+  const multiWorkshopNavigation = userNamespace ? (
     <NavItem>
       <NavLink
         to={`/multi-workshop/${userNamespace.name}`}
@@ -199,9 +211,12 @@ const Navigation: React.FC = () => {
         </NavLink>
       </NavItem>
       <NavItem>
-        <ExactNavLink className={locationStartsWith('/admin/sharedclusters') ? 'pf-m-current' : ''} to="/admin/sharedclusters">
-          Shared Clusters
-        </ExactNavLink>
+        <NavLink
+          className={locationStartsWith('/admin/tenantclusterpools') ? 'pf-m-current' : ''}
+          to="/admin/tenantclusterpools"
+        >
+          Tenant Cluster Pools
+        </NavLink>
       </NavItem>
       <NavItem>
         <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">

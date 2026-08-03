@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.2.6
+        tag: v1.3.0
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -145,7 +145,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.35.1
+        tag: v0.35.4
       replicaCount: 1
       resources:
         requests:
@@ -236,6 +236,23 @@ serviceAccessManager:
       cpu: 200m
       memory: 1Gi
 
+tenantClusterPoolManager:
+  deploy: false
+  image:
+    repository: quay.io/rhpds/babylon-tenant-cluster-pool-manager
+    pullPolicy: IfNotPresent
+    tag: v0.1.0
+  namespace:
+    create: true
+    name: babylon-tenant-cluster-pool-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
 workshopManager:
   api:
     group: babylon.gpte.redhat.com
@@ -303,29 +320,6 @@ admin:
     workshopFormId: b48fe3cc870b2d508a51bbbf8bbb3576
     secretName: servicenow
 
-ratings:
-  deploy: true
-  replicaCount: 2
-  namespace:
-    create: true
-    name: babylon-ratings
-  db:
-    secretName: ratings-db
-    bitwardenSecret: reporting_database
-  image:
-    repository: quay.io/redhat-gpte/babylon-ratings
-    pullPolicy: Always
-    tag: v1.0.12
-  resources:
-    limits:
-      cpu: "1"
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-  babylon:
-    domain: babylon.gpte.redhat.com
-
 catalogManager:
   deploy: true
   replicaCount: 1
@@ -335,7 +329,7 @@ catalogManager:
   image:
     repository: quay.io/redhat-gpte/babylon-catalog-manager
     pullPolicy: Always
-    tag: v1.1.0
+    tag: v1.2.0
   resources:
     limits:
       cpu: "1"
