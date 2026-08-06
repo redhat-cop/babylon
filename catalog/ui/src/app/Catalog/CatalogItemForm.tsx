@@ -369,7 +369,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     return undefined;
   }, [formState.parameters, getParametersWithSandboxSelectors, checkAvailability]);
 
-  async function approveWhiteGloveRequest() {
+  async function approveWhiteGloveRequest(service: { name: string; namespace: string }) {
     if (!whiteGloveRequest || !wgrNamespace || !wgrName) return;
     try {
       await patchWhiteGloveRequest({
@@ -380,6 +380,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             annotations: {
               [`${DEMO_DOMAIN}/state`]: 'approved',
               [`${DEMO_DOMAIN}/approved-at`]: new Date().toISOString(),
+              [`${DEMO_DOMAIN}/service-name`]: service.name,
+              [`${DEMO_DOMAIN}/service-namespace`]: service.namespace,
             },
           },
         },
@@ -459,7 +461,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           },
           selfPacedLab: selfPacedLab,
         });
-        await approveWhiteGloveRequest();
+        await approveWhiteGloveRequest({ name: selfPacedLab.metadata.name, namespace: selfPacedLab.metadata.namespace });
         navigate(`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`);
       } else if (formState.workshop) {
         const {
@@ -504,7 +506,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           useAutoDetach: formState.useAutoDetach,
           selectedResourcePool: formState.selectedResourcePool,
         });
-        await approveWhiteGloveRequest();
+        await approveWhiteGloveRequest({ name: workshop.metadata.name, namespace: workshop.metadata.namespace });
         navigate(redirectUrl);
       } else {
         const resourceClaim = await createServiceRequest({
@@ -525,7 +527,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           salesforceItems: formState.salesforceItems,
         });
 
-        await approveWhiteGloveRequest();
+        await approveWhiteGloveRequest({ name: resourceClaim.metadata.name, namespace: resourceClaim.metadata.namespace });
         navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
       }
     } catch (error: unknown) {
