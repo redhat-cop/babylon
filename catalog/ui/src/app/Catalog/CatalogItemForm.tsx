@@ -194,7 +194,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         type: 'purpose',
         activity: whiteGloveRequest.spec.activity || '',
         purpose: whiteGloveRequest.spec.purpose || '',
-        explanation: '',
+        explanation: whiteGloveRequest.spec.explanation || '',
       });
     }
 

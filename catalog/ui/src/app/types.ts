@@ -956,6 +956,7 @@ export interface WhiteGloveRequestSpec {
   displayName?: string;
   purpose?: string;
   activity?: string;
+  explanation?: string;
   numberOfUsers?: number;
   eventDate?: string;
   eventEndDate?: string;

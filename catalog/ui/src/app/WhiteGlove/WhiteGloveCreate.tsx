@@ -66,6 +66,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         displayName: displayName(selectedCatalogItem),
         purpose,
         activity,
+        explanation: explanation || undefined,
         numberOfUsers,
         eventDate: eventDate ? eventDate.toISOString() : undefined,
         eventEndDate: eventEndDate ? eventEndDate.toISOString() : undefined,
