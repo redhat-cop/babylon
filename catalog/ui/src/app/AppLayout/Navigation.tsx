@@ -100,14 +100,16 @@ const Navigation: React.FC = () => {
           My Services
         </NavLink>
       </NavItem>
-      <NavItem>
-        <NavLink
-          to="/white-glove"
-          className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
-        >
-          White Glove Requests
-        </NavLink>
-      </NavItem>
+      {isAdmin ? (
+        <NavItem>
+          <NavLink
+            to="/white-glove"
+            className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
+          >
+            White Glove Requests
+          </NavLink>
+        </NavItem>
+      ) : null}
     </>
   ) : null;
 
