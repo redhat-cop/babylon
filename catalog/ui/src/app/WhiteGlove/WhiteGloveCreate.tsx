@@ -5,23 +5,22 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Checkbox,
   Form,
   FormGroup,
-  FormHelperText,
   PageSection,
   TextArea,
   TextInput,
   Title,
 } from '@patternfly/react-core';
 import { createWhiteGloveRequest } from '@app/api';
-import { CatalogItem } from '@app/types';
+import { CatalogItem, SalesforceItem } from '@app/types';
 import { displayName } from '@app/util';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
-import AutoStopDestroy from '@app/components/AutoStopDestroy';
+import DateTimePicker from '@app/components/DateTimePicker';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import Footer from '@app/components/Footer';
+import PatientNumberInput from '@app/components/PatientNumberInput';
+import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useSession from '@app/utils/useSession';
 import purposeOptions from '@app/MultiWorkshops/purposeOptions.json';
 
@@ -40,11 +39,10 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [activity, setActivity] = useState('');
   const [purpose, setPurpose] = useState('');
   const [explanation, setExplanation] = useState('');
-  const [salesforceId, setSalesforceId] = useState('');
-  const [skipSalesforce, setSkipSalesforce] = useState(false);
+  const [salesforceItems, setSalesforceItems] = useState<SalesforceItem[]>([]);
   const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
-  const [eventDate] = useState<string>('');
-  const [eventEndDate] = useState<string>('');
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [eventEndDate, setEventEndDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState('');
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
@@ -68,14 +66,12 @@ const WhiteGloveCreateContent: React.FC = () => {
         displayName: displayName(selectedCatalogItem),
         purpose,
         activity,
+        explanation: explanation || undefined,
         numberOfUsers,
-        eventDate: eventDate || undefined,
-        eventEndDate: eventEndDate || undefined,
+        eventDate: eventDate ? eventDate.toISOString() : undefined,
+        eventEndDate: eventEndDate ? eventEndDate.toISOString() : undefined,
         notes: notes || undefined,
-        salesforceItems:
-          !skipSalesforce && salesforceId.trim()
-            ? [{ id: salesforceId.trim(), type: 'opportunity' as const }]
-            : undefined,
+        salesforceItems: salesforceItems.length > 0 ? salesforceItems : undefined,
         namespace: userNamespace.name,
       });
 
@@ -91,7 +87,7 @@ const WhiteGloveCreateContent: React.FC = () => {
   const isFormValid = !!selectedCatalogItem && !!activity && !!purpose;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <>
       <PageSection variant="default" className="catalog-item-form">
         <Breadcrumb>
           <BreadcrumbItem>
@@ -127,15 +123,11 @@ const WhiteGloveCreateContent: React.FC = () => {
         <Form className="catalog-item-form__form">
           <FormGroup label="Catalog Item" isRequired fieldId="catalog-item">
             <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ minWidth: '400px' }}>
                 <TextInput
                   id="catalog-item"
                   placeholder="Select a catalog item..."
-                  value={
-                    selectedCatalogItem
-                      ? `${selectedCatalogItem.metadata.namespace}.${selectedCatalogItem.metadata.name}`
-                      : ''
-                  }
+                  value={selectedCatalogItem ? displayName(selectedCatalogItem) : ''}
                   readOnlyVariant="default"
                   style={{
                     backgroundColor: 'var(--pf-t--color--background--disabled)',
@@ -160,57 +152,57 @@ const WhiteGloveCreateContent: React.FC = () => {
             }}
           />
 
-          <FormGroup label="Salesforce ID" fieldId="salesforce-id">
-            <TextInput
-              id="salesforce-id"
-              value={salesforceId}
-              onChange={(_, value) => setSalesforceId(value)}
-              isDisabled={skipSalesforce}
-              placeholder="Enter Salesforce Opportunity, Campaign, or Project ID"
-            />
-            <FormHelperText>
-              <Checkbox
-                id="skip-salesforce"
-                label="I do not have a Salesforce ID for this request"
-                isChecked={skipSalesforce}
-                onChange={(_, checked) => {
-                  setSkipSalesforce(checked);
-                  if (checked) setSalesforceId('');
-                }}
-              />
-            </FormHelperText>
-          </FormGroup>
+          <SalesforceItemsField
+            label={
+              <span>
+                Salesforce IDs{' '}
+                <span
+                  style={{
+                    fontSize: 'var(--pf-t--global--font--size--xs)',
+                    color: 'var(--pf-t--color--gray--60)',
+                    fontStyle: 'italic',
+                    fontWeight: 400,
+                  }}
+                >
+                  (Opportunity ID, Campaign ID or Project ID)
+                </span>
+              </span>
+            }
+            fieldId="salesforce_id"
+            items={salesforceItems}
+            onChange={setSalesforceItems}
+          />
 
           <FormGroup label="Number of Users" fieldId="number-of-users">
-            <TextInput
-              id="number-of-users"
-              type="number"
-              value={numberOfUsers}
-              onChange={(_, value) => setNumberOfUsers(Math.max(1, parseInt(value) || 1))}
+            <PatientNumberInput
               min={1}
-              style={{ maxWidth: '200px' }}
+              max={999}
+              value={numberOfUsers}
+              onChange={(value) => setNumberOfUsers(value)}
+              onChangeDelay={500}
             />
           </FormGroup>
 
-          <FormGroup label="Event Date" fieldId="event-date">
-            <AutoStopDestroy
-              type="auto-start"
-              time={eventDate}
-              onClick={() => {
-                /* handled internally */
+          <FormGroup label="Event Start Date" fieldId="event-date">
+            <DateTimePicker
+              defaultTimestamp={eventDate?.getTime() || Date.now()}
+              onSelect={(date: Date) => {
+                setEventDate(date);
+                if (!eventEndDate || eventEndDate <= date) {
+                  setEventEndDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
+                }
               }}
-              isDisabled={false}
+              minDate={Date.now()}
+              forceUpdateTimestamp={eventDate?.getTime()}
             />
           </FormGroup>
 
           <FormGroup label="Event End Date" fieldId="event-end-date">
-            <AutoStopDestroy
-              type="auto-destroy"
-              time={eventEndDate}
-              onClick={() => {
-                /* handled internally */
-              }}
-              isDisabled={false}
+            <DateTimePicker
+              defaultTimestamp={eventEndDate?.getTime() || Date.now() + 24 * 60 * 60 * 1000}
+              onSelect={(date: Date) => setEventEndDate(date)}
+              minDate={eventDate?.getTime() || Date.now()}
+              forceUpdateTimestamp={eventEndDate?.getTime()}
             />
           </FormGroup>
 
@@ -229,7 +221,7 @@ const WhiteGloveCreateContent: React.FC = () => {
             onClick={onSubmit}
             isDisabled={!isFormValid || isSubmitting}
             isLoading={isSubmitting}
-            style={{ marginTop: '16px' }}
+            style={{ marginTop: '16px', width: 'fit-content' }}
           >
             Submit Request
           </Button>
@@ -241,10 +233,10 @@ const WhiteGloveCreateContent: React.FC = () => {
         onClose={() => setIsCatalogSelectorOpen(false)}
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for White Glove Request"
+        singleSelect
       />
 
-      <Footer />
-    </div>
+    </>
   );
 };
 

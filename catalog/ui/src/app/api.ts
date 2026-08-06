@@ -1580,6 +1580,7 @@ export async function createWhiteGloveRequest(data: {
   displayName: string;
   purpose?: string;
   activity?: string;
+  explanation?: string;
   numberOfUsers?: number;
   eventDate?: string;
   eventEndDate?: string;
@@ -1610,6 +1611,7 @@ export async function createWhiteGloveRequest(data: {
       displayName: data.displayName,
       purpose: data.purpose,
       activity: data.activity,
+      explanation: data.explanation,
       numberOfUsers: data.numberOfUsers,
       eventDate: data.eventDate,
       eventEndDate: data.eventEndDate,

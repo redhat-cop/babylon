@@ -19,10 +19,11 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { apiPaths, fetcher } from '@app/api';
+import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
-import { FETCH_BATCH_LIMIT } from '@app/util';
+import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import Footer from '@app/components/Footer';
+
 import TimeInterval from '@app/components/TimeInterval';
 import useSession from '@app/utils/useSession';
 
@@ -81,7 +82,7 @@ const WhiteGloveListContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
 
-  const { data } = useSWR<WhiteGloveRequestList>(
+  const { data, mutate } = useSWR<WhiteGloveRequestList>(
     userNamespace
       ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name, limit: FETCH_BATCH_LIMIT })
       : null,
@@ -90,6 +91,7 @@ const WhiteGloveListContent: React.FC = () => {
   );
 
   const items: WhiteGloveRequest[] = data?.items || [];
+  useWhiteGloveRunningCheck(items, mutate);
 
   if (!userNamespace) {
     return (
@@ -102,7 +104,7 @@ const WhiteGloveListContent: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <>
       <PageSection hasBodyWrapper={false} variant="default">
         <Breadcrumb>
           <BreadcrumbItem isActive>White Glove Requests</BreadcrumbItem>
@@ -145,7 +147,14 @@ const WhiteGloveListContent: React.FC = () => {
             </Thead>
             <Tbody>
               {items.map((wgr: WhiteGloveRequest) => {
-                const state = wgr.status?.state || 'pending-approval';
+                const ann = wgr.metadata.annotations || {};
+                const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
+                const assignee = ann[`${DEMO_DOMAIN}/assignee`];
+                const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
+                const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
+                const svcName = ann[`${DEMO_DOMAIN}/service-name`];
+                const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+                const svcType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
                 return (
                   <Tr key={wgr.metadata.uid}>
                     <Td>
@@ -161,20 +170,20 @@ const WhiteGloveListContent: React.FC = () => {
                     <Td>
                       <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                     </Td>
-                    <Td>{wgr.status?.assignee || '—'}</Td>
+                    <Td>{assignee || '—'}</Td>
                     <Td>
-                      {wgr.status?.jiraTicketUrl ? (
-                        <a href={wgr.status.jiraTicketUrl} target="_blank" rel="noopener noreferrer">
-                          {wgr.status.jiraTicketId || 'View'}
+                      {jiraTicketUrl ? (
+                        <a href={jiraTicketUrl} target="_blank" rel="noopener noreferrer">
+                          {jiraTicketId || 'View'}
                         </a>
                       ) : (
                         '—'
                       )}
                     </Td>
                     <Td>
-                      {wgr.status?.serviceName && wgr.status?.serviceNamespace ? (
-                        <Link to={`/services/${wgr.status.serviceNamespace}/${wgr.status.serviceName}`}>
-                          {wgr.status.serviceName}
+                      {svcName && svcNamespace ? (
+                        <Link to={`/${svcType}/${svcNamespace}/${svcName}`}>
+                          View Service
                         </Link>
                       ) : (
                         '—'
@@ -188,8 +197,7 @@ const WhiteGloveListContent: React.FC = () => {
         )}
       </PageSection>
 
-      <Footer />
-    </div>
+    </>
   );
 };
 

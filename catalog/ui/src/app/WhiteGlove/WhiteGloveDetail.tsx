@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -30,12 +30,14 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
+import useDebounce from '@app/utils/useDebounce';
 import { WhiteGloveRequest } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
-import Footer from '@app/components/Footer';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import useSession from '@app/utils/useSession';
+import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 
 import './white-glove.css';
 
@@ -90,12 +92,16 @@ const WhiteGloveDetailContent: React.FC = () => {
   const [comment, setComment] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [slackChannel, setSlackChannel] = useState('');
 
   const { data: wgr, mutate } = useSWR<WhiteGloveRequest>(
     namespace && name ? apiPaths.WHITE_GLOVE_REQUEST({ namespace, name }) : null,
     fetcher,
     { refreshInterval: 8000 },
   );
+
+  const wgrItems = useMemo(() => (wgr ? [wgr] : []), [wgr]);
+  useWhiteGloveRunningCheck(wgrItems, mutate);
 
   if (!wgr) {
     return (
@@ -105,11 +111,18 @@ const WhiteGloveDetailContent: React.FC = () => {
     );
   }
 
-  const state = wgr.status?.state || 'pending-approval';
+  const ann = wgr.metadata.annotations || {};
+  const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
   const isRejected = state === 'rejected';
-  const requester = wgr.metadata.annotations?.[`${DEMO_DOMAIN}/requester`]
-    || wgr.metadata.annotations?.[`${BABYLON_DOMAIN}/created-by`]
+  const requester = ann[`${DEMO_DOMAIN}/requester`]
+    || ann[`${BABYLON_DOMAIN}/created-by`]
     || '—';
+  const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
+  const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
+  const assignee = ann[`${DEMO_DOMAIN}/assignee`];
+  const serviceName = ann[`${DEMO_DOMAIN}/service-name`];
+  const serviceNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+  const serviceType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
 
   const listPath = isAdmin ? '/admin/white-glove-requests' : '/white-glove';
 
@@ -117,23 +130,31 @@ const WhiteGloveDetailContent: React.FC = () => {
     const updated = await patchWhiteGloveRequest({
       namespace,
       name,
-      patch: { status: { state: 'rejected', rejectionReason: rejectReason, rejectedAt: new Date().toISOString() } },
+      patch: {
+        metadata: {
+          annotations: {
+            [`${DEMO_DOMAIN}/state`]: 'rejected',
+            [`${DEMO_DOMAIN}/rejection-reason`]: rejectReason,
+            [`${DEMO_DOMAIN}/rejected-at`]: new Date().toISOString(),
+          },
+        },
+      },
     });
     mutate(updated, false);
     setIsRejectModalOpen(false);
   }
 
-  async function handleSlackUpdate(slackChannel: string) {
+  const debouncedSlackUpdate = useDebounce(async (value: string) => {
     const updated = await patchWhiteGloveRequest({
       namespace,
       name,
-      patch: { spec: { slackChannel } },
+      patch: { spec: { slackChannel: value } },
     });
     mutate(updated, false);
-  }
+  }, 1000);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <>
       <PageSection variant="default">
         <Breadcrumb>
           <BreadcrumbItem>
@@ -159,13 +180,13 @@ const WhiteGloveDetailContent: React.FC = () => {
               <div className="wg-status-banner__meta">
                 Submitted <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                 {isAdmin && <> by <strong>{requester}</strong></>}
-                {wgr.status?.assignee && <> &middot; Assigned to <strong>{wgr.status.assignee}</strong></>}
+                {assignee && <> &middot; Assigned to <strong>{assignee}</strong></>}
               </div>
             </SplitItem>
-            {wgr.status?.jiraTicketId && (
+            {jiraTicketId && (
               <SplitItem>
-                <a href={wgr.status.jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer" className="wg-jira-link">
-                  {wgr.status.jiraTicketId} &#8599;
+                <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer" className="wg-jira-link">
+                  {jiraTicketId} &#8599;
                 </a>
               </SplitItem>
             )}
@@ -200,21 +221,30 @@ const WhiteGloveDetailContent: React.FC = () => {
               </>
             )}
           </ProgressStepper>
-          {isRejected && wgr.status?.rejectionReason && (
+          {isRejected && wgr.metadata.annotations?.[`${DEMO_DOMAIN}/rejection-reason`] && (
             <Alert variant="danger" isInline isPlain title="Reason" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-              {wgr.status.rejectionReason}
+              {wgr.metadata.annotations[`${DEMO_DOMAIN}/rejection-reason`]}
             </Alert>
           )}
         </div>
 
-        {isAdmin && state === 'pending-approval' && (
+        {isAdmin && (state === 'pending-approval' || state === 'rejected') && (
           <ActionList style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <ActionListItem>
-              <Button variant="primary" component="a" href={`/admin/white-glove-requests/${namespace}/${name}/approve`}>Approve</Button>
+              <Button
+                variant="primary"
+                component="a"
+                href={`/catalog/${wgr.spec.catalogItemNamespace}/order/${wgr.spec.catalogItemName}?wgr=${namespace}/${name}`}
+                isDisabled={!wgr.spec.catalogItemName || !wgr.spec.catalogItemNamespace}
+              >
+                Approve
+              </Button>
             </ActionListItem>
+            {state !== 'rejected' && (
             <ActionListItem>
               <Button variant="danger" onClick={() => setIsRejectModalOpen(true)}>Reject</Button>
             </ActionListItem>
+            )}
           </ActionList>
         )}
       </PageSection>
@@ -255,6 +285,16 @@ const WhiteGloveDetailContent: React.FC = () => {
                     <span className="wg-label">White Glove</span>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                {serviceName && serviceNamespace && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Service</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Button variant="primary" component="a" href={`/${serviceType}/${serviceNamespace}/${serviceName}`}>
+                        {wgr.spec.displayName || serviceName} &#8599;
+                      </Button>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
                 <DescriptionListGroup>
                   <DescriptionListTerm>Catalog Item</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -280,9 +320,9 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Jira Ticket</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.status?.jiraTicketId ? (
-                      <a href={wgr.status.jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer">
-                        {wgr.status.jiraTicketId} &#8599;
+                    {jiraTicketId ? (
+                      <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer">
+                        {jiraTicketId} &#8599;
                       </a>
                     ) : '—'}
                   </DescriptionListDescription>
@@ -295,8 +335,11 @@ const WhiteGloveDetailContent: React.FC = () => {
                         <TextInput
                           id="admin-slack"
                           placeholder="e.g. #wg-rhel9-summit"
-                          value={wgr.spec.slackChannel || ''}
-                          onChange={(_e, v) => handleSlackUpdate(v)}
+                          value={slackChannel || wgr.spec.slackChannel || ''}
+                          onChange={(_e, v) => {
+                            setSlackChannel(v);
+                            debouncedSlackUpdate(v);
+                          }}
                         />
                       </div>
                     ) : wgr.spec.slackChannel ? (
@@ -311,23 +354,27 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Assignee</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.status?.assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
+                    {assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
                   </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Activity</DescriptionListTerm>
+                  <DescriptionListDescription>{wgr.spec.activity || '—'}</DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Purpose</DescriptionListTerm>
                   <DescriptionListDescription>{wgr.spec.purpose || '—'}</DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Event Date</DescriptionListTerm>
+                  <DescriptionListTerm>Event Start Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.spec.eventDate ? <TimeInterval toTimestamp={wgr.spec.eventDate} /> : '—'}
+                    {wgr.spec.eventDate ? <LocalTimestamp timestamp={wgr.spec.eventDate} /> : '—'}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event End Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.spec.eventEndDate ? <TimeInterval toTimestamp={wgr.spec.eventEndDate} /> : '—'}
+                    {wgr.spec.eventEndDate ? <LocalTimestamp timestamp={wgr.spec.eventEndDate} /> : '—'}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
@@ -339,16 +386,6 @@ const WhiteGloveDetailContent: React.FC = () => {
                     <DescriptionListTerm>Notes</DescriptionListTerm>
                     <DescriptionListDescription>
                       <div className="wg-notes-block">{wgr.spec.notes}</div>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-                {wgr.status?.serviceName && wgr.status?.serviceNamespace && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Service</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <Button variant="primary" component="a" href={`/services/${wgr.status.serviceNamespace}/${wgr.status.serviceName}`}>
-                        {wgr.spec.displayName || wgr.status.serviceName} &#8599;
-                      </Button>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 )}
@@ -379,8 +416,7 @@ const WhiteGloveDetailContent: React.FC = () => {
         </Tabs>
       </PageSection>
 
-      <Footer />
-    </div>
+    </>
   );
 };
 

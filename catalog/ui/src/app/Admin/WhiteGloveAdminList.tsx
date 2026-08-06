@@ -12,6 +12,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher } from '@app/api';
+import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
@@ -36,12 +37,13 @@ function statusIcon(state: string) {
 }
 
 const WhiteGloveAdminListContent: React.FC = () => {
-  const { data } = useSWR<WhiteGloveRequestList>(
+  const { data, mutate } = useSWR<WhiteGloveRequestList>(
     apiPaths.WHITE_GLOVE_REQUESTS({ limit: FETCH_BATCH_LIMIT }),
     fetcher,
     { refreshInterval: 8000 },
   );
   const requests = data?.items || [];
+  useWhiteGloveRunningCheck(requests, mutate);
 
   return (
     <>
@@ -66,34 +68,37 @@ const WhiteGloveAdminListContent: React.FC = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {requests.map((wgr) => (
-              <Tr key={wgr.metadata.uid || wgr.metadata.name}>
-                <Td dataLabel="Name">
-                  <Link to={`/admin/white-glove-requests/${wgr.metadata.namespace}/${wgr.metadata.name}`}>
-                    {wgr.spec.displayName || wgr.metadata.name}
-                  </Link>
-                </Td>
-                <Td dataLabel="Requester" style={{ fontSize: '13px' }}>
-                  {wgr.metadata.annotations?.[`${DEMO_DOMAIN}/requester`] || '—'}
-                </Td>
-                <Td dataLabel="Status">
-                  {statusIcon(wgr.status?.state)}
-                </Td>
-                <Td dataLabel="Submitted" style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
-                </Td>
-                <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
-                  {wgr.status?.assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
-                </Td>
-                <Td dataLabel="Jira">
-                  {wgr.status?.jiraTicketId ? (
-                    <a href={wgr.status.jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px' }}>
-                      {wgr.status.jiraTicketId}
-                    </a>
-                  ) : '—'}
-                </Td>
-              </Tr>
-            ))}
+            {requests.map((wgr) => {
+              const ann = wgr.metadata.annotations || {};
+              return (
+                <Tr key={wgr.metadata.uid || wgr.metadata.name}>
+                  <Td dataLabel="Name">
+                    <Link to={`/admin/white-glove-requests/${wgr.metadata.namespace}/${wgr.metadata.name}`}>
+                      {wgr.spec.displayName || wgr.metadata.name}
+                    </Link>
+                  </Td>
+                  <Td dataLabel="Requester" style={{ fontSize: '13px' }}>
+                    {ann[`${DEMO_DOMAIN}/requester`] || '—'}
+                  </Td>
+                  <Td dataLabel="Status">
+                    {statusIcon(ann[`${DEMO_DOMAIN}/state`] || 'pending-approval')}
+                  </Td>
+                  <Td dataLabel="Submitted" style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                    <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
+                  </Td>
+                  <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
+                    {ann[`${DEMO_DOMAIN}/assignee`] || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
+                  </Td>
+                  <Td dataLabel="Jira">
+                    {ann[`${DEMO_DOMAIN}/jira-ticket-id`] ? (
+                      <a href={ann[`${DEMO_DOMAIN}/jira-ticket-url`] || '#'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px' }}>
+                        {ann[`${DEMO_DOMAIN}/jira-ticket-id`]}
+                      </a>
+                    ) : '—'}
+                  </Td>
+                </Tr>
+              );
+            })}
           </Tbody>
         </Table>
       </PageSection>
