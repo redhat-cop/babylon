@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
@@ -36,6 +36,7 @@ import {
   createWorkshop,
   createWorkshopProvision,
   fetcher,
+  patchWhiteGloveRequest,
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
@@ -45,9 +46,11 @@ import {
   CatalogItemIncident,
   SandboxCloudSelector,
   TPurposeOpts,
+  WhiteGloveRequest,
 } from '@app/types';
 import {
   checkAccessControl,
+  DEMO_DOMAIN,
   displayName,
   getStageFromK8sObject,
   isLabDeveloper,
@@ -83,6 +86,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   catalogNamespaceName,
 }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wgrParam = searchParams.get('wgr');
+  const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [isStartModalOpen, setIsStartModalOpen] = useState(false);
@@ -109,6 +115,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       shouldRetryOnError: false,
       suspense: false,
     },
+  );
+
+  const { data: whiteGloveRequest, error: wgrError } = useSWR<WhiteGloveRequest>(
+    wgrNamespace && wgrName
+      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
+      : null,
+    fetcher,
   );
 
   // Service quota check
@@ -157,7 +170,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
-  const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
+  const workshopUiDisabled = wgrParam ? false : (catalogItem.spec.workshopUiDisabled || false);
   const initialServiceNamespace = userNamespace;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
@@ -171,6 +184,51 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       workshop: workshopInitialProps,
     }),
   );
+
+  const [wgrApplied, setWgrApplied] = useState(false);
+  useEffect(() => {
+    if (!whiteGloveRequest || wgrApplied) return;
+
+    if (whiteGloveRequest.spec.purpose || whiteGloveRequest.spec.activity) {
+      dispatchFormState({
+        type: 'purpose',
+        activity: whiteGloveRequest.spec.activity || '',
+        purpose: whiteGloveRequest.spec.purpose || '',
+        explanation: '',
+      });
+    }
+
+    if (whiteGloveRequest.spec.salesforceItems?.length > 0) {
+      dispatchFormState({
+        type: 'salesforceItems',
+        salesforceItems: whiteGloveRequest.spec.salesforceItems,
+      });
+    }
+
+    const startDate = whiteGloveRequest.spec.eventDate
+      ? new Date(whiteGloveRequest.spec.eventDate)
+      : undefined;
+    const endDate = whiteGloveRequest.spec.eventEndDate
+      ? new Date(whiteGloveRequest.spec.eventEndDate)
+      : undefined;
+    if (startDate || endDate) {
+      dispatchFormState({ type: 'dates', startDate, endDate });
+    }
+
+    dispatchFormState({
+      type: 'workshop',
+      workshop: {
+        ...workshopInitialProps,
+        provisionCount: whiteGloveRequest.spec.numberOfUsers || workshopInitialProps.provisionCount,
+        displayName: whiteGloveRequest.spec.displayName || workshopInitialProps.displayName,
+      },
+    });
+
+    dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
+
+    setWgrApplied(true);
+  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState]);
+
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
     parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
@@ -302,6 +360,26 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     return undefined;
   }, [formState.parameters, getParametersWithSandboxSelectors, checkAvailability]);
 
+  async function approveWhiteGloveRequest() {
+    if (!whiteGloveRequest || !wgrNamespace || !wgrName) return;
+    try {
+      await patchWhiteGloveRequest({
+        namespace: wgrNamespace,
+        name: wgrName,
+        patch: {
+          metadata: {
+            annotations: {
+              [`${DEMO_DOMAIN}/state`]: 'approved',
+              [`${DEMO_DOMAIN}/approved-at`]: new Date().toISOString(),
+            },
+          },
+        },
+      });
+    } catch {
+      console.error('Failed to update white glove request state');
+    }
+  }
+
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
@@ -372,6 +450,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           },
           selfPacedLab: selfPacedLab,
         });
+        await approveWhiteGloveRequest();
         navigate(`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`);
       } else if (formState.workshop) {
         const {
@@ -416,6 +495,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           useAutoDetach: formState.useAutoDetach,
           selectedResourcePool: formState.selectedResourcePool,
         });
+        await approveWhiteGloveRequest();
         navigate(redirectUrl);
       } else {
         const resourceClaim = await createServiceRequest({
@@ -436,6 +516,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           salesforceItems: formState.salesforceItems,
         });
 
+        await approveWhiteGloveRequest();
         navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
       }
     } catch (error: unknown) {
@@ -557,6 +638,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         Order {_displayName}
       </Title>
       <p>Order by completing the form. Default values may be provided.</p>
+      {wgrParam && wgrError && (
+        <Alert variant="danger" isInline title="Failed to load white glove request" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Could not load white glove request data. The form will use default values.
+        </Alert>
+      )}
+      {whiteGloveRequest && (
+        <Alert
+          variant="info"
+          isInline
+          title={`White Glove Request from ${whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`] || 'unknown'}`}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          {whiteGloveRequest.spec.notes && <p>{whiteGloveRequest.spec.notes}</p>}
+        </Alert>
+      )}
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
         {(isAdmin || serviceNamespaces.length > 1) && !catalogItem.spec.externalUrl ? (

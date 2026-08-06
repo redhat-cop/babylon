@@ -50,7 +50,6 @@ const WhiteGloveList = React.lazy(() => import('@app/WhiteGlove/WhiteGloveList')
 const WhiteGloveCreate = React.lazy(() => import('@app/WhiteGlove/WhiteGloveCreate'));
 const WhiteGloveDetail = React.lazy(() => import('@app/WhiteGlove/WhiteGloveDetail'));
 const WhiteGloveAdminList = React.lazy(() => import('@app/Admin/WhiteGloveAdminList'));
-const WhiteGloveAdminApprove = React.lazy(() => import('@app/Admin/WhiteGloveAdminApprove'));
 
 const appRoutes: IAppRoute[] = [
   {
@@ -212,12 +211,6 @@ const appRoutes: IAppRoute[] = [
     component: Ops,
     path: '/admin/ops/:namespace',
     title: 'Babylon | Workshop Control',
-    accessControl: 'admin',
-  },
-  {
-    component: WhiteGloveAdminApprove,
-    path: '/admin/white-glove-requests/:namespace/:name/approve',
-    title: 'Babylon | Approve White Glove Request',
     accessControl: 'admin',
   },
   {
