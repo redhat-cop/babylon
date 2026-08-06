@@ -212,7 +212,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       ? new Date(whiteGloveRequest.spec.eventEndDate)
       : undefined;
     if (startDate || endDate) {
-      dispatchFormState({ type: 'dates', startDate, endDate });
+      dispatchFormState({ type: 'dates', startDate, stopDate: endDate, endDate });
     }
 
     if (!workshopUiDisabled) {
