@@ -26,6 +26,12 @@ const ActivityPurposeSelector: React.FC<{
   const [purpose, setPurpose] = useState(value?.purpose || '');
   const [explanation, setExplanation] = useState(value?.explanation || '');
 
+  useEffect(() => {
+    if (value?.activity && value.activity !== activity) setActivity(value.activity);
+    if (value?.purpose && value.purpose !== purpose) setPurpose(value.purpose);
+    if (value?.explanation && value.explanation !== explanation) setExplanation(value.explanation);
+  }, [value?.activity, value?.purpose, value?.explanation]);
+
   const activityOpts = purposeOpts
     .filter((a) => !a.requiredRoles || a.requiredRoles.some((r) => groups.includes(r)))
     .reduce((entryMap, e) => entryMap.set(e.activity, [...(entryMap.get(e.activity) || []), e]), new Map());

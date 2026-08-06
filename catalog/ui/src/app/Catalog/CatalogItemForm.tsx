@@ -683,7 +683,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {purposeOpts.length > 0 ? (
           <>
             <ActivityPurposeSelector
-              value={{ purpose: formState.purpose, activity: formState.activity }}
+              value={{ purpose: formState.purpose, activity: formState.activity, explanation: formState.explanation }}
               purposeOpts={purposeOpts}
               onChange={(activity: string, purpose: string, explanation: string) => {
                 dispatchFormState({
