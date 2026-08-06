@@ -412,6 +412,10 @@ const WhiteGloveDetailContent: React.FC = () => {
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
+                  <DescriptionListTerm>Activity</DescriptionListTerm>
+                  <DescriptionListDescription>{wgr.spec.activity || '—'}</DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
                   <DescriptionListTerm>Purpose</DescriptionListTerm>
                   <DescriptionListDescription>{wgr.spec.purpose || '—'}</DescriptionListDescription>
                 </DescriptionListGroup>
