@@ -31,7 +31,7 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
-import { ResourceClaim, WhiteGloveRequest, Workshop } from '@app/types';
+import { ResourceClaim, SelfPacedLab, WhiteGloveRequest, Workshop } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -120,6 +120,13 @@ const WhiteGloveDetailContent: React.FC = () => {
     fetcher,
     { refreshInterval: 8000 },
   );
+  const { data: linkedSelfPacedLab } = useSWR<SelfPacedLab>(
+    shouldPollService && serviceType === 'selfpacedlabs'
+      ? apiPaths.SELF_PACED_LAB({ namespace: svcNamespace, selfPacedLabName: svcName })
+      : null,
+    fetcher,
+    { refreshInterval: 8000 },
+  );
 
   useEffect(() => {
     if (state !== 'approved') return;
@@ -133,6 +140,11 @@ const WhiteGloveDetailContent: React.FC = () => {
     } else if (serviceType === 'services' && linkedResourceClaim) {
       const resourceState = linkedResourceClaim.status?.summary?.state;
       isRunning = resourceState === 'started' || resourceState === 'running';
+    } else if (serviceType === 'selfpacedlabs' && linkedSelfPacedLab) {
+      const startTime = linkedSelfPacedLab.spec.lifespan?.start
+        ? Date.parse(linkedSelfPacedLab.spec.lifespan.start)
+        : null;
+      isRunning = startTime != null && startTime < Date.now();
     }
 
     if (isRunning) {
@@ -146,7 +158,7 @@ const WhiteGloveDetailContent: React.FC = () => {
         },
       }).then((updated) => mutate(updated, false));
     }
-  }, [state, serviceType, linkedWorkshop, linkedResourceClaim, namespace, name, mutate]);
+  }, [state, serviceType, linkedWorkshop, linkedResourceClaim, linkedSelfPacedLab, namespace, name, mutate]);
 
   if (!wgr) {
     return (
