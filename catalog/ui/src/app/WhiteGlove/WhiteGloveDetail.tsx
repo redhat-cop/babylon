@@ -136,7 +136,7 @@ const WhiteGloveDetailContent: React.FC = () => {
       const startTime = linkedWorkshop.spec.lifespan?.start
         ? Date.parse(linkedWorkshop.spec.lifespan.start)
         : null;
-      isRunning = startTime != null && startTime < Date.now();
+      isRunning = startTime == null || startTime < Date.now();
     } else if (serviceType === 'services' && linkedResourceClaim) {
       const resourceState = linkedResourceClaim.status?.summary?.state;
       isRunning = resourceState === 'started' || resourceState === 'running';
@@ -144,7 +144,7 @@ const WhiteGloveDetailContent: React.FC = () => {
       const startTime = linkedSelfPacedLab.spec.lifespan?.start
         ? Date.parse(linkedSelfPacedLab.spec.lifespan.start)
         : null;
-      isRunning = startTime != null && startTime < Date.now();
+      isRunning = startTime == null || startTime < Date.now();
     }
 
     if (isRunning) {
