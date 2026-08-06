@@ -152,6 +152,7 @@ const WhiteGloveListContent: React.FC = () => {
                 const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
                 const svcName = ann[`${DEMO_DOMAIN}/service-name`];
                 const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+                const svcType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
                 return (
                   <Tr key={wgr.metadata.uid}>
                     <Td>
@@ -179,7 +180,7 @@ const WhiteGloveListContent: React.FC = () => {
                     </Td>
                     <Td>
                       {svcName && svcNamespace ? (
-                        <Link to={`/services/${svcNamespace}/${svcName}`}>
+                        <Link to={`/${svcType}/${svcNamespace}/${svcName}`}>
                           View Service
                         </Link>
                       ) : (

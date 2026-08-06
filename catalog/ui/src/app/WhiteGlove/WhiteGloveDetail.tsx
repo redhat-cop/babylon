@@ -118,6 +118,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const assignee = ann[`${DEMO_DOMAIN}/assignee`];
   const serviceName = ann[`${DEMO_DOMAIN}/service-name`];
   const serviceNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+  const serviceType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
 
   const listPath = isAdmin ? '/admin/white-glove-requests' : '/white-glove';
 
@@ -284,7 +285,7 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Service</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Button variant="primary" component="a" href={`/services/${serviceNamespace}/${serviceName}`}>
+                      <Button variant="primary" component="a" href={`/${serviceType}/${serviceNamespace}/${serviceName}`}>
                         {wgr.spec.displayName || serviceName} &#8599;
                       </Button>
                     </DescriptionListDescription>
