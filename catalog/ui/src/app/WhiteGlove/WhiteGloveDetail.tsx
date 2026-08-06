@@ -220,7 +220,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           )}
         </div>
 
-        {isAdmin && state === 'pending-approval' && (
+        {isAdmin && (state === 'pending-approval' || state === 'rejected') && (
           <ActionList style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <ActionListItem>
               <Button
@@ -232,9 +232,11 @@ const WhiteGloveDetailContent: React.FC = () => {
                 Approve
               </Button>
             </ActionListItem>
+            {state !== 'rejected' && (
             <ActionListItem>
               <Button variant="danger" onClick={() => setIsRejectModalOpen(true)}>Reject</Button>
             </ActionListItem>
+            )}
           </ActionList>
         )}
       </PageSection>
