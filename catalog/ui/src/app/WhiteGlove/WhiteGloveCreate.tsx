@@ -122,8 +122,8 @@ const WhiteGloveCreateContent: React.FC = () => {
 
         <Form className="catalog-item-form__form">
           <FormGroup label="Catalog Item" isRequired fieldId="catalog-item">
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', width: 'fit-content' }}>
-              <div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <div style={{ minWidth: '400px' }}>
                 <TextInput
                   id="catalog-item"
                   placeholder="Select a catalog item..."
