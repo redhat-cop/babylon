@@ -226,10 +226,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
     }
 
+    const wgrServiceNamespace = serviceNamespaces.find(
+      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
+    );
+    if (wgrServiceNamespace) {
+      dispatchFormState({ type: 'serviceNamespace', serviceNamespace: wgrServiceNamespace });
+    }
+
     dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
 
     setWgrApplied(true);
-  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState]);
+  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState, serviceNamespaces]);
 
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
