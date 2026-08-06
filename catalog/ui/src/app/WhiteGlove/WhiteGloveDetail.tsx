@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -31,7 +31,7 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
-import { WhiteGloveRequest } from '@app/types';
+import { ResourceClaim, WhiteGloveRequest, Workshop } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -99,6 +99,55 @@ const WhiteGloveDetailContent: React.FC = () => {
     { refreshInterval: 8000 },
   );
 
+  const ann = wgr?.metadata.annotations || {};
+  const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
+  const svcName = ann[`${DEMO_DOMAIN}/service-name`];
+  const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+  const serviceType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
+
+  const shouldPollService = state === 'approved' && svcName && svcNamespace;
+  const { data: linkedWorkshop } = useSWR<Workshop>(
+    shouldPollService && serviceType === 'workshops'
+      ? apiPaths.WORKSHOP({ namespace: svcNamespace, workshopName: svcName })
+      : null,
+    fetcher,
+    { refreshInterval: 8000 },
+  );
+  const { data: linkedResourceClaim } = useSWR<ResourceClaim>(
+    shouldPollService && serviceType === 'services'
+      ? apiPaths.RESOURCE_CLAIM({ namespace: svcNamespace, resourceClaimName: svcName })
+      : null,
+    fetcher,
+    { refreshInterval: 8000 },
+  );
+
+  useEffect(() => {
+    if (state !== 'approved') return;
+    let isRunning = false;
+
+    if (serviceType === 'workshops' && linkedWorkshop) {
+      const startTime = linkedWorkshop.spec.lifespan?.start
+        ? Date.parse(linkedWorkshop.spec.lifespan.start)
+        : null;
+      isRunning = startTime != null && startTime < Date.now();
+    } else if (serviceType === 'services' && linkedResourceClaim) {
+      const resourceState = linkedResourceClaim.status?.summary?.state;
+      isRunning = resourceState === 'started' || resourceState === 'running';
+    }
+
+    if (isRunning) {
+      patchWhiteGloveRequest({
+        namespace,
+        name,
+        patch: {
+          metadata: {
+            annotations: { [`${DEMO_DOMAIN}/state`]: 'running' },
+          },
+        },
+      }).then((updated) => mutate(updated, false));
+    }
+  }, [state, serviceType, linkedWorkshop, linkedResourceClaim, namespace, name, mutate]);
+
   if (!wgr) {
     return (
       <PageSection>
@@ -107,8 +156,6 @@ const WhiteGloveDetailContent: React.FC = () => {
     );
   }
 
-  const ann = wgr.metadata.annotations || {};
-  const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
   const isRejected = state === 'rejected';
   const requester = ann[`${DEMO_DOMAIN}/requester`]
     || ann[`${BABYLON_DOMAIN}/created-by`]
@@ -116,9 +163,8 @@ const WhiteGloveDetailContent: React.FC = () => {
   const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
   const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
   const assignee = ann[`${DEMO_DOMAIN}/assignee`];
-  const serviceName = ann[`${DEMO_DOMAIN}/service-name`];
-  const serviceNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
-  const serviceType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
+  const serviceName = svcName;
+  const serviceNamespace = svcNamespace;
 
   const listPath = isAdmin ? '/admin/white-glove-requests' : '/white-glove';
 
