@@ -19,6 +19,7 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { apiPaths, fetcher } from '@app/api';
+import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -81,7 +82,7 @@ const WhiteGloveListContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
 
-  const { data } = useSWR<WhiteGloveRequestList>(
+  const { data, mutate } = useSWR<WhiteGloveRequestList>(
     userNamespace
       ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name, limit: FETCH_BATCH_LIMIT })
       : null,
@@ -90,6 +91,7 @@ const WhiteGloveListContent: React.FC = () => {
   );
 
   const items: WhiteGloveRequest[] = data?.items || [];
+  useWhiteGloveRunningCheck(items, mutate);
 
   if (!userNamespace) {
     return (

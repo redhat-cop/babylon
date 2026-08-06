@@ -12,6 +12,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher } from '@app/api';
+import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
@@ -36,12 +37,13 @@ function statusIcon(state: string) {
 }
 
 const WhiteGloveAdminListContent: React.FC = () => {
-  const { data } = useSWR<WhiteGloveRequestList>(
+  const { data, mutate } = useSWR<WhiteGloveRequestList>(
     apiPaths.WHITE_GLOVE_REQUESTS({ limit: FETCH_BATCH_LIMIT }),
     fetcher,
     { refreshInterval: 8000 },
   );
   const requests = data?.items || [];
+  useWhiteGloveRunningCheck(requests, mutate);
 
   return (
     <>
