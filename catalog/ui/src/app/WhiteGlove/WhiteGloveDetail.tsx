@@ -33,6 +33,7 @@ import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
 import { WhiteGloveRequest } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import useSession from '@app/utils/useSession';
 
@@ -341,15 +342,15 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListDescription>{wgr.spec.purpose || '—'}</DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Event Date</DescriptionListTerm>
+                  <DescriptionListTerm>Event Start Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.spec.eventDate ? <TimeInterval toTimestamp={wgr.spec.eventDate} /> : '—'}
+                    {wgr.spec.eventDate ? <LocalTimestamp timestamp={wgr.spec.eventDate} /> : '—'}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event End Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.spec.eventEndDate ? <TimeInterval toTimestamp={wgr.spec.eventEndDate} /> : '—'}
+                    {wgr.spec.eventEndDate ? <LocalTimestamp timestamp={wgr.spec.eventEndDate} /> : '—'}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>
