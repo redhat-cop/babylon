@@ -280,6 +280,16 @@ const WhiteGloveDetailContent: React.FC = () => {
                     <span className="wg-label">White Glove</span>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                {serviceName && serviceNamespace && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Service</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Button variant="primary" component="a" href={`/services/${serviceNamespace}/${serviceName}`}>
+                        {wgr.spec.displayName || serviceName} &#8599;
+                      </Button>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
                 <DescriptionListGroup>
                   <DescriptionListTerm>Catalog Item</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -367,16 +377,6 @@ const WhiteGloveDetailContent: React.FC = () => {
                     <DescriptionListTerm>Notes</DescriptionListTerm>
                     <DescriptionListDescription>
                       <div className="wg-notes-block">{wgr.spec.notes}</div>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-                {serviceName && serviceNamespace && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Service</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <Button variant="primary" component="a" href={`/services/${serviceNamespace}/${serviceName}`}>
-                        {wgr.spec.displayName || serviceName} &#8599;
-                      </Button>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 )}
