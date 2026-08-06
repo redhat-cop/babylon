@@ -30,6 +30,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
+import useDebounce from '@app/utils/useDebounce';
 import { WhiteGloveRequest } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -90,6 +91,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const [comment, setComment] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [slackChannel, setSlackChannel] = useState('');
 
   const { data: wgr, mutate } = useSWR<WhiteGloveRequest>(
     namespace && name ? apiPaths.WHITE_GLOVE_REQUEST({ namespace, name }) : null,
@@ -137,14 +139,14 @@ const WhiteGloveDetailContent: React.FC = () => {
     setIsRejectModalOpen(false);
   }
 
-  async function handleSlackUpdate(slackChannel: string) {
+  const debouncedSlackUpdate = useDebounce(async (value: string) => {
     const updated = await patchWhiteGloveRequest({
       namespace,
       name,
-      patch: { spec: { slackChannel } },
+      patch: { spec: { slackChannel: value } },
     });
     mutate(updated, false);
-  }
+  }, 1000);
 
   return (
     <>
@@ -318,8 +320,11 @@ const WhiteGloveDetailContent: React.FC = () => {
                         <TextInput
                           id="admin-slack"
                           placeholder="e.g. #wg-rhel9-summit"
-                          value={wgr.spec.slackChannel || ''}
-                          onChange={(_e, v) => handleSlackUpdate(v)}
+                          value={slackChannel || wgr.spec.slackChannel || ''}
+                          onChange={(_e, v) => {
+                            setSlackChannel(v);
+                            debouncedSlackUpdate(v);
+                          }}
                         />
                       </div>
                     ) : wgr.spec.slackChannel ? (
