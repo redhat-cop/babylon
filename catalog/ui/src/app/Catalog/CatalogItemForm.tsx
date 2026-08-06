@@ -170,7 +170,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const purposeOpts: TPurposeOpts = catalogItem.spec.parameters
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
-  const workshopUiDisabled = wgrParam ? false : (catalogItem.spec.workshopUiDisabled || false);
+  const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
   const initialServiceNamespace = userNamespace;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
@@ -215,14 +215,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       dispatchFormState({ type: 'dates', startDate, endDate });
     }
 
-    dispatchFormState({
-      type: 'workshop',
-      workshop: {
-        ...workshopInitialProps,
-        provisionCount: whiteGloveRequest.spec.numberOfUsers || workshopInitialProps.provisionCount,
-        displayName: whiteGloveRequest.spec.displayName || workshopInitialProps.displayName,
-      },
-    });
+    if (!workshopUiDisabled) {
+      dispatchFormState({
+        type: 'workshop',
+        workshop: {
+          ...workshopInitialProps,
+          provisionCount: whiteGloveRequest.spec.numberOfUsers || workshopInitialProps.provisionCount,
+          displayName: whiteGloveRequest.spec.displayName || workshopInitialProps.displayName,
+        },
+      });
+    }
 
     dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
 
