@@ -180,7 +180,7 @@ const WhiteGloveListContent: React.FC = () => {
                     <Td>
                       {svcName && svcNamespace ? (
                         <Link to={`/services/${svcNamespace}/${svcName}`}>
-                          {svcName}
+                          View Service
                         </Link>
                       ) : (
                         '—'
