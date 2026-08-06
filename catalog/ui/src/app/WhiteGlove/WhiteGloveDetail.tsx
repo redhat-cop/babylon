@@ -133,18 +133,16 @@ const WhiteGloveDetailContent: React.FC = () => {
     let isRunning = false;
 
     if (serviceType === 'workshops' && linkedWorkshop) {
-      const startTime = linkedWorkshop.spec.lifespan?.start
-        ? Date.parse(linkedWorkshop.spec.lifespan.start)
-        : null;
-      isRunning = startTime == null || startTime < Date.now();
+      // Workshop is running when at least 1 provision is active
+      isRunning = (linkedWorkshop.status?.provisionCount?.active || 0) >= 1;
     } else if (serviceType === 'services' && linkedResourceClaim) {
+      // ResourceClaim is running when summary state is started/running
       const resourceState = linkedResourceClaim.status?.summary?.state;
       isRunning = resourceState === 'started' || resourceState === 'running';
     } else if (serviceType === 'selfpacedlabs' && linkedSelfPacedLab) {
-      const startTime = linkedSelfPacedLab.spec.lifespan?.start
-        ? Date.parse(linkedSelfPacedLab.spec.lifespan.start)
-        : null;
-      isRunning = startTime == null || startTime < Date.now();
+      // SelfPacedLab is running when there are ready or assigned pools
+      const poolCount = linkedSelfPacedLab.status?.poolCount;
+      isRunning = (poolCount?.ready || 0) + (poolCount?.assigned || 0) >= 1;
     }
 
     if (isRunning) {
