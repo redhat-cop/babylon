@@ -41,8 +41,8 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [explanation, setExplanation] = useState('');
   const [salesforceItems, setSalesforceItems] = useState<SalesforceItem[]>([]);
   const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
-  const [eventDate, setEventDate] = useState<Date | null>(null);
-  const [eventEndDate, setEventEndDate] = useState<Date | null>(null);
+  const [eventDate, setEventDate] = useState<Date>(() => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
+  const [eventEndDate, setEventEndDate] = useState<Date>(() => new Date(Date.now() + 15 * 24 * 60 * 60 * 1000));
   const [notes, setNotes] = useState('');
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
@@ -68,8 +68,8 @@ const WhiteGloveCreateContent: React.FC = () => {
         activity,
         explanation: explanation || undefined,
         numberOfUsers,
-        eventDate: eventDate ? eventDate.toISOString() : undefined,
-        eventEndDate: eventEndDate ? eventEndDate.toISOString() : undefined,
+        eventDate: eventDate.toISOString(),
+        eventEndDate: eventEndDate.toISOString(),
         notes: notes || undefined,
         salesforceItems: salesforceItems.length > 0 ? salesforceItems : undefined,
         namespace: userNamespace.name,
@@ -185,24 +185,24 @@ const WhiteGloveCreateContent: React.FC = () => {
 
           <FormGroup label="Event Start Date" fieldId="event-date">
             <DateTimePicker
-              defaultTimestamp={eventDate?.getTime() || Date.now()}
+              defaultTimestamp={eventDate.getTime()}
               onSelect={(date: Date) => {
                 setEventDate(date);
-                if (!eventEndDate || eventEndDate <= date) {
+                if (eventEndDate <= date) {
                   setEventEndDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
                 }
               }}
               minDate={Date.now()}
-              forceUpdateTimestamp={eventDate?.getTime()}
+              forceUpdateTimestamp={eventDate.getTime()}
             />
           </FormGroup>
 
           <FormGroup label="Event End Date" fieldId="event-end-date">
             <DateTimePicker
-              defaultTimestamp={eventEndDate?.getTime() || Date.now() + 24 * 60 * 60 * 1000}
+              defaultTimestamp={eventEndDate.getTime()}
               onSelect={(date: Date) => setEventEndDate(date)}
-              minDate={eventDate?.getTime() || Date.now()}
-              forceUpdateTimestamp={eventEndDate?.getTime()}
+              minDate={eventDate.getTime()}
+              forceUpdateTimestamp={eventEndDate.getTime()}
             />
           </FormGroup>
 
