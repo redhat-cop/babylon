@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -37,16 +37,12 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
 import useSession from '@app/utils/useSession';
-import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
-
 import './white-glove.css';
 
 function stateLabel(state: string): string {
   switch (state) {
     case 'pending-approval': return 'Pending Approval';
-    case 'approved': return 'Approved & Scheduled';
-    case 'provisioning': return 'Provisioning';
-    case 'running': return 'Running';
+    case 'approved': return 'Approved';
     case 'rejected': return 'Rejected';
     default: return state;
   }
@@ -56,8 +52,8 @@ function getBannerClass(state: string): string {
   return `wg-status-banner wg-status-banner--${state}`;
 }
 
-function getProgressVariant(stepState: string, currentState: string): 'success' | 'danger' | 'pending' | 'info' {
-  const stateOrder = ['pending-approval', 'approved', 'provisioning', 'running'];
+function getProgressVariant(stepState: string, currentState: string, hasService?: boolean): 'success' | 'danger' | 'pending' | 'info' {
+  const stateOrder = ['pending-approval', 'approved'];
   const currentIndex = stateOrder.indexOf(currentState);
 
   if (currentState === 'rejected') {
@@ -66,11 +62,17 @@ function getProgressVariant(stepState: string, currentState: string): 'success' 
     return 'pending';
   }
 
+  if (stepState === 'service') {
+    return hasService ? 'success' : 'pending';
+  }
+
+  if (stepState === 'approved') {
+    return currentState === 'approved' ? 'success' : 'pending';
+  }
+
   const stepMapping: Record<string, number> = {
     submitted: -1,
     'pending-approval': 0,
-    approved: 1,
-    running: 3,
   };
 
   const stepIndex = stepMapping[stepState] ?? -1;
@@ -81,7 +83,7 @@ function getProgressVariant(stepState: string, currentState: string): 'success' 
 
 function isCurrent(stepState: string, currentState: string): boolean {
   if (currentState === 'rejected' && stepState === 'rejected') return true;
-  if ((currentState === 'approved' || currentState === 'provisioning') && stepState === 'approved') return true;
+  if (currentState === 'approved' && stepState === 'approved') return true;
   return stepState === currentState;
 }
 
@@ -99,9 +101,6 @@ const WhiteGloveDetailContent: React.FC = () => {
     fetcher,
     { refreshInterval: 8000 },
   );
-
-  const wgrItems = useMemo(() => (wgr ? [wgr] : []), [wgr]);
-  useWhiteGloveRunningCheck(wgrItems, mutate);
 
   if (!wgr) {
     return (
@@ -163,7 +162,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           <BreadcrumbItem isActive>{wgr.spec.displayName || wgr.metadata.name}</BreadcrumbItem>
         </Breadcrumb>
 
-        <Title headingLevel="h1" size="2xl" style={{ marginBottom: '16px' }}>
+        <Title headingLevel="h1" size="2xl" style={{ marginTop: '16px', marginBottom: '16px' }}>
           {wgr.spec.displayName || wgr.metadata.name}
         </Title>
 
@@ -172,8 +171,7 @@ const WhiteGloveDetailContent: React.FC = () => {
             <SplitItem isFilled>
               <div className="wg-status-banner__header">
                 {state === 'pending-approval' && <ClockIcon className="wg-status-banner__icon" />}
-                {(state === 'approved' || state === 'provisioning') && <CheckCircleIcon className="wg-status-banner__icon" />}
-                {state === 'running' && <CheckCircleIcon className="wg-status-banner__icon" />}
+                {state === 'approved' && <CheckCircleIcon className="wg-status-banner__icon" />}
                 {isRejected && <ExclamationCircleIcon className="wg-status-banner__icon" />}
                 <span className="wg-status-banner__state">{stateLabel(state)}</span>
               </div>
@@ -206,17 +204,19 @@ const WhiteGloveDetailContent: React.FC = () => {
               <>
                 <ProgressStep
                   variant={getProgressVariant('approved', state)}
-                  isCurrent={isCurrent('approved', state)}
                   id="step-approved" titleId="step-approved-t" aria-label="Approved"
                 >
-                  Approved &amp; Scheduled
+                  Approved
                 </ProgressStep>
                 <ProgressStep
-                  variant={getProgressVariant('running', state)}
-                  isCurrent={isCurrent('running', state)}
-                  id="step-running" titleId="step-running-t" aria-label="Running"
+                  variant={getProgressVariant('service', state, !!(serviceName && serviceNamespace))}
+                  id="step-service" titleId="step-service-t" aria-label="View Service"
                 >
-                  Running
+                  {serviceName && serviceNamespace ? (
+                    <Link to={`/${serviceType}/${serviceNamespace}/${serviceName}`}>View Service</Link>
+                  ) : (
+                    'View Service'
+                  )}
                 </ProgressStep>
               </>
             )}
@@ -280,6 +280,10 @@ const WhiteGloveDetailContent: React.FC = () => {
             {activeTab === 'details' ? (
               <DescriptionList isHorizontal style={{ marginTop: '16px' }}>
                 <DescriptionListGroup>
+                  <DescriptionListTerm>Event Title</DescriptionListTerm>
+                  <DescriptionListDescription>{wgr.spec.displayName || '—'}</DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
                   <DescriptionListTerm>Request Type</DescriptionListTerm>
                   <DescriptionListDescription>
                     <span className="wg-label">White Glove</span>
@@ -290,7 +294,7 @@ const WhiteGloveDetailContent: React.FC = () => {
                     <DescriptionListTerm>Service</DescriptionListTerm>
                     <DescriptionListDescription>
                       <Button variant="primary" component="a" href={`/${serviceType}/${serviceNamespace}/${serviceName}`}>
-                        {wgr.spec.displayName || serviceName} &#8599;
+                        {serviceName} &#8599;
                       </Button>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -300,10 +304,10 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListDescription>
                     {wgr.spec.catalogItemName && wgr.spec.catalogItemNamespace ? (
                       <Link to={`/catalog/${wgr.spec.catalogItemNamespace}?item=${wgr.spec.catalogItemNamespace}/${wgr.spec.catalogItemName}`}>
-                        {wgr.spec.displayName || wgr.spec.catalogItemName}
+                        {wgr.spec.catalogItemName}
                       </Link>
                     ) : (
-                      wgr.spec.displayName || wgr.metadata.name
+                      '—'
                     )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>

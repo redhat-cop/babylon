@@ -35,6 +35,7 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [eventName, setEventName] = useState('');
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null);
   const [activity, setActivity] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -63,7 +64,7 @@ const WhiteGloveCreateContent: React.FC = () => {
       const result = await createWhiteGloveRequest({
         catalogItemName: selectedCatalogItem.metadata.name,
         catalogItemNamespace: selectedCatalogItem.metadata.namespace,
-        displayName: displayName(selectedCatalogItem),
+        displayName: eventName,
         purpose,
         activity,
         explanation: explanation || undefined,
@@ -84,7 +85,7 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
   }
 
-  const isFormValid = !!selectedCatalogItem && !!activity && !!purpose;
+  const isFormValid = !!eventName.trim() && !!selectedCatalogItem && !!activity && !!purpose;
 
   return (
     <>
@@ -121,6 +122,15 @@ const WhiteGloveCreateContent: React.FC = () => {
         )}
 
         <Form className="catalog-item-form__form">
+          <FormGroup label="Event Title" isRequired fieldId="event-name">
+            <TextInput
+              id="event-name"
+              value={eventName}
+              onChange={(_e, value) => setEventName(value)}
+              placeholder="e.g. RHEL 9 Workshop — Summit 2026"
+            />
+          </FormGroup>
+
           <FormGroup label="Catalog Item" isRequired fieldId="catalog-item">
             <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
               <div style={{ minWidth: '400px' }}>

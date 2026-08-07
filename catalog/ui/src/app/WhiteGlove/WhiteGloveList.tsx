@@ -20,7 +20,6 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { apiPaths, fetcher } from '@app/api';
-import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -28,6 +27,7 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import TimeInterval from '@app/components/TimeInterval';
 import useSession from '@app/utils/useSession';
 
+import '@app/Services/service-status.css';
 import './white-glove.css';
 
 function statusIcon(state: string): React.ReactNode {
@@ -35,12 +35,9 @@ function statusIcon(state: string): React.ReactNode {
     case 'pending-approval':
       return <ClockIcon />;
     case 'approved':
-    case 'running':
       return <CheckCircleIcon />;
     case 'rejected':
       return <ExclamationCircleIcon />;
-    case 'provisioning':
-      return <CheckCircleIcon />;
     default:
       return <ClockIcon />;
   }
@@ -51,9 +48,6 @@ function statusCssClass(state: string): string {
     case 'pending-approval':
       return 'service-status--waiting';
     case 'approved':
-    case 'provisioning':
-      return 'service-status--in-progress';
-    case 'running':
       return 'service-status--running';
     case 'rejected':
       return 'service-status--failed';
@@ -68,10 +62,6 @@ function statusLabel(state: string): string {
       return 'Pending Approval';
     case 'approved':
       return 'Approved';
-    case 'provisioning':
-      return 'Provisioning';
-    case 'running':
-      return 'Running';
     case 'rejected':
       return 'Rejected';
     default:
@@ -98,7 +88,6 @@ const WhiteGloveListContent: React.FC = () => {
   const items: WhiteGloveRequest[] = (data?.items || []).sort(
     (a, b) => new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime(),
   );
-  useWhiteGloveRunningCheck(items, mutate);
   const paginatedItems = items.slice((page - 1) * perPage, page * perPage);
 
   if (!userNamespace) {
