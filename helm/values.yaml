@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.3.0
+        tag: v1.3.1
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -224,7 +224,7 @@ serviceAccessManager:
   image:
     repository: quay.io/rhpds/babylon-service-access-manager
     pullPolicy: IfNotPresent
-    tag: v0.1.1
+    tag: v0.1.2
   namespace:
     create: true
     name: babylon-service-access-manager

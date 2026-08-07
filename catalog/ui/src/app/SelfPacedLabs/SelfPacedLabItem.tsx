@@ -32,22 +32,40 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList } from '@patternfly/react-core';
+import {
+  Alert,
+  FormGroup,
+  Label as PfLabel,
+  LabelGroup,
+  Select,
+  SelectOption,
+  SelectList,
+  TextInput,
+  Modal as PfModal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+} from '@patternfly/react-core';
 
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
   apiPaths,
+  createServiceAccessConfig,
   dateToApiString,
   deleteSelfPacedLab,
   deleteResourceClaim,
+  deleteServiceAccessConfig,
   fetcher,
   fetcherItemsInAllPages,
+  FORBIDDEN_RESPONSE,
+  optionalFetcher,
   patchResourceClaim,
   patchSelfPacedLab,
   patchSelfPacedLabProvisionItem,
+  patchServiceAccessConfig,
   SERVICES_KEY,
 } from '@app/api';
-import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType, SelfPacedLabUserAssignmentList } from '@app/types';
+import { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType, SelfPacedLabUserAssignmentList, ServiceAccessConfig } from '@app/types';
 import {
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
@@ -110,6 +128,8 @@ const SelfPacedLabItemComponent: React.FC<{
   const [modalDeleteRC, openModalDeleteRC] = useModal();
   const [deleteTargetRCs, setDeleteTargetRCs] = useState<ResourceClaim[]>([]);
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
+  const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
+  const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
 
   const { data: selfPacedLab, mutate: mutateSelfPacedLab } = useSWR<SelfPacedLab>(
     apiPaths.SELF_PACED_LAB({ namespace: serviceNamespaceName, selfPacedLabName }),
@@ -190,6 +210,31 @@ const SelfPacedLabItemComponent: React.FC<{
       refreshInterval: 8000,
     },
   );
+
+  const {
+    data: serviceAccessConfigResponse,
+    isLoading: serviceAccessLoading,
+    mutate: mutateServiceAccessConfig,
+  } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
+    selfPacedLab && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName))
+      ? apiPaths.SERVICE_ACCESS_CONFIG({
+          namespace: serviceNamespaceName,
+          name: selfPacedLab.metadata.name,
+        })
+      : null,
+    optionalFetcher,
+  );
+  const canManageCollaborators =
+    (sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName) &&
+      serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) ||
+    isAdmin;
+  const serviceAccessConfig = canManageCollaborators
+    ? (serviceAccessConfigResponse as ServiceAccessConfig | null)
+    : null;
+  const serviceAccessUsers = useMemo(() => {
+    if (!serviceAccessConfig?.spec?.users) return [];
+    return serviceAccessConfig.spec.users.map((u) => u.name);
+  }, [serviceAccessConfig]);
 
   const selfPacedLabId = selfPacedLab?.metadata.labels?.[`${BABYLON_DOMAIN}/selfpacedlab-id`];
   const activeResourceClaims = useMemo(
@@ -351,6 +396,62 @@ const SelfPacedLabItemComponent: React.FC<{
           patch: { spec: { lifespan: { start: dateToApiString(date) } } },
         }),
       );
+    }
+  }
+
+  async function handleAddServiceAccessUser() {
+    const email = newServiceAccessEmail.trim();
+    if (!email) return;
+
+    const updatedUsers = [...serviceAccessUsers, email];
+
+    try {
+      if (serviceAccessConfig) {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: selfPacedLab.metadata.name,
+          namespace: selfPacedLab.metadata.namespace,
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(updatedConfig);
+      } else {
+        const newConfig = await createServiceAccessConfig({
+          name: selfPacedLab.metadata.name,
+          namespace: selfPacedLab.metadata.namespace,
+          serviceName: selfPacedLab.metadata.name,
+          serviceNamespace: selfPacedLab.metadata.namespace,
+          serviceKind: 'SelfPacedLab',
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(newConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
+    }
+
+    setNewServiceAccessEmail('');
+    setModalAddServiceAccess(false);
+  }
+
+  async function handleRemoveServiceAccessUser(emailToRemove: string) {
+    const updatedUsers = serviceAccessUsers.filter((email: string) => email !== emailToRemove);
+
+    try {
+      if (updatedUsers.length === 0) {
+        await deleteServiceAccessConfig({
+          name: selfPacedLab.metadata.name,
+          namespace: selfPacedLab.metadata.namespace,
+        });
+        mutateServiceAccessConfig(null);
+      } else {
+        const updatedConfig = await patchServiceAccessConfig({
+          name: selfPacedLab.metadata.name,
+          namespace: selfPacedLab.metadata.namespace,
+          users: updatedUsers,
+        });
+        mutateServiceAccessConfig(updatedConfig);
+      }
+    } catch (error) {
+      console.error('Failed to update ServiceAccessConfig:', error);
     }
   }
 
@@ -599,6 +700,50 @@ const SelfPacedLabItemComponent: React.FC<{
                     </Select>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                {canManageCollaborators ? (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>
+                      Share service{' '}
+                      <Tooltip position="right" content={<p>Users who have access to this self-paced lab service.</p>}>
+                        <OutlinedQuestionCircleIcon
+                          aria-label="Users who have access to this self-paced lab service."
+                          className="tooltip-icon-only"
+                        />
+                      </Tooltip>
+                    </DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                        {serviceAccessLoading ? (
+                          <LoadingIcon />
+                        ) : serviceAccessUsers.length > 0 ? (
+                          <LabelGroup>
+                            {serviceAccessUsers.map((email: string) => (
+                              <PfLabel
+                                key={email}
+                                onClose={() => handleRemoveServiceAccessUser(email)}
+                                closeBtnAriaLabel={`Remove ${email}`}
+                              >
+                                {email}
+                              </PfLabel>
+                            ))}
+                          </LabelGroup>
+                        ) : (
+                          <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
+                            No users configured
+                          </span>
+                        )}
+                        <Button
+                          variant="link"
+                          icon={<PlusCircleIcon />}
+                          onClick={() => setModalAddServiceAccess(true)}
+                          style={{ alignSelf: 'flex-start', paddingLeft: 0, paddingTop: 0, paddingBottom: 0, paddingRight: 0 }}
+                        >
+                          Share service
+                        </Button>
+                      </div>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                ) : null}
                 {autoStartTime && autoStartTime > Date.now() ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Start Date</DescriptionListTerm>
@@ -1007,6 +1152,59 @@ const SelfPacedLabItemComponent: React.FC<{
           </Tab>
         </Tabs>
       </PageSection>
+      <PfModal
+        variant="medium"
+        isOpen={modalAddServiceAccess}
+        onClose={() => {
+          setModalAddServiceAccess(false);
+          setNewServiceAccessEmail('');
+        }}
+        aria-label="Share service"
+      >
+        <ModalHeader title="Share service" />
+        <ModalBody>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+            <Alert variant="info" isInline title="Grant user access">
+              By adding a user&apos;s email, they will gain access to manage this self-paced lab. Please use the email
+              address associated with their account on the Demo platform.
+            </Alert>
+            <FormGroup label="Email address" isRequired fieldId="service-access-email">
+              <TextInput
+                id="service-access-email"
+                type="email"
+                value={newServiceAccessEmail}
+                onChange={(_event, value) => setNewServiceAccessEmail(value)}
+                placeholder="user@example.com"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newServiceAccessEmail.trim()) {
+                    handleAddServiceAccessUser();
+                  }
+                }}
+              />
+            </FormGroup>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            key="add"
+            variant="primary"
+            onClick={handleAddServiceAccessUser}
+            isDisabled={!newServiceAccessEmail.trim()}
+          >
+            Add
+          </Button>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => {
+              setModalAddServiceAccess(false);
+              setNewServiceAccessEmail('');
+            }}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </PfModal>
     </>
   );
 };
