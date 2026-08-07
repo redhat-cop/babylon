@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -9,6 +9,7 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   PageSection,
+  Pagination,
   Split,
   SplitItem,
   Title,
@@ -21,7 +22,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { apiPaths, fetcher } from '@app/api';
 import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
-import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
 import TimeInterval from '@app/components/TimeInterval';
@@ -78,20 +79,27 @@ function statusLabel(state: string): string {
   }
 }
 
+const defaultPerPage = 20;
+
 const WhiteGloveListContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(defaultPerPage);
 
   const { data, mutate } = useSWR<WhiteGloveRequestList>(
     userNamespace
-      ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name, limit: FETCH_BATCH_LIMIT })
+      ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name })
       : null,
     fetcher,
     { refreshInterval: 8000 },
   );
 
-  const items: WhiteGloveRequest[] = data?.items || [];
+  const items: WhiteGloveRequest[] = (data?.items || []).sort(
+    (a, b) => new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime(),
+  );
   useWhiteGloveRunningCheck(items, mutate);
+  const paginatedItems = items.slice((page - 1) * perPage, page * perPage);
 
   if (!userNamespace) {
     return (
@@ -134,6 +142,22 @@ const WhiteGloveListContent: React.FC = () => {
             </EmptyStateFooter>
           </EmptyState>
         ) : (
+          <>
+          <Pagination
+            itemCount={items.length}
+            page={page}
+            perPage={perPage}
+            onSetPage={(_evt, newPage) => setPage(newPage)}
+            onPerPageSelect={(_evt, newPerPage, newPage) => {
+              setPerPage(newPerPage);
+              setPage(newPage);
+            }}
+            perPageOptions={[
+              { title: '20', value: 20 },
+              { title: '50', value: 50 },
+              { title: '100', value: 100 },
+            ]}
+          />
           <Table aria-label="White Glove Requests" variant="compact">
             <Thead>
               <Tr>
@@ -146,7 +170,7 @@ const WhiteGloveListContent: React.FC = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {items.map((wgr: WhiteGloveRequest) => {
+              {paginatedItems.map((wgr: WhiteGloveRequest) => {
                 const ann = wgr.metadata.annotations || {};
                 const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
                 const assignee = ann[`${DEMO_DOMAIN}/assignee`];
@@ -194,6 +218,7 @@ const WhiteGloveListContent: React.FC = () => {
               })}
             </Tbody>
           </Table>
+          </>
         )}
       </PageSection>
 

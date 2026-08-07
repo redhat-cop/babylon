@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
   PageSection,
+  Pagination,
   Title,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
@@ -14,7 +15,7 @@ import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import { apiPaths, fetcher } from '@app/api';
 import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
 import { WhiteGloveRequestList } from '@app/types';
-import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import { DEMO_DOMAIN } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
@@ -36,14 +37,22 @@ function statusIcon(state: string) {
   }
 }
 
+const defaultPerPage = 20;
+
 const WhiteGloveAdminListContent: React.FC = () => {
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(defaultPerPage);
+
   const { data, mutate } = useSWR<WhiteGloveRequestList>(
-    apiPaths.WHITE_GLOVE_REQUESTS({ limit: FETCH_BATCH_LIMIT }),
+    apiPaths.WHITE_GLOVE_REQUESTS({}),
     fetcher,
     { refreshInterval: 8000 },
   );
-  const requests = data?.items || [];
+  const requests = (data?.items || []).sort(
+    (a, b) => new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime(),
+  );
   useWhiteGloveRunningCheck(requests, mutate);
+  const paginatedRequests = requests.slice((page - 1) * perPage, page * perPage);
 
   return (
     <>
@@ -56,6 +65,21 @@ const WhiteGloveAdminListContent: React.FC = () => {
           White Glove Requests
         </Title>
 
+        <Pagination
+          itemCount={requests.length}
+          page={page}
+          perPage={perPage}
+          onSetPage={(_evt, newPage) => setPage(newPage)}
+          onPerPageSelect={(_evt, newPerPage, newPage) => {
+            setPerPage(newPerPage);
+            setPage(newPage);
+          }}
+          perPageOptions={[
+            { title: '20', value: 20 },
+            { title: '50', value: 50 },
+            { title: '100', value: 100 },
+          ]}
+        />
         <Table aria-label="White Glove Requests" variant="compact">
           <Thead>
             <Tr>
@@ -68,7 +92,7 @@ const WhiteGloveAdminListContent: React.FC = () => {
             </Tr>
           </Thead>
           <Tbody>
-            {requests.map((wgr) => {
+            {paginatedRequests.map((wgr) => {
               const ann = wgr.metadata.annotations || {};
               return (
                 <Tr key={wgr.metadata.uid || wgr.metadata.name}>
