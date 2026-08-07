@@ -2,6 +2,7 @@ from kubernetes_asyncio.client import ApiException as k8sApiException
 
 from babylon import Babylon
 from resourceclaim import ResourceClaim
+from selfpacedlab import SelfPacedLab
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
@@ -88,6 +89,24 @@ class ServiceAccessConfig(KopfObject):
             service_access_configs.remove(self.name)
             await resource_claim.merge_patch_status({"serviceAccessConfigs": service_access_configs})
 
+    async def __handle_delete_kind_self_paced_lab(self, logger):
+        """Handle cleanup of SelfPacedLab on delete of ServiceAccessConfig."""
+        try:
+            self_paced_lab = await SelfPacedLab.fetch(
+                name=self.object_name,
+                namespace=self.namespace,
+            )
+        except k8sApiException as exception:
+            if exception.status == 404:
+                return
+            raise
+        if 'deletionTimestamp' in self_paced_lab.metadata:
+            return
+        service_access_configs = self_paced_lab.status.get('serviceAccessConfigs', [])
+        if self.name in service_access_configs:
+            service_access_configs.remove(self.name)
+            await self_paced_lab.merge_patch_status({"serviceAccessConfigs": service_access_configs})
+
     async def __handle_delete_kind_workshop(self, logger):
         """Handle cleanup of Workshop on delete of ServiceAccessConfig."""
         try:
@@ -110,6 +129,8 @@ class ServiceAccessConfig(KopfObject):
     async def __manage(self, logger):
         if self.object_kind == 'ResourceClaim':
             await self.__manage_resource_claim_access(logger)
+        elif self.object_kind == 'SelfPacedLab':
+            await self.__manage_self_paced_lab_access(logger)
         elif self.object_kind == 'Workshop':
             await self.__manage_workshop_access(logger)
         await self.__manage_service_accesses(logger)
@@ -200,6 +221,85 @@ class ServiceAccessConfig(KopfObject):
             service_access_configs.append(self.name)
             await resource_claim.merge_patch_status({"serviceAccessConfigs": service_access_configs})
             logger.info("Added %s to %s status", self, resource_claim)
+
+    async def __manage_self_paced_lab_access(self, logger):
+        try:
+            self_paced_lab = await SelfPacedLab.fetch(
+                name=self.object_name,
+                namespace=self.namespace,
+            )
+        except k8sApiException as exception:
+            if exception.status == 404:
+                logger.info("Deleting %s after deletion of SelfPacedLab %s", self, self.object_name)
+                await self.delete()
+                return
+            raise
+        if self_paced_lab.deletion_timestamp is not None:
+            logger.info("Deleting %s after deletion of %s", self, self_paced_lab)
+            await self.delete()
+            return
+        await self.__manage_self_paced_lab_access_with_object(self_paced_lab, logger)
+
+    async def __manage_self_paced_lab_access_with_object(self, self_paced_lab, logger):
+        await self.__manage_self_paced_lab_service_access_config_reference(self_paced_lab, logger)
+        await self.__manage_self_paced_lab_access_role(self_paced_lab, logger)
+        await self.__manage_role_binding(self_paced_lab, logger)
+
+    async def __manage_self_paced_lab_service_access_config_reference(self, self_paced_lab, logger):
+        """Make sure SelfPacedLab has reference to ServiceAccessConfig in status."""
+        service_access_configs = self_paced_lab.status.get('serviceAccessConfigs')
+        if service_access_configs is None:
+            await self_paced_lab.merge_patch_status({"serviceAccessConfigs": [self.name]})
+            logger.info("Added %s to %s status", self, self_paced_lab)
+        elif self.name not in service_access_configs:
+            service_access_configs.append(self.name)
+            await self_paced_lab.merge_patch_status({"serviceAccessConfigs": service_access_configs})
+            logger.info("Added %s to %s status", self, self_paced_lab)
+
+    async def __manage_self_paced_lab_access_role(self, self_paced_lab, logger):
+        """Manage role for access to SelfPacedLab and related objects."""
+        current_state = await self.__fetch_role(logger)
+
+        role = V1Role(
+            api_version="rbac.authorization.k8s.io/v1",
+            kind="Role",
+            metadata=(
+                V1ObjectMeta(name=self.name, namespace=self.namespace)
+                if current_state is None else current_state.metadata
+            ),
+        )
+        role.metadata.owner_references = [self.as_owner_reference()]
+        role.rules = [
+            V1PolicyRule(
+                api_groups=[self_paced_lab.api_group],
+                resource_names=[self_paced_lab.name],
+                resources=[self_paced_lab.plural],
+                verbs=['get', 'patch', 'update'],
+            ),
+        ]
+        if len(self_paced_lab.resource_claim_names) > 0:
+            role.rules.append(
+                V1PolicyRule(
+                    api_groups=[ResourceClaim.api_group],
+                    resource_names=self_paced_lab.resource_claim_names,
+                    resources=[ResourceClaim.plural],
+                    verbs=['delete', 'get', 'patch', 'update'],
+                )
+            )
+
+        if current_state is None:
+            try:
+                await Babylon.rbac_authorization_api.create_namespaced_role(self.namespace, role)
+                logger.info("Created service access role for %s", self_paced_lab)
+            except k8sApiException as exception:
+                if exception.status != 409:
+                    logger.exception("Failed to create service access role for %s", self_paced_lab)
+        elif role != current_state:
+            try:
+                await Babylon.rbac_authorization_api.replace_namespaced_role(self.name, self.namespace, role)
+                logger.info("Updated service access role for %s", self_paced_lab)
+            except k8sApiException:
+                logger.exception("Failed to update service access role for %s", self_paced_lab)
 
     async def __manage_role_binding(self, obj, logger):
         """Manage role binding for this service access config role."""
@@ -391,6 +491,8 @@ class ServiceAccessConfig(KopfObject):
         logger.debug(f"Handling delete {self}")
         if self.object_kind == 'ResourceClaim':
             await self.__handle_delete_kind_resource_claim(logger)
+        elif self.object_kind == 'SelfPacedLab':
+            await self.__handle_delete_kind_self_paced_lab(logger)
         elif self.object_kind == 'Workshop':
             await self.__handle_delete_kind_workshop(logger)
         await self.__delete_serviceaccesses(logger)
@@ -416,6 +518,10 @@ class ServiceAccessConfig(KopfObject):
     async def handle_update(self, logger):
         logger.debug(f"Handling update {self}")
         await self.__manage(logger)
+
+    async def handle_self_paced_lab_event(self, self_paced_lab, logger):
+        logger.debug(f"Handling event on %s for %s", self_paced_lab, self)
+        await self.__manage_self_paced_lab_access_with_object(self_paced_lab, logger)
 
     async def handle_workshop_event(self, workshop, logger):
         logger.debug(f"Handling event on %s for %s", workshop, self)

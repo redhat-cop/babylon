@@ -2567,10 +2567,10 @@ export async function createServiceAccessConfig({
   namespace: string;
   serviceName: string;
   serviceNamespace: string;
-  serviceKind?: 'Workshop' | 'ResourceClaim';
+  serviceKind?: 'Workshop' | 'ResourceClaim' | 'SelfPacedLab';
   users: string[];
 }): Promise<ServiceAccessConfig> {
-  const labelKey = serviceKind === 'Workshop' ? 'workshop' : 'resourceclaim';
+  const labelKey = serviceKind === 'Workshop' ? 'workshop' : serviceKind === 'SelfPacedLab' ? 'selfpacedlab' : 'resourceclaim';
   const definition: ServiceAccessConfig = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'ServiceAccessConfig',
