@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import {
   Breadcrumb,
   BreadcrumbItem,
   PageSection,
+  Pagination,
   Title,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
-import { apiPaths, fetcher } from '@app/api';
-import useWhiteGloveRunningCheck from '@app/utils/useWhiteGloveRunningCheck';
-import { WhiteGloveRequestList } from '@app/types';
-import { DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
+import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
+import { apiPaths, deleteWhiteGloveRequest, fetcher } from '@app/api';
+import Modal, { useModal } from '@app/Modal/Modal';
+import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
+import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
+import { DEMO_DOMAIN } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
+import '@app/Services/service-status.css';
 import '@app/WhiteGlove/white-glove.css';
 
 function statusIcon(state: string) {
@@ -25,10 +29,7 @@ function statusIcon(state: string) {
     case 'pending-approval':
       return <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}><ClockIcon /> Pending Approval</span>;
     case 'approved':
-    case 'provisioning':
-      return <span className="service-status--in-progress" style={{ textTransform: 'capitalize' }}><CheckCircleIcon /> Approved &amp; Scheduled</span>;
-    case 'running':
-      return <span className="service-status--running" style={{ textTransform: 'capitalize' }}><CheckCircleIcon /> Running</span>;
+      return <span className="service-status--running" style={{ textTransform: 'capitalize' }}><CheckCircleIcon /> Approved</span>;
     case 'rejected':
       return <span className="service-status--failed" style={{ textTransform: 'capitalize' }}><ExclamationCircleIcon /> Rejected</span>;
     default:
@@ -36,17 +37,49 @@ function statusIcon(state: string) {
   }
 }
 
+const defaultPerPage = 20;
+
 const WhiteGloveAdminListContent: React.FC = () => {
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(defaultPerPage);
+  const [modalAction, openModalAction] = useModal();
+  const [deleteTarget, setDeleteTarget] = useState<WhiteGloveRequest | null>(null);
+
+  const showDeleteModal = useCallback(
+    (wgr: WhiteGloveRequest) => {
+      setDeleteTarget(wgr);
+      openModalAction();
+    },
+    [openModalAction],
+  );
+
   const { data, mutate } = useSWR<WhiteGloveRequestList>(
-    apiPaths.WHITE_GLOVE_REQUESTS({ limit: FETCH_BATCH_LIMIT }),
+    apiPaths.WHITE_GLOVE_REQUESTS({}),
     fetcher,
     { refreshInterval: 8000 },
   );
-  const requests = data?.items || [];
-  useWhiteGloveRunningCheck(requests, mutate);
+  const requests = (data?.items || []).sort(
+    (a, b) => new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime(),
+  );
+  const paginatedRequests = requests.slice((page - 1) * perPage, page * perPage);
+
+  async function onDeleteConfirm(): Promise<void> {
+    if (deleteTarget) {
+      await deleteWhiteGloveRequest(deleteTarget);
+      mutate();
+    }
+  }
 
   return (
     <>
+      <Modal
+        ref={modalAction}
+        onConfirm={onDeleteConfirm}
+        confirmText="Delete"
+        title={deleteTarget ? `Delete request "${deleteTarget.spec.displayName || deleteTarget.metadata.name}"?` : ''}
+      >
+        <p>This white glove request will be permanently deleted.</p>
+      </Modal>
       <PageSection hasBodyWrapper={false}>
         <Breadcrumb>
           <BreadcrumbItem>Admin</BreadcrumbItem>
@@ -56,6 +89,21 @@ const WhiteGloveAdminListContent: React.FC = () => {
           White Glove Requests
         </Title>
 
+        <Pagination
+          itemCount={requests.length}
+          page={page}
+          perPage={perPage}
+          onSetPage={(_evt, newPage) => setPage(newPage)}
+          onPerPageSelect={(_evt, newPerPage, newPage) => {
+            setPerPage(newPerPage);
+            setPage(newPage);
+          }}
+          perPageOptions={[
+            { title: '20', value: 20 },
+            { title: '50', value: 50 },
+            { title: '100', value: 100 },
+          ]}
+        />
         <Table aria-label="White Glove Requests" variant="compact">
           <Thead>
             <Tr>
@@ -65,10 +113,11 @@ const WhiteGloveAdminListContent: React.FC = () => {
               <Th>Submitted</Th>
               <Th>Assignee</Th>
               <Th>Jira</Th>
+              <Th>Actions</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {requests.map((wgr) => {
+            {paginatedRequests.map((wgr) => {
               const ann = wgr.metadata.annotations || {};
               return (
                 <Tr key={wgr.metadata.uid || wgr.metadata.name}>
@@ -95,6 +144,13 @@ const WhiteGloveAdminListContent: React.FC = () => {
                         {ann[`${DEMO_DOMAIN}/jira-ticket-id`]}
                       </a>
                     ) : '—'}
+                  </Td>
+                  <Td dataLabel="Actions">
+                    <ButtonCircleIcon
+                      onClick={() => showDeleteModal(wgr)}
+                      description="Delete"
+                      icon={TrashIcon}
+                    />
                   </Td>
                 </Tr>
               );

@@ -9,14 +9,6 @@
   border: 1px solid #e0c060;
 }
 .wg-status-banner--approved {
-  background-color: #e7f1fa;
-  border: 1px solid #b8d4f0;
-}
-.wg-status-banner--provisioning {
-  background-color: #e7f1fa;
-  border: 1px solid #b8d4f0;
-}
-.wg-status-banner--running {
   background-color: #e9f5e6;
   border: 1px solid #b3dba9;
 }
@@ -33,9 +25,7 @@
 }
 .wg-status-banner__icon { font-size: 20px; }
 .wg-status-banner--pending-approval .wg-status-banner__icon { color: #795600; }
-.wg-status-banner--approved .wg-status-banner__icon,
-.wg-status-banner--provisioning .wg-status-banner__icon { color: #0066cc; }
-.wg-status-banner--running .wg-status-banner__icon { color: #3e8635; }
+.wg-status-banner--approved .wg-status-banner__icon { color: #3e8635; }
 .wg-status-banner--rejected .wg-status-banner__icon { color: #c9190b; }
 
 .wg-status-banner__state {
