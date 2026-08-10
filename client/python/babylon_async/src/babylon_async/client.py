@@ -11,6 +11,8 @@ from kubernetes_asyncio.client import (
     ApiException as KubernetesApiException
 )
 
+from .agnosticvcomponent import AgnosticVComponent
+from .agnosticvrepo import AgnosticVRepo
 from .anarchygovernor import AnarchyGovernor
 from .anarchyrun import AnarchyRun
 from .anarchysubject import AnarchySubject
@@ -125,6 +127,8 @@ class BabylonClient:
         group:str|None=None,
         namespace:str|None=None,
     ) -> Mapping:
+        if namespace is None and 'namespace' in definition.get('metadata', {}):
+            namespace = definition['metadata']['namespace']
         try:
             if group is None:
                 singular = singularize(plural)
@@ -347,6 +351,94 @@ class BabylonClient:
             _content_type=content_type,
         )
 
+    async def replace_object(self,
+        definition:Mapping,
+        group:str,
+        name:str,
+        plural:str,
+        version:str,
+        namespace:str|None=None,
+    ) -> Mapping:
+        """Replace object in k8s API and return response."""
+        if namespace is None:
+            return await self.custom_objects_api.replace_cluster_custom_object(
+                body=definition,
+                group=group,
+                name=name,
+                plural=plural,
+                version=version,
+            )
+        return await self.custom_objects_api.replace_namespaced_custom_object(
+            body=definition,
+            group=group,
+            name=name,
+            namespace=namespace,
+            plural=plural,
+            version=version,
+        )
+
+    # AgnosticVComponent methods
+    async def create_agnosticv_component(self,
+        definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
+        name:str|None=None,
+        owner:K8sObject|None=None
+    ) -> AgnosticVComponent:
+        return await AgnosticVComponent.create(
+            annotations=annotations,
+            client=self,
+            definition=definition,
+            labels=labels,
+            name=name,
+            namespace="babylon-config",
+            owner=owner,
+        )
+        
+    async def get_agnosticv_component(self,
+        name:str,
+        cache:bool=False,
+    ) -> AgnosticVComponent:
+        return await AgnosticVComponent.get(
+            cache=cache,
+            client=self,
+            name=name,
+            namespace="babylon-config",
+        )
+
+    async def list_agnosticv_components(self,
+        label_selector:str|None=None,
+    ) -> Generator[AgnosticVComponent, None, None]:
+        async for agnosticv_component in AgnosticVComponent.list(
+            client=self,
+            label_selector=label_selector,
+            namespace="babylon-config",
+        ):
+            yield agnosticv_component
+
+
+    # AgnosticVRepo methods
+    async def get_agnosticv_repo(self,
+        name:str,
+        cache:bool=False,
+    ) -> AgnosticVRepo:
+        return await AgnosticVRepo.get(
+            cache=cache,
+            client=self,
+            name=name,
+            namespace="babylon-config",
+        )
+
+    async def list_agnosticv_repos(self,
+        label_selector:str|None=None,
+    ) -> Generator[AgnosticVRepo, None, None]:
+        async for agnosticv_repo in AgnosticVRepo.list(
+            client=self,
+            label_selector=label_selector,
+            namespace="babylon-config",
+        ):
+            yield agnosticv_repo
+
     # AnarchyGovernor methods
     async def get_anarchy_governor(self,
         name:str,
@@ -469,7 +561,7 @@ class BabylonClient:
         name:str|None=None,
         owner:K8sObject|None=None,
         parameter_values:Mapping[str,Any]|None=None,
-    ):
+    ) -> ResourceClaim:
         if parameter_values is None:
             parameter_values = {}
         return await ResourceClaim.create_with_provider(
@@ -531,6 +623,24 @@ class BabylonClient:
             yield resource_provider
 
     # TenantClusterPool methods
+    async def create_tenant_cluster_pool(self,
+        definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
+        name:str|None=None,
+        namespace:str|None=None,
+        owner:K8sObject|None=None
+    ) -> TenantClusterPool:
+        return await TenantClusterPool.create(
+            annotations=annotations,
+            client=self,
+            definition=definition,
+            labels=labels,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+        )
+
     async def get_tenant_cluster_pool(self, name:str, namespace:str) -> TenantClusterPool:
         return await TenantClusterPool.get(client=self, name=name, namespace=namespace)
 

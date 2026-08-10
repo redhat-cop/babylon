@@ -6,6 +6,9 @@ import yaml
 from babylon_async import BabylonClient
 
 class OperatorRuntime():
+    """Class with access to global objects such as Babylon api."""
+    environment_level = os.environ['ENVIRONMENT_LEVEL']
+
     agnosticv_api_group = os.environ.get('AGNOSTICV_API_GROUP', 'gpte.redhat.com')
     agnosticv_version = os.environ.get('AGNOSTICV_VERSION', 'v1')
     anarchy_api_group = os.environ.get('ANARCHY_API_GROUP', 'anarchy.gpte.redhat.com')

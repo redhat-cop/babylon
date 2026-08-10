@@ -57,6 +57,11 @@ spec:
                     - name
                 required:
                 - provider
+              enabled:
+                description: >-
+                  Flag to indicate whether TenantClusterPool is enabled.
+                  All handling will be skipped unless set.
+                type: boolean
               maxClusters:
                 description: >-
                   Maximum number of clusters to provision. If undefined then
@@ -116,18 +121,15 @@ spec:
                     description: >-
                       Maximum CPU utilization on host to allow tenant placement.
                     type: integer
-                    default: 100
                     minimum: 1
                   max_memory_usage_percentage:
                     description: >-
                       Maximum memory utilization on host to allow tenant placement.
-                    default: 90
                     type: integer
                   quota_required:
                     description: >-
                       Configure whether tenant sandbox request must include quota.
                     type: boolean
-                    default: false
               tenantPools:
                 description: >-
                   Configuration to keep a pool of provisioned tenant items.

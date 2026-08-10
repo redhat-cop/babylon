@@ -1,15 +1,16 @@
 import asyncio
 import json
-import kubernetes_asyncio
 import logging
 import os
 
 from datetime import datetime, timezone
 
+import kubernetes_asyncio
+
+from babylon_async import AgnosticVComponent, BabylonApiException
+
 from k8sobject import K8sObject
 from operatorruntime import OperatorRuntime
-
-from agnosticvcomponent import AgnosticVComponent
 
 logger = logging.getLogger('catalogitem')
 
@@ -146,5 +147,10 @@ class CatalogItem(K8sObject):
         except:
             logger.exception(f"Exception while deleting {self}")
 
-    async def fetch_agnosticv_component(self):
-        return await AgnosticVComponent.fetch(name=self.name)
+    async def fetch_agnosticv_component(self) -> AgnosticVComponent|None:
+        try:
+            return await OperatorRuntime.babylon.get_agnosticv_component(self.name)
+        except BabylonApiException as exception:
+            if exception.status != 404:
+                raise
+        return None

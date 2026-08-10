@@ -13,6 +13,8 @@ fi
 cp -a ../client/python/babylon_async/src/babylon_async venv/lib/python3.*/site-packages/
 
 export OPERATOR_NAMESPACE=babylon-config
+# Environment level development or integration, run local should never run on production!
+export ENVIRONMENT_LEVEL=$(oc get ingresses.config cluster -o jsonpath={.spec.domain} | grep integration &>/dev/null && echo integration || echo development)
 export APP_ROOT=${PWD}/tmp
 export RUN_LOCAL=true
 

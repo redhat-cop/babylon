@@ -62,6 +62,9 @@ class K8sObject:
             else:
                 definition['metadata']['name'] = name
 
+        if namespace is not None:
+            definition['metadata']['namespace'] = namespace
+
         if owner is not None:
             definition['metadata']['ownerReferences'] = [owner.as_owner_reference()]
 
@@ -233,6 +236,17 @@ class K8sObject:
         """Refetch object to refresh definition"""
         self._definition = self.client.get_object(
             group=self.api_gorup,
+            name=self.metadata.name,
+            namespace=self.metadata.namespace,
+            plural=self.plural,
+            version=self.api_version,
+        )
+
+    async def replace_definition(self, definition:Mapping) -> None:
+        """Replace object definition with provided definition."""
+        self._definition = await self.client.replace_object(
+            definition=definition,
+            group=self.api_group,
             name=self.metadata.name,
             namespace=self.metadata.namespace,
             plural=self.plural,

@@ -1,6 +1,8 @@
 from __future__ import annotations
+from copy import deepcopy
 from typing import List, Mapping
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 
 class AnarchyGovernor(K8sObject):
@@ -22,11 +24,39 @@ class AnarchyGovernor(K8sObject):
 
     @property
     def spec(self) -> AnarchyGovernorSpec:
-        return AnarchyGovernorSpec(self._definition)
+        return AnarchyGovernorSpec(self._definition['spec'])
 
     @property
     def vars(self) -> Mapping:
         return self.spec.vars
+
+    async def update_from_agnosticv(self,
+        definition: Mapping,
+        dry_run: bool=False
+    ) -> bool:
+        """Update AnarchyGovernor with definition from AgnosticVComponent.
+        Return boolean to indicate if definition required update."""
+        while True:
+            merged = self.get_definition()
+            # All of spec managed from AgnosticV
+            merged['spec'] = definition['spec']
+            # All annotations managed from AgnosticV
+            merged['metadata']['annotations'] = definition['metadata']['annotations']
+            # All labels managed from AgnosticV
+            merged['metadata']['labels'] = definition['metadata']['labels']
+
+            if merged == self._definition:
+                return False
+            if dry_run:
+                return True
+
+            try:
+                await self.replace_definition(merged)
+                return True
+            except BabylonApiException as err:
+                if err.status != 409:
+                    raise
+                await self.refresh()
 
 class AnarchyGovernorSpec:
     def __init__(self, definition):
