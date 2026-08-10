@@ -211,7 +211,7 @@ async def manage_anarchy_governor(
             raise
 
     if anarchy_governor is None:
-        anarchy_governor = await babylon.create_anarchy_governor(
+        anarchy_governor = await OperatorRuntime.babylon.create_anarchy_governor(
             definition=anarchy_governor_definition,
         )
         logger.info("Created %s", anarchy_governor)
@@ -276,7 +276,7 @@ async def manage_catalog_item(
             raise
 
     if catalog_item is None:
-        catalog_item = await babylon.create_catalog_item(
+        catalog_item = await OperatorRuntime.babylon.create_catalog_item(
             definition=catalog_item_definition,
         )
         logger.info("Created %s", catalog_item)
@@ -303,7 +303,7 @@ async def manage_resource_provider(
             raise
 
     if resource_provider is None:
-        resource_provider = await babylon.create_resource_provider(
+        resource_provider = await OperatorRuntime.babylon.create_resource_provider(
             definition=resource_provider_definition,
         )
         logger.info("Created %s", resource_provider)
@@ -334,7 +334,7 @@ async def manage_tenant_cluster_pool(
             raise
 
     if tenant_cluster_pool is None:
-        tenant_cluster_pool = await babylon.create_tenant_cluster_pool(
+        tenant_cluster_pool = await OperatorRuntime.babylon.create_tenant_cluster_pool(
             definition=tenant_cluster_pool_definition,
         )
         logger.info("Created %s", tenant_cluster_pool)

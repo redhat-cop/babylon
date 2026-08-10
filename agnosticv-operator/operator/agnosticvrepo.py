@@ -2216,7 +2216,10 @@ class AgnosticVRepo(CachedKopfObject):
                         )
 
                 if self.catalog_url:
-                    message += f"\n\nThe updated catalog is available at {self.catalog_url}"
+                    message = (
+                        (f"{message}\n\n" if message is not None else "") +
+                        f"The updated catalog is available at {self.catalog_url}"
+                    )
 
                 async with aiohttp.ClientSession() as session:
                     # Only post comment if message is not None
