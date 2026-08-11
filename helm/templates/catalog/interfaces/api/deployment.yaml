@@ -50,6 +50,26 @@ spec:
             secretKeyRef:
               name: sandbox-api-shared-cluster-manager
               key: shared-cluster-manager-token
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-jira
+              key: jira-api-token
+        - name: JIRA_USER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-jira
+              key: jira-user-email
+        - name: JIRA_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-jira
+              key: jira-base-url
+        - name: JIRA_PROJECT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-jira
+              key: jira-project-key
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
