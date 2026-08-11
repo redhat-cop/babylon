@@ -762,7 +762,7 @@ export interface ServiceAccessConfig extends K8sObject {
 }
 
 export interface ServiceAccessConfigSpec {
-  kind: 'ResourceClaim' | 'Workshop';
+  kind: 'ResourceClaim' | 'SelfPacedLab' | 'Workshop';
   name: string;
   users?: Array<{ name: string }>;
 }
@@ -784,7 +784,7 @@ export interface ServiceAccess extends K8sObject {
 }
 
 export interface ServiceAccessSpec {
-  kind: 'ResourceClaim' | 'Workshop';
+  kind: 'ResourceClaim' | 'SelfPacedLab' | 'Workshop';
   name: string;
   namespace: string;
 }
