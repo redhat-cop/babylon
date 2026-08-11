@@ -2,7 +2,7 @@ from kubernetes_asyncio.client import ApiException as k8sApiException
 
 from babylon import Babylon
 from resourceclaim import ResourceClaim
-from selfpacedlab import SelfPacedLab
+import selfpacedlab
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
@@ -92,7 +92,7 @@ class ServiceAccessConfig(KopfObject):
     async def __handle_delete_kind_self_paced_lab(self, logger):
         """Handle cleanup of SelfPacedLab on delete of ServiceAccessConfig."""
         try:
-            self_paced_lab = await SelfPacedLab.fetch(
+            self_paced_lab = await selfpacedlab.SelfPacedLab.fetch(
                 name=self.object_name,
                 namespace=self.namespace,
             )
@@ -224,7 +224,7 @@ class ServiceAccessConfig(KopfObject):
 
     async def __manage_self_paced_lab_access(self, logger):
         try:
-            self_paced_lab = await SelfPacedLab.fetch(
+            self_paced_lab = await selfpacedlab.SelfPacedLab.fetch(
                 name=self.object_name,
                 namespace=self.namespace,
             )
