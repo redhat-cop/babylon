@@ -131,3 +131,7 @@ sandboxApi:
 sharedClusterManager:
   deploy: true
   secretName: sandbox-api-shared-cluster-manager
+
+jira:
+  deploy: true
+  secretName: babylon-catalog-jira

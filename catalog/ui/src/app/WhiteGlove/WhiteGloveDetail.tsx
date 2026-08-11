@@ -29,7 +29,7 @@ import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFoote
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
-import { apiPaths, fetcher, patchWhiteGloveRequest } from '@app/api';
+import { apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
 import { WhiteGloveRequest } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN } from '@app/util';
@@ -91,7 +91,6 @@ const WhiteGloveDetailContent: React.FC = () => {
   const { namespace, name } = useParams();
   const { isAdmin } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
-  const [comment, setComment] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [slackChannel, setSlackChannel] = useState('');
@@ -100,6 +99,14 @@ const WhiteGloveDetailContent: React.FC = () => {
     namespace && name ? apiPaths.WHITE_GLOVE_REQUEST({ namespace, name }) : null,
     fetcher,
     { refreshInterval: 8000 },
+  );
+
+  const jiraTicketId = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+
+  const { data: jiraData } = useSWR(
+    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    silentFetcher,
+    { refreshInterval: 30000 },
   );
 
   if (!wgr) {
@@ -116,9 +123,11 @@ const WhiteGloveDetailContent: React.FC = () => {
   const requester = ann[`${DEMO_DOMAIN}/requester`]
     || ann[`${BABYLON_DOMAIN}/created-by`]
     || '—';
-  const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
   const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
-  const assignee = ann[`${DEMO_DOMAIN}/assignee`];
+  const jiraAssignee = jiraData?.assignee;
+  const jiraStatus = jiraData?.status;
+  const jiraComments = jiraData?.comments || [];
+  const assignee = jiraAssignee?.displayName || ann[`${DEMO_DOMAIN}/assignee`];
   const serviceName = ann[`${DEMO_DOMAIN}/service-name`];
   const serviceNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
   const serviceType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
@@ -186,6 +195,9 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer" className="wg-jira-link">
                   {jiraTicketId} &#8599;
                 </a>
+                {jiraStatus && (
+                  <span className="wg-jira-status">{jiraStatus}</span>
+                )}
               </SplitItem>
             )}
           </Split>
@@ -396,24 +408,28 @@ const WhiteGloveDetailContent: React.FC = () => {
               </DescriptionList>
             ) : null}
           </Tab>
-          <Tab eventKey="activity" title={<TabTitleText>Activity</TabTitleText>}>
+          <Tab eventKey="activity" title={<TabTitleText>Activity ({jiraComments.length})</TabTitleText>}>
             {activeTab === 'activity' ? (
               <div style={{ marginTop: '16px' }}>
-                <div className="wg-comment-input">
-                  <TextArea
-                    id="activity-comment"
-                    value={comment}
-                    onChange={(_, value) => setComment(value)}
-                    placeholder="Add a comment... (synced with Jira)"
-                    rows={2}
-                  />
-                  <div className="wg-comment-input__actions">
-                    <Button variant="primary" size="sm" isDisabled={!comment.trim()}>Send</Button>
+                {jiraComments.length > 0 ? (
+                  <div className="wg-comments-list">
+                    {jiraComments.map((c: { author: string; body: string; created: string; updated: string }, i: number) => (
+                      <div key={i} className="wg-comment">
+                        <div className="wg-comment__header">
+                          <strong>{c.author}</strong>
+                          <span className="wg-comment__time">
+                            <LocalTimestamp timestamp={c.created} />
+                          </span>
+                        </div>
+                        <div className="wg-comment__body">{c.body}</div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontStyle: 'italic' }}>
-                  Activity feed will sync with Jira comments.
-                </p>
+                ) : (
+                  <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontStyle: 'italic' }}>
+                    No comments yet. Comments added in Jira will appear here.
+                  </p>
+                )}
               </div>
             ) : null}
           </Tab>

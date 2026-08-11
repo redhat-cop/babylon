@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+import base64
 import copy
 import gzip
 import json
@@ -34,6 +35,10 @@ sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
 shared_cluster_manager_token = os.environ.get('SHARED_CLUSTER_MANAGER_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+jira_base_url = os.environ.get('JIRA_BASE_URL', 'https://redhat.atlassian.net')
+jira_api_token = os.environ.get('JIRA_API_TOKEN')
+jira_user_email = os.environ.get('JIRA_USER_EMAIL')
+jira_project_key = os.environ.get('JIRA_PROJECT_KEY', 'RHDPSPPT')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
 response_cache_clean_task = None
@@ -966,6 +971,152 @@ async def external_item_request(request):
         data=json.dumps(data),
         url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
+
+@routes.post("/api/jira/wgr")
+async def create_jira_wgr_ticket(request):
+    user = await get_proxy_user(request)
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    data = await request.json()
+    display_name = data.get('displayName', 'White Glove Request')
+    requester = user['metadata']['name']
+
+    description_lines = [
+        f"Requester: {requester}",
+        f"Catalog Item: {data.get('catalogItemNamespace', '')}/{data.get('catalogItemName', '')}",
+        f"Activity: {data.get('activity', 'N/A')}",
+        f"Purpose: {data.get('purpose', 'N/A')}",
+    ]
+    if data.get('explanation'):
+        description_lines.append(f"Explanation: {data['explanation']}")
+    description_lines.append(f"Number of Users: {data.get('numberOfUsers', 'N/A')}")
+    if data.get('eventDate'):
+        description_lines.append(f"Event Start: {data['eventDate']}")
+    if data.get('eventEndDate'):
+        description_lines.append(f"Event End: {data['eventEndDate']}")
+    if data.get('salesforceItems'):
+        sf_ids = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
+        description_lines.append(f"Salesforce IDs: {sf_ids}")
+    if data.get('notes'):
+        description_lines.append(f"\nNotes:\n{data['notes']}")
+
+    description_text = '\n'.join(description_lines)
+
+    jira_payload = {
+        "fields": {
+            "project": {"key": jira_project_key},
+            "summary": f"[WGR] {display_name}",
+            "description": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": description_text}]
+                    }
+                ]
+            },
+            "issuetype": {"name": "Task"},
+            "reporter": {"emailAddress": requester},
+        }
+    }
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{jira_base_url}/rest/api/3/issue",
+            headers=headers,
+            data=json.dumps(jira_payload),
+        ) as resp:
+            if resp.status not in (200, 201):
+                error_body = await resp.text()
+                logging.error(f"Jira API error ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to create Jira ticket: {resp.status}")
+            result = await resp.json()
+
+    ticket_key = result['key']
+    ticket_url = f"{jira_base_url}/browse/{ticket_key}"
+
+    audit_log('jira_ticket_created', user=requester, details={'ticket': ticket_key, 'display_name': display_name})
+
+    return web.json_response({"key": ticket_key, "url": ticket_url})
+
+@routes.get("/api/jira/issue/{issue_key}")
+async def get_jira_issue_details(request):
+    await get_proxy_user(request)
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.get(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}?fields=assignee,status",
+            headers=headers,
+        ) as issue_resp:
+            if issue_resp.status == 404:
+                raise web.HTTPNotFound(reason=f"Jira issue {issue_key} not found")
+            if issue_resp.status != 200:
+                error_body = await issue_resp.text()
+                logging.error(f"Jira API error fetching issue ({issue_resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to fetch Jira issue: {issue_resp.status}")
+            issue_data = await issue_resp.json()
+
+        async with http_session.get(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment?orderBy=-created",
+            headers=headers,
+        ) as comments_resp:
+            if comments_resp.status != 200:
+                error_body = await comments_resp.text()
+                logging.error(f"Jira API error fetching comments ({comments_resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to fetch Jira comments: {comments_resp.status}")
+            comments_data = await comments_resp.json()
+
+    assignee_field = issue_data.get('fields', {}).get('assignee')
+    status_field = issue_data.get('fields', {}).get('status')
+    assignee = None
+    if assignee_field:
+        assignee = {
+            "displayName": assignee_field.get('displayName'),
+            "emailAddress": assignee_field.get('emailAddress'),
+        }
+
+    comments = []
+    for comment in comments_data.get('comments', []):
+        body_content = comment.get('body', {}).get('content', [])
+        body_text = ''
+        for block in body_content:
+            for inline in block.get('content', []):
+                if inline.get('type') == 'text':
+                    body_text += inline.get('text', '')
+        comments.append({
+            "author": comment.get('author', {}).get('displayName'),
+            "body": body_text,
+            "created": comment.get('created'),
+            "updated": comment.get('updated'),
+        })
+
+    return web.json_response({
+        "key": issue_key,
+        "assignee": assignee,
+        "status": status_field.get('name') if status_field else None,
+        "comments": comments,
+    })
 
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
