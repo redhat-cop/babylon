@@ -52,6 +52,7 @@ rules:
   - {{ .Values.workshopManager.api.group }}
   resources:
   - multiworkshops
+  - selfpacedlabs
   - serviceaccessconfigs
   - workshops
   - workshops/status
