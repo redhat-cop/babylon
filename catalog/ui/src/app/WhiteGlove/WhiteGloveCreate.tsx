@@ -12,9 +12,9 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import { createWhiteGloveRequest } from '@app/api';
+import { createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
 import { CatalogItem, SalesforceItem } from '@app/types';
-import { displayName } from '@app/util';
+import { DEMO_DOMAIN, displayName } from '@app/util';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
@@ -61,7 +61,7 @@ const WhiteGloveCreateContent: React.FC = () => {
     setSubmitError(null);
 
     try {
-      const result = await createWhiteGloveRequest({
+      const wgrData = {
         catalogItemName: selectedCatalogItem.metadata.name,
         catalogItemNamespace: selectedCatalogItem.metadata.namespace,
         displayName: eventName,
@@ -73,8 +73,29 @@ const WhiteGloveCreateContent: React.FC = () => {
         eventEndDate: eventEndDate.toISOString(),
         notes: notes || undefined,
         salesforceItems: salesforceItems.length > 0 ? salesforceItems : undefined,
+      };
+      const result = await createWhiteGloveRequest({
+        ...wgrData,
         namespace: userNamespace.name,
       });
+
+      try {
+        const jiraTicket = await createJiraTicketForWgr(wgrData);
+        await patchWhiteGloveRequest({
+          name: result.metadata.name,
+          namespace: result.metadata.namespace,
+          patch: {
+            metadata: {
+              annotations: {
+                [`${DEMO_DOMAIN}/jira-ticket-id`]: jiraTicket.key,
+                [`${DEMO_DOMAIN}/jira-ticket-url`]: jiraTicket.url,
+              },
+            },
+          },
+        });
+      } catch (jiraError) {
+        console.warn('Failed to create Jira ticket for WGR:', jiraError);
+      }
 
       navigate(`/white-glove/${result.metadata.namespace}/${result.metadata.name}`);
     } catch (error) {

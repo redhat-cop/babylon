@@ -1644,6 +1644,27 @@ export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
   return await deleteK8sObject(wgr);
 }
 
+export async function createJiraTicketForWgr(data: {
+  displayName: string;
+  catalogItemName: string;
+  catalogItemNamespace: string;
+  activity?: string;
+  purpose?: string;
+  explanation?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  salesforceItems?: Array<{ id: string; type: string }>;
+}): Promise<{ key: string; url: string }> {
+  const response = await apiFetch('/api/jira/wgr', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
 export async function createWorkshopFromAssetWithRetry({
   multiworkshopName,
   multiworkshopUid,
@@ -2735,6 +2756,7 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  JIRA_ISSUE: ({ issueKey }: { issueKey: string }) => `/api/jira/issue/${issueKey}`,
   WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
   WHITE_GLOVE_REQUESTS: ({

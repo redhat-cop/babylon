@@ -123,3 +123,42 @@
   border-radius: 10px;
   margin-left: 6px;
 }
+
+/* ── Jira Status Badge ── */
+.wg-jira-status {
+  display: inline-block;
+  margin-top: var(--pf-t--global--spacer--xs);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pf-t--global--text--color--subtle);
+  background-color: var(--pf-t--global--background--color--200, #f0f0f0);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+/* ── Jira Comments List ── */
+.wg-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--md);
+}
+.wg-comment {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--sm);
+  padding: var(--pf-t--global--spacer--md);
+}
+.wg-comment__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+.wg-comment__time {
+  font-size: 12px;
+  color: var(--pf-t--global--text--color--subtle);
+}
+.wg-comment__body {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
