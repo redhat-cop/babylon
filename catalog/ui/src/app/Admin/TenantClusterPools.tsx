@@ -7,6 +7,7 @@ import {
   Split,
   SplitItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
@@ -190,6 +191,7 @@ const TenantClusterPools: React.FC = () => {
                   <th style={{ width: '28px' }}></th>
                   <th>Name</th>
                   <th>Clusters</th>
+                  <th>Capacity</th>
                   <th>Placements</th>
                   <th>Sandbox API State</th>
                   <th>Created At</th>
@@ -202,6 +204,8 @@ const TenantClusterPools: React.FC = () => {
                   const clusters = pool.status?.clusters || [];
                   const clusterCount = clusters.length;
                   const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
+                  const utilizationPercent = clusterCount > 0 ? Math.round(((clusterCount - availableCount) / clusterCount) * 100) : 0;
+                  const capacityColor: 'green' | 'orange' | 'red' = utilizationPercent < 70 ? 'green' : utilizationPercent < 90 ? 'orange' : 'red';
 
                   return (
                     <React.Fragment key={poolKey}>
@@ -228,6 +232,13 @@ const TenantClusterPools: React.FC = () => {
                           </Label>
                         </td>
                         <td>{availableCount} / {clusterCount} available</td>
+                        <td>
+                          <Tooltip content={`${utilizationPercent}% utilized — ${clusterCount - availableCount} in use, ${availableCount} available`}>
+                            <Label isCompact color={capacityColor}>
+                              {utilizationPercent}%
+                            </Label>
+                          </Tooltip>
+                        </td>
                         <td></td>
                         <td></td>
                         <td>
