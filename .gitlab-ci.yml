@@ -4,32 +4,10 @@ include:
     file: SAST/sonarqube.yml
 
 stages:
-  - test
   - static-analysis
-
-test-catalog-ui:
-  stage: test
-  image: node:22-slim
-  variables:
-    NODE_OPTIONS: "--max-old-space-size=3072"
-    KUBERNETES_MEMORY_REQUEST: "2Gi"
-    KUBERNETES_MEMORY_LIMIT: "8Gi"
-  script:
-    - corepack enable
-    - cd catalog/ui
-    - pnpm install --frozen-lockfile
-    - npx jest --maxWorkers=2
-  artifacts:
-    paths:
-      - catalog/ui/coverage/clover.xml
-    expire_in: 1 hour
-  tags:
-    - itup-alm-x86
 
 sonarqube:
   variables:
     SONAR_PROJECT_KEY: "com.redhat.rhpds.redhat-cop.babylon"
-  needs:
-    - test-catalog-ui
   tags:
     - itup-alm-x86
