@@ -119,6 +119,7 @@ const SelfPacedLabItemComponent: React.FC<{
   const location = useLocation();
   const { cache } = useSWRConfig();
   const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const isCollaborator = !isAdmin && !sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName);
   const { sfdc_enabled } = useInterfaceConfig();
   const [modalDelete, openModalDelete] = useModal();
   const [modalSchedule, openModalSchedule] = useModal();
@@ -554,6 +555,11 @@ const SelfPacedLabItemComponent: React.FC<{
             </Breadcrumb>
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(selfPacedLab)}
+              {isCollaborator ? (
+                <Label key="selfpacedlab-item__collaborator" tooltipDescription={<div>You have been granted access to this self-paced lab as a collaborator</div>}>
+                  Shared Service
+                </Label>
+              ) : null}
               {stage !== 'prod' ? <Label key="selfpacedlab-item__stage">{stage}</Label> : null}
               <Label key="selfpacedlab-item__type" tooltipDescription={<div>Self-paced lab with warm pool</div>}>
                 Self-Paced Lab
