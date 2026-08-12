@@ -205,6 +205,8 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   getSeats,
   getProvisionProgress,
   getCurrentCount,
+  getCluster,
+  getClusterInfo,
   multiWorkshopsByName,
   isMultiNs,
   timezone,
