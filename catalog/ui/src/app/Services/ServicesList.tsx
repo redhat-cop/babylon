@@ -792,7 +792,7 @@ const ServicesList: React.FC<{
               if (service.kind === 'SelfPacedLab') {
                 return Object.assign(
                   selectObj,
-                  renderSelfPacedLabRow({ selfPacedLab: service as SelfPacedLab, showModal, isAdmin }),
+                  renderSelfPacedLabRow({ selfPacedLab: service as SelfPacedLabWithResourceClaims, showModal, isAdmin }),
                 );
               }
               return null;

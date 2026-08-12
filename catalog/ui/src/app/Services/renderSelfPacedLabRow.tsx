@@ -1,5 +1,5 @@
 import React from 'react';
-import { SelfPacedLab, ServiceActionActions } from '@app/types';
+import { SelfPacedLabWithResourceClaims, ServiceActionActions } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import { displayName, getStageFromK8sObject } from '@app/util';
@@ -16,7 +16,7 @@ const renderSelfPacedLabRow = ({
   showModal,
   isAdmin,
 }: {
-  selfPacedLab: SelfPacedLab;
+  selfPacedLab: SelfPacedLabWithResourceClaims;
   showModal: ({
     modal,
     action,
@@ -24,7 +24,7 @@ const renderSelfPacedLabRow = ({
   }: {
     modal: string;
     action?: ServiceActionActions;
-    selfPacedLab?: SelfPacedLab;
+    selfPacedLab?: SelfPacedLabWithResourceClaims;
   }) => void;
   isAdmin: boolean;
 }) => {
@@ -46,6 +46,11 @@ const renderSelfPacedLabRow = ({
       >
         {displayName(selfPacedLab)}
       </Link>
+      {selfPacedLab.isCollaborator ? (
+        <Label key="selfpacedlab-name__collaborator" tooltipDescription={<div>You have been granted access to this self-paced lab as a collaborator</div>}>
+          Shared Service
+        </Label>
+      ) : null}
       {stage !== 'prod' ? <Label key="selfpacedlab-name__stage">{stage}</Label> : null}
       <Label key="selfpacedlab-name__type" tooltipDescription={<div>Self-paced lab with warm pool of pre-provisioned instances</div>}>
         Self-Paced Lab
@@ -95,6 +100,7 @@ const renderSelfPacedLabRow = ({
           onClick={actionHandlers.delete}
           description="Delete"
           icon={TrashIcon}
+          isDisabled={selfPacedLab.isCollaborator}
         />
       </div>
     </React.Fragment>
