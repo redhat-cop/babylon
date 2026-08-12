@@ -53,6 +53,7 @@ rules:
   resources:
   - multiworkshops
   - selfpacedlabs
+  - selfpacedlabs/status
   - serviceaccessconfigs
   - workshops
   - workshops/status
