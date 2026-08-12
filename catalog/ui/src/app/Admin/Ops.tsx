@@ -748,6 +748,7 @@ const Ops: React.FC = () => {
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
   const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+  const [clusterFilter, setClusterFilter] = useState<string | 'all'>('all');
   const [attentionFilter, setAttentionFilter] = useState(false);
 
   // Timeline date range — lifted up so controls can live in the global filter bar
@@ -827,6 +828,13 @@ const Ops: React.FC = () => {
         return primary === tableRegionFilter || active.includes(tableRegionFilter);
       });
     }
+    if (clusterFilter !== 'all') {
+      list = list.filter(w => {
+        const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
+        if (clusterFilter === 'none') return cluster === null;
+        return cluster === clusterFilter;
+      });
+    }
     const arr = [...list];
     arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
@@ -836,10 +844,12 @@ const Ops: React.FC = () => {
     statusFilter,
     attentionFilter,
     tableRegionFilter,
+    clusterFilter,
     sortMode,
     getFailedCount,
     getSeats,
     getCurrentCount,
+    getWorkshopCluster,
   ]);
 
   const opsCalendarEvents = useMemo(
@@ -1205,6 +1215,21 @@ const Ops: React.FC = () => {
 
     return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
   }, [baseFilteredWorkshops, getCurrentCount]);
+
+  const clusterStats = useMemo(() => {
+    const clusterCounts: Record<string, number> = {};
+    let noneCount = 0;
+    for (const ws of baseFilteredWorkshops) {
+      const cluster = getWorkshopCluster(ws);
+      if (cluster === null) {
+        noneCount++;
+      } else {
+        clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
+      }
+    }
+    const sortedClusters = Object.keys(clusterCounts).sort((a, b) => clusterCounts[b] - clusterCounts[a]);
+    return { clusterCounts, noneCount, sortedClusters, totalCount: baseFilteredWorkshops.length };
+  }, [baseFilteredWorkshops, getWorkshopCluster]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -2362,11 +2387,11 @@ const Ops: React.FC = () => {
                     );
                   })}
                   </div>
-                  {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                  {(statusFilter !== 'all' || tableRegionFilter !== 'all' || clusterFilter !== 'all') && (
                     <Label
                       color="grey"
                       isCompact
-                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setClusterFilter('all'); }}
                       className="ops-schedule-chip"
                       style={{ fontStyle: 'italic' }}
                     >
@@ -2514,6 +2539,40 @@ const Ops: React.FC = () => {
                     <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
                       <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
                     </Tooltip>
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Cluster</span>
+                  <div className="ops-schedule-filters">
+                  <Label
+                    color={clusterFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setClusterFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({clusterStats.totalCount})
+                  </Label>
+                  {clusterStats.sortedClusters.map(cluster => (
+                    <Label
+                      key={cluster}
+                      color={clusterFilter === cluster ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === cluster ? 'all' : cluster)}
+                      className="ops-schedule-chip"
+                    >
+                      {cluster} ({clusterStats.clusterCounts[cluster]})
+                    </Label>
+                  ))}
+                  {clusterStats.noneCount > 0 && (
+                    <Label
+                      color={clusterFilter === 'none' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
+                      className="ops-schedule-chip"
+                    >
+                      No Cluster ({clusterStats.noneCount})
+                    </Label>
+                  )}
                   </div>
                 </div>
                 <div className="ops-filter-row">
