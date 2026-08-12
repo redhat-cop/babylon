@@ -232,6 +232,9 @@ jest.mock('@app/api', () => ({
     if (url.includes('/workshops?')) {
       return Promise.resolve({ items: allWorkshops, metadata: {} });
     }
+    if (url.includes('/tenantclusterpools?')) {
+      return Promise.resolve({ items: [], metadata: {} });
+    }
     for (const ws of allWorkshops) {
       if (url.includes('/workshopprovisions?') && url.includes(`workshop=${ws.metadata.name}`)) {
         return Promise.resolve({ items: provisionData[ws.metadata.name] || [], metadata: {} });
