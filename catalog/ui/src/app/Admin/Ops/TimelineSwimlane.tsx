@@ -24,6 +24,7 @@ export interface TimelineSwimlaneProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
+  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -89,6 +90,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
   getProvisionProgress,
   getCurrentCount,
   getCluster,
+  getClusterInfo,
   multiWorkshopsByName,
   isMultiNs,
   timezone,
@@ -162,6 +164,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
                   getProvisionProgress={getProvisionProgress}
                   getCurrentCount={getCurrentCount}
                   getCluster={getCluster}
+                  getClusterInfo={getClusterInfo}
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}

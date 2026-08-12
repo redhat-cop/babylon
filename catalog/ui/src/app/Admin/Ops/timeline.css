@@ -446,6 +446,15 @@
   border: 1px solid var(--pf-t--global--border--color--default, #c7c7c7);
   font-family: var(--pf-t--global--font--family--mono, 'Red Hat Mono', 'Courier New', monospace);
   font-size: 9px;
+  transition: all 0.15s ease;
+}
+
+.timeline-bar__badge--cluster:hover {
+  background: var(--pf-t--global--color--brand--default, #06c);
+  color: white;
+  border-color: var(--pf-t--global--color--brand--default, #06c);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 @keyframes pulse-badge {

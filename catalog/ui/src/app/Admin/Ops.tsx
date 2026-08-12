@@ -587,9 +587,9 @@ const Ops: React.FC = () => {
     { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
   );
 
-  // Build lookup map: resourceClaimName → { poolName, clusterName }
+  // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName }
   const tenantClusterLookup = useMemo(() => {
-    const map = new Map<string, { poolName: string; clusterName: string }>();
+    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string }>();
     if (allTcpData?.items) {
       for (const pool of allTcpData.items) {
         if (pool.status?.clusters) {
@@ -597,6 +597,7 @@ const Ops: React.FC = () => {
             if (cluster.resourceClaimName) {
               map.set(cluster.resourceClaimName, {
                 poolName: pool.metadata.name,
+                poolNamespace: pool.metadata.namespace || 'default',
                 clusterName: cluster.name || 'unknown',
               });
             }
@@ -706,22 +707,29 @@ const Ops: React.FC = () => {
     return map;
   }, [workshops, allRcData]);
 
-  // Helper to get tenant cluster for a workshop
-  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+  // Helper to get full tenant cluster info for a workshop
+  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string } | null => {
     const rcs = ws.resourceClaims || [];
     for (const rc of rcs) {
       const handleName = rc.status?.resourceHandle?.name;
       if (handleName) {
         const cluster = tenantClusterLookup.get(handleName);
         if (cluster) {
-          // Return short cluster name (truncate prefix if too long)
-          const shortName = cluster.clusterName.replace(/^tenant-cluster-pool-/, '');
-          return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+          return cluster;
         }
       }
     }
     return null;
   }, [tenantClusterLookup]);
+
+  // Helper to get tenant cluster display name for a workshop
+  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+    const info = getWorkshopClusterInfo(ws);
+    if (!info) return null;
+    // Return short cluster name (truncate prefix if too long)
+    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
+    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+  }, [getWorkshopClusterInfo]);
 
   const [showPasswords, setShowPasswords] = useState(false);
 
@@ -2727,6 +2735,7 @@ const Ops: React.FC = () => {
                   getProvisionProgress={getProvisionProgress}
                   getCurrentCount={getCurrentCount}
                   getCluster={getWorkshopCluster}
+                  getClusterInfo={getWorkshopClusterInfo}
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}

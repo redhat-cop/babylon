@@ -19,6 +19,7 @@ export interface WorkshopTimelineProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
+  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -263,6 +264,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     getProvisionProgress,
     getCurrentCount,
     getCluster,
+    getClusterInfo,
     multiWorkshopsByName,
     isMultiNs,
     timezone,
