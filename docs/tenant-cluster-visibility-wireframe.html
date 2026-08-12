@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Cluster Visibility - Wireframe</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Red Hat Display", "RedHatDisplay", "Overpass", overpass, Helvetica, helvetica, arial, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: #f5f5f5;
+      color: #151515;
+      line-height: 1.6;
+    }
+    h1 { color: #06c; border-bottom: 3px solid #06c; padding-bottom: 8px; }
+    h2 { color: #151515; margin-top: 32px; border-bottom: 1px solid #d2d2d2; padding-bottom: 6px; }
+    h3 { color: #4f5255; margin-top: 24px; }
+
+    .wireframe-box {
+      background: white;
+      border: 2px solid #06c;
+      border-radius: 4px;
+      padding: 16px;
+      margin: 16px 0;
+      font-family: "Red Hat Mono", "RedHatMono", "Courier New", Courier, monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .highlight-new {
+      background: #e7f1fa;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: #06c;
+    }
+
+    .section {
+      background: white;
+      padding: 24px;
+      margin: 24px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e7f1fa;
+      color: #151515;
+      border: 1px solid #c7c7c7;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-family: monospace;
+      margin: 0 4px;
+    }
+
+    .phase {
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-left: 4px solid #3e8635;
+      background: #f0f9f0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .phase h4 {
+      margin: 0 0 8px 0;
+      color: #3e8635;
+    }
+
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #c9190b;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #d2d2d2;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+      color: #151515;
+    }
+
+    .arrow {
+      color: #06c;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🖥️ Tenant Cluster Visibility - Ops UI Wireframe</h1>
+
+  <div class="section">
+    <h2>Overview</h2>
+    <p>This wireframe shows how tenant cluster information will be displayed in the admin ops UI. Workshops are assigned to tenant clusters from TenantClusterPools, and this feature makes that assignment visible to operators.</p>
+  </div>
+
+  <div class="section">
+    <h2>Current WorkshopBar (Before)</h2>
+    <div class="wireframe-box">┌────────────────────────────────────────────────────────────────────────┐
+│ workshop-name-abc123                        [PROD] [🔴 Stop in 2h] │
+│ user-namespace · 15/20 seats · Provisioning: 18/20                    │
+└────────────────────────────────────────────────────────────────────────┘</div>
+  </div>
+
+  <div class="section">
+    <h2>New WorkshopBar (After) - With Cluster Badge</h2>
+    <div class="wireframe-box">┌────────────────────────────────────────────────────────────────────────┐
+│ workshop-name-abc123  <span class="badge">🖥️ ocpv02-abc</span>   [PROD] [🔴 Stop in 2h]          │
+│ user-namespace · 15/20 seats · Provisioning: 18/20                    │
+└────────────────────────────────────────────────────────────────────────┘
+                      <span class="arrow">↑</span>
+              <span class="highlight-new">NEW: Cluster badge (short name)</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Tooltip Enhancement</h2>
+
+    <h3>Current Tooltip</h3>
+    <div class="wireframe-box">┌─────────────────────────────────┐
+│ Workshop Details                │
+├─────────────────────────────────┤
+│ Name: workshop-name-abc123      │
+│ Namespace: user-namespace       │
+│ Stage: prod                     │
+│ Seats: 15/20                    │
+│ Stop: 2026-08-14 15:30 UTC      │
+│ Destroy: 2026-08-15 09:00 UTC   │
+└─────────────────────────────────┘</div>
+
+    <h3>New Tooltip (With Cluster Info)</h3>
+    <div class="wireframe-box">┌─────────────────────────────────────────────────┐
+│ Workshop Details                                │
+├─────────────────────────────────────────────────┤
+│ Name: workshop-name-abc123                      │
+│ Namespace: user-namespace                       │
+│ Stage: prod                                     │
+│ <span class="highlight-new">Tenant Cluster: ocpv02-abc123 (tcp-prod-multi)</span> │ <span class="arrow">← NEW</span>
+│ <span class="highlight-new">Cluster Status: available (18/50 placements)  </span> │ <span class="arrow">← NEW</span>
+│ Seats: 15/20                                    │
+│ Stop: 2026-08-14 15:30 UTC                      │
+│ Destroy: 2026-08-15 09:00 UTC                   │
+└─────────────────────────────────────────────────┘</div>
+  </div>
+
+  <div class="section">
+    <h2>Cluster Filter (New Filter Dropdown)</h2>
+
+    <h3>Filter Bar (Top of Ops Page)</h3>
+    <div class="wireframe-box">┌────────────────────────────────────────────────────────────────────┐
+│ Filters:                                                           │
+│ [Stage: All ▼] [Status: All ▼] [Region: All ▼] <span class="highlight-new">[Cluster: All ▼]</span>  │ <span class="arrow">← NEW</span>
+│ [🔍 Search...                                            ]         │
+└────────────────────────────────────────────────────────────────────┘</div>
+
+    <h3>Cluster Dropdown (Expanded)</h3>
+    <div class="wireframe-box">┌─────────────────────────────────────┐
+│ All Clusters (187)                  │ <span class="arrow">← Shows total count</span>
+├─────────────────────────────────────┤
+│ ocpv01-abc123 (24)                  │
+│ ocpv02-xyz789 (31)                  │
+│ ocpv03-def456 (18)                  │
+│ ocpv08-ghi789 (42)                  │
+│ ocpvdev01-test (12)                 │
+│ ─────────────────────────────────── │
+│ No Cluster (60)                     │ <span class="arrow">← Workshops without assignment</span>
+└─────────────────────────────────────┘</div>
+  </div>
+
+  <div class="section">
+    <h2>Badge Styling</h2>
+    <p>Cluster badges use PatternFly design tokens for consistent styling:</p>
+    <ul>
+      <li><strong>Background:</strong> Light blue (#e7f1fa)</li>
+      <li><strong>Text:</strong> Dark (#151515)</li>
+      <li><strong>Border:</strong> Subtle gray (#c7c7c7)</li>
+      <li><strong>Font:</strong> Monospace (Red Hat Mono)</li>
+      <li><strong>Icon:</strong> 🖥️ desktop computer emoji</li>
+    </ul>
+    <p>Example: <span class="badge">🖥️ ocpv02-abc</span></p>
+  </div>
+
+  <div class="section">
+    <h2>Implementation Phases</h2>
+
+    <div class="phase">
+      <h4>✅ Phase 1: Data Layer (COMPLETE)</h4>
+      <ul>
+        <li>Fetch TenantClusterPools via SWR (60s refresh)</li>
+        <li>Build cluster lookup map: <code>resourceClaimName → { poolName, clusterName }</code></li>
+        <li>Add <code>getWorkshopCluster()</code> helper function</li>
+        <li><strong>User sees:</strong> No visible changes yet</li>
+      </ul>
+      <p><strong>Commit:</strong> <code>660a5fa2</code> Phase 1: Add tenant cluster data layer to ops UI</p>
+    </div>
+
+    <div class="phase">
+      <h4>✅ Phase 2: Display Cluster Badges (COMPLETE)</h4>
+      <ul>
+        <li>Add cluster badge to WorkshopBar with 🖥️ emoji</li>
+        <li>Enhance tooltip with cluster info</li>
+        <li>Thread <code>getCluster</code> prop through Timeline → Swimlane → WorkshopBar</li>
+        <li>CSS styling with monospace font and light blue background</li>
+        <li><strong>User sees:</strong> Cluster badges appear on workshop bars in timeline view</li>
+      </ul>
+      <p><strong>Commit:</strong> <code>9625b577</code> Add tenant cluster badges to workshop timeline</p>
+    </div>
+
+    <div class="phase" style="border-left-color: #06c; background: #e7f1fa;">
+      <h4 style="color: #06c;">✅ Phase 3: Cluster Filtering (COMPLETE)</h4>
+      <ul>
+        <li>Add cluster dropdown to filter bar</li>
+        <li>Build cluster statistics (counts per cluster)</li>
+        <li>Filter workshops by selected cluster</li>
+        <li>Include "No Cluster" option for unassigned workshops</li>
+        <li><strong>User sees:</strong> New "Cluster" dropdown in filters, can filter by cluster</li>
+      </ul>
+      <p><strong>Commit:</strong> <code>da963823</code> Add tenant cluster filter dropdown</p>
+    </div>
+
+    <div class="phase" style="border-left-color: #c7c7c7; background: #f5f5f5;">
+      <h4 style="color: #4f5255;">⏱️ Phase 4: Capacity Indicators (Future)</h4>
+      <ul>
+        <li>Show cluster utilization percentages</li>
+        <li>Health status indicators (green/yellow/red)</li>
+        <li>Capacity overview panel</li>
+        <li><strong>User sees:</strong> Cluster capacity at-a-glance</li>
+      </ul>
+      <p><em>Optional future enhancement</em></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Technical Details</h2>
+
+    <h3>Data Flow</h3>
+    <ol>
+      <li>Workshop has ResourceClaims</li>
+      <li>ResourceClaim.status.resourceHandle.name → points to TenantClusterPool</li>
+      <li>TenantClusterPool.status.clusters[] → lists cluster assignments</li>
+      <li>Match by <code>resourceClaimName</code> to find cluster assignment</li>
+    </ol>
+
+    <h3>Files Modified</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Changes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>catalog/ui/src/app/Admin/Ops.tsx</code></td>
+          <td>Fetch TenantClusterPools, build lookup map, add cluster filter</td>
+        </tr>
+        <tr>
+          <td><code>catalog/ui/src/app/Admin/Ops/WorkshopTimeline.tsx</code></td>
+          <td>Accept and forward getCluster prop</td>
+        </tr>
+        <tr>
+          <td><code>catalog/ui/src/app/Admin/Ops/TimelineSwimlane.tsx</code></td>
+          <td>Accept and forward getCluster prop</td>
+        </tr>
+        <tr>
+          <td><code>catalog/ui/src/app/Admin/Ops/WorkshopBar.tsx</code></td>
+          <td>Render cluster badge and tooltip info</td>
+        </tr>
+        <tr>
+          <td><code>catalog/ui/src/app/Admin/Ops/timeline.css</code></td>
+          <td>Cluster badge styling</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Jira Ticket</h2>
+    <p><strong>GPTEINFRA-17588:</strong> Add tenant cluster visibility to admin ops UI</p>
+    <p><strong>Status:</strong> Phases 1-3 complete, ready for PR</p>
+  </div>
+</body>
+</html>
