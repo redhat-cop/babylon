@@ -943,6 +943,7 @@ export type WorkshopWithResourceClaims = Workshop & {
 };
 export type SelfPacedLabWithResourceClaims = SelfPacedLab & {
   resourceClaims?: ResourceClaim[];
+  isCollaborator?: boolean;
 };
 export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims | SelfPacedLabWithResourceClaims;
 

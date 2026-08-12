@@ -121,6 +121,20 @@ async function fetchServices(namespace: string): Promise<Service[]> {
           };
 
           sharedServices.push(resourceClaimWithCollaborator);
+        } else if (serviceAccess.spec.kind === 'SelfPacedLab') {
+          const selfPacedLab = (await fetcher(
+            apiPaths.SELF_PACED_LAB({
+              namespace: serviceAccess.spec.namespace,
+              selfPacedLabName: serviceAccess.spec.name,
+            }),
+          )) as SelfPacedLab;
+
+          const selfPacedLabWithCollaborator: SelfPacedLabWithResourceClaims = {
+            ...selfPacedLab,
+            isCollaborator: true,
+          };
+
+          sharedServices.push(selfPacedLabWithCollaborator);
         }
       } catch (error) {
         console.warn(`Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`, error);
