@@ -92,6 +92,7 @@ import {
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
+  TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
 } from '@app/types';
@@ -579,6 +580,33 @@ const Ops: React.FC = () => {
     return map;
   }, [allMwData]);
 
+  // Fetch TenantClusterPools for cluster assignment tracking (cluster-wide query)
+  const { data: allTcpData } = useSWR<TenantClusterPoolList>(
+    apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
+    fetcher,
+    { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
+  );
+
+  // Build lookup map: resourceClaimName → { poolName, clusterName }
+  const tenantClusterLookup = useMemo(() => {
+    const map = new Map<string, { poolName: string; clusterName: string }>();
+    if (allTcpData?.items) {
+      for (const pool of allTcpData.items) {
+        if (pool.status?.clusters) {
+          for (const cluster of pool.status.clusters) {
+            if (cluster.resourceClaimName) {
+              map.set(cluster.resourceClaimName, {
+                poolName: pool.metadata.name,
+                clusterName: cluster.name || 'unknown',
+              });
+            }
+          }
+        }
+      }
+    }
+    return map;
+  }, [allTcpData]);
+
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -677,6 +705,23 @@ const Ops: React.FC = () => {
     }
     return map;
   }, [workshops, allRcData]);
+
+  // Helper to get tenant cluster for a workshop
+  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+    const rcs = ws.resourceClaims || [];
+    for (const rc of rcs) {
+      const handleName = rc.status?.resourceHandle?.name;
+      if (handleName) {
+        const cluster = tenantClusterLookup.get(handleName);
+        if (cluster) {
+          // Return short cluster name (truncate prefix if too long)
+          const shortName = cluster.clusterName.replace(/^tenant-cluster-pool-/, '');
+          return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+        }
+      }
+    }
+    return null;
+  }, [tenantClusterLookup]);
 
   const [showPasswords, setShowPasswords] = useState(false);
 
