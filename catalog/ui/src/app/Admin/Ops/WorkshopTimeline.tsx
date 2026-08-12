@@ -19,7 +19,7 @@ export interface WorkshopTimelineProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string } | null;
+  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;

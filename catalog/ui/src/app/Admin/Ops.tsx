@@ -587,18 +587,23 @@ const Ops: React.FC = () => {
     { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
   );
 
-  // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName }
+  // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
   const tenantClusterLookup = useMemo(() => {
-    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string }>();
+    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number }>();
     if (allTcpData?.items) {
       for (const pool of allTcpData.items) {
         if (pool.status?.clusters) {
+          const totalClusters = pool.status.clusters.length;
+          const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
+
           for (const cluster of pool.status.clusters) {
             if (cluster.resourceClaimName) {
               map.set(cluster.resourceClaimName, {
                 poolName: pool.metadata.name,
                 poolNamespace: pool.metadata.namespace || 'default',
                 clusterName: cluster.name || 'unknown',
+                totalClusters,
+                availableClusters,
               });
             }
           }
@@ -708,14 +713,17 @@ const Ops: React.FC = () => {
   }, [workshops, allRcData]);
 
   // Helper to get full tenant cluster info for a workshop
-  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string } | null => {
+  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null => {
     const rcs = ws.resourceClaims || [];
     for (const rc of rcs) {
       const handleName = rc.status?.resourceHandle?.name;
       if (handleName) {
         const cluster = tenantClusterLookup.get(handleName);
         if (cluster) {
-          return cluster;
+          const utilizationPercent = cluster.totalClusters > 0
+            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
+            : 0;
+          return { ...cluster, utilizationPercent };
         }
       }
     }
