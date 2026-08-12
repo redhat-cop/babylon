@@ -21,6 +21,7 @@ export interface WorkshopBarProps {
   getSeats: (ws: Workshop) => { assigned: number; total: number } | null;
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
+  getCluster?: (ws: Workshop) => string | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -76,12 +77,14 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   getSeats,
   getProvisionProgress,
   getCurrentCount,
+  getCluster,
   multiWorkshopsByName,
   isMultiNs,
   timezone,
 }) => {
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
   const status = getWorkshopStatus(workshop);
+  const clusterName = useMemo(() => getCluster?.(workshop) || null, [getCluster, workshop]);
 
   const totalViewMs = viewEnd.getTime() - viewStart.getTime();
   const clippedStart = new Date(Math.max(workshopStart.getTime(), viewStart.getTime()));
@@ -157,6 +160,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           <tr><td>Namespace</td><td>{ns}</td></tr>
           <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
           {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
+          {clusterName && <tr><td>Tenant Cluster</td><td><code>{clusterName}</code></td></tr>}
           {isMultiAsset && <tr><td>Type</td><td>Multi-Asset</td></tr>}
           {seats && <tr><td>Seats</td><td>{seats.assigned} / {seats.total} assigned</td></tr>}
           {progress && <tr><td>Instances</td><td>{progress.claimed} / {progress.desired}{progress.failed > 0 ? ` (${progress.failed} failed)` : ''}</td></tr>}
@@ -215,6 +219,11 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {urgencyTag && (
             <span className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}>
               {urgencyTag}
+            </span>
+          )}
+          {clusterName && (
+            <span className="timeline-bar__badge timeline-bar__badge--cluster" title={`Tenant cluster: ${clusterName}`}>
+              🖥️ {clusterName}
             </span>
           )}
           {isMultiNs && (

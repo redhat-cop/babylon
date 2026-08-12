@@ -2667,6 +2667,7 @@ const Ops: React.FC = () => {
                   getSeats={getSeats}
                   getProvisionProgress={getProvisionProgress}
                   getCurrentCount={getCurrentCount}
+                  getCluster={getWorkshopCluster}
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}

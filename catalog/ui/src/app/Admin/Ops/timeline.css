@@ -440,6 +440,14 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+.timeline-bar__badge--cluster {
+  background: var(--pf-t--global--background--color--action--plain--default, #e7f1fa);
+  color: var(--pf-t--global--text--color--on-light, #151515);
+  border: 1px solid var(--pf-t--global--border--color--default, #c7c7c7);
+  font-family: var(--pf-t--global--font--family--mono, 'Red Hat Mono', 'Courier New', monospace);
+  font-size: 9px;
+}
+
 @keyframes pulse-badge {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
