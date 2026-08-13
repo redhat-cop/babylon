@@ -9,6 +9,7 @@ import jinja2
 import openapi_schema_validator
 import pytimeparse
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
