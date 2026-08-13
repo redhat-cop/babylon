@@ -251,25 +251,28 @@ class BabylonClient:
 
         while True:
             if method is None:
-                if namespace is None:
-                    obj_list = await self.custom_objects_api.list_cluster_custom_object(
-                        _continue=_continue,
-                        group=group,
-                        label_selector=label_selector,
-                        limit=batch_size,
-                        plural=plural,
-                        version=version,
-                    )
-                else:
-                    obj_list = await self.custom_objects_api.list_namespaced_custom_object(
-                        _continue=_continue,
-                        group=group,
-                        label_selector=label_selector,
-                        limit=batch_size,
-                        namespace=namespace,
-                        plural=plural,
-                        version=version,
-                    )
+                try:
+                    if namespace is None:
+                        obj_list = await self.custom_objects_api.list_cluster_custom_object(
+                            _continue=_continue,
+                            group=group,
+                            label_selector=label_selector,
+                            limit=batch_size,
+                            plural=plural,
+                            version=version,
+                        )
+                    else:
+                        obj_list = await self.custom_objects_api.list_namespaced_custom_object(
+                            _continue=_continue,
+                            group=group,
+                            label_selector=label_selector,
+                            limit=batch_size,
+                            namespace=namespace,
+                            plural=plural,
+                            version=version,
+                        )
+                except KubernetesApiException as exception:
+                    raise BabylonApiException(kubernetes_api_exception=exception) from exception
             else:
                 if namespace is None:
                     obj_list = self.api_client.sanitize_for_serialization(
@@ -299,24 +302,27 @@ class BabylonClient:
             if isinstance(patch, list) else
             'application/merge-patch+json'
         )
-        if namespace is None:
-            return await self.custom_objects_api.patch_cluster_custom_object(
+        try:
+            if namespace is None:
+                return await self.custom_objects_api.patch_cluster_custom_object(
+                    group=group,
+                    name=name,
+                    plural=plural,
+                    version=version,
+                    body=patch,
+                    _content_type=content_type,
+                )
+            return await self.custom_objects_api.patch_namespaced_custom_object(
                 group=group,
                 name=name,
+                namespace=namespace,
                 plural=plural,
                 version=version,
                 body=patch,
                 _content_type=content_type,
             )
-        return await self.custom_objects_api.patch_namespaced_custom_object(
-            group=group,
-            name=name,
-            namespace=namespace,
-            plural=plural,
-            version=version,
-            body=patch,
-            _content_type=content_type,
-        )
+        except KubernetesApiException as exception:
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
     async def patch_object_status(self,
         group:str,
@@ -332,24 +338,27 @@ class BabylonClient:
             if isinstance(patch, list) else
             'application/merge-patch+json'
         )
-        if namespace is None:
-            return await self.custom_objects_api.patch_cluster_custom_object_status(
+        try:
+            if namespace is None:
+                return await self.custom_objects_api.patch_cluster_custom_object_status(
+                    group=group,
+                    name=name,
+                    plural=plural,
+                    version=version,
+                    body=patch,
+                    _content_type=content_type,
+                )
+            return await self.custom_objects_api.patch_namespaced_custom_object_status(
                 group=group,
                 name=name,
+                namespace=namespace,
                 plural=plural,
                 version=version,
                 body=patch,
                 _content_type=content_type,
             )
-        return await self.custom_objects_api.patch_namespaced_custom_object_status(
-            group=group,
-            name=name,
-            namespace=namespace,
-            plural=plural,
-            version=version,
-            body=patch,
-            _content_type=content_type,
-        )
+        except KubernetesApiException as exception:
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
     async def replace_object(self,
         definition:Mapping,
@@ -360,22 +369,25 @@ class BabylonClient:
         namespace:str|None=None,
     ) -> Mapping:
         """Replace object in k8s API and return response."""
-        if namespace is None:
-            return await self.custom_objects_api.replace_cluster_custom_object(
+        try:
+            if namespace is None:
+                return await self.custom_objects_api.replace_cluster_custom_object(
+                    body=definition,
+                    group=group,
+                    name=name,
+                    plural=plural,
+                    version=version,
+                )
+            return await self.custom_objects_api.replace_namespaced_custom_object(
                 body=definition,
                 group=group,
                 name=name,
+                namespace=namespace,
                 plural=plural,
                 version=version,
             )
-        return await self.custom_objects_api.replace_namespaced_custom_object(
-            body=definition,
-            group=group,
-            name=name,
-            namespace=namespace,
-            plural=plural,
-            version=version,
-        )
+        except KubernetesApiException as exception:
+            raise BabylonApiException(kubernetes_api_exception=exception) from exception
 
     # AgnosticVComponent methods
     async def create_agnosticv_component(self,
