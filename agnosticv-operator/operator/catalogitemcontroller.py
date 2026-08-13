@@ -5,8 +5,6 @@ import os
 
 from datetime import datetime, timezone
 
-import kubernetes_asyncio
-
 from babylon_async import AgnosticVComponent, BabylonApiException
 
 from k8sobject import K8sObject
