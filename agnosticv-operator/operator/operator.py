@@ -317,7 +317,8 @@ async def manage_resource_provider(
             definition=resource_provider_definition,
         )
         logger.info("Created %s", resource_provider)
-        return
+        return resource_provider
+
     if await resource_provider.update_from_agnosticv(resource_provider_definition):
         logger.info("Updated %s", resource_provider)
 
@@ -349,6 +350,7 @@ async def manage_tenant_cluster_pool(
         )
         logger.info("Created %s", tenant_cluster_pool)
         return tenant_cluster_pool
+
     if await tenant_cluster_pool.update_from_agnosticv(tenant_cluster_pool_definition):
         logger.info("Updated %s", tenant_cluster_pool)
 
