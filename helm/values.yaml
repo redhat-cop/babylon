@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v2.6.2
+      tag: v2.7.0
       pullPolicy: IfNotPresent
     resources:
       limits:
