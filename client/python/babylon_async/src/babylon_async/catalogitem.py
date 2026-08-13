@@ -133,7 +133,7 @@ class CatalogItem(K8sObject):
                 annotation: value for annotation, value in
                 updated['metadata'].get('annotations', {}).items()
                 if (
-                    not annotation.startswith("babylon.gpte.redhat.com") or
+                    not annotation.startswith("babylon.gpte.redhat.com/") or
                     annotation in (
                         "babylon.gpte.redhat.com/servicenow",
                         "babylon.gpte.redhat.com/ops",
