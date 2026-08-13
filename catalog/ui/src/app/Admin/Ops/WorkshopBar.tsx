@@ -23,7 +23,7 @@ export interface WorkshopBarProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null;
+  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -91,11 +91,12 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const clusterName = useMemo(() => getCluster?.(workshop) || null, [getCluster, workshop]);
   const clusterInfo = useMemo(() => getClusterInfo?.(workshop) || null, [getClusterInfo, workshop]);
 
-  // Calculate cluster capacity state (green < 70%, orange 70-85%, red > 85%)
+  // Calculate cluster capacity state using placement capacity as primary metric
+  // (green < 70%, orange 70-90%, red > 90%)
   const capacityState = useMemo(() => {
     if (!clusterInfo) return null;
-    if (clusterInfo.utilizationPercent >= 85) return 'critical';
-    if (clusterInfo.utilizationPercent >= 70) return 'warning';
+    if (clusterInfo.placementCapacityPercent >= 90) return 'critical';
+    if (clusterInfo.placementCapacityPercent >= 70) return 'warning';
     return 'healthy';
   }, [clusterInfo]);
 
@@ -182,12 +183,18 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
           {clusterName && <tr><td>Tenant Cluster</td><td><code>{clusterName}</code></td></tr>}
           {clusterInfo && (
-            <tr>
-              <td>Cluster Capacity</td>
-              <td className={capacityState === 'critical' ? 'timeline-tooltip-critical' : capacityState === 'warning' ? 'timeline-tooltip-warning' : ''}>
-                {clusterInfo.availableClusters}/{clusterInfo.totalClusters} available ({clusterInfo.utilizationPercent}% utilized)
-              </td>
-            </tr>
+            <>
+              <tr>
+                <td>Pool Saturation</td>
+                <td>{clusterInfo.totalClusters - clusterInfo.availableClusters}/{clusterInfo.totalClusters} clusters occupied ({clusterInfo.poolSaturationPercent}%)</td>
+              </tr>
+              <tr>
+                <td>Placement Capacity</td>
+                <td className={capacityState === 'critical' ? 'timeline-tooltip-critical' : capacityState === 'warning' ? 'timeline-tooltip-warning' : ''}>
+                  {clusterInfo.placementCount}/{clusterInfo.maxTotalPlacements} workshops ({clusterInfo.placementCapacityPercent}% utilized)
+                </td>
+              </tr>
+            </>
           )}
           {isMultiAsset && <tr><td>Type</td><td>Multi-Asset</td></tr>}
           {seats && <tr><td>Seats</td><td>{seats.assigned} / {seats.total} assigned</td></tr>}
@@ -252,7 +259,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {clusterName && (
             <span
               className={`timeline-bar__badge timeline-bar__badge--cluster${capacityState ? ` timeline-bar__badge--cluster-${capacityState}` : ''}`}
-              title={`Tenant cluster: ${clusterName}${clusterInfo ? ` (${clusterInfo.utilizationPercent}% utilized)` : ''} - click to view`}
+              title={`Tenant cluster: ${clusterName}${clusterInfo ? ` (${clusterInfo.placementCapacityPercent}% capacity)` : ''} - click to view`}
               onClick={handleClusterBadgeClick}
               style={{ cursor: 'pointer' }}
             >

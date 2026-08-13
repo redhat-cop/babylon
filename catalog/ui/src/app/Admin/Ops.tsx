@@ -589,12 +589,13 @@ const Ops: React.FC = () => {
 
   // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
   const tenantClusterLookup = useMemo(() => {
-    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number }>();
+    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; maxPlacements: number }>();
     if (allTcpData?.items) {
       for (const pool of allTcpData.items) {
         if (pool.status?.clusters) {
           const totalClusters = pool.status.clusters.length;
           const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
+          const maxPlacements = pool.spec?.sandboxHost?.max_placements || 50;
 
           for (const cluster of pool.status.clusters) {
             if (cluster.resourceClaimName) {
@@ -604,6 +605,7 @@ const Ops: React.FC = () => {
                 clusterName: cluster.name || 'unknown',
                 totalClusters,
                 availableClusters,
+                maxPlacements,
               });
             }
           }
@@ -712,33 +714,6 @@ const Ops: React.FC = () => {
     return map;
   }, [workshops, allRcData]);
 
-  // Helper to get full tenant cluster info for a workshop
-  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null => {
-    const rcs = ws.resourceClaims || [];
-    for (const rc of rcs) {
-      const handleName = rc.status?.resourceHandle?.name;
-      if (handleName) {
-        const cluster = tenantClusterLookup.get(handleName);
-        if (cluster) {
-          const utilizationPercent = cluster.totalClusters > 0
-            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
-            : 0;
-          return { ...cluster, utilizationPercent };
-        }
-      }
-    }
-    return null;
-  }, [tenantClusterLookup]);
-
-  // Helper to get tenant cluster display name for a workshop
-  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
-    const info = getWorkshopClusterInfo(ws);
-    if (!info) return null;
-    // Return short cluster name (truncate prefix if too long)
-    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
-    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
-  }, [getWorkshopClusterInfo]);
-
   const [showPasswords, setShowPasswords] = useState(false);
 
   const isRefreshing = wsValidating || provValidating || assignValidating;
@@ -801,6 +776,53 @@ const Ops: React.FC = () => {
       resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
     } as WorkshopWithResourceClaims));
   }, [workshops, resourceClaimsByWorkshop]);
+
+  // Helper to get full tenant cluster info for a workshop
+  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null => {
+    const rcs = ws.resourceClaims || [];
+    for (const rc of rcs) {
+      const handleName = rc.status?.resourceHandle?.name;
+      if (handleName) {
+        const cluster = tenantClusterLookup.get(handleName);
+        if (cluster) {
+          // Pool saturation (cluster allocation)
+          const poolSaturationPercent = cluster.totalClusters > 0
+            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
+            : 0;
+
+          // Placement capacity (workshop slots)
+          // Count workshops on this cluster by checking all workshops for matching cluster
+          const placementCount = workshopsWithRc.filter(w => {
+            const wRcs = w.resourceClaims || [];
+            return wRcs.some(wRc => wRc.status?.resourceHandle?.name === handleName);
+          }).length;
+
+          const maxTotalPlacements = cluster.totalClusters * cluster.maxPlacements;
+          const placementCapacityPercent = maxTotalPlacements > 0
+            ? Math.round((placementCount / maxTotalPlacements) * 100)
+            : 0;
+
+          return {
+            ...cluster,
+            poolSaturationPercent,
+            placementCount,
+            maxTotalPlacements,
+            placementCapacityPercent,
+          };
+        }
+      }
+    }
+    return null;
+  }, [tenantClusterLookup, workshopsWithRc]);
+
+  // Helper to get tenant cluster display name for a workshop
+  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+    const info = getWorkshopClusterInfo(ws);
+    if (!info) return null;
+    // Return short cluster name (truncate prefix if too long)
+    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
+    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+  }, [getWorkshopClusterInfo]);
 
   // Base-filtered list: applies white glove, search, and stage filters.
   // Used by regionStats and status counts so chips reflect the visible scope.
@@ -2893,7 +2915,7 @@ const Ops: React.FC = () => {
                       const grpUrls: { id: string; url: string }[] = [];
                       let grpWhiteGlove = 0;
                       const grpClusters = new Set<string>();
-                      let grpClusterInfo: { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null = null;
+                      let grpClusterInfo: { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null = null;
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
@@ -3045,7 +3067,7 @@ const Ops: React.FC = () => {
                           <td>
                             {grpClusters.size === 1 && grpClusterInfo ? (
                               (() => {
-                                const capacityState = grpClusterInfo.utilizationPercent >= 85 ? 'critical' : grpClusterInfo.utilizationPercent >= 70 ? 'warning' : 'healthy';
+                                const capacityState = grpClusterInfo.placementCapacityPercent >= 85 ? 'critical' : grpClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy';
                                 const clusterName = Array.from(grpClusters)[0];
                                 return (
                                   <Label
@@ -3134,7 +3156,7 @@ const Ops: React.FC = () => {
                         const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
                         const wsClusterName = getWorkshopCluster(ws);
                         const wsClusterInfo = getWorkshopClusterInfo(ws);
-                        const wsCapacityState = wsClusterInfo ? (wsClusterInfo.utilizationPercent >= 85 ? 'critical' : wsClusterInfo.utilizationPercent >= 70 ? 'warning' : 'healthy') : null;
+                        const wsCapacityState = wsClusterInfo ? (wsClusterInfo.placementCapacityPercent >= 85 ? 'critical' : wsClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy') : null;
 
                         return (
                           <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
