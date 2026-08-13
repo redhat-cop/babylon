@@ -116,8 +116,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       swr:
-        specifier: ^2.4.2
-        version: 2.4.2(react@19.2.8)
+        specifier: ^2.5.0
+        version: 2.5.0(react@19.2.8)
       yjs:
         specifier: ^13.6.32
         version: 13.6.32
@@ -5037,8 +5037,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  swr@2.4.2:
-    resolution: {integrity: sha512-ej644Y2bvkIajfR32KGeSSdBXQW+ScjGjkybZgSE7kFpk9eGnV44XY9FJylXi+W75pavSX1PVNB57W5EbhGIYw==}
+  swr@2.5.0:
+    resolution: {integrity: sha512-W0GomadRJe9OfzIoRX0kZHhDSaRRfdiOUeH6uazgR05SibBhDNwfdTbhAxmFtObvkf59fFymo22mooKukosvNA==}
     peerDependencies:
       react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -11324,7 +11324,7 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.6.0
 
-  swr@2.4.2(react@19.2.8):
+  swr@2.5.0(react@19.2.8):
     dependencies:
       dequal: 2.0.3
       react: 19.2.8
