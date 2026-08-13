@@ -5,7 +5,7 @@ import os
 
 from datetime import datetime, timezone
 
-from babylon_async import AgnosticVComponent, BabylonApiException
+from babylon_async import BabylonApiException
 
 from k8sobject import K8sObject
 from operatorruntime import OperatorRuntime
