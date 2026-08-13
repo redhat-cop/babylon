@@ -1163,7 +1163,11 @@ class AgnosticVComponent(K8sObject):
         """Get TenantClusterPool definition.
         Return None if item is not a host cluster for tenants."""
         sandbox_host = self.definition.get('__meta__', {}).get('sandbox_host')
-        if self.asset_uuid is None or sandbox_host is None:
+        if (
+            self.asset_uuid is None or
+            sandbox_host is None or
+            'annotations' not in sandbox_host
+        ):
             return None
         definition = {
             "apiVersion": TenantClusterPool.api_group_version,
