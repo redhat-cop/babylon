@@ -7,6 +7,7 @@ import {
   Split,
   SplitItem,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
@@ -190,6 +191,8 @@ const TenantClusterPools: React.FC = () => {
                   <th style={{ width: '28px' }}></th>
                   <th>Name</th>
                   <th>Clusters</th>
+                  <th>Pool Saturation</th>
+                  <th>Max Capacity</th>
                   <th>Placements</th>
                   <th>Sandbox API State</th>
                   <th>Created At</th>
@@ -202,6 +205,16 @@ const TenantClusterPools: React.FC = () => {
                   const clusters = pool.status?.clusters || [];
                   const clusterCount = clusters.length;
                   const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
+
+                  // Pool saturation (cluster allocation)
+                  const occupiedCount = clusterCount - availableCount;
+                  const poolSaturationPercent = clusterCount > 0 ? Math.round((occupiedCount / clusterCount) * 100) : 0;
+                  const saturationColor: 'green' | 'orange' | 'red' = poolSaturationPercent < 70 ? 'green' : poolSaturationPercent < 90 ? 'orange' : 'red';
+
+                  // Theoretical max capacity (workshop slots)
+                  const maxPlacementsPerCluster = pool.spec?.sandboxHost?.max_placements || 50;
+                  const maxTotalPlacements = clusterCount * maxPlacementsPerCluster;
+                  const theoreticalMaxWorkshops = occupiedCount * maxPlacementsPerCluster;
 
                   return (
                     <React.Fragment key={poolKey}>
@@ -228,6 +241,20 @@ const TenantClusterPools: React.FC = () => {
                           </Label>
                         </td>
                         <td>{availableCount} / {clusterCount} available</td>
+                        <td>
+                          <Tooltip content={`Pool saturation: ${poolSaturationPercent}% (${occupiedCount}/${clusterCount} clusters occupied)`}>
+                            <Label isCompact color={saturationColor}>
+                              {poolSaturationPercent}%
+                            </Label>
+                          </Tooltip>
+                        </td>
+                        <td>
+                          <Tooltip content={`Theoretical max: 0-${theoreticalMaxWorkshops} workshops deployed (max ${maxTotalPlacements} total). View Ops page for actual workshop counts.`}>
+                            <span style={{ whiteSpace: 'nowrap' }}>
+                              0-{theoreticalMaxWorkshops} workshops (max {maxTotalPlacements})
+                            </span>
+                          </Tooltip>
+                        </td>
                         <td></td>
                         <td></td>
                         <td>
