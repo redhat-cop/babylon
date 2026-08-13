@@ -98,7 +98,7 @@ class AgnosticVComponent(K8sObject):
         return self.__meta__.get('ansible_control_plane', {}).get('secret')
 
     @property
-    def asset_uuid(self) -> str:
+    def asset_uuid(self) -> str|None:
         """Return asset uuid"""
         return self.__meta__.get('asset_uuid')
 
@@ -440,7 +440,7 @@ class AgnosticVComponent(K8sObject):
         """Get AnarchyGovernor definition
         Return None if item is configured without a deployer."""
         # FIXME - catalog_meta should not impact anarchy governor creation.
-        if not self.deployer_type or self.catalog_disable or self.catalog_external_url is not None:
+        if not self.deployer_type or self.asset_uuid is None or self.catalog_disable or self.catalog_external_url is not None:
             return None
 
         anarchy_namespace = self.get_anarchy_namespace()
@@ -596,7 +596,7 @@ class AgnosticVComponent(K8sObject):
     ) -> Mapping|None:
         """Get CatalogItem definition from AgnosticV component.
         Return None if catalog is disabled."""
-        if self.catalog_disable:
+        if self.asset_uuid is None or self.catalog_disable:
             return None
         
         definition = {
@@ -756,7 +756,7 @@ class AgnosticVComponent(K8sObject):
         """Get ResourceProvider definition
         Return None if item is an exernal url."""
         # FIXME - catalog_meta should not impact anarchy governor creation.
-        if self.catalog_disable or self.catalog_external_url is not None:
+        if self.asset_uuid is None or self.catalog_disable or self.catalog_external_url is not None:
             return None
         definition = {
             "apiVersion": ResourceProvider.api_group_version,
@@ -1162,7 +1162,7 @@ class AgnosticVComponent(K8sObject):
         """Get TenantClusterPool definition.
         Return None if item is not a host cluster for tenants."""
         sandbox_host = self.definition.get('__meta__', {}).get('sandbox_host')
-        if sandbox_host is None:
+        if self.asset_uuid is None or sandbox_host is None:
             return None
         definition = {
             "apiVersion": TenantClusterPool.api_group_version,
