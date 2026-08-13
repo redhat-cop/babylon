@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator, List, Mapping
+from typing import Any, AsyncGenerator, List, Mapping
 
 import os
 
@@ -235,7 +235,7 @@ class BabylonClient:
         label_selector:str|None=None,
         group:str|None=None,
         namespace:str|None=None,
-    ) -> Generator[Mapping, None, None]:
+    ) -> AsyncGenerator[Mapping, None]:
         # FIXME - wrap with a try/except
         _continue = None
         method = None
@@ -408,7 +408,7 @@ class BabylonClient:
 
     async def list_agnosticv_components(self,
         label_selector:str|None=None,
-    ) -> Generator[AgnosticVComponent, None, None]:
+    ) -> AsyncGenerator[AgnosticVComponent, None]:
         async for agnosticv_component in AgnosticVComponent.list(
             client=self,
             label_selector=label_selector,
@@ -431,7 +431,7 @@ class BabylonClient:
 
     async def list_agnosticv_repos(self,
         label_selector:str|None=None,
-    ) -> Generator[AgnosticVRepo, None, None]:
+    ) -> AsyncGenerator[AgnosticVRepo, None]:
         async for agnosticv_repo in AgnosticVRepo.list(
             client=self,
             label_selector=label_selector,
@@ -440,6 +440,24 @@ class BabylonClient:
             yield agnosticv_repo
 
     # AnarchyGovernor methods
+    async def create_anarchy_governor(self,
+        definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
+        name:str|None=None,
+        namespace:str|None=None,
+        owner:K8sObject|None=None
+    ) -> AnarchyGovernor:
+        return await AnarchyGovernor.create(
+            annotations=annotations,
+            client=self,
+            definition=definition,
+            labels=labels,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+        )
+
     async def get_anarchy_governor(self,
         name:str,
         namespace:str,
@@ -461,7 +479,7 @@ class BabylonClient:
     async def list_anarchy_runs(self,
         label_selector:str=None,
         namespace:str=None,
-    ) -> Generator[AnarchyRun, None, None]:
+    ) -> AsyncGenerator[AnarchyRun, None]:
         async for anarchy_run in AnarchyRun.list(
             client=self,
             label_selector=label_selector,
@@ -471,7 +489,7 @@ class BabylonClient:
 
     async def list_anarchy_runs_for_anarchy_subject(self,
         anarchy_subject:AnarchySubject,
-    ) -> Generator[AnarchyRun, None, None]:
+    ) -> AsyncGenerator[AnarchyRun, None]:
         async for anarchy_run in self.list_anarchy_runs(
             label_selector=f"anarchy.gpte.redhat.com/subject={anarchy_subject.name}",
             namespace=anarchy_subject.namespace,
@@ -482,7 +500,7 @@ class BabylonClient:
     async def list_anarchy_subjects(self,
         label_selector:str=None,
         namespace:str=None,
-    ) -> Generator[AnarchySubject, None, None]:
+    ) -> AsyncGenerator[AnarchySubject, None]:
         async for anarchy_subject in AnarchySubject.list(
             client=self,
             label_selector=label_selector,
@@ -515,7 +533,7 @@ class BabylonClient:
     async def list_catalog_items(self,
         label_selector:str|None=None,
         namespace:str|None=None,
-    ) -> Generator[CatalogItem, None, None]:
+    ) -> AsyncGenerator[CatalogItem, None]:
         async for catalog_item in CatalogItem.list(
             client=self,
             label_selector=label_selector,
@@ -562,7 +580,7 @@ class BabylonClient:
 
     async def list_namespaces(self,
         label_selector:str|None=None,
-    ) -> Generator[Namespace, None, None]:
+    ) -> AsyncGenerator[Namespace, None]:
         async for namespace in Namespace.list(
             client=self,
             label_selector=label_selector,
@@ -600,7 +618,7 @@ class BabylonClient:
     async def list_resource_claims(self,
         label_selector:str|None=None,
         namespace:str|None=None,
-    ) -> Generator[ResourceClaim, None, None]:
+    ) -> AsyncGenerator[ResourceClaim, None]:
         async for resource_claim in ResourceClaim.list(
             client=self,
             label_selector=label_selector,
@@ -618,7 +636,7 @@ class BabylonClient:
 
     async def list_resource_pools(self,
         label_selector:str|None=None,
-    ) -> Generator[ResourcePool, None, None]:
+    ) -> AsyncGenerator[ResourcePool, None]:
         async for resource_pool in ResourcePool.list(
             client=self,
             label_selector=label_selector,
@@ -627,12 +645,30 @@ class BabylonClient:
             yield resource_pool
 
     # ResourceProvider methods
+    async def create_resource_provider(self,
+        definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
+        name:str|None=None,
+        namespace:str|None=None,
+        owner:K8sObject|None=None
+    ) -> ResourceProvider:
+        return await ResourceProvider.create(
+            annotations=annotations,
+            client=self,
+            definition=definition,
+            labels=labels,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+        )
+
     async def get_resource_provider(self, name:str, cache:bool=False) -> ResourceProvider:
         return await ResourceProvider.get(cache=cache, client=self, name=name, namespace="poolboy")
 
     async def list_resource_providers(self,
         label_selector:str|None=None,
-    ) -> Generator[ResourceProvider, None, None]:
+    ) -> AsyncGenerator[ResourceProvider, None]:
         async for resource_provider in ResourceProvider.list(
             client=self,
             label_selector=label_selector,
@@ -665,7 +701,7 @@ class BabylonClient:
     async def list_tenant_cluster_pools(self,
         label_selector:str=None,
         namespace:str|None=None,
-    ) -> Generator[TenantClusterPool, None, None]:
+    ) -> AsyncGenerator[TenantClusterPool, None]:
         async for tenant_cluster_pool in TenantClusterPool.list(
             client=self,
             label_selector=label_selector,
@@ -684,7 +720,7 @@ class BabylonClient:
     async def list_workshops(self,
         label_selector:str=None,
         namespace:str=None,
-    ) -> Generator[Workshop, None, None]:
+    ) -> AsyncGenerator[Workshop, None]:
         async for workshop in Workshop.list(
             client=self,
             label_selector=label_selector,
@@ -696,7 +732,7 @@ class BabylonClient:
     async def list_workshop_provisions(self,
         label_selector:str=None,
         namespace:str=None,
-    ) -> Generator[WorkshopProvision, None, None]:
+    ) -> AsyncGenerator[WorkshopProvision, None]:
         async for workshop_provision in WorkshopProvision.list(
             client=self,
             label_selector=label_selector,
