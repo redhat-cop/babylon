@@ -348,7 +348,7 @@ async def manage_tenant_cluster_pool(
             definition=tenant_cluster_pool_definition,
         )
         logger.info("Created %s", tenant_cluster_pool)
-        return
+        return tenant_cluster_pool
     if await tenant_cluster_pool.update_from_agnosticv(tenant_cluster_pool_definition):
         logger.info("Updated %s", tenant_cluster_pool)
 
