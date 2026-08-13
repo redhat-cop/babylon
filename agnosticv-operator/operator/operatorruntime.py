@@ -7,7 +7,7 @@ from babylon_async import BabylonClient
 
 class OperatorRuntime():
     """Class with access to global objects such as Babylon api."""
-    environment_level = os.environ['ENVIRONMENT_LEVEL']
+    environment_level = os.environ.get('ENVIRONMENT_LEVEL')
 
     agnosticv_api_group = os.environ.get('AGNOSTICV_API_GROUP', 'gpte.redhat.com')
     agnosticv_version = os.environ.get('AGNOSTICV_VERSION', 'v1')
@@ -38,6 +38,9 @@ class OperatorRuntime():
 
     @classmethod
     async def on_startup(cls):
+        if cls.environment_level is None:
+            raise Exception("ENVIRONMENT_LEVEL must be set as environment variable")
+
         if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
             kubernetes_asyncio.config.load_incluster_config()
             with open('/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
