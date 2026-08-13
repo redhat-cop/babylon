@@ -10,7 +10,7 @@ else
   pip install -r requirements.txt
 fi
 
-pip install ./babylon_async
+pip install ../client/python/babylon_async
 
 export OPERATOR_NAMESPACE=babylon-config
 # Environment level development or integration, run local should never run on production!
