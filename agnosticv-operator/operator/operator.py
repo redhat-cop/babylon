@@ -289,7 +289,8 @@ async def manage_catalog_item(
             definition=catalog_item_definition,
         )
         logger.info("Created %s", catalog_item)
-        return
+        return catalog_item
+
     if await catalog_item.update_from_agnosticv(catalog_item_definition):
         logger.info("Updated %s", catalog_item)
 
