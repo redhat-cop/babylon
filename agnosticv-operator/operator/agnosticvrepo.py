@@ -2461,6 +2461,7 @@ class AgnosticVRepo(CachedKopfObject):
                         "Failed to get components for PR #%s: %s",
                         pr_number, exception,
                     )
+                    changed_files = []
                     component_sources = []
                     components_to_delete = []
 
