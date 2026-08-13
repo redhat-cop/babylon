@@ -100,7 +100,7 @@ class AgnosticVComponent(K8sObject):
     @property
     def asset_uuid(self) -> str:
         """Return asset uuid"""
-        return self.__meta__.get('asset_uuid')
+        return self.__meta__.get('asset_uuid', '')
 
     @property
     def catalog_category(self) -> str:
@@ -523,7 +523,7 @@ class AgnosticVComponent(K8sObject):
             for item in pruned_meta['sandboxes']:
                 if (
                     item.get('kind') == 'OcpSandbox' and
-                    'lab' in item['cloud_selector']
+                    'lab' in item.get('cloud_selector', {})
                 ):
                     item['cloud_selector']['environment_level'] = environment_level
 
@@ -699,6 +699,7 @@ class AgnosticVComponent(K8sObject):
             for key, value in linked_agnosticv_component.supported_actions.items():
                 if key not in supported_actions:
                     supported_actions[key] = value
+        definition['spec']['supportedActions'] = supported_actions
 
         for idx, linked_component in enumerate(self.linked_components):
             entry = {"name": linked_component.name}
@@ -1193,7 +1194,7 @@ class AgnosticVComponent(K8sObject):
                 "sandboxHost": deepcopy(sandbox_host),
             },
         }
-        definition['spec']['sandboxHost']['annotations']['environment_level'] = environment_level
+        definition['spec']['sandboxHost'].setdefault('annotations', {})['environment_level'] = environment_level
         definition['spec']['sandboxHost'].setdefault('quota_required', False)
         return definition
 

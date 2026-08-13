@@ -9,6 +9,7 @@ import jinja2
 import openapi_schema_validator
 import pytimeparse
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
@@ -132,7 +133,7 @@ class CatalogItem(K8sObject):
                 annotation: value for annotation, value in
                 updated['metadata'].get('annotations', {}).items()
                 if (
-                    not annotation.startswith("babylon.gpte.redhat.com") or
+                    not annotation.startswith("babylon.gpte.redhat.com/") or
                     annotation in (
                         "babylon.gpte.redhat.com/servicenow",
                         "babylon.gpte.redhat.com/ops",
