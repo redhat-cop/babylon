@@ -9,6 +9,7 @@ import jinja2
 import openapi_schema_validator
 import pytimeparse
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 from .resourcepool import ResourcePool
 from .resourceprovider import ResourceProvider
@@ -115,6 +116,62 @@ class CatalogItem(K8sObject):
             cache=cache,
             name=self.name,
         )
+
+    async def update_from_agnosticv(self,
+        definition: Mapping,
+        dry_run: bool=False
+    ) -> bool:
+        """Update CatalogItem with definition from AgnosticVComponent.
+        Return boolean to indicate if definition required update."""
+        while True:
+            updated = self.get_definition()
+            # All of spec managed from AgnosticV
+            updated['spec'] = deepcopy(definition['spec'])
+
+            # Keep any annotations not managed from AgnosticV
+            updated['metadata']['annotations'] = {
+                annotation: value for annotation, value in
+                updated['metadata'].get('annotations', {}).items()
+                if (
+                    not annotation.startswith("babylon.gpte.redhat.com/") or
+                    annotation in (
+                        "babylon.gpte.redhat.com/servicenow",
+                        "babylon.gpte.redhat.com/ops",
+                        "babylon.gpte.redhat.com/totalRatings",
+                    )
+                )
+            }
+            updated['metadata']['annotations'].update(definition['metadata'].get('annotations', {}))
+
+            # Keep any labels not managed from AgnosticV,
+            # Other labels are managed to sync ratings and cost estimates.
+            updated['metadata']['labels'] = {
+                label: value for label, value in
+                updated['metadata'].get('labels', {}).items()
+                if not label.startswith("gpte.redhat.com/")
+                and (
+                    not label.startswith("babylon.gpte.redhat.com/")
+                    or label in (
+                        "babylon.gpte.redhat.com/rating",
+                        "babylon.gpte.redhat.com/disabled",
+                    )
+                )
+            }
+            updated['metadata']['labels'].update(definition['metadata'].get('labels', {}))
+
+            if updated == self._definition:
+                return False
+            if dry_run:
+                return True
+
+            try:
+                await self.replace_definition(updated)
+                return True
+            except BabylonApiException as err:
+                if err.status != 409:
+                    raise
+                await self.refresh()
+
 
 class CatalogItemSpec:
     def __init__(self, definition):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 
 from hashlib import sha1
@@ -15,6 +16,36 @@ class TenantClusterPool(K8sObject):
     plural = "tenantclusterpools"
     api_group_version = f"{api_group}/{api_version}"
 
+    @classmethod
+    def agnosticv_to_definition(cls,
+        agnosticv_component: AgnosticVComponent,
+        name: str,
+        namespace: str,
+    ) -> Mapping:
+        sandbox_host = agnosticv_component.definition['__meta__']['sandbox_host']
+        return {
+            "apiVersion": cls.api_group_version,
+            "kind": cls.kind,
+            "metadata": {
+                "name": name,
+                "namespace": namespace,
+            },
+            "spec": {
+                "clusterProvisioning": {
+                    "provider": {
+                        "name": name,
+                        "parameterValues": {
+                            "purpose": "Tenant Cluster",
+                        }
+                    }
+                },
+                "maxClusters": 0,
+                "minAvailableSandboxPlacements": 0,
+                "minClusters": 0,
+                "sandboxHost": deepcopy(sandbox_host),
+            },
+        }
+
     @property
     def cluster_provisioning(self) -> TenantClusterPoolSpecClusterProvisioning:
         """Configuration for provisioning clusters which provide capacity for tenants."""
@@ -27,6 +58,11 @@ class TenantClusterPool(K8sObject):
         if status is None:
             return []
         return self.status.clusters or []
+
+    @property
+    def enabled(self) -> bool:
+        """Return whether TenantClusterPool is enabled, default to false."""
+        return self.spec.enabled or False
 
     @property
     def max_clusters(self) -> int|None:
@@ -175,6 +211,34 @@ class TenantClusterPool(K8sObject):
                     continue
             return
 
+    async def update_from_agnosticv(self,
+        definition: Mapping,
+        dry_run: bool=False
+    ) -> bool:
+        """Update TenantClusterPool with definition from AgnosticVComponent.
+        Return boolean to indicate if definition required update."""
+        while True:
+            merged = self.get_definition()
+            # Specific fields from spec managed from AgnosticV
+            merged['spec']['clusterProvisioning'] = definition['spec']['clusterProvisioning']
+            merged['spec']['sandboxHost'] = definition['spec']['sandboxHost']
+            # All annotations managed from AgnosticV
+            merged['metadata']['annotations'] = definition['metadata']['annotations']
+            # All labels managed from AgnosticV
+            merged['metadata']['labels'] = definition['metadata']['labels']
+
+            if merged == self._definition:
+                return False
+            if dry_run:
+                return True
+
+            try:
+                await self.replace_definition(merged)
+                return True
+            except BabylonApiException as err:
+                if err.status != 409:
+                    raise
+                await self.refresh()
 
 class TenantClusterPoolSpec:
     """Configuration for TenantClusterPool"""
@@ -187,6 +251,11 @@ class TenantClusterPoolSpec:
         return TenantClusterPoolSpecClusterProvisioning(
             self._definition['clusterProvisioning'],
         )
+
+    @property
+    def enabled(self) -> bool|None:
+        """Return enabled value from spec"""
+        return self._definition.get('enabled')
 
     @property
     def max_clusters(self) -> int|None:

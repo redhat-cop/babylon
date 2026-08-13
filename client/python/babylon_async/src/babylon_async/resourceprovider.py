@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, List, Mapping
 
+from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 from .poolboy_templating import check_condition, recursive_process_template_strings
 
@@ -119,6 +120,35 @@ class ResourceProvider(K8sObject):
             )
             linked_resource_providers.append(resource_provider)
         return linked_resource_providers
+
+    async def update_from_agnosticv(self,
+        definition: Mapping,
+        dry_run: bool=False
+    ) -> bool:
+        """Update ResourceProvider with definition from AgnosticVComponent.
+        Return boolean to indicate if definition required update."""
+        while True:
+            merged = self.get_definition()
+            # All of spec managed from AgnosticV
+            merged['spec'] = definition['spec']
+            # All annotations managed from AgnosticV
+            merged['metadata']['annotations'] = definition['metadata']['annotations']
+            # All labels managed from AgnosticV
+            merged['metadata']['labels'] = definition['metadata']['labels']
+
+            if merged == self._definition:
+                return False
+            if dry_run:
+                return True
+
+            try:
+                await self.replace_definition(merged)
+                return True
+            except BabylonApiException as err:
+                if err.status != 409:
+                    raise
+                await self.refresh()
+
 
 class ResourceProviderSpec:
     def __init__(self, definition):

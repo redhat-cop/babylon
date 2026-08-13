@@ -10,6 +10,7 @@ import jmespath
 import pytimeparse
 from str2bool import str2bool
 from strgen import StringGenerator
+from uuid import UUID
 
 MAX_RECURSION_DEPTH = 100
 
@@ -130,6 +131,7 @@ jinja2env.filters['parse_time_interval'] = lambda x: timedelta(seconds=pytimepar
 jinja2env.filters['strgen'] = lambda x: StringGenerator(x).render()
 jinja2env.filters['to_datetime'] = lambda s, f='%Y-%m-%d %H:%M:%S': datetime.strptime(str(s), f)
 jinja2env.filters['to_json'] = lambda x: json.dumps(x)
+jinja2env.filters['uuid2int'] = lambda x: int(UUID(x))
 
 # Regex to detect if it looks like this value should be rendered as a raw type
 # rather than a string.

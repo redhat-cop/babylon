@@ -41,6 +41,8 @@ spec:
           value: {{ .Values.catalog.api.group }}
         - name: CATALOG_VERSION
           value: {{ .Values.catalog.api.version }}
+        - name: ENVIRONMENT_LEVEL
+          value: {{ required "environmentLevel value is required" .Values.environmentLevel }}
         - name: EXECUTION_ENVIRONMENT_ALLOW_LIST
           value: |
             {{- $agnosticv.executionEnvironmentAllowList | toYaml | nindent 12 }}
