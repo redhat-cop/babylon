@@ -1,4 +1,3 @@
-jest.mock('../api');
 import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
@@ -231,6 +230,9 @@ jest.mock('@app/api', () => ({
     }
     if (url.includes('/workshops?')) {
       return Promise.resolve({ items: allWorkshops, metadata: {} });
+    }
+    if (url.includes('/tenantclusterpools?')) {
+      return Promise.resolve({ items: [], metadata: {} });
     }
     for (const ws of allWorkshops) {
       if (url.includes('/workshopprovisions?') && url.includes(`workshop=${ws.metadata.name}`)) {

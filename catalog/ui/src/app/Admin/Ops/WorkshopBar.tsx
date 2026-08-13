@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Checkbox, Tooltip } from '@patternfly/react-core';
 import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import { displayName, BABYLON_DOMAIN, getStageFromK8sObject } from '@app/util';
@@ -21,6 +22,8 @@ export interface WorkshopBarProps {
   getSeats: (ws: Workshop) => { assigned: number; total: number } | null;
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
+  getCluster?: (ws: Workshop) => string | null;
+  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -76,12 +79,25 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   getSeats,
   getProvisionProgress,
   getCurrentCount,
+  getCluster,
+  getClusterInfo,
   multiWorkshopsByName,
   isMultiNs,
   timezone,
 }) => {
+  const navigate = useNavigate();
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
   const status = getWorkshopStatus(workshop);
+  const clusterName = useMemo(() => getCluster?.(workshop) || null, [getCluster, workshop]);
+  const clusterInfo = useMemo(() => getClusterInfo?.(workshop) || null, [getClusterInfo, workshop]);
+
+  // Calculate cluster capacity state (green < 70%, orange 70-85%, red > 85%)
+  const capacityState = useMemo(() => {
+    if (!clusterInfo) return null;
+    if (clusterInfo.utilizationPercent >= 85) return 'critical';
+    if (clusterInfo.utilizationPercent >= 70) return 'warning';
+    return 'healthy';
+  }, [clusterInfo]);
 
   const totalViewMs = viewEnd.getTime() - viewStart.getTime();
   const clippedStart = new Date(Math.max(workshopStart.getTime(), viewStart.getTime()));
@@ -128,6 +144,13 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
 
   const handleBarClick = useCallback(() => onClick(workshopKey), [onClick, workshopKey]);
 
+  const handleClusterBadgeClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger workshop bar click
+    if (clusterInfo) {
+      navigate(`/admin/tenantclusterpools/${clusterInfo.poolNamespace}/${clusterInfo.poolName}`);
+    }
+  }, [navigate, clusterInfo]);
+
   const seatText = seats ? `${seats.assigned}/${seats.total}` : null;
   const instanceText = instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
 
@@ -157,6 +180,15 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           <tr><td>Namespace</td><td>{ns}</td></tr>
           <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
           {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
+          {clusterName && <tr><td>Tenant Cluster</td><td><code>{clusterName}</code></td></tr>}
+          {clusterInfo && (
+            <tr>
+              <td>Cluster Capacity</td>
+              <td className={capacityState === 'critical' ? 'timeline-tooltip-critical' : capacityState === 'warning' ? 'timeline-tooltip-warning' : ''}>
+                {clusterInfo.availableClusters}/{clusterInfo.totalClusters} available ({clusterInfo.utilizationPercent}% utilized)
+              </td>
+            </tr>
+          )}
           {isMultiAsset && <tr><td>Type</td><td>Multi-Asset</td></tr>}
           {seats && <tr><td>Seats</td><td>{seats.assigned} / {seats.total} assigned</td></tr>}
           {progress && <tr><td>Instances</td><td>{progress.claimed} / {progress.desired}{progress.failed > 0 ? ` (${progress.failed} failed)` : ''}</td></tr>}
@@ -215,6 +247,16 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {urgencyTag && (
             <span className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}>
               {urgencyTag}
+            </span>
+          )}
+          {clusterName && (
+            <span
+              className={`timeline-bar__badge timeline-bar__badge--cluster${capacityState ? ` timeline-bar__badge--cluster-${capacityState}` : ''}`}
+              title={`Tenant cluster: ${clusterName}${clusterInfo ? ` (${clusterInfo.utilizationPercent}% utilized)` : ''} - click to view`}
+              onClick={handleClusterBadgeClick}
+              style={{ cursor: 'pointer' }}
+            >
+              🖥️ {clusterName}
             </span>
           )}
           {isMultiNs && (

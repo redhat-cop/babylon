@@ -440,6 +440,63 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+.timeline-bar__badge--cluster {
+  background: var(--pf-t--global--background--color--action--plain--default, #e7f1fa);
+  color: var(--pf-t--global--text--color--on-light, #151515);
+  border: 1px solid var(--pf-t--global--border--color--default, #c7c7c7);
+  font-family: var(--pf-t--global--font--family--mono, 'Red Hat Mono', 'Courier New', monospace);
+  font-size: 9px;
+  transition: all 0.15s ease;
+}
+
+.timeline-bar__badge--cluster:hover {
+  background: var(--pf-t--global--color--brand--default, #06c);
+  color: white;
+  border-color: var(--pf-t--global--color--brand--default, #06c);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Cluster capacity states */
+.timeline-bar__badge--cluster-healthy {
+  /* Default blue background - no override needed */
+}
+
+.timeline-bar__badge--cluster-warning {
+  background: rgba(240, 171, 0, 0.15);
+  border-color: var(--pf-t--global--color--status--warning--default, #f0ab00);
+  color: #151515;
+}
+
+.timeline-bar__badge--cluster-warning:hover {
+  background: var(--pf-t--global--color--status--warning--default, #f0ab00);
+  color: #151515;
+  border-color: var(--pf-t--global--color--status--warning--default, #f0ab00);
+}
+
+.timeline-bar__badge--cluster-critical {
+  background: rgba(201, 25, 11, 0.15);
+  border-color: var(--pf-t--global--color--status--danger--default, #c9190b);
+  color: #151515;
+  animation: pulse-cluster-critical 2s ease-in-out infinite;
+}
+
+.timeline-bar__badge--cluster-critical:hover {
+  background: var(--pf-t--global--color--status--danger--default, #c9190b);
+  color: white;
+  border-color: var(--pf-t--global--color--status--danger--default, #c9190b);
+  animation: none;
+}
+
+@keyframes pulse-cluster-critical {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(201, 25, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(201, 25, 11, 0.1);
+  }
+}
+
 @keyframes pulse-badge {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }

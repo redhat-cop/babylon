@@ -92,6 +92,7 @@ import {
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
+  TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
 } from '@app/types';
@@ -579,6 +580,39 @@ const Ops: React.FC = () => {
     return map;
   }, [allMwData]);
 
+  // Fetch TenantClusterPools for cluster assignment tracking (cluster-wide query)
+  const { data: allTcpData } = useSWR<TenantClusterPoolList>(
+    apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
+    fetcher,
+    { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
+  );
+
+  // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
+  const tenantClusterLookup = useMemo(() => {
+    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number }>();
+    if (allTcpData?.items) {
+      for (const pool of allTcpData.items) {
+        if (pool.status?.clusters) {
+          const totalClusters = pool.status.clusters.length;
+          const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
+
+          for (const cluster of pool.status.clusters) {
+            if (cluster.resourceClaimName) {
+              map.set(cluster.resourceClaimName, {
+                poolName: pool.metadata.name,
+                poolNamespace: pool.metadata.namespace || 'default',
+                clusterName: cluster.name || 'unknown',
+                totalClusters,
+                availableClusters,
+              });
+            }
+          }
+        }
+      }
+    }
+    return map;
+  }, [allTcpData]);
+
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
     [workshops],
@@ -678,6 +712,33 @@ const Ops: React.FC = () => {
     return map;
   }, [workshops, allRcData]);
 
+  // Helper to get full tenant cluster info for a workshop
+  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null => {
+    const rcs = ws.resourceClaims || [];
+    for (const rc of rcs) {
+      const handleName = rc.status?.resourceHandle?.name;
+      if (handleName) {
+        const cluster = tenantClusterLookup.get(handleName);
+        if (cluster) {
+          const utilizationPercent = cluster.totalClusters > 0
+            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
+            : 0;
+          return { ...cluster, utilizationPercent };
+        }
+      }
+    }
+    return null;
+  }, [tenantClusterLookup]);
+
+  // Helper to get tenant cluster display name for a workshop
+  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+    const info = getWorkshopClusterInfo(ws);
+    if (!info) return null;
+    // Return short cluster name (truncate prefix if too long)
+    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
+    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+  }, [getWorkshopClusterInfo]);
+
   const [showPasswords, setShowPasswords] = useState(false);
 
   const isRefreshing = wsValidating || provValidating || assignValidating;
@@ -703,6 +764,8 @@ const Ops: React.FC = () => {
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
   const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+  const [clusterFilter, setClusterFilter] = useState<string | 'all'>('all');
+  const [tenantAssignmentFilter, setTenantAssignmentFilter] = useState<'all' | 'with-tenant' | 'no-tenant'>('all');
   const [attentionFilter, setAttentionFilter] = useState(false);
 
   // Timeline date range — lifted up so controls can live in the global filter bar
@@ -782,6 +845,21 @@ const Ops: React.FC = () => {
         return primary === tableRegionFilter || active.includes(tableRegionFilter);
       });
     }
+    if (clusterFilter !== 'all') {
+      list = list.filter(w => {
+        const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
+        if (clusterFilter === 'none') return cluster === null;
+        return cluster === clusterFilter;
+      });
+    }
+    if (tenantAssignmentFilter !== 'all') {
+      list = list.filter(w => {
+        const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
+        if (tenantAssignmentFilter === 'with-tenant') return cluster !== null;
+        if (tenantAssignmentFilter === 'no-tenant') return cluster === null;
+        return true;
+      });
+    }
     const arr = [...list];
     arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
@@ -791,10 +869,12 @@ const Ops: React.FC = () => {
     statusFilter,
     attentionFilter,
     tableRegionFilter,
+    clusterFilter,
     sortMode,
     getFailedCount,
     getSeats,
     getCurrentCount,
+    getWorkshopCluster,
   ]);
 
   const opsCalendarEvents = useMemo(
@@ -1160,6 +1240,35 @@ const Ops: React.FC = () => {
 
     return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
   }, [baseFilteredWorkshops, getCurrentCount]);
+
+  const clusterStats = useMemo(() => {
+    const clusterCounts: Record<string, number> = {};
+    let noneCount = 0;
+    for (const ws of baseFilteredWorkshops) {
+      const cluster = getWorkshopCluster(ws);
+      if (cluster === null) {
+        noneCount++;
+      } else {
+        clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
+      }
+    }
+    const sortedClusters = Object.keys(clusterCounts).sort((a, b) => clusterCounts[b] - clusterCounts[a]);
+    return { clusterCounts, noneCount, sortedClusters, totalCount: baseFilteredWorkshops.length };
+  }, [baseFilteredWorkshops, getWorkshopCluster]);
+
+  const tenantAssignmentStats = useMemo(() => {
+    let withTenantCount = 0;
+    let noTenantCount = 0;
+    for (const ws of baseFilteredWorkshops) {
+      const cluster = getWorkshopCluster(ws);
+      if (cluster === null) {
+        noTenantCount++;
+      } else {
+        withTenantCount++;
+      }
+    }
+    return { withTenantCount, noTenantCount, totalCount: baseFilteredWorkshops.length };
+  }, [baseFilteredWorkshops, getWorkshopCluster]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -2317,11 +2426,11 @@ const Ops: React.FC = () => {
                     );
                   })}
                   </div>
-                  {(statusFilter !== 'all' || tableRegionFilter !== 'all') && (
+                  {(statusFilter !== 'all' || tableRegionFilter !== 'all' || clusterFilter !== 'all' || tenantAssignmentFilter !== 'all') && (
                     <Label
                       color="grey"
                       isCompact
-                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); }}
+                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setClusterFilter('all'); setTenantAssignmentFilter('all'); }}
                       className="ops-schedule-chip"
                       style={{ fontStyle: 'italic' }}
                     >
@@ -2469,6 +2578,69 @@ const Ops: React.FC = () => {
                     <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
                       <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
                     </Tooltip>
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Cluster</span>
+                  <div className="ops-schedule-filters">
+                  <Label
+                    color={clusterFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setClusterFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({clusterStats.totalCount})
+                  </Label>
+                  {clusterStats.sortedClusters.map(cluster => (
+                    <Label
+                      key={cluster}
+                      color={clusterFilter === cluster ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === cluster ? 'all' : cluster)}
+                      className="ops-schedule-chip"
+                    >
+                      {cluster} ({clusterStats.clusterCounts[cluster]})
+                    </Label>
+                  ))}
+                  {clusterStats.noneCount > 0 && (
+                    <Label
+                      color={clusterFilter === 'none' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
+                      className="ops-schedule-chip"
+                    >
+                      No Cluster ({clusterStats.noneCount})
+                    </Label>
+                  )}
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Tenant</span>
+                  <div className="ops-schedule-filters">
+                  <Label
+                    color={tenantAssignmentFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({tenantAssignmentStats.totalCount})
+                  </Label>
+                  <Label
+                    color={tenantAssignmentFilter === 'with-tenant' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'with-tenant' ? 'all' : 'with-tenant')}
+                    className="ops-schedule-chip"
+                  >
+                    With Tenant Cluster ({tenantAssignmentStats.withTenantCount})
+                  </Label>
+                  <Label
+                    color={tenantAssignmentFilter === 'no-tenant' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'no-tenant' ? 'all' : 'no-tenant')}
+                    className="ops-schedule-chip"
+                  >
+                    No Tenant Cluster ({tenantAssignmentStats.noTenantCount})
+                  </Label>
                   </div>
                 </div>
                 <div className="ops-filter-row">
@@ -2622,6 +2794,8 @@ const Ops: React.FC = () => {
                   getSeats={getSeats}
                   getProvisionProgress={getProvisionProgress}
                   getCurrentCount={getCurrentCount}
+                  getCluster={getWorkshopCluster}
+                  getClusterInfo={getWorkshopClusterInfo}
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}
@@ -2671,6 +2845,7 @@ const Ops: React.FC = () => {
                           Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
                         </Button>
                       </th>
+                      <th>Tenant Cluster</th>
                       <th className="ops-col-reg">Reg</th>
                       <th>Password</th>
                       <th>
@@ -2717,6 +2892,8 @@ const Ops: React.FC = () => {
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
                       let grpWhiteGlove = 0;
+                      const grpClusters = new Set<string>();
+                      let grpClusterInfo: { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; utilizationPercent: number } | null = null;
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
@@ -2743,6 +2920,12 @@ const Ops: React.FC = () => {
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                         if (getWhiteGloved(ws)) grpWhiteGlove++;
+
+                        const clusterName = getWorkshopCluster(ws);
+                        if (clusterName) grpClusters.add(clusterName);
+                        if (!grpClusterInfo) {
+                          grpClusterInfo = getWorkshopClusterInfo(ws);
+                        }
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
@@ -2860,6 +3043,33 @@ const Ops: React.FC = () => {
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                           <td>
+                            {grpClusters.size === 1 && grpClusterInfo ? (
+                              (() => {
+                                const capacityState = grpClusterInfo.utilizationPercent >= 85 ? 'critical' : grpClusterInfo.utilizationPercent >= 70 ? 'warning' : 'healthy';
+                                const clusterName = Array.from(grpClusters)[0];
+                                return (
+                                  <Label
+                                    isCompact
+                                    color={capacityState === 'critical' ? 'red' : capacityState === 'warning' ? 'orange' : 'blue'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`);
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    🖥️ {clusterName}
+                                  </Label>
+                                );
+                              })()
+                            ) : grpClusters.size > 1 ? (
+                              <Tooltip content={`Multiple clusters: ${Array.from(grpClusters).join(', ')}`}>
+                                <Label isCompact color="purple">{grpClusters.size} clusters</Label>
+                              </Tooltip>
+                            ) : (
+                              <span className="ops-muted">&mdash;</span>
+                            )}
+                          </td>
+                          <td>
                             {firstWs.spec?.openRegistration !== false ? (
                               <Label color="green" isCompact>Open</Label>
                             ) : (
@@ -2922,6 +3132,9 @@ const Ops: React.FC = () => {
                         const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
                         const progress = getProvisionProgress(ws);
                         const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
+                        const wsClusterName = getWorkshopCluster(ws);
+                        const wsClusterInfo = getWorkshopClusterInfo(ws);
+                        const wsCapacityState = wsClusterInfo ? (wsClusterInfo.utilizationPercent >= 85 ? 'critical' : wsClusterInfo.utilizationPercent >= 70 ? 'warning' : 'healthy') : null;
 
                         return (
                           <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
@@ -3008,7 +3221,30 @@ const Ops: React.FC = () => {
                                 </span>
                               ) : <span className="ops-muted">&mdash;</span>}
                             </td>
-                            <td></td>
+                            <td>
+                              {wsClusterName && wsClusterInfo ? (
+                                <Label
+                                  isCompact
+                                  color={wsCapacityState === 'critical' ? 'red' : wsCapacityState === 'warning' ? 'orange' : 'blue'}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  🖥️ {wsClusterName}
+                                </Label>
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
+                            </td>
+                            <td>
+                              {ws.spec?.openRegistration !== false ? (
+                                <Label color="green" isCompact>Open</Label>
+                              ) : (
+                                <Label color="blue" isCompact>Pre-reg</Label>
+                              )}
+                            </td>
                             <td>
                               {password ? (
                                 showPasswords

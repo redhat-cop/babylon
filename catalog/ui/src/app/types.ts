@@ -529,6 +529,11 @@ export interface TenantClusterPoolStatusCluster {
   sandboxApiState: 'pending' | 'available' | 'disabled' | 'removed';
 }
 
+export interface TenantClusterPoolList {
+  items: TenantClusterPool[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface ResourceProvider extends K8sObject {
   spec: ResourceProviderSpec;
 }
