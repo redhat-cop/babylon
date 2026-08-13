@@ -1,5 +1,4 @@
 from __future__ import annotations
-from copy import deepcopy
 from typing import List, Mapping
 
 from .exceptions import BabylonApiException
