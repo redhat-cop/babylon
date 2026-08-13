@@ -699,6 +699,7 @@ class AgnosticVComponent(K8sObject):
             for key, value in linked_agnosticv_component.supported_actions.items():
                 if key not in supported_actions:
                     supported_actions[key] = value
+        definition['spec']['supportedActions'] = supported_actions
 
         for idx, linked_component in enumerate(self.linked_components):
             entry = {"name": linked_component.name}
