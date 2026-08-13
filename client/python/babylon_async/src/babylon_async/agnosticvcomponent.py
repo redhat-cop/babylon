@@ -523,7 +523,7 @@ class AgnosticVComponent(K8sObject):
             for item in pruned_meta['sandboxes']:
                 if (
                     item.get('kind') == 'OcpSandbox' and
-                    'lab' in item['cloud_selector']
+                    'lab' in item.get('cloud_selector', {})
                 ):
                     item['cloud_selector']['environment_level'] = environment_level
 
