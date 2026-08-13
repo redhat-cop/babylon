@@ -778,7 +778,7 @@ class WebhookServer:
 
                                 if patch:
                                     try:
-                                        await agnosticv_component.json_patch(patch)
+                                        await agnosticv_component.patch(patch)
                                         logger.info(f"Removed PR metadata from component {agnosticv_component.name}")
                                     except Exception as e:
                                         logger.error(f"Failed to remove PR metadata from {agnosticv_component.name}: {e}")

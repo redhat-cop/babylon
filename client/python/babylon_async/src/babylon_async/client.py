@@ -394,7 +394,7 @@ class BabylonClient:
             namespace="babylon-config",
             owner=owner,
         )
-        
+
     async def get_agnosticv_component(self,
         name:str,
         cache:bool=False,
@@ -491,6 +491,24 @@ class BabylonClient:
             yield anarchy_subject
 
     # CatalogItem methods
+    async def create_catalog_item(self,
+        definition:Mapping,
+        annotations:Mapping[str,str]|None=None,
+        labels:Mapping[str,str]|None=None,
+        name:str|None=None,
+        namespace:str|None=None,
+        owner:K8sObject|None=None
+    ) -> CatalogItem:
+        return await CatalogItem.create(
+            annotations=annotations,
+            client=self,
+            definition=definition,
+            labels=labels,
+            name=name,
+            namespace=namespace,
+            owner=owner,
+        )
+
     async def get_catalog_item(self, name:str, namespace:str) -> CatalogItem:
         return await CatalogItem.get(client=self, name=name, namespace=namespace)
 

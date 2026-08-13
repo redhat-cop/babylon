@@ -74,14 +74,14 @@ class CatalogItemController(K8sObject):
 
     async def check_component_deletion(self):
         try:
-            agnosticv_component = await self.fetch_agnosticv_component()
+            agnosticv_component = await OperatorRuntime.babylon.get_agnosticv_component(self.name)
             if agnosticv_component.catalog_disable:
                 logger.info(f"Checking {self} for deletion after AgnosticVComponent catalog disabled")
                 await self.delete_if_no_resource_claims()
             elif self.namespace != agnosticv_component.catalog_item_namespace:
                 logger.info(f"Checking {self} for deletion after AgnosticVComponent catalog namespace changed")
                 await self.delete_if_no_resource_claims()
-        except kubernetes_asyncio.client.rest.ApiException as e:
+        except BabylonApiException as e:
             if e.status == 404:
                 logger.info(f"Checking {self} for deletion after AgnosticVComponent deletion")
                 await self.delete_if_no_resource_claims()
@@ -146,11 +146,3 @@ class CatalogItemController(K8sObject):
             await self.delete()
         except:
             logger.exception(f"Exception while deleting {self}")
-
-    async def fetch_agnosticv_component(self) -> AgnosticVComponent|None:
-        try:
-            return await OperatorRuntime.babylon.get_agnosticv_component(self.name)
-        except BabylonApiException as exception:
-            if exception.status != 404:
-                raise
-        return None

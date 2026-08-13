@@ -1,16 +1,10 @@
 import asyncio
-import kopf
-import kubernetes_asyncio
 import logging
 import os
 
-from babylon_async import (
-    AgnosticVComponent,
-    AnarchyGovernor,
-    BabylonApiException,
-    CatalogItem,
-    ResourceProvider
-)
+from typing import List
+
+import kopf
 
 from agnosticvrepo import AgnosticVRepo
 from operatorruntime import OperatorRuntime
@@ -18,6 +12,15 @@ from catalogitemcontroller import CatalogItemController
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from webhook_server import WebhookServer
+
+from babylon_async import (
+    AgnosticVComponent,
+    AnarchyGovernor,
+    BabylonApiException,
+    CatalogItem,
+    ResourceProvider,
+    TenantClusterPool,
+)
 
 # Global webhook server instance
 webhook_server = None
@@ -287,7 +290,7 @@ async def manage_catalog_item(
         )
         logger.info("Created %s", catalog_item)
         return
-    elif await catalog_item.update_from_agnosticv(catalog_item_definition):
+    if await catalog_item.update_from_agnosticv(catalog_item_definition):
         logger.info("Updated %s", catalog_item)
 
     return catalog_item
@@ -314,7 +317,7 @@ async def manage_resource_provider(
         )
         logger.info("Created %s", resource_provider)
         return
-    elif await resource_provider.update_from_agnosticv(resource_provider_definition):
+    if await resource_provider.update_from_agnosticv(resource_provider_definition):
         logger.info("Updated %s", resource_provider)
 
     return resource_provider
@@ -345,7 +348,7 @@ async def manage_tenant_cluster_pool(
         )
         logger.info("Created %s", tenant_cluster_pool)
         return
-    elif await tenant_cluster_pool.update_from_agnosticv(tenant_cluster_pool_definition):
+    if await tenant_cluster_pool.update_from_agnosticv(tenant_cluster_pool_definition):
         logger.info("Updated %s", tenant_cluster_pool)
 
     return tenant_cluster_pool
