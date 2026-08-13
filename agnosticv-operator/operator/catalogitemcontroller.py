@@ -16,7 +16,7 @@ logger = logging.getLogger('catalogitem')
 
 deleted_from_agnosticv_message = "Deleted from AgnosticV"
 
-class CatalogItem(K8sObject):
+class CatalogItemController(K8sObject):
     api_group = OperatorRuntime.catalog_api_group
     api_version = OperatorRuntime.catalog_version
     api_group_version = f"{api_group}/{api_version}"

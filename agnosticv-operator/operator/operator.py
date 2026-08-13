@@ -4,11 +4,17 @@ import kubernetes_asyncio
 import logging
 import os
 
-from babylon_async import AgnosticVComponent, BabylonApiException
+from babylon_async import (
+    AgnosticVComponent,
+    AnarchyGovernor,
+    BabylonApiException,
+    CatalogItem,
+    ResourceProvider
+)
 
 from agnosticvrepo import AgnosticVRepo
 from operatorruntime import OperatorRuntime
-from catalogitem import CatalogItem
+from catalogitemcontroller import CatalogItemController
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from webhook_server import WebhookServer
@@ -22,7 +28,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     global webhook_server, webhook_runner
     
     await OperatorRuntime.on_startup()
-    await CatalogItem.on_startup()
+    await CatalogItemController.on_startup()
 
     # Never give up from network errors
     settings.networking.error_backoffs = InfiniteRelativeBackoff()
@@ -76,7 +82,7 @@ async def on_cleanup(logger, **_):
         webhook_server = None
         webhook_runner = None
     
-    await CatalogItem.on_cleanup()
+    await CatalogItemController.on_cleanup()
     await OperatorRuntime.on_cleanup()
 
 @kopf.on.create(AgnosticVComponent.api_group, AgnosticVComponent.api_version, 'agnosticvcomponents')
