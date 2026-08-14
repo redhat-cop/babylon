@@ -7,5 +7,5 @@ openapi_schema_validator==0.9.0
 pytimeparse==1.1.8
 str2bool==1.1
 StringGenerator==0.5.1
-babylon_async @ git+https://github.com/redhat-cop/babylon.git@python-client-library-v0.1.1#subdirectory=client/python/babylon_async
+babylon_async @ git+https://github.com/redhat-cop/babylon.git@python-client-library-v0.2.1#subdirectory=client/python/babylon_async
 kopf @ git+https://github.com/rhpds/kopf.git@add-label-selector
