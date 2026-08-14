@@ -1,5 +1,4 @@
 const path = require('path');
-const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
@@ -86,13 +85,6 @@ module.exports = () => {
       assetModuleFilename: 'fonts/[hash:8][ext][query]',
     },
     plugins: [
-      new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
-        resource.request = resource.request.replace(/^node:/, '');
-      }),
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^\.\.\/\.\.\/data$/,
-        contextRegExp: /@asciidoctor\/core\/build\/browser/,
-      }),
       new Dotenv({
         systemvars: true,
         silent: true,
@@ -117,7 +109,7 @@ module.exports = () => {
       ],
       symlinks: false,
       cacheWithContext: false,
-      fallback: { crypto: false, buffer: false, fs: false, path: false, async_hooks: false, 'fs/promises': false },
+      fallback: { crypto: false, buffer: false },
     },
   };
 };

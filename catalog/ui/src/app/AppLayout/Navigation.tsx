@@ -85,32 +85,31 @@ const Navigation: React.FC = () => {
   );
 
   const serviceNavigation = userNamespace ? (
-    <>
-      <NavItem>
-        <NavLink
-          to={`/services/${userNamespace.name}`}
-          className={
-            location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-            location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
-            location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
-              ? 'pf-m-current'
-              : ''
-          }
-        >
-          My Services
-        </NavLink>
-      </NavItem>
-      {isAdmin ? (
-        <NavItem>
-          <NavLink
-            to="/white-glove"
-            className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
-          >
-            White Glove Requests
-          </NavLink>
-        </NavItem>
-      ) : null}
-    </>
+    <NavItem>
+      <NavLink
+        to={`/services/${userNamespace.name}`}
+        className={
+          location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+            ? 'pf-m-current'
+            : ''
+        }
+      >
+        My Services
+      </NavLink>
+    </NavItem>
+  ) : null;
+
+  const whiteGloveNavigation = userNamespace && isAdmin ? (
+    <NavItem>
+      <NavLink
+        to="/white-glove"
+        className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
+      >
+        White Glove Requests
+      </NavLink>
+    </NavItem>
   ) : null;
 
   const activityNavigation = (
@@ -260,6 +259,7 @@ const Navigation: React.FC = () => {
         {serviceNavigation}
         {activityNavigation}
         {multiWorkshopNavigation}
+        {whiteGloveNavigation}
         {adminNavigation}
       </NavList>
     </Nav>

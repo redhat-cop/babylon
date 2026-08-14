@@ -19,7 +19,7 @@ import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { apiPaths, fetcher } from '@app/api';
+import { apiPaths, fetcher, silentFetcher } from '@app/api';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -68,6 +68,16 @@ function statusLabel(state: string): string {
       return state;
   }
 }
+
+const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
+  const { data } = useSWR(
+    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    silentFetcher,
+    { refreshInterval: 30000 },
+  );
+  const assignee = data?.assignee?.displayName || fallback;
+  return <>{assignee || '—'}</>;
+};
 
 const defaultPerPage = 20;
 
@@ -215,7 +225,9 @@ const WhiteGloveListContent: React.FC = () => {
                     <Td>
                       <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                     </Td>
-                    <Td>{assignee || '—'}</Td>
+                    <Td>
+                      <JiraAssigneeCell jiraTicketId={jiraTicketId} fallback={assignee} />
+                    </Td>
                     <Td>
                       {jiraTicketUrl ? (
                         <a href={jiraTicketUrl} target="_blank" rel="noopener noreferrer">

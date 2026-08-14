@@ -1004,6 +1004,18 @@ async def create_jira_wgr_ticket(request):
 
     description_text = '\n'.join(description_lines)
 
+    labels = ['whiteglove', 'whiteglove-pending']
+    catalog_item_names = data.get('catalogItemNames') or []
+    if len(catalog_item_names) > 1:
+        labels.append('whiteglove-multi-asset')
+    if not catalog_item_names:
+        labels.append('whiteglove-consultation')
+    event_date_str = data.get('eventDate')
+    if event_date_str:
+        event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+        if (event_date - datetime.now(timezone.utc)).days < 14:
+            labels.append('whiteglove-short-notice')
+
     jira_payload = {
         "fields": {
             "project": {"key": jira_project_key},
@@ -1020,6 +1032,7 @@ async def create_jira_wgr_ticket(request):
             },
             "issuetype": {"name": "Task"},
             "reporter": {"emailAddress": requester},
+            "labels": labels,
         }
     }
 
@@ -1171,6 +1184,55 @@ async def add_jira_issue_comment(request):
 
     audit_log('jira_comment_added', user=user_email, details={'ticket': issue_key})
     return web.json_response({"ok": True, "id": result.get('id')})
+
+@routes.put("/api/jira/issue/{issue_key}/labels")
+async def update_jira_issue_labels(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required")
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    body = await request.json()
+    add_labels = body.get('add', [])
+    remove_labels = body.get('remove', [])
+    if not isinstance(add_labels, list) or not isinstance(remove_labels, list):
+        raise web.HTTPBadRequest(reason="add and remove must be lists of strings")
+
+    update_ops = []
+    for label in add_labels:
+        update_ops.append({"add": label})
+    for label in remove_labels:
+        update_ops.append({"remove": label})
+
+    if not update_ops:
+        return web.json_response({"ok": True})
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.put(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}",
+            headers=headers,
+            data=json.dumps({"update": {"labels": update_ops}}),
+        ) as resp:
+            if resp.status not in (200, 204):
+                error_body = await resp.text()
+                logging.error(f"Jira API error updating labels ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to update Jira labels: {resp.status}")
+
+    audit_log('jira_labels_updated', user=user['metadata']['name'], details={'ticket': issue_key, 'add': add_labels, 'remove': remove_labels})
+    return web.json_response({"ok": True})
 
 
 @routes.get("/api/usage-cost/request/{request_id}")

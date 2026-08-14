@@ -1684,6 +1684,14 @@ export async function addJiraComment(issueKey: string, comment: string): Promise
   });
 }
 
+export async function updateJiraLabels(issueKey: string, add: string[], remove: string[]): Promise<void> {
+  await apiFetch(`/api/jira/issue/${issueKey}/labels`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ add, remove }),
+  });
+}
+
 export async function createWorkshopFromAssetWithRetry({
   multiworkshopName,
   multiworkshopUid,
