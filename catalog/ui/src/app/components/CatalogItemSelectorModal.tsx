@@ -217,6 +217,7 @@ interface CatalogItemSelectorModalProps {
   onSelect: (catalogItem: CatalogItem | CatalogItem[]) => void;
   title?: string;
   singleSelect?: boolean;
+  defaultMultiSelect?: boolean;
 }
 
 // Fetch catalog items from multiple namespaces
@@ -429,12 +430,13 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   onSelect,
   title = 'Select Catalog Item',
   singleSelect = false,
+  defaultMultiSelect,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(!singleSelect);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(defaultMultiSelect ?? !singleSelect);
   const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
   const { catalogNamespaces } = useSession().getSession();
 

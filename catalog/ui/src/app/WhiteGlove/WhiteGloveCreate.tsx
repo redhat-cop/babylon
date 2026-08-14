@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Alert,
   Breadcrumb,
@@ -7,17 +7,32 @@ import {
   Button,
   Form,
   FormGroup,
+  Label,
+  LabelGroup,
+  MenuToggle,
+  MenuToggleElement,
   PageSection,
+  Select,
+  SelectList,
+  SelectOption,
   TextArea,
   TextInput,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
+import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
 import { CatalogItem, SalesforceItem } from '@app/types';
 import { DEMO_DOMAIN, displayName } from '@app/util';
+import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
+import Modal, { useModal } from '@app/Modal/Modal';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
@@ -27,6 +42,61 @@ import purposeOptions from '@app/MultiWorkshops/purposeOptions.json';
 import '@app/Catalog/catalog-item-form.css';
 import './white-glove.css';
 
+const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+
+function formatDateForDisplay(date: Date, tz: string): string {
+  try {
+    return date.toLocaleString(undefined, {
+      timeZone: tz,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
+const EventDateModal: React.FC<{
+  isOpen: boolean;
+  date: Date;
+  minDate: number;
+  title: string;
+  onConfirm: (date: Date) => void;
+  onClose: () => void;
+}> = ({ isOpen, date, minDate, title, onConfirm, onClose }) => {
+  const [modalRef, openModal] = useModal();
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
+  const [selectedDate, setSelectedDate] = useState<Date>(date);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedDate(date);
+      openModal();
+    }
+  }, [isOpen, date, openModal]);
+
+  return (
+    <Modal ref={modalRef} onConfirm={() => onConfirm(selectedDate)} title={title} onClose={onClose}>
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
+      <Form isHorizontal style={{ marginTop: '16px' }}>
+        <FormGroup fieldId="date-picker-modal" label="Date and Time">
+          <DateTimePicker
+            defaultTimestamp={selectedDate.getTime()}
+            forceUpdateTimestamp={selectedDate.getTime()}
+            onSelect={(d: Date) => setSelectedDate(d)}
+            minDate={minDate}
+            timezone={timezone}
+          />
+        </FormGroup>
+      </Form>
+    </Modal>
+  );
+};
+
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
@@ -34,36 +104,65 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdWgr, setCreatedWgr] = useState<{ namespace: string; name: string } | null>(null);
 
   const [eventName, setEventName] = useState('');
-  const [selectedCatalogItem, setSelectedCatalogItem] = useState<CatalogItem | null>(null);
+  const [selectedCatalogItems, setSelectedCatalogItems] = useState<CatalogItem[]>([]);
   const [activity, setActivity] = useState('');
   const [purpose, setPurpose] = useState('');
   const [explanation, setExplanation] = useState('');
   const [salesforceItems, setSalesforceItems] = useState<SalesforceItem[]>([]);
   const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
-  const [eventDate, setEventDate] = useState<Date>(() => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
-  const [eventEndDate, setEventEndDate] = useState<Date>(() => new Date(Date.now() + 15 * 24 * 60 * 60 * 1000));
+  const [timezone] = useState(getBrowserTimezone);
+  const [eventDate, setEventDate] = useState<Date>(() => new Date(Date.now() + 15 * 24 * 60 * 60 * 1000));
+  const [eventEndDate, setEventEndDate] = useState<Date>(() => new Date(Date.now() + 16 * 24 * 60 * 60 * 1000));
+  const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
+  const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState('');
+  const [isDeliveryModeOpen, setIsDeliveryModeOpen] = useState(false);
+  const [audienceType, setAudienceType] = useState('');
+  const [isAudienceTypeOpen, setIsAudienceTypeOpen] = useState(false);
+  const [shareWith, setShareWith] = useState<string[]>([]);
+  const [shareWithInput, setShareWithInput] = useState('');
   const [notes, setNotes] = useState('');
 
+  const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
+
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
-    const item = Array.isArray(catalogItemOrItems) ? catalogItemOrItems[0] : catalogItemOrItems;
-    if (item) {
-      setSelectedCatalogItem(item);
+    const items = Array.isArray(catalogItemOrItems) ? catalogItemOrItems : [catalogItemOrItems];
+    if (items.length > 0) {
+      setSelectedCatalogItems((prev) => {
+        const existingKeys = new Set(prev.map((i) => `${i.metadata.namespace}/${i.metadata.name}`));
+        const newItems = items.filter((i) => !existingKeys.has(`${i.metadata.namespace}/${i.metadata.name}`));
+        return [...prev, ...newItems];
+      });
     }
     setIsCatalogSelectorOpen(false);
   }
 
+  function removeCatalogItem(index: number) {
+    setSelectedCatalogItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addShareWithEmail() {
+    const email = shareWithInput.trim();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    if (shareWith.includes(email)) return;
+    setShareWith((prev) => [...prev, email]);
+    setShareWithInput('');
+  }
+
   async function onSubmit(): Promise<void> {
-    if (!selectedCatalogItem || !userNamespace) return;
+    if (selectedCatalogItems.length === 0 || !userNamespace) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
       const wgrData = {
-        catalogItemName: selectedCatalogItem.metadata.name,
-        catalogItemNamespace: selectedCatalogItem.metadata.namespace,
+        catalogItemNames: selectedCatalogItems.map((item) => item.metadata.name),
+        catalogItemNamespace: selectedCatalogItems[0].metadata.namespace,
         displayName: eventName,
         purpose,
         activity,
@@ -73,6 +172,9 @@ const WhiteGloveCreateContent: React.FC = () => {
         eventEndDate: eventEndDate.toISOString(),
         notes: notes || undefined,
         salesforceItems: salesforceItems.length > 0 ? salesforceItems : undefined,
+        shareWith: shareWith.length > 0 ? shareWith : undefined,
+        deliveryMode: deliveryMode || undefined,
+        audienceType: audienceType || undefined,
       };
       const result = await createWhiteGloveRequest({
         ...wgrData,
@@ -97,7 +199,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         console.warn('Failed to create Jira ticket for WGR:', jiraError);
       }
 
-      navigate(`/white-glove/${result.metadata.namespace}/${result.metadata.name}`);
+      setCreatedWgr({ namespace: result.metadata.namespace, name: result.metadata.name });
     } catch (error) {
       console.error('Error creating white glove request:', error);
       setSubmitError('Failed to submit white glove request. Please try again.');
@@ -106,7 +208,40 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
   }
 
-  const isFormValid = !!eventName.trim() && !!selectedCatalogItem && !!activity && !!purpose;
+  const isFormValid = !!eventName.trim() && selectedCatalogItems.length > 0 && !!activity && !!purpose && !!deliveryMode && !!audienceType;
+
+  if (createdWgr) {
+    return (
+      <PageSection variant="default" className="catalog-item-form">
+        <Breadcrumb>
+          <BreadcrumbItem>
+            <Button variant="link" onClick={() => navigate('/white-glove')}>
+              White Glove Requests
+            </Button>
+          </BreadcrumbItem>
+          <BreadcrumbItem isActive>Request Submitted</BreadcrumbItem>
+        </Breadcrumb>
+
+        <Alert variant="success" title="Request submitted successfully!" isInline style={{ marginTop: '24px', marginBottom: '16px' }}>
+          <p>Your request is pending ops review.</p>
+          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+            <li>Typical approval time: 24-48 hours</li>
+            <li>Track progress via JSM ticket or Slack channel below</li>
+            <li>Ops will reach out if more info needed</li>
+          </ul>
+        </Alert>
+
+        <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+          <Button variant="primary" component={(props) => <Link {...props} to={`/white-glove/${createdWgr.namespace}/${createdWgr.name}`} />}>
+            View Request
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/white-glove')}>
+            Back to Requests
+          </Button>
+        </div>
+      </PageSection>
+    );
+  }
 
   return (
     <>
@@ -153,24 +288,24 @@ const WhiteGloveCreateContent: React.FC = () => {
           </FormGroup>
 
           <FormGroup label="Catalog Item" isRequired fieldId="catalog-item">
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-              <div style={{ minWidth: '400px' }}>
-                <TextInput
-                  id="catalog-item"
-                  placeholder="Select a catalog item..."
-                  value={selectedCatalogItem ? displayName(selectedCatalogItem) : ''}
-                  readOnlyVariant="default"
-                  style={{
-                    backgroundColor: 'var(--pf-t--color--background--disabled)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setIsCatalogSelectorOpen(true)}
-                />
+            {selectedCatalogItems.length > 0 && (
+              <div className="wg-catalog-items">
+                {selectedCatalogItems.map((item, index) => (
+                  <div key={`${item.metadata.namespace}/${item.metadata.name}`} className="wg-catalog-item">
+                    <div className="wg-catalog-item__icon">
+                      <CatalogItemIcon catalogItem={item} />
+                    </div>
+                    <span className="wg-catalog-item__name">{displayName(item)}</span>
+                    <Button variant="plain" aria-label="Remove catalog item" onClick={() => removeCatalogItem(index)} className="wg-catalog-item__remove">
+                      <TimesIcon />
+                    </Button>
+                  </div>
+                ))}
               </div>
-              <Button variant="secondary" onClick={() => setIsCatalogSelectorOpen(true)}>
-                {selectedCatalogItem ? 'Change' : 'Select'}
-              </Button>
-            </div>
+            )}
+            <Button variant="secondary" onClick={() => setIsCatalogSelectorOpen(true)}>
+              {selectedCatalogItems.length > 0 ? 'Change' : 'Select'}
+            </Button>
           </FormGroup>
 
           <ActivityPurposeSelector
@@ -204,7 +339,17 @@ const WhiteGloveCreateContent: React.FC = () => {
             onChange={setSalesforceItems}
           />
 
-          <FormGroup label="Number of Users" fieldId="number-of-users">
+          <FormGroup
+            label={
+              <>
+                Number of Users{' '}
+                <Tooltip content="Expected number of attendees/participants">
+                  <OutlinedQuestionCircleIcon className="tooltip-icon-only" />
+                </Tooltip>
+              </>
+            }
+            fieldId="number-of-users"
+          >
             <PatientNumberInput
               min={1}
               max={999}
@@ -214,27 +359,155 @@ const WhiteGloveCreateContent: React.FC = () => {
             />
           </FormGroup>
 
-          <FormGroup label="Event Start Date" fieldId="event-date">
-            <DateTimePicker
-              defaultTimestamp={eventDate.getTime()}
-              onSelect={(date: Date) => {
-                setEventDate(date);
-                if (eventEndDate <= date) {
-                  setEventEndDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
-                }
-              }}
-              minDate={Date.now()}
-              forceUpdateTimestamp={eventDate.getTime()}
-            />
+          <FormGroup label="Event Start Date" isRequired fieldId="event-date">
+            <Button
+              variant="link"
+              className="wg-date-picker-btn"
+              onClick={() => setIsStartDateModalOpen(true)}
+            >
+              <OutlinedCalendarAltIcon style={{ marginRight: '8px' }} />
+              {formatDateForDisplay(eventDate, timezone)}
+            </Button>
+            {isShortLeadTime && (
+              <Alert variant="warning" isInline isPlain title="Short Lead Time" style={{ marginTop: '8px' }}>
+                Events typically require 2 weeks advance notice for proper preparation. Rush requests may be declined or
+                have limited support availability.
+              </Alert>
+            )}
           </FormGroup>
 
-          <FormGroup label="Event End Date" fieldId="event-end-date">
-            <DateTimePicker
-              defaultTimestamp={eventEndDate.getTime()}
-              onSelect={(date: Date) => setEventEndDate(date)}
-              minDate={eventDate.getTime()}
-              forceUpdateTimestamp={eventEndDate.getTime()}
-            />
+          <FormGroup label="Event End Date" isRequired fieldId="event-end-date">
+            <Button
+              variant="link"
+              className="wg-date-picker-btn"
+              onClick={() => setIsEndDateModalOpen(true)}
+            >
+              <OutlinedCalendarAltIcon style={{ marginRight: '8px' }} />
+              {formatDateForDisplay(eventEndDate, timezone)}
+            </Button>
+          </FormGroup>
+
+          <FormGroup
+            label={
+              <>
+                Event Delivery Mode{' '}
+                <Tooltip content="Helps ops prepare infrastructure — on-site events may need VPN configs or specialized networking.">
+                  <OutlinedQuestionCircleIcon className="tooltip-icon-only" />
+                </Tooltip>
+              </>
+            }
+            fieldId="delivery-mode"
+            isRequired
+          >
+            <Select
+              id="delivery-mode"
+              isOpen={isDeliveryModeOpen}
+              onOpenChange={setIsDeliveryModeOpen}
+              onSelect={(_e, value) => {
+                setDeliveryMode(value as string);
+                setIsDeliveryModeOpen(false);
+              }}
+              selected={deliveryMode || undefined}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsDeliveryModeOpen((prev) => !prev)}
+                  isExpanded={isDeliveryModeOpen}
+                  style={{ width: '100%' }}
+                >
+                  {deliveryMode
+                    ? { virtual: 'Virtual', 'on-site': 'On-site', hybrid: 'Hybrid' }[deliveryMode]
+                    : 'Select delivery mode...'}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                <SelectOption value="virtual">Virtual</SelectOption>
+                <SelectOption value="on-site">On-site</SelectOption>
+                <SelectOption value="hybrid">Hybrid</SelectOption>
+              </SelectList>
+            </Select>
+          </FormGroup>
+
+          <FormGroup
+            label={
+              <>
+                Audience Type{' '}
+                <Tooltip content="External customer events get priority ops support. Internal/partner events may use different auth configurations.">
+                  <OutlinedQuestionCircleIcon className="tooltip-icon-only" />
+                </Tooltip>
+              </>
+            }
+            fieldId="audience-type"
+            isRequired
+          >
+            <Select
+              id="audience-type"
+              isOpen={isAudienceTypeOpen}
+              onOpenChange={setIsAudienceTypeOpen}
+              onSelect={(_e, value) => {
+                setAudienceType(value as string);
+                setIsAudienceTypeOpen(false);
+              }}
+              selected={audienceType || undefined}
+              toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsAudienceTypeOpen((prev) => !prev)}
+                  isExpanded={isAudienceTypeOpen}
+                  style={{ width: '100%' }}
+                >
+                  {audienceType
+                    ? { 'external-customers': 'External Customers', 'internal-redhat': 'Internal Red Hat', partners: 'Partners' }[audienceType]
+                    : 'Select audience type...'}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                <SelectOption value="external-customers">External Customers</SelectOption>
+                <SelectOption value="internal-redhat">Internal Red Hat</SelectOption>
+                <SelectOption value="partners">Partners</SelectOption>
+              </SelectList>
+            </Select>
+          </FormGroup>
+
+          <FormGroup label="Share Service With" fieldId="share-with">
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <TextInput
+                id="share-with"
+                value={shareWithInput}
+                onChange={(_e, value) => setShareWithInput(value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addShareWithEmail();
+                  }
+                }}
+                placeholder="Enter email address"
+                style={{ flex: 1 }}
+              />
+              <Button
+                variant="secondary"
+                aria-label="Add email"
+                onClick={addShareWithEmail}
+                isDisabled={!shareWithInput.trim()}
+                size="sm"
+              >
+                Add
+              </Button>
+            </div>
+            {shareWith.length > 0 && (
+              <LabelGroup style={{ marginTop: '8px' }}>
+                {shareWith.map((email) => (
+                  <Label
+                    key={email}
+                    onClose={() => setShareWith((prev) => prev.filter((e) => e !== email))}
+                  >
+                    {email}
+                  </Label>
+                ))}
+              </LabelGroup>
+            )}
           </FormGroup>
 
           <FormGroup label="Notes for Operations" fieldId="notes">
@@ -242,7 +515,7 @@ const WhiteGloveCreateContent: React.FC = () => {
               id="notes"
               value={notes}
               onChange={(_, value) => setNotes(value)}
-              placeholder="Provide any additional information, special requirements, or instructions for the operations team..."
+              placeholder={`Special Requirements (optional)\nExamples:\n• "Attendees need VPN access to customer network"\n• "Demo requires GPU-enabled nodes"\n• "Need bastion host for customer security policy"\n• "Event has C-level executives - high visibility"`}
               rows={5}
             />
           </FormGroup>
@@ -252,7 +525,7 @@ const WhiteGloveCreateContent: React.FC = () => {
             onClick={onSubmit}
             isDisabled={!isFormValid || isSubmitting}
             isLoading={isSubmitting}
-            style={{ marginTop: '16px', width: 'fit-content' }}
+            style={{ marginTop: '16px', marginBottom: '48px', width: 'fit-content' }}
           >
             Submit Request
           </Button>
@@ -264,9 +537,35 @@ const WhiteGloveCreateContent: React.FC = () => {
         onClose={() => setIsCatalogSelectorOpen(false)}
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for White Glove Request"
-        singleSelect
+        defaultMultiSelect={false}
       />
 
+      <EventDateModal
+        isOpen={isStartDateModalOpen}
+        date={eventDate}
+        minDate={Date.now()}
+        title="Event Start Date"
+        onConfirm={(date) => {
+          setEventDate(date);
+          if (eventEndDate <= date) {
+            setEventEndDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
+          }
+          setIsStartDateModalOpen(false);
+        }}
+        onClose={() => setIsStartDateModalOpen(false)}
+      />
+
+      <EventDateModal
+        isOpen={isEndDateModalOpen}
+        date={eventEndDate}
+        minDate={eventDate.getTime()}
+        title="Event End Date"
+        onConfirm={(date) => {
+          setEventEndDate(date);
+          setIsEndDateModalOpen(false);
+        }}
+        onClose={() => setIsEndDateModalOpen(false)}
+      />
     </>
   );
 };

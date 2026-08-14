@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import useServiceQuota from '@app/utils/useServiceQuota';
@@ -38,11 +39,13 @@ import {
   fetcher,
   apiPaths,
   silentFetcher,
+  patchWhiteGloveRequest,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts, ServiceNamespace, Nullable, SalesforceItem } from '@app/types';
+import { CatalogItem, TPurposeOpts, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
 import {
   displayName,
   getStageFromK8sObject,
+  DEMO_DOMAIN,
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
 import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
@@ -72,6 +75,9 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
 
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wgrParam = searchParams.get('wgr');
+  const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
   const { userNamespace, isAdmin, serviceNamespaces } = useSession().getSession();
   const helpLink = useHelpLink();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
@@ -111,6 +117,51 @@ const MultiWorkshopCreate: React.FC = () => {
       ],
     };
   });
+
+  const { data: whiteGloveRequest } = useSWR<WhiteGloveRequest>(
+    wgrNamespace && wgrName
+      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
+      : null,
+    fetcher,
+  );
+
+  const [wgrApplied, setWgrApplied] = useState(false);
+  useEffect(() => {
+    if (!whiteGloveRequest || wgrApplied) return;
+
+    setCreateFormData((prev) => ({
+      ...prev,
+      name: whiteGloveRequest.spec.displayName || prev.name,
+      startDate: whiteGloveRequest.spec.eventDate ? new Date(whiteGloveRequest.spec.eventDate) : prev.startDate,
+      endDate: whiteGloveRequest.spec.eventEndDate ? new Date(whiteGloveRequest.spec.eventEndDate) : prev.endDate,
+      numberSeats: whiteGloveRequest.spec.numberOfUsers || prev.numberSeats,
+      activity: whiteGloveRequest.spec.activity || prev.activity,
+      purpose: whiteGloveRequest.spec.purpose || prev.purpose,
+      explanation: whiteGloveRequest.spec.explanation || prev.explanation,
+      salesforceItems: whiteGloveRequest.spec.salesforceItems?.length > 0
+        ? whiteGloveRequest.spec.salesforceItems
+        : prev.salesforceItems,
+      assets: whiteGloveRequest.spec.catalogItemNames?.length > 0
+        ? whiteGloveRequest.spec.catalogItemNames.map((itemName) => ({
+            key: itemName,
+            name: itemName,
+            namespace: whiteGloveRequest.spec.catalogItemNamespace,
+            displayName: '',
+            description: '',
+            type: 'Workshop' as 'Workshop' | 'external',
+          }))
+        : prev.assets,
+    }));
+
+    const wgrServiceNamespace = serviceNamespaces.find(
+      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
+    );
+    if (wgrServiceNamespace) {
+      setSelectedNamespace(wgrServiceNamespace);
+    }
+
+    setWgrApplied(true);
+  }, [whiteGloveRequest, wgrApplied, serviceNamespaces]);
 
   // Service quota check
   const { standaloneServicesCount, workshopsCount, currentServicesCount, quotaLimit } = useServiceQuota({
@@ -328,8 +379,30 @@ const MultiWorkshopCreate: React.FC = () => {
         requester: selectedNamespace?.requester || undefined,
       };
 
-      // Create the MultiWorkshop — the operator handles Workshop/WorkshopProvision creation
       const createdMultiWorkshop = await createMultiWorkshop(payload);
+
+      if (whiteGloveRequest && wgrNamespace && wgrName) {
+        try {
+          await patchWhiteGloveRequest({
+            namespace: wgrNamespace,
+            name: wgrName,
+            patch: {
+              metadata: {
+                annotations: {
+                  [`${DEMO_DOMAIN}/state`]: 'approved',
+                  [`${DEMO_DOMAIN}/approved-at`]: new Date().toISOString(),
+                  [`${DEMO_DOMAIN}/service-name`]: createdMultiWorkshop.metadata.name,
+                  [`${DEMO_DOMAIN}/service-namespace`]: createdMultiWorkshop.metadata.namespace,
+                  [`${DEMO_DOMAIN}/service-type`]: 'multi-workshop',
+                },
+              },
+            },
+          });
+        } catch {
+          console.warn('Failed to update white glove request state');
+        }
+      }
+
       navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error: unknown) {
       if ((error as Response).status === 403) {

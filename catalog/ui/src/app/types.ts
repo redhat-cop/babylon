@@ -957,7 +957,7 @@ export interface WhiteGloveRequest extends K8sObject {
 }
 
 export interface WhiteGloveRequestSpec {
-  catalogItemName: string;
+  catalogItemNames: string[];
   catalogItemNamespace: string;
   displayName?: string;
   purpose?: string;
@@ -969,6 +969,9 @@ export interface WhiteGloveRequestSpec {
   notes?: string;
   slackChannel?: string;
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  shareWith?: string[];
+  deliveryMode?: 'virtual' | 'on-site' | 'hybrid';
+  audienceType?: 'external-customers' | 'internal-redhat' | 'partners';
 }
 
 export interface WhiteGloveRequestList {

@@ -1575,7 +1575,7 @@ export async function patchMultiWorkshop({
 }
 
 export async function createWhiteGloveRequest(data: {
-  catalogItemName: string;
+  catalogItemNames: string[];
   catalogItemNamespace: string;
   displayName: string;
   purpose?: string;
@@ -1586,6 +1586,9 @@ export async function createWhiteGloveRequest(data: {
   eventEndDate?: string;
   notes?: string;
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  shareWith?: string[];
+  deliveryMode?: string;
+  audienceType?: string;
   namespace: string;
 }): Promise<WhiteGloveRequest> {
   const session = await getApiSession();
@@ -1601,12 +1604,12 @@ export async function createWhiteGloveRequest(data: {
         [`${DEMO_DOMAIN}/requester`]: session.user,
       },
       labels: {
-        [`${BABYLON_DOMAIN}/catalogItemName`]: data.catalogItemName,
+        [`${BABYLON_DOMAIN}/catalogItemName`]: data.catalogItemNames[0],
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: data.catalogItemNamespace,
       },
     },
     spec: {
-      catalogItemName: data.catalogItemName,
+      catalogItemNames: data.catalogItemNames,
       catalogItemNamespace: data.catalogItemNamespace,
       displayName: data.displayName,
       purpose: data.purpose,
@@ -1617,6 +1620,9 @@ export async function createWhiteGloveRequest(data: {
       eventEndDate: data.eventEndDate,
       notes: data.notes,
       salesforceItems: data.salesforceItems,
+      shareWith: data.shareWith,
+      deliveryMode: data.deliveryMode as WhiteGloveRequest['spec']['deliveryMode'],
+      audienceType: data.audienceType as WhiteGloveRequest['spec']['audienceType'],
     },
   };
   return await createK8sObject(definition);
@@ -1646,7 +1652,7 @@ export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
 
 export async function createJiraTicketForWgr(data: {
   displayName: string;
-  catalogItemName: string;
+  catalogItemNames: string[];
   catalogItemNamespace: string;
   activity?: string;
   purpose?: string;
@@ -1656,6 +1662,9 @@ export async function createJiraTicketForWgr(data: {
   eventEndDate?: string;
   notes?: string;
   salesforceItems?: Array<{ id: string; type: string }>;
+  shareWith?: string[];
+  deliveryMode?: string;
+  audienceType?: string;
 }): Promise<{ key: string; url: string }> {
   const response = await apiFetch('/api/jira/wgr', {
     method: 'POST',
