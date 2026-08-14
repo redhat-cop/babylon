@@ -887,14 +887,16 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>Activity & Purpose</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <ActivityPurposeSelector
-                          value={{
-                            activity: multiworkshop.spec['purpose-activity'] || '',
-                            purpose: multiworkshop.spec.purpose || '',
-                          }}
-                          purposeOpts={purposeOptions}
-                          onChange={() => undefined}
-                        />
+                        <div className="hide-form-group-labels">
+                          <ActivityPurposeSelector
+                            value={{
+                              activity: multiworkshop.spec['purpose-activity'] || '',
+                              purpose: multiworkshop.spec.purpose || '',
+                            }}
+                            purposeOpts={purposeOptions}
+                            onChange={() => undefined}
+                          />
+                        </div>
                       </DescriptionListDescription>
                     </DescriptionListGroup>
 

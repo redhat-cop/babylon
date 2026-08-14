@@ -688,7 +688,7 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListTerm>Activity &amp; Purpose</DescriptionListTerm>
                   <DescriptionListDescription>
                     {isAdmin ? (
-                      <div className="wg-hide-labels">
+                      <div className="hide-form-group-labels">
                         <ActivityPurposeSelector
                           value={{ purpose: wgr.spec.purpose, activity: wgr.spec.activity, explanation: wgr.spec.explanation }}
                           purposeOpts={purposeOptions}

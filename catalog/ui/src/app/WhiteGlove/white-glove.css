@@ -154,11 +154,6 @@
   max-width: 400px;
 }
 
-.wg-hide-labels .pf-v6-c-form__group-label,
-.wg-hide-labels > label {
-  display: none;
-}
-
 /* ── Consultation Checkbox ── */
 .wg-consultation-checkbox {
   margin-top: 10px;
