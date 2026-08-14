@@ -1121,6 +1121,9 @@ async def get_jira_issue_details(request):
 @routes.post("/api/jira/issue/{issue_key}/comment")
 async def add_jira_issue_comment(request):
     user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required")
     user_email = request.headers.get('X-Forwarded-Email', user.get('metadata', {}).get('name', 'unknown'))
 
     if not jira_api_token or not jira_user_email:
