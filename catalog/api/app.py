@@ -1012,12 +1012,9 @@ async def create_jira_wgr_ticket(request):
         labels.append('whiteglove-consultation')
     event_date_str = data.get('eventDate')
     if event_date_str:
-        try:
-            event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
-            if (event_date - datetime.now(timezone.utc)).days < 14:
-                labels.append('whiteglove-short-notice')
-        except (ValueError, TypeError):
-            pass
+        event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+        if (event_date - datetime.now(timezone.utc)).days < 14:
+            labels.append('whiteglove-short-notice')
 
     jira_payload = {
         "fields": {
