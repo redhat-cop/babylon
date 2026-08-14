@@ -406,7 +406,10 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
         tenant_cluster_pool, logger
     )
 
+    # Scale-up condition check...
     if (
+        # Do not provision unless enabled
+        tenant_cluster_pool.enabled and
         # Don't provision if at or above max cluster count
         (
             tenant_cluster_pool.max_clusters is None or
