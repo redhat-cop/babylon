@@ -39,7 +39,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
-import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher } from '@app/api';
+import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
 import { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName } from '@app/util';
@@ -211,9 +211,17 @@ const WhiteGloveDetailContent: React.FC = () => {
     setIsApproveModalOpen(false);
   }
 
+  function updateLabelsForApproval() {
+    const ticketId = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+    if (ticketId) {
+      updateJiraLabels(ticketId, ['whiteglove-approved'], ['whiteglove-pending']).catch(() => {});
+    }
+  }
+
   function handleApproveConfirm() {
     if (approveChoice === 'create-new') {
       closeApproveModal();
+      updateLabelsForApproval();
       const url = isMultiCatalogItem
         ? `/multi-workshop/create?wgr=${namespace}/${name}`
         : `/catalog/${wgr.spec.catalogItemNamespace}/order/${wgr.spec.catalogItemNames?.[0]}?wgr=${namespace}/${name}`;
@@ -242,6 +250,7 @@ const WhiteGloveDetailContent: React.FC = () => {
       .then((updated) => {
         mutate(updated, false);
         closeApproveModal();
+        updateLabelsForApproval();
       })
       .catch((err) => {
         console.error('Failed to link existing service:', err);
@@ -290,6 +299,10 @@ const WhiteGloveDetailContent: React.FC = () => {
     });
     mutate(updated, false);
     setIsRejectModalOpen(false);
+    const ticketId = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+    if (ticketId) {
+      updateJiraLabels(ticketId, ['whiteglove-rejected'], ['whiteglove-pending']).catch(() => {});
+    }
   }
 
   const jiraTicketIdForComment = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
