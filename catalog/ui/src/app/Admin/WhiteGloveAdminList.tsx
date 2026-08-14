@@ -13,7 +13,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, deleteWhiteGloveRequest, fetcher } from '@app/api';
+import { apiPaths, deleteWhiteGloveRequest, fetcher, silentFetcher } from '@app/api';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
@@ -36,6 +36,16 @@ function statusIcon(state: string) {
       return <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}><ClockIcon /> {state || 'Pending Approval'}</span>;
   }
 }
+
+const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
+  const { data } = useSWR(
+    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    silentFetcher,
+    { refreshInterval: 30000 },
+  );
+  const assignee = data?.assignee?.displayName || fallback;
+  return <>{assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}</>;
+};
 
 const defaultPerPage = 20;
 
@@ -136,7 +146,7 @@ const WhiteGloveAdminListContent: React.FC = () => {
                     <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                   </Td>
                   <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
-                    {ann[`${DEMO_DOMAIN}/assignee`] || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
+                    <JiraAssigneeCell jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]} fallback={ann[`${DEMO_DOMAIN}/assignee`]} />
                   </Td>
                   <Td dataLabel="Jira">
                     {ann[`${DEMO_DOMAIN}/jira-ticket-id`] ? (
