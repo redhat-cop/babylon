@@ -1118,6 +1118,58 @@ async def get_jira_issue_details(request):
         "comments": comments,
     })
 
+@routes.post("/api/jira/issue/{issue_key}/comment")
+async def add_jira_issue_comment(request):
+    user = await get_proxy_user(request)
+    user_email = request.headers.get('X-Forwarded-Email', user.get('metadata', {}).get('name', 'unknown'))
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    body = await request.json()
+    comment_text = body.get('comment', '').strip()
+    if not comment_text:
+        raise web.HTTPBadRequest(reason="Comment text is required")
+
+    jira_body = {
+        "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": f"[{user_email}] {comment_text}"}],
+                }
+            ],
+        }
+    }
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.post(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment",
+            headers=headers,
+            data=json.dumps(jira_body),
+        ) as resp:
+            if resp.status not in (200, 201):
+                error_body = await resp.text()
+                logging.error(f"Jira API error posting comment ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to post Jira comment: {resp.status}")
+            result = await resp.json()
+
+    audit_log('jira_comment_added', user=user_email, details={'ticket': issue_key})
+    return web.json_response({"ok": True, "id": result.get('id')})
+
+
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
     await get_proxy_user(request)

@@ -52,8 +52,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import { getWorkshopLifespan } from '@app/Workshops/workshops-utils';
-import DateTimePicker from '@app/components/DateTimePicker';
-import TimezoneSelector from '@app/components/TimezoneSelector';
+import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -127,7 +126,9 @@ const MultiWorkshopDetail: React.FC = () => {
   const [modalStartNow, openModalStartNow] = useModal();
   const [selectedWorkshops, setSelectedWorkshops] = useState<string[]>([]);
   const [workshopSearchValue, setWorkshopSearchValue] = useState('');
-  const [timezone, setTimezone] = useState(getBrowserTimezone);
+  const [timezone] = useState(getBrowserTimezone);
+  const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
+  const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
   const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string } } | null>(null);
 
   const { data: multiworkshop, error } = useSWR<MultiWorkshop>(
@@ -712,7 +713,6 @@ const MultiWorkshopDetail: React.FC = () => {
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             {activeTab === 'details' ? (
               <>
-                <TimezoneSelector timezone={timezone} onChange={setTimezone} />
                 <DescriptionList isHorizontal className="multiworkshop-detail__details">
                   <DescriptionListGroup>
                     <DescriptionListTerm>Display Name</DescriptionListTerm>
@@ -756,19 +756,11 @@ const MultiWorkshopDetail: React.FC = () => {
                       <DescriptionListDescription>
                         <Split hasGutter style={{ alignItems: 'center' }}>
                           <SplitItem>
-                            <DateTimePicker
-                              defaultTimestamp={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
-                              isDisabled={isLocked}
-                              onSelect={async (date) => {
-                                const apiDate = dateToApiString(date);
-                                const updatedMultiWorkshop = await patchMultiWorkshop({
-                                  name: multiworkshop.metadata.name,
-                                  namespace: multiworkshop.metadata.namespace,
-                                  patch: { spec: { startDate: apiDate } },
-                                });
-                                mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                              }}
+                            <DateTimePickerButton
+                              date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
                               timezone={timezone}
+                              isDisabled={isLocked}
+                              onClick={() => setIsStartDateModalOpen(true)}
                             />
                           </SplitItem>
                           <SplitItem>
@@ -789,19 +781,11 @@ const MultiWorkshopDetail: React.FC = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>End Date</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <DateTimePicker
-                        defaultTimestamp={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate).getTime() : Date.now()}
-                        isDisabled={isLocked}
-                        onSelect={async (date) => {
-                          const apiDate = dateToApiString(date);
-                          const updatedMultiWorkshop = await patchMultiWorkshop({
-                            name: multiworkshop.metadata.name,
-                            namespace: multiworkshop.metadata.namespace,
-                            patch: { spec: { endDate: apiDate } },
-                          });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-                        }}
+                      <DateTimePickerButton
+                        date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
                         timezone={timezone}
+                        isDisabled={isLocked}
+                        onClick={() => setIsEndDateModalOpen(true)}
                       />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
@@ -1080,6 +1064,40 @@ const MultiWorkshopDetail: React.FC = () => {
         </Tabs>
       </PageSection>
       <Footer />
+      <DateTimePickerModalDialog
+        isOpen={isStartDateModalOpen}
+        date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
+        minDate={Date.now()}
+        title="Start provisioning date"
+        onConfirm={async (date) => {
+          const apiDate = dateToApiString(date);
+          const updated = await patchMultiWorkshop({
+            name: multiworkshop.metadata.name,
+            namespace: multiworkshop.metadata.namespace,
+            patch: { spec: { startDate: apiDate } },
+          });
+          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updated, false);
+          setIsStartDateModalOpen(false);
+        }}
+        onClose={() => setIsStartDateModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isEndDateModalOpen}
+        date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
+        minDate={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
+        title="End Date"
+        onConfirm={async (date) => {
+          const apiDate = dateToApiString(date);
+          const updated = await patchMultiWorkshop({
+            name: multiworkshop.metadata.name,
+            namespace: multiworkshop.metadata.namespace,
+            patch: { spec: { endDate: apiDate } },
+          });
+          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updated, false);
+          setIsEndDateModalOpen(false);
+        }}
+        onClose={() => setIsEndDateModalOpen(false)}
+      />
     </div>
   );
 };

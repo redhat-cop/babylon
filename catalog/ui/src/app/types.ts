@@ -957,8 +957,8 @@ export interface WhiteGloveRequest extends K8sObject {
 }
 
 export interface WhiteGloveRequestSpec {
-  catalogItemNames: string[];
-  catalogItemNamespace: string;
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
   displayName?: string;
   purpose?: string;
   activity?: string;

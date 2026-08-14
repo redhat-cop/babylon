@@ -1575,8 +1575,8 @@ export async function patchMultiWorkshop({
 }
 
 export async function createWhiteGloveRequest(data: {
-  catalogItemNames: string[];
-  catalogItemNamespace: string;
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
   displayName: string;
   purpose?: string;
   activity?: string;
@@ -1593,6 +1593,11 @@ export async function createWhiteGloveRequest(data: {
 }): Promise<WhiteGloveRequest> {
   const session = await getApiSession();
   const name = generateK8sNameWithSuffix(data.displayName || 'wgr');
+  const labels: Record<string, string> = {};
+  if (data.catalogItemNames?.length > 0) {
+    labels[`${BABYLON_DOMAIN}/catalogItemName`] = data.catalogItemNames[0];
+    labels[`${BABYLON_DOMAIN}/catalogItemNamespace`] = data.catalogItemNamespace;
+  }
   const definition: WhiteGloveRequest = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WhiteGloveRequest',
@@ -1603,10 +1608,7 @@ export async function createWhiteGloveRequest(data: {
         [`${BABYLON_DOMAIN}/created-by`]: session.user,
         [`${DEMO_DOMAIN}/requester`]: session.user,
       },
-      labels: {
-        [`${BABYLON_DOMAIN}/catalogItemName`]: data.catalogItemNames[0],
-        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: data.catalogItemNamespace,
-      },
+      labels,
     },
     spec: {
       catalogItemNames: data.catalogItemNames,
@@ -1652,8 +1654,8 @@ export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
 
 export async function createJiraTicketForWgr(data: {
   displayName: string;
-  catalogItemNames: string[];
-  catalogItemNamespace: string;
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
   activity?: string;
   purpose?: string;
   explanation?: string;
@@ -1672,6 +1674,14 @@ export async function createJiraTicketForWgr(data: {
     body: JSON.stringify(data),
   });
   return response.json();
+}
+
+export async function addJiraComment(issueKey: string, comment: string): Promise<void> {
+  await apiFetch(`/api/jira/issue/${issueKey}/comment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comment }),
+  });
 }
 
 export async function createWorkshopFromAssetWithRetry({

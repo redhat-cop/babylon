@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  Checkbox,
   Form,
   FormGroup,
   Label,
@@ -21,7 +22,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
-import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
 import { CatalogItem, SalesforceItem } from '@app/types';
@@ -29,10 +29,8 @@ import { DEMO_DOMAIN, displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
-import DateTimePicker from '@app/components/DateTimePicker';
-import TimezoneSelector from '@app/components/TimezoneSelector';
+import { DateTimePickerModalDialog, DateTimePickerButton, formatDateForDisplay } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
-import Modal, { useModal } from '@app/Modal/Modal';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
@@ -44,59 +42,6 @@ import './white-glove.css';
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
-function formatDateForDisplay(date: Date, tz: string): string {
-  try {
-    return date.toLocaleString(undefined, {
-      timeZone: tz,
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short',
-    });
-  } catch {
-    return date.toLocaleString();
-  }
-}
-
-const EventDateModal: React.FC<{
-  isOpen: boolean;
-  date: Date;
-  minDate: number;
-  title: string;
-  onConfirm: (date: Date) => void;
-  onClose: () => void;
-}> = ({ isOpen, date, minDate, title, onConfirm, onClose }) => {
-  const [modalRef, openModal] = useModal();
-  const [timezone, setTimezone] = useState(getBrowserTimezone);
-  const [selectedDate, setSelectedDate] = useState<Date>(date);
-
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedDate(date);
-      openModal();
-    }
-  }, [isOpen, date, openModal]);
-
-  return (
-    <Modal ref={modalRef} onConfirm={() => onConfirm(selectedDate)} title={title} onClose={onClose}>
-      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
-      <Form isHorizontal style={{ marginTop: '16px' }}>
-        <FormGroup fieldId="date-picker-modal" label="Date and Time">
-          <DateTimePicker
-            defaultTimestamp={selectedDate.getTime()}
-            forceUpdateTimestamp={selectedDate.getTime()}
-            onSelect={(d: Date) => setSelectedDate(d)}
-            minDate={minDate}
-            timezone={timezone}
-          />
-        </FormGroup>
-      </Form>
-    </Modal>
-  );
-};
-
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
@@ -104,9 +49,9 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [createdWgr, setCreatedWgr] = useState<{ namespace: string; name: string } | null>(null);
 
   const [eventName, setEventName] = useState('');
+  const [needConsultation, setNeedConsultation] = useState(false);
   const [selectedCatalogItems, setSelectedCatalogItems] = useState<CatalogItem[]>([]);
   const [activity, setActivity] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -154,15 +99,17 @@ const WhiteGloveCreateContent: React.FC = () => {
   }
 
   async function onSubmit(): Promise<void> {
-    if (selectedCatalogItems.length === 0 || !userNamespace) return;
+    if (!userNamespace) return;
+    if (!needConsultation && selectedCatalogItems.length === 0) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
+      const hasCatalogItems = selectedCatalogItems.length > 0;
       const wgrData = {
-        catalogItemNames: selectedCatalogItems.map((item) => item.metadata.name),
-        catalogItemNamespace: selectedCatalogItems[0].metadata.namespace,
+        catalogItemNames: hasCatalogItems ? selectedCatalogItems.map((item) => item.metadata.name) : undefined,
+        catalogItemNamespace: hasCatalogItems ? selectedCatalogItems[0].metadata.namespace : undefined,
         displayName: eventName,
         purpose,
         activity,
@@ -199,7 +146,9 @@ const WhiteGloveCreateContent: React.FC = () => {
         console.warn('Failed to create Jira ticket for WGR:', jiraError);
       }
 
-      setCreatedWgr({ namespace: result.metadata.namespace, name: result.metadata.name });
+      navigate(`/white-glove/${result.metadata.namespace}/${result.metadata.name}`, {
+        state: { justCreated: true },
+      });
     } catch (error) {
       console.error('Error creating white glove request:', error);
       setSubmitError('Failed to submit white glove request. Please try again.');
@@ -208,40 +157,7 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
   }
 
-  const isFormValid = !!eventName.trim() && selectedCatalogItems.length > 0 && !!activity && !!purpose && !!deliveryMode && !!audienceType;
-
-  if (createdWgr) {
-    return (
-      <PageSection variant="default" className="catalog-item-form">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <Button variant="link" onClick={() => navigate('/white-glove')}>
-              White Glove Requests
-            </Button>
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>Request Submitted</BreadcrumbItem>
-        </Breadcrumb>
-
-        <Alert variant="success" title="Request submitted successfully!" isInline style={{ marginTop: '24px', marginBottom: '16px' }}>
-          <p>Your request is pending ops review.</p>
-          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-            <li>Typical approval time: 24-48 hours</li>
-            <li>Track progress via JSM ticket or Slack channel below</li>
-            <li>Ops will reach out if more info needed</li>
-          </ul>
-        </Alert>
-
-        <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
-          <Button variant="primary" component={(props) => <Link {...props} to={`/white-glove/${createdWgr.namespace}/${createdWgr.name}`} />}>
-            View Request
-          </Button>
-          <Button variant="secondary" onClick={() => navigate('/white-glove')}>
-            Back to Requests
-          </Button>
-        </div>
-      </PageSection>
-    );
-  }
+  const isFormValid = !!eventName.trim() && (needConsultation || selectedCatalogItems.length > 0) && !!activity && !!purpose && !!deliveryMode && !!audienceType;
 
   return (
     <>
@@ -287,25 +203,40 @@ const WhiteGloveCreateContent: React.FC = () => {
             />
           </FormGroup>
 
-          <FormGroup label="Catalog Item" isRequired fieldId="catalog-item">
-            {selectedCatalogItems.length > 0 && (
-              <div className="wg-catalog-items">
-                {selectedCatalogItems.map((item, index) => (
-                  <div key={`${item.metadata.namespace}/${item.metadata.name}`} className="wg-catalog-item">
-                    <div className="wg-catalog-item__icon">
-                      <CatalogItemIcon catalogItem={item} />
-                    </div>
-                    <span className="wg-catalog-item__name">{displayName(item)}</span>
-                    <Button variant="plain" aria-label="Remove catalog item" onClick={() => removeCatalogItem(index)} className="wg-catalog-item__remove">
-                      <TimesIcon />
-                    </Button>
+          <FormGroup label="Catalog Item" isRequired={!needConsultation} fieldId="catalog-item">
+            {!needConsultation && (
+              <>
+                {selectedCatalogItems.length > 0 && (
+                  <div className="wg-catalog-items">
+                    {selectedCatalogItems.map((item, index) => (
+                      <div key={`${item.metadata.namespace}/${item.metadata.name}`} className="wg-catalog-item">
+                        <div className="wg-catalog-item__icon">
+                          <CatalogItemIcon catalogItem={item} />
+                        </div>
+                        <span className="wg-catalog-item__name">{displayName(item)}</span>
+                        <Button variant="plain" aria-label="Remove catalog item" onClick={() => removeCatalogItem(index)} className="wg-catalog-item__remove">
+                          <TimesIcon />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                <Button variant="secondary" onClick={() => setIsCatalogSelectorOpen(true)}>
+                  {selectedCatalogItems.length > 0 ? 'Change' : 'Select catalog item'}
+                </Button>
+              </>
             )}
-            <Button variant="secondary" onClick={() => setIsCatalogSelectorOpen(true)}>
-              {selectedCatalogItems.length > 0 ? 'Change' : 'Select'}
-            </Button>
+            <Checkbox
+              id="need-consultation"
+              label="I'm not sure / Need consultation"
+              description="Our operations team will help you choose the right catalog item."
+              isChecked={needConsultation}
+              onChange={(_e, checked) => {
+                setNeedConsultation(checked);
+                if (checked) setSelectedCatalogItems([]);
+              }}
+              className="wg-consultation-checkbox"
+            />
           </FormGroup>
 
           <ActivityPurposeSelector
@@ -360,14 +291,7 @@ const WhiteGloveCreateContent: React.FC = () => {
           </FormGroup>
 
           <FormGroup label="Event Start Date" isRequired fieldId="event-date">
-            <Button
-              variant="link"
-              className="wg-date-picker-btn"
-              onClick={() => setIsStartDateModalOpen(true)}
-            >
-              <OutlinedCalendarAltIcon style={{ marginRight: '8px' }} />
-              {formatDateForDisplay(eventDate, timezone)}
-            </Button>
+            <DateTimePickerButton date={eventDate} timezone={timezone} onClick={() => setIsStartDateModalOpen(true)} />
             {isShortLeadTime && (
               <Alert variant="warning" isInline isPlain title="Short Lead Time" style={{ marginTop: '8px' }}>
                 Events typically require 2 weeks advance notice for proper preparation. Rush requests may be declined or
@@ -377,14 +301,7 @@ const WhiteGloveCreateContent: React.FC = () => {
           </FormGroup>
 
           <FormGroup label="Event End Date" isRequired fieldId="event-end-date">
-            <Button
-              variant="link"
-              className="wg-date-picker-btn"
-              onClick={() => setIsEndDateModalOpen(true)}
-            >
-              <OutlinedCalendarAltIcon style={{ marginRight: '8px' }} />
-              {formatDateForDisplay(eventEndDate, timezone)}
-            </Button>
+            <DateTimePickerButton date={eventEndDate} timezone={timezone} onClick={() => setIsEndDateModalOpen(true)} />
           </FormGroup>
 
           <FormGroup
@@ -540,7 +457,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         defaultMultiSelect={false}
       />
 
-      <EventDateModal
+      <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
         date={eventDate}
         minDate={Date.now()}
@@ -555,7 +472,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         onClose={() => setIsStartDateModalOpen(false)}
       />
 
-      <EventDateModal
+      <DateTimePickerModalDialog
         isOpen={isEndDateModalOpen}
         date={eventEndDate}
         minDate={eventDate.getTime()}

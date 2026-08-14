@@ -34,9 +34,6 @@ spec:
           spec:
             description: Specification of WhiteGloveRequest.
             type: object
-            required:
-            - catalogItemNames
-            - catalogItemNamespace
             properties:
               catalogItemNames:
                 description: >-

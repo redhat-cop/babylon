@@ -149,24 +149,21 @@
   color: var(--pf-t--global--text--color--regular);
 }
 
-/* ── Date Picker Button ── */
-.wg-date-picker-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--pf-t--global--text--color--regular);
-  background: var(--pf-t--global--background--color--200, #f0f0f0);
-  border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: var(--pf-t--global--border--radius--sm);
-  cursor: pointer;
-  text-decoration: none;
+/* ── Admin Inline Edit ── */
+.wg-admin-input {
+  max-width: 400px;
 }
-.wg-date-picker-btn:hover {
-  background: var(--pf-t--global--background--color--300, #e0e0e0);
-  text-decoration: none;
+
+.wg-hide-labels .pf-v6-c-form__group-label,
+.wg-hide-labels > label {
+  display: none;
 }
+
+/* ── Consultation Checkbox ── */
+.wg-consultation-checkbox {
+  margin-top: 10px;
+}
+
 
 /* ── Empty State ── */
 .wg-empty-state {
