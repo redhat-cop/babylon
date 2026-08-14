@@ -246,8 +246,12 @@ const WhiteGloveDetailContent: React.FC = () => {
               <Button
                 variant="primary"
                 component="a"
-                href={`/catalog/${wgr.spec.catalogItemNamespace}/order/${wgr.spec.catalogItemName}?wgr=${namespace}/${name}`}
-                isDisabled={!wgr.spec.catalogItemName || !wgr.spec.catalogItemNamespace}
+                href={
+                  wgr.spec.catalogItemNames?.length > 1
+                    ? `/multi-workshop/create?wgr=${namespace}/${name}`
+                    : `/catalog/${wgr.spec.catalogItemNamespace}/order/${wgr.spec.catalogItemNames?.[0]}?wgr=${namespace}/${name}`
+                }
+                isDisabled={!wgr.spec.catalogItemNames?.length || !wgr.spec.catalogItemNamespace}
               >
                 Approve
               </Button>
@@ -312,12 +316,24 @@ const WhiteGloveDetailContent: React.FC = () => {
                   </DescriptionListGroup>
                 )}
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Catalog Item</DescriptionListTerm>
+                  <DescriptionListTerm>{wgr.spec.catalogItemNames?.length > 1 ? 'Catalog Items' : 'Catalog Item'}</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {wgr.spec.catalogItemName && wgr.spec.catalogItemNamespace ? (
-                      <Link to={`/catalog/${wgr.spec.catalogItemNamespace}?item=${wgr.spec.catalogItemNamespace}/${wgr.spec.catalogItemName}`}>
-                        {wgr.spec.catalogItemName}
-                      </Link>
+                    {wgr.spec.catalogItemNames?.length > 0 ? (
+                      wgr.spec.catalogItemNames.length > 1 ? (
+                        <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                          {wgr.spec.catalogItemNames.map((itemName) => (
+                            <li key={itemName}>
+                              <Link to={`/catalog/${wgr.spec.catalogItemNamespace}?item=${wgr.spec.catalogItemNamespace}/${itemName}`}>
+                                {itemName}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <Link to={`/catalog/${wgr.spec.catalogItemNamespace}?item=${wgr.spec.catalogItemNamespace}/${wgr.spec.catalogItemNames[0]}`}>
+                          {wgr.spec.catalogItemNames[0]}
+                        </Link>
+                      )
                     ) : (
                       '—'
                     )}
@@ -397,6 +413,29 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListTerm>Number of Users</DescriptionListTerm>
                   <DescriptionListDescription>{wgr.spec.numberOfUsers || '—'}</DescriptionListDescription>
                 </DescriptionListGroup>
+                {wgr.spec.shareWith && wgr.spec.shareWith.length > 0 && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Shared With</DescriptionListTerm>
+                    <DescriptionListDescription>{wgr.spec.shareWith.join(', ')}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+                {wgr.spec.deliveryMode && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Event Delivery Mode</DescriptionListTerm>
+                    <DescriptionListDescription style={{ textTransform: 'capitalize' }}>{wgr.spec.deliveryMode}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+                {wgr.spec.audienceType && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Audience Type</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      {wgr.spec.audienceType === 'external-customers' ? 'External Customers'
+                        : wgr.spec.audienceType === 'internal-redhat' ? 'Internal Red Hat'
+                        : wgr.spec.audienceType === 'partners' ? 'Partners'
+                        : wgr.spec.audienceType}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
                 {wgr.spec.notes && (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Notes</DescriptionListTerm>

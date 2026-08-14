@@ -35,16 +35,18 @@ spec:
             description: Specification of WhiteGloveRequest.
             type: object
             required:
-            - catalogItemName
+            - catalogItemNames
             - catalogItemNamespace
             properties:
-              catalogItemName:
+              catalogItemNames:
                 description: >-
-                  Name of the referenced CatalogItem.
-                type: string
+                  Names of the referenced CatalogItems.
+                type: array
+                items:
+                  type: string
               catalogItemNamespace:
                 description: >-
-                  Namespace of the referenced CatalogItem.
+                  Namespace of the referenced CatalogItems.
                 type: string
               displayName:
                 description: >-
@@ -81,6 +83,22 @@ spec:
                 description: >-
                   Slack channel for operations team coordination.
                 type: string
+              shareWith:
+                description: >-
+                  Email addresses of users who should receive access to the provisioned environment.
+                type: array
+                items:
+                  type: string
+              deliveryMode:
+                description: >-
+                  Event delivery mode.
+                type: string
+                enum: ['virtual', 'on-site', 'hybrid']
+              audienceType:
+                description: >-
+                  Type of audience for the event.
+                type: string
+                enum: ['external-customers', 'internal-redhat', 'partners']
               salesforceItems:
                 description: >-
                   Array of Salesforce items associated with this request.

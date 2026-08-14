@@ -122,8 +122,40 @@ const WhiteGloveListContent: React.FC = () => {
 
       <PageSection hasBodyWrapper={false} style={{ flexGrow: 1 }}>
         {items.length === 0 ? (
-          <EmptyState headingLevel="h2" icon={ExclamationTriangleIcon} titleText="No white glove requests" variant="full">
-            <EmptyStateBody>You have not submitted any white glove requests yet.</EmptyStateBody>
+          <EmptyState headingLevel="h2" titleText="White Glove Requests" variant="full">
+            <EmptyStateBody>
+              <div className="wg-empty-state">
+                <p style={{ color: 'var(--pf-t--global--text--color--subtle)', marginBottom: '4px' }}>
+                  Dedicated ops support for high-stakes customer engagements
+                </p>
+                <div className="wg-empty-state__features">
+                  <div className="wg-empty-state__feature">
+                    <CheckCircleIcon className="wg-empty-state__feature-icon" />
+                    <span>Pre-provisioned environments ready before your event</span>
+                  </div>
+                  <div className="wg-empty-state__feature">
+                    <CheckCircleIcon className="wg-empty-state__feature-icon" />
+                    <span>Dedicated monitoring during the workshop</span>
+                  </div>
+                  <div className="wg-empty-state__feature">
+                    <CheckCircleIcon className="wg-empty-state__feature-icon" />
+                    <span>Proactive management (scaling, extensions, issue handling)</span>
+                  </div>
+                  <div className="wg-empty-state__feature">
+                    <CheckCircleIcon className="wg-empty-state__feature-icon" />
+                    <span>Priority Slack/JSM support during delivery</span>
+                  </div>
+                </div>
+                <div className="wg-empty-state__when">
+                  <div className="wg-empty-state__when-title">When to request</div>
+                  <ul className="wg-empty-state__when-list">
+                    <li>Executive demos or POCs</li>
+                    <li>Large partner training events</li>
+                    <li>Trade show workshops</li>
+                  </ul>
+                </div>
+              </div>
+            </EmptyStateBody>
             <EmptyStateFooter>
               <Button variant="primary" onClick={() => navigate('/white-glove/create')}>
                 New Request
