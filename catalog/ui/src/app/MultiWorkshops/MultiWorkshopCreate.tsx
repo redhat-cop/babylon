@@ -53,8 +53,7 @@ import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
-import DateTimePicker from '@app/components/DateTimePicker';
-import TimezoneSelector from '@app/components/TimezoneSelector';
+import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
 import purposeOptions from './purposeOptions.json';
 import useSystemStatus from '@app/utils/useSystemStatus';
@@ -73,6 +72,7 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
+
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -87,7 +87,10 @@ const MultiWorkshopCreate: React.FC = () => {
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
-  const [timezone, setTimezone] = useState(getBrowserTimezone);
+  const [timezone] = useState(getBrowserTimezone);
+  const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
+  const [isReadyByDateModalOpen, setIsReadyByDateModalOpen] = useState(false);
+  const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
     const defaultProvisioningDate = now;
@@ -592,7 +595,6 @@ const MultiWorkshopCreate: React.FC = () => {
       </PageSection>
 
       <PageSection>
-        <TimezoneSelector timezone={timezone} onChange={setTimezone} />
         <Form className="multiworkshop-create__form">
           {(isAdmin || serviceNamespaces.length > 1) && (
             <FormGroup label="Create Multi Asset Workshop in Project" fieldId="project-selector">
@@ -678,30 +680,12 @@ const MultiWorkshopCreate: React.FC = () => {
             </Split>
           </FormGroup>
 
-          {/* Workshop Dates - Provisioning Date first, then Ready by */}
+          {/* Workshop Dates */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-            {/* Provisioning Date */}
             <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Start Date">
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                <DateTimePicker
-                  key={`provisioning-${useDirectProvisioningDate}`}
-                  defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
-                  forceUpdateTimestamp={createFormData.startDate?.getTime()}
-                  isDisabled={useDirectProvisioningDate}
-                  onSelect={(d: Date) => {
-                    setCreateFormData((prev) => {
-                      const actualStartDate = new Date(d.getTime() + READY_BY_LEAD_TIME_MS); // Actual start is 8 hours after provisioning
-                      const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
-                      return {
-                        ...prev,
-                        startDate: d, // Direct provisioning date control
-                        endDate: endDateTime,
-                      };
-                    });
-                  }}
-                  minDate={Date.now()}
-                  timezone={timezone}
-                />
+                <DateTimePickerButton date={createFormData.startDate} timezone={timezone}
+                  isDisabled={useDirectProvisioningDate} onClick={() => setIsStartDateModalOpen(true)} />
                 <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
                   <OutlinedQuestionCircleIcon
                     aria-label="Select when you want the workshop provisioning to start."
@@ -710,7 +694,6 @@ const MultiWorkshopCreate: React.FC = () => {
                 </Tooltip>
               </div>
 
-              {/* Provisioning Mode Switch - Admin Only */}
               {isAdmin && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                   <Switch
@@ -746,33 +729,11 @@ const MultiWorkshopCreate: React.FC = () => {
               )}
             </FormGroup>
 
-            {/* Ready by Date - Only show when switch is enabled and user is admin */}
             {isAdmin && useDirectProvisioningDate && (
               <FormGroup fieldId="readyByDate" label="Ready by">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                  <DateTimePicker
-                    key={`ready-by-${useDirectProvisioningDate}`}
-                    defaultTimestamp={
-                      createFormData.startDate
-                        ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Show actual start date (8 hours after provisioning)
-                        : Date.now() + READY_BY_LEAD_TIME_MS
-                    }
-                    forceUpdateTimestamp={createFormData.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
-                    onSelect={(d: Date) => {
-                      // Calculate provisioning date as 8 hours BEFORE ready by date
-                      const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
-                      setCreateFormData((prev) => {
-                        const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
-                        return {
-                          ...prev,
-                          startDate: provisioningDate, // Internal API uses provisioning date as startDate
-                          endDate: endDateTime,
-                        };
-                      });
-                    }}
-                    minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
-                    timezone={timezone}
-                  />
+                  <DateTimePickerButton date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+                    timezone={timezone} onClick={() => setIsReadyByDateModalOpen(true)} />
                   <Tooltip
                     position="right"
                     content={
@@ -792,26 +753,9 @@ const MultiWorkshopCreate: React.FC = () => {
             )}
           </div>
 
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
-                <DateTimePicker
-                  key="end-date"
-                  defaultTimestamp={createFormData.endDate.getTime()}
-                  minDate={
-                    useDirectProvisioningDate
-                      ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is ready by date
-                      : createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is 8 hours after provisioning
-                  }
-                  onSelect={(date: Date) => {
-                    setCreateFormData((prev) => ({ ...prev, endDate: date }));
-                  }}
-                  forceUpdateTimestamp={createFormData.endDate?.getTime()}
-                  timezone={timezone}
-                />
-              </FormGroup>
-            </SplitItem>
-          </Split>
+          <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
+            <DateTimePickerButton date={createFormData.endDate} timezone={timezone} onClick={() => setIsEndDateModalOpen(true)} />
+          </FormGroup>
 
           <FormGroup label="Number of Seats" fieldId="numberSeats">
             <NumberInput
@@ -1074,6 +1018,47 @@ const MultiWorkshopCreate: React.FC = () => {
       <UserDisabledModal
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isStartDateModalOpen}
+        date={createFormData.startDate}
+        minDate={Date.now()}
+        title="Provisioning Start Date"
+        onConfirm={(d) => {
+          setCreateFormData((prev) => {
+            const actualStartDate = new Date(d.getTime() + READY_BY_LEAD_TIME_MS);
+            const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
+            return { ...prev, startDate: d, endDate: endDateTime };
+          });
+          setIsStartDateModalOpen(false);
+        }}
+        onClose={() => setIsStartDateModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isReadyByDateModalOpen}
+        date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+        minDate={Date.now() + READY_BY_LEAD_TIME_MS}
+        title="Ready by"
+        onConfirm={(d) => {
+          const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
+          setCreateFormData((prev) => {
+            const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+            return { ...prev, startDate: provisioningDate, endDate: endDateTime };
+          });
+          setIsReadyByDateModalOpen(false);
+        }}
+        onClose={() => setIsReadyByDateModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isEndDateModalOpen}
+        date={createFormData.endDate}
+        minDate={createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS}
+        title="Auto-destroy workshops"
+        onConfirm={(d) => {
+          setCreateFormData((prev) => ({ ...prev, endDate: d }));
+          setIsEndDateModalOpen(false);
+        }}
+        onClose={() => setIsEndDateModalOpen(false)}
       />
     </div>
   );
