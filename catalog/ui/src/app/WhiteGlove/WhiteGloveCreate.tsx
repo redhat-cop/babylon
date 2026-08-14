@@ -29,7 +29,7 @@ import { DEMO_DOMAIN, displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
-import { DateTimePickerModalDialog, DateTimePickerButton, formatDateForDisplay } from '@app/components/DateTimePickerModal';
+import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import PatientNumberInput from '@app/components/PatientNumberInput';
