@@ -220,6 +220,34 @@ class ResourceClaim(K8sObject):
         return provider.parameter_values.get('stop_timestamp')
 
     @property
+    def uuid(self) -> str|None:
+        """Return uuid for ResourceClaim
+
+        This is defined as the uuid of the last AnarchySubject in the
+        ResourceClaim.
+
+        If the AnarchySubject has not been initalized then this may not be defined.
+        """
+        # First check if uuid is present in status summary, if so return that
+        status_summary = self.status.summary
+        if status_summary is defined:
+            if 'uuid' in status_summary:
+                return status_summary['uuid']
+            if 'uuid' in status_sumray.get('provision_data', {}):
+                return status_summary['provision_data']['uuid']
+
+        # Fallback to attempting to get uuid from AnarchySubject in resources
+        status_resources = self.status.resources
+        if status_resources is None or len(status_resources) == 0:
+            return None
+
+        anarchy_subject = status_resources[-1].state
+        if anarchy_subject is None:
+            return None
+
+        return anarchy_subject.get('spec', {}).get('vars', {}).get('job_vars', {}).get('uuid')
+
+    @property
     def white_glove(self) -> bool:
         if self.metadata.labels is None:
             return False
