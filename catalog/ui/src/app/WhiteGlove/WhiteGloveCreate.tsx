@@ -388,7 +388,17 @@ const WhiteGloveCreateContent: React.FC = () => {
             </Select>
           </FormGroup>
 
-          <FormGroup label="Share Service With" fieldId="share-with">
+          <FormGroup
+            label={
+              <>
+                Share Service With{' '}
+                <Tooltip content="Grant other users access to this service by adding their email addresses.">
+                  <OutlinedQuestionCircleIcon className="tooltip-icon-only" />
+                </Tooltip>
+              </>
+            }
+            fieldId="share-with"
+          >
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <TextInput
                 id="share-with"
