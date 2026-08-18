@@ -39,6 +39,7 @@ import {
   getSLABadgeClass,
   formatString,
   CUSTOM_LABELS,
+  SLAs,
 } from '@app/Catalog/catalog-utils';
 import StarRating from '@app/components/StarRating';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -264,7 +265,10 @@ const CategorySelectorContent: React.FC<{
   );
 
   const catalogItems: CatalogItem[] = useMemo(
-    () => filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin),
+    () =>
+      filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin).filter(
+        (item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported,
+      ),
     [catalogItemsArr, isAdmin],
   );
 
@@ -302,7 +306,10 @@ const CatalogItemsContent: React.FC<{
   );
 
   const allowedCatalogItems = useMemo(
-    () => filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin),
+    () =>
+      filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin).filter(
+        (item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported,
+      ),
     [catalogItemsArr, isAdmin],
   );
 

@@ -101,7 +101,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const whiteGloveNavigation = userNamespace && isAdmin ? (
+  const whiteGloveNavigation = userNamespace ? (
     <NavItem>
       <NavLink
         to="/white-glove"
