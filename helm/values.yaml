@@ -253,6 +253,9 @@ tenantClusterPoolManager:
     requests:
       cpu: 200m
       memory: 256Mi
+  sharedClusterNamespace:
+    create: true
+    name: shared-clusters
 
 workshopManager:
   api:
