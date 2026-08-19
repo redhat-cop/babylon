@@ -983,15 +983,26 @@ async def create_jira_wgr_ticket(request):
     display_name = data.get('displayName', 'White Glove Request')
     requester = user['metadata']['name']
 
+    catalog_item_names_list = data.get('catalogItemNames') or []
+    catalog_namespace = data.get('catalogItemNamespace', '')
+    if catalog_item_names_list:
+        catalog_items_str = ', '.join(f"{catalog_namespace}/{name}" for name in catalog_item_names_list)
+    else:
+        catalog_items_str = 'N/A (consultation)'
+
     description_lines = [
         f"Requester: {requester}",
-        f"Catalog Item: {data.get('catalogItemNamespace', '')}/{data.get('catalogItemName', '')}",
+        f"Catalog Item: {catalog_items_str}",
         f"Activity: {data.get('activity', 'N/A')}",
         f"Purpose: {data.get('purpose', 'N/A')}",
     ]
     if data.get('explanation'):
         description_lines.append(f"Explanation: {data['explanation']}")
     description_lines.append(f"Number of Users: {data.get('numberOfUsers', 'N/A')}")
+    if data.get('deliveryMode'):
+        description_lines.append(f"Delivery Mode: {data['deliveryMode']}")
+    if data.get('audienceType'):
+        description_lines.append(f"Audience Type: {data['audienceType']}")
     if data.get('eventDate'):
         description_lines.append(f"Event Start: {data['eventDate']}")
     if data.get('eventEndDate'):
@@ -999,16 +1010,17 @@ async def create_jira_wgr_ticket(request):
     if data.get('salesforceItems'):
         sf_ids = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
         description_lines.append(f"Salesforce IDs: {sf_ids}")
+    if data.get('shareWith'):
+        description_lines.append(f"Shared With: {', '.join(data['shareWith'])}")
     if data.get('notes'):
         description_lines.append(f"\nNotes:\n{data['notes']}")
 
     description_text = '\n'.join(description_lines)
 
     labels = ['whiteglove', 'whiteglove-pending']
-    catalog_item_names = data.get('catalogItemNames') or []
-    if len(catalog_item_names) > 1:
+    if len(catalog_item_names_list) > 1:
         labels.append('whiteglove-multi-asset')
-    if not catalog_item_names:
+    if not catalog_item_names_list:
         labels.append('whiteglove-consultation')
     event_date_str = data.get('eventDate')
     if event_date_str:
