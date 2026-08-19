@@ -869,6 +869,7 @@ export type Session = {
   roles: string[];
   interface: string;
   user: string;
+  fullName: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
