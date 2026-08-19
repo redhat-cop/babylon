@@ -1,5 +1,6 @@
 {{- $tenantClusterPoolManager := .Values.tenantClusterPoolManager }}
-{{- if and $tenantClusterPoolManager.deploy $tenantClusterPoolManager.namespace.create }}
+{{- if and $tenantClusterPoolManager.deploy }}
+{{- if $tenantClusterPoolManager.namespace.create }}
 ---
 apiVersion: v1
 kind: Namespace
@@ -8,4 +9,15 @@ metadata:
     {{- include "babylon.labels" $ | nindent 4 }}
     app.kubernetes.io/component: tenant-cluster-pool-manager
   name: {{ $tenantClusterPoolManager.namespace.name }}
+{{- end }}
+{{- if $tenantClusterPoolManager.sharedClusterNamespace.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: tenant-cluster-pool-manager
+  name: {{ $tenantClusterPoolManager.sharedClusterNamespace.name }}
+{{- end }}
 {{- end }}

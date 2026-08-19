@@ -354,6 +354,7 @@ async def handle_tenant_cluster_without_sandbox_config(
             **tenant_cluster_pool.sandbox_host.annotations,
             "babylon_cluster": OperatorRuntime.babylon_cluster,
             "guid": resource_claim.guid,
+            "uuid": resource_claim.uuid,
             "resource_claim_name": resource_claim.name,
             "resource_claim_namespace": resource_claim.namespace,
         },

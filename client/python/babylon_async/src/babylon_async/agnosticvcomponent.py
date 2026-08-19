@@ -444,7 +444,7 @@ class AgnosticVComponent(K8sObject):
             return None
 
         anarchy_namespace = self.get_anarchy_namespace()
-        
+
         definition = {
             "apiVersion": AnarchyGovernor.api_group_version,
             "kind": AnarchyGovernor.kind,
@@ -518,14 +518,23 @@ class AgnosticVComponent(K8sObject):
         if not pruned_meta['anarchy']:
             del pruned_meta['anarchy']
 
-        # Add environment_level cloud_selctor for OcpSandboxes provided by tenant clusters
+        # Automatic mutation of sandbox selectors
         if 'sandboxes' in pruned_meta:
             for item in pruned_meta['sandboxes']:
                 if (
                     item.get('kind') == 'OcpSandbox' and
                     'lab' in item.get('cloud_selector', {})
                 ):
+                    # Add environment_level cloud_selctor for OcpSandboxes provided by tenant clusters
                     item['cloud_selector']['environment_level'] = environment_level
+                    # Add ":<lab-key>" to lab selector value if set in annotations of ResourceClaim
+                    item['cloud_selector']['lab'] = (
+                        item['cloud_selector']['lab'] +
+                        "{{" +
+                        "(':' ~ resouce_claim.metadata.annotations['babylon.gpte.redhat.com/lab-key']) " +
+                        "if 'babylon.gpte.redhat.com/lab-key' in resource_claim.metadata.annotations else ''" +
+                        "}}"
+                    )
 
         # FIXME - more should be removed from __meta__, really __meta__ should not be passed at all
         definition['spec']['vars']['job_vars']['__meta__'] = pruned_meta
@@ -598,7 +607,7 @@ class AgnosticVComponent(K8sObject):
         Return None if catalog is disabled."""
         if self.asset_uuid is None or self.catalog_disable:
             return None
-        
+
         definition = {
             "apiVersion": CatalogItem.api_group_version,
             "kind": CatalogItem.kind,
@@ -658,7 +667,7 @@ class AgnosticVComponent(K8sObject):
 
         if self.stage in ('dev', 'test', 'prod', 'event'):
             definition['metadata']['labels'][f"babylon.gpte.redhat.com/stage"] = self.stage
-        
+
         if self.catalog_parameters != None:
             definition['spec']['parameters'] = []
             for catalog_parameter in self.catalog_parameters:

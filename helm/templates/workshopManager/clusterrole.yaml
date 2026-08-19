@@ -113,4 +113,16 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - tenantclusterpools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 {{- end }}

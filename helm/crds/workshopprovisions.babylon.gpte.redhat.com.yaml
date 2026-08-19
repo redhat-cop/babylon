@@ -54,6 +54,20 @@ spec:
                       Time when service should stop. If in the past then service should be stopped.
                     type: string
                     format: date-time
+              autoDetach:
+                description: |
+                  Configuration for auto-delete of the ResourceClaim.
+                type: object
+                properties:
+                  when:
+                    description: >
+                      Condition to check that is transferred to the ResourceClaim
+                      that belongs to this WorkshopProvision which triggers detach of
+                      ResourceHandle from the ResourceClaim.
+
+                      Condition is given in Jinja2 syntax similar to ansible
+                      "when" clauses.
+                    type: string
               catalogItem:
                 description: >-
                   CatalogItem for workshop.
@@ -75,11 +89,6 @@ spec:
                 description: >-
                   Target number of services to provision.
                 type: integer
-              resourcePool:
-                description: >-
-                  Resource pool name for assigning ResourceClaims. Set to "disabled" to explicitly
-                  disable pool assignment. If not set, no pool annotation is created on ResourceClaims.
-                type: string
               lifespan:
                 description: >-
                   Lifespan settings for this workshop provision.
@@ -100,6 +109,11 @@ spec:
                   Parameter values to use with catalog item provisioning.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+              resourcePool:
+                description: >-
+                  Resource pool name for assigning ResourceClaims. Set to "disabled" to explicitly
+                  disable pool assignment. If not set, no pool annotation is created on ResourceClaims.
+                type: string
               startDelay:
                 description: >-
                   Number of seconds to delay between starting provisions to prevent flooding the provisioning infrastructure.
@@ -110,24 +124,34 @@ spec:
                 description: >-
                   Workshop name reference.
                 type: string
-              autoDetach:
-                description: |
-                  Configuration for auto-delete of the ResourceClaim.
-                type: object
-                properties:
-                  when:
-                    description: >
-                      Condition to check that is transferred to the ResourceClaim
-                      that belongs to this WorkshopProvision which triggers detach of
-                      ResourceHandle from the ResourceClaim.
-
-                      Condition is given in Jinja2 syntax similar to ansible
-                      "when" clauses.
-                    type: string
           status:
             description: Status of Workshop
             type: object
             x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              kopf:
+                description: Kopf status storage
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              tenantClusterPool:
+                description: >-
+                  TenantClusterPool used to provide capacity for provisioning.
+                type: object
+                properties:
+                  labKey:
+                    description: >-
+                      Unique value to include in "lab" annotation and cloud selector to isolate
+                      clusters used by this WorkshopProvision.
+                  name:
+                    description: >-
+                      Name of TenantClusterPool
+                    type: string
+                required:
+                - labKey
+                - name
         required:
         - apiVersion
         - kind
@@ -138,4 +162,3 @@ spec:
     storage: true
     subresources:
       status: {}
-
