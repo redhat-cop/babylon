@@ -23,7 +23,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
   useDocumentTitle(title);
-  const { isAdmin, email } = useSession().getSession();
+  const { isAdmin, email, fullName } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
 
   const onNavToggleMobile = () => {
@@ -68,19 +68,18 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   useEffect(() => {
     if (!partnerHeaderHtml || !email) return;
 
-    const userData: Record<string, string> = { login_name: email };
+    const loginName = email.includes('@') ? email.split('@')[0] : email;
 
-    document.querySelectorAll('[data-rhpc-personal-info-key]').forEach((el) => {
-      const key = el.getAttribute('data-rhpc-personal-info-key');
-      if (key && userData[key] != null) {
-        el.textContent = userData[key];
-        const ancestor = el.closest('[data-rhpc-personal-info-provided]');
-        if (ancestor) {
-          ancestor.setAttribute('data-rhpc-personal-info-provided', 'true');
-        }
-      }
-    });
-  }, [partnerHeaderHtml, email]);
+    document.dispatchEvent(
+      new CustomEvent('rhpc-nav:login', {
+        detail: {
+          login_name: loginName,
+          email_address: email,
+          ...(fullName ? { name: fullName } : {}),
+        },
+      }),
+    );
+  }, [partnerHeaderHtml, email, fullName]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 

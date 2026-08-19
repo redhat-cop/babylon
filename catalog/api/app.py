@@ -400,6 +400,7 @@ async def get_auth_session(request):
             "consoleURL": console_url,
             "groups": user_groups,
             "user": user['metadata']['name'],
+            "fullName": user.get('fullName', ''),
             "token": token,
             "catalogNamespaces": session['catalogNamespaces'],
             "lifetime": session_lifetime,

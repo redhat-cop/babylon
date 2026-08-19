@@ -15,6 +15,7 @@ export interface ActionStartSession {
   admin: boolean;
   consoleURL: string;
   user: string;
+  fullName: string;
   groups: string[];
   roles: string[];
   interface: string;
@@ -34,6 +35,7 @@ interface AppState {
     admin: boolean | null;
     groups: string[];
     user: string | null;
+    fullName: string | null;
     catalogNamespaces: CatalogNamespace[];
     serviceNamespaces: ServiceNamespace[];
     userNamespace: UserNamespace | null;
@@ -59,6 +61,7 @@ const initialState: AppState = {
     admin: null,
     groups: [],
     user: null,
+    fullName: null,
     catalogNamespaces: [],
     serviceNamespaces: [],
     userNamespace: null,
@@ -94,6 +97,7 @@ const rootReducer = createReducer(initialState, (builder) => {
       state.auth.groups = action.payload.groups || [];
       state.auth.roles = action.payload.roles || [];
       state.auth.user = action.payload.user;
+      state.auth.fullName = action.payload.fullName || '';
       state.auth.catalogNamespaces = action.payload.catalogNamespaces;
       state.auth.serviceNamespaces = action.payload.serviceNamespaces;
       state.auth.userNamespace = action.payload.userNamespace;
@@ -127,6 +131,8 @@ export const selectConsoleURL = createSelector(selectSelf, (state): string => st
 export const selectInterface = createSelector(selectSelf, (state): string => state.interface);
 
 export const selectUser = createSelector(selectAuth, (state): string => state.user);
+
+export const selectUserFullName = createSelector(selectSelf, (state): string => state.auth.fullName || '');
 
 export const selectUserGroups = createSelector(selectAuth, (state): string[] =>
   (state.groups || []).filter(Boolean).concat('system:authenticated'),

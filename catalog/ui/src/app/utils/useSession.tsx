@@ -8,6 +8,7 @@ import {
   selectInterface,
   selectServiceNamespaces,
   selectUser,
+  selectUserFullName,
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
@@ -30,6 +31,7 @@ async function getSessionFn(dispatch: AppDispatch) {
       roles: session.roles || [],
       interface: session.interface,
       user: session.user,
+      fullName: session.fullName || '',
       catalogNamespaces: session.catalogNamespaces,
       serviceNamespaces: session.serviceNamespaces,
       userNamespace: session.userNamespace,
@@ -41,6 +43,7 @@ export default function useSession(): {
   getSession: () => {
     authUser: string;
     email: string;
+    fullName: string;
     isAdmin: boolean;
     groups: string[];
     roles: string[];
@@ -54,6 +57,7 @@ export default function useSession(): {
   const dispatch = useAppDispatch();
   const authUser = useAppSelector(selectAuthUser);
   const email = useAppSelector(selectUser);
+  const fullName = useAppSelector(selectUserFullName);
   const isAdmin = useAppSelector(selectUserIsAdmin);
   const groups = useAppSelector(selectUserGroups);
   const roles = useAppSelector(selectUserRoles);
@@ -83,6 +87,7 @@ export default function useSession(): {
     return {
       authUser,
       email: userImpersonated ? userImpersonated : email,
+      fullName,
       isAdmin,
       groups,
       roles,
@@ -95,6 +100,7 @@ export default function useSession(): {
   }, [
     authUser,
     email,
+    fullName,
     isAdmin,
     promise,
     groups,
