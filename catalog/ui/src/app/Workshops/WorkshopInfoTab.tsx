@@ -117,10 +117,10 @@ const WorkshopInfoTab: React.FC<{
                   <span className="services-item__status--scheduled" key="scheduled">
                     <CheckCircleIcon key="scheduled-icon" /> Scheduled
                   </span>
-                  {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} /> : null}
+                  {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
                 </>
               ) : resourceClaims.length > 0 ? (
-                <WorkshopStatus resourceClaims={resourceClaims} />
+                <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} />
               ) : (
                 <p>...</p>
               )}
