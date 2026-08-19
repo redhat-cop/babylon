@@ -30,7 +30,7 @@ importers:
         version: 0.44.0
       '@lexical/react':
         specifier: ^0.44.0
-        version: 0.44.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(yjs@13.6.32)
+        version: 0.44.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(yjs@13.6.32)
       '@lexical/rich-text':
         specifier: ^0.44.0
         version: 0.44.0
@@ -104,8 +104,8 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
       react-error-boundary:
-        specifier: ^6.1.2
-        version: 6.1.2(react@19.2.8)
+        specifier: ^6.1.3
+        version: 6.1.3(@types/react@19.2.18)(react@19.2.8)
       react-redux:
         specifier: ^9.3.0
         version: 9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1)
@@ -4566,10 +4566,14 @@ packages:
     peerDependencies:
       react: '>= 16.8 || 18.0.0'
 
-  react-error-boundary@6.1.2:
-    resolution: {integrity: sha512-3DpCr5HVdZ0caUjYE/kIHBEJN0mNP3ZCgf16c48uJ5TbWjorKVp+YG8W3XqlJ7vJAVNw6wNIImyPXmFydwmyng==}
+  react-error-boundary@6.1.3:
+    resolution: {integrity: sha512-GnSKpCohFi2nQmJCWwP8O8wub7zexlePvpsejvQr35vS5RTouS1+utTNOmyc540yw5vyOXnSL1rBWsCQDmkyUA==}
     peerDependencies:
+      '@types/react': ^18.0.0 || ^19.0.0
       react: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -7127,7 +7131,7 @@ snapshots:
       '@lexical/utils': 0.44.0
       lexical: 0.44.0
 
-  '@lexical/react@0.44.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(yjs@13.6.32)':
+  '@lexical/react@0.44.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(yjs@13.6.32)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@lexical/devtools-core': 0.44.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -7149,9 +7153,11 @@ snapshots:
       lexical: 0.44.0
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
-      react-error-boundary: 6.1.2(react@19.2.8)
+      react-error-boundary: 6.1.3(@types/react@19.2.18)(react@19.2.8)
     optionalDependencies:
       yjs: 13.6.32
+    transitivePeerDependencies:
+      - '@types/react'
 
   '@lexical/rich-text@0.44.0':
     dependencies:
@@ -10776,9 +10782,11 @@ snapshots:
       prop-types: 15.8.1
       react: 19.2.8
 
-  react-error-boundary@6.1.2(react@19.2.8):
+  react-error-boundary@6.1.3(@types/react@19.2.18)(react@19.2.8):
     dependencies:
       react: 19.2.8
+    optionalDependencies:
+      '@types/react': 19.2.18
 
   react-is@16.13.1: {}
 
