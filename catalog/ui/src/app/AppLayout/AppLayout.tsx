@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Page, PageSection, PageSidebar, PageSidebarBody } from '@patternfly/react-core';
 import { IAppRouteAccessControl } from '@app/types';
 import Header from '@app/Header/Header';
@@ -23,7 +23,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
   useDocumentTitle(title);
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, email } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
 
   const onNavToggleMobile = () => {
@@ -38,10 +38,49 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
   const { data: partnerHeaderHtml } = useSWRImmutable<string>(
     partner_connect_header_enabled
-      ? 'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary'
+      ? 'https://connect.redhat.com/en/api/chrome/authenticated/4.0/universal_and_primary?include_dependencies=true'
       : null,
     publicFetcher,
   );
+
+  useEffect(() => {
+    if (!partnerHeaderHtml) return () => {};
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(partnerHeaderHtml, 'text/html');
+    const scripts = doc.querySelectorAll('script[src]');
+    scripts.forEach((script) => {
+      const src = script.getAttribute('src');
+      if (!src) return;
+      const absoluteSrc = src.startsWith('/') ? `https://connect.redhat.com${src}` : src;
+      if (document.querySelector(`script[src="${absoluteSrc}"]`)) return;
+      const el = document.createElement('script');
+      el.src = absoluteSrc;
+      if (script.getAttribute('type')) el.type = script.getAttribute('type');
+      document.head.appendChild(el);
+    });
+
+    return () => {
+      document.head.querySelectorAll('script[src*="connect.redhat.com"]').forEach((el) => el.remove());
+    };
+  }, [partnerHeaderHtml]);
+
+  useEffect(() => {
+    if (!partnerHeaderHtml || !email) return;
+
+    const userData: Record<string, string> = { login_name: email };
+
+    document.querySelectorAll('[data-rhpc-personal-info-key]').forEach((el) => {
+      const key = el.getAttribute('data-rhpc-personal-info-key');
+      if (key && userData[key] != null) {
+        el.textContent = userData[key];
+        const ancestor = el.closest('[data-rhpc-personal-info-provided]');
+        if (ancestor) {
+          ancestor.setAttribute('data-rhpc-personal-info-provided', 'true');
+        }
+      }
+    });
+  }, [partnerHeaderHtml, email]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
@@ -96,17 +135,34 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                     ),
                     {
                       FORCE_BODY: true,
-                      ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown', 'svg', 'path'],
+                      ADD_TAGS: [
+                        'style',
+                        'rh-navigation-primary',
+                        'rh-navigation-primary-item',
+                        'rh-cta',
+                        'rh-icon',
+                        'svg',
+                        'path',
+                      ],
                       ADD_ATTR: [
                         'part',
                         'slot',
-                        'dropdown-width',
                         'icon',
+                        'set',
                         'name',
+                        'variant',
+                        'color-palette',
                         'viewBox',
                         'fill',
                         'd',
                         'xmlns',
+                        'data-rhpc-personal-info-provided',
+                        'data-rhpc-personal-info-key',
+                        'data-pii',
+                        'data-analytics-region',
+                        'data-analytics-category',
+                        'data-analytics-level',
+                        'data-analytics-text',
                       ],
                     },
                   ),
