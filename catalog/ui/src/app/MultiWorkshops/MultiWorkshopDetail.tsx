@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import useSWR, { mutate } from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import { DragDropSort, DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
 import {
   PageSection,
@@ -41,8 +42,8 @@ import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { apiPaths, fetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
-import { MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
+import { apiPaths, fetcher, silentFetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
+import { CatalogItem, MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
@@ -57,8 +58,7 @@ import { getBrowserTimezone } from '@app/components/timezones';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import useSession from '@app/utils/useSession';
-import purposeOptions from './purposeOptions.json';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT, getPurposeOptsFromCatalogItem } from '@app/util';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import ExternalWorkshopModal from './ExternalWorkshopModal';
 import Footer from '@app/components/Footer';
@@ -116,7 +116,7 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; w
 const MultiWorkshopDetail: React.FC = () => {
   const navigate = useNavigate();
   const { namespace, name } = useParams();
-  const { isAdmin, userNamespace } = useSession().getSession();
+  const { isAdmin, userNamespace, catalogNamespaces } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [modalDelete, openModalDelete] = useModal();
   const [modalDeleteAsset, openModalDeleteAsset] = useModal();
@@ -175,6 +175,29 @@ const MultiWorkshopDetail: React.FC = () => {
     },
     { refreshInterval: 30000 }
   );
+
+  const firstAsset = multiworkshop?.spec.assets?.find((a) => a.type !== 'external' && a.name && a.namespace);
+  const { data: firstCatalogItem } = useSWRImmutable<CatalogItem>(
+    firstAsset ? apiPaths.CATALOG_ITEM({ namespace: firstAsset.namespace, name: firstAsset.name }) : null,
+    silentFetcher,
+  );
+  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const { data: defaultCatalogItems } = useSWRImmutable(
+    !firstCatalogItem && defaultCatalogNamespace
+      ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 })
+      : null,
+    silentFetcher,
+  );
+  const purposeOpts = useMemo(() => {
+    if (firstCatalogItem) {
+      const opts = getPurposeOptsFromCatalogItem(firstCatalogItem);
+      if (opts.length > 0) return opts;
+    }
+    if (defaultCatalogItems?.items?.[0]) {
+      return getPurposeOptsFromCatalogItem(defaultCatalogItems.items[0]);
+    }
+    return [];
+  }, [firstCatalogItem, defaultCatalogItems]);
 
   function getMultiWorkshopDisplayName(multiworkshop: MultiWorkshop): string {
     return multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
@@ -893,7 +916,7 @@ const MultiWorkshopDetail: React.FC = () => {
                               activity: multiworkshop.spec['purpose-activity'] || '',
                               purpose: multiworkshop.spec.purpose || '',
                             }}
-                            purposeOpts={purposeOptions}
+                            purposeOpts={purposeOpts}
                             onChange={() => undefined}
                           />
                         </div>

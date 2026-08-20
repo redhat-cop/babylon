@@ -41,10 +41,11 @@ import {
   silentFetcher,
   patchWhiteGloveRequest,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
+import { CatalogItem, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
 import {
   displayName,
   getStageFromK8sObject,
+  getPurposeOptsFromCatalogItem,
   DEMO_DOMAIN,
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
@@ -55,7 +56,6 @@ import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
 import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
-import purposeOptions from './purposeOptions.json';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 
@@ -78,7 +78,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const [searchParams] = useSearchParams();
   const wgrParam = searchParams.get('wgr');
   const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
-  const { userNamespace, isAdmin, serviceNamespaces } = useSession().getSession();
+  const { userNamespace, isAdmin, serviceNamespaces, catalogNamespaces } = useSession().getSession();
   const helpLink = useHelpLink();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -325,6 +325,26 @@ const MultiWorkshopCreate: React.FC = () => {
     validAssets.length,
   ]);
 
+  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const { data: defaultCatalogItems } = useSWRImmutable(
+    defaultCatalogNamespace ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 }) : null,
+    silentFetcher,
+  );
+
+  const purposeOpts = useMemo(() => {
+    if (catalogItemsData.data) {
+      for (const { catalogItem } of catalogItemsData.data) {
+        if (!catalogItem) continue;
+        const opts = getPurposeOptsFromCatalogItem(catalogItem);
+        if (opts.length > 0) return opts;
+      }
+    }
+    if (defaultCatalogItems?.items?.[0]) {
+      return getPurposeOptsFromCatalogItem(defaultCatalogItems.items[0]);
+    }
+    return [];
+  }, [catalogItemsData.data, defaultCatalogItems]);
+
   const hasAtLeastOneSalesforce = (createFormData.salesforceItems || []).some(
     (i) => (i?.id || '').trim() && (i?.type || null),
   );
@@ -332,7 +352,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const isOrderingBlocked = isWorkshopOrderingBlocked && !isAdmin;
   const isSalesforceRequired =
     !isAdmin &&
-    purposeOptions.find((p) => p.name === createFormData.purpose && p.activity === createFormData.activity)
+    purposeOpts.find((p) => p.name === createFormData.purpose && p.activity === createFormData.activity)
       ?.sfdcRequired !== false;
   const isFormValid =
     !isOrderingBlocked &&
@@ -796,7 +816,7 @@ const MultiWorkshopCreate: React.FC = () => {
               activity: createFormData.activity,
               explanation: createFormData.explanation,
             }}
-            purposeOpts={purposeOptions as TPurposeOpts}
+            purposeOpts={purposeOpts}
             onChange={(activity: string, purpose: string, explanation: string) => {
               setCreateFormData((prev) => ({
                 ...prev,

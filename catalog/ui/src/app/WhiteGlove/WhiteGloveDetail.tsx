@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import {
   ActionList,
   ActionListItem,
@@ -42,7 +43,7 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
 import { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
@@ -55,7 +56,6 @@ import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useSession from '@app/utils/useSession';
-import purposeOptions from '@app/MultiWorkshops/purposeOptions.json';
 import './white-glove.css';
 
 function stateLabel(state: string): string {
@@ -111,7 +111,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const justCreated = (location.state as { justCreated?: boolean })?.justCreated === true;
-  const { isAdmin } = useSession().getSession();
+  const { isAdmin, catalogNamespaces } = useSession().getSession();
   const [activeTab, setActiveTab] = useState<string>('details');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -161,6 +161,25 @@ const WhiteGloveDetailContent: React.FC = () => {
       if (valid.length > 0) setSelectedCatalogItems(valid);
     });
   }, [isAdmin, wgr, catalogItemsFetched]);
+
+  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const { data: defaultCatalogItems } = useSWRImmutable(
+    selectedCatalogItems.length === 0 && defaultCatalogNamespace
+      ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 })
+      : null,
+    silentFetcher,
+  );
+
+  const purposeOpts = useMemo(() => {
+    for (const item of selectedCatalogItems) {
+      const opts = getPurposeOptsFromCatalogItem(item);
+      if (opts.length > 0) return opts;
+    }
+    if (defaultCatalogItems?.items?.[0]) {
+      return getPurposeOptsFromCatalogItem(defaultCatalogItems.items[0]);
+    }
+    return [];
+  }, [selectedCatalogItems, defaultCatalogItems]);
 
   const hasCatalogItems = wgr?.spec?.catalogItemNames?.length > 0;
   const isMultiCatalogItem = wgr?.spec?.catalogItemNames?.length > 1;
@@ -704,7 +723,7 @@ const WhiteGloveDetailContent: React.FC = () => {
                       <div className="hide-form-group-labels">
                         <ActivityPurposeSelector
                           value={{ purpose: wgr.spec.purpose, activity: wgr.spec.activity, explanation: wgr.spec.explanation }}
-                          purposeOpts={purposeOptions}
+                          purposeOpts={purposeOpts}
                           onChange={(newActivity, newPurpose, newExplanation) => {
                             patchSpec(
                               { activity: newActivity || null, purpose: newPurpose || null, explanation: newExplanation || null },
