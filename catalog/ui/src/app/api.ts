@@ -2993,11 +2993,18 @@ export const apiPaths = {
     }`,
 };
 
+export type BlockedDateRange = {
+  startDate: string;
+  endDate: string;
+  message: string;
+};
+
 export type SystemStatus = {
   workshops_ordering_blocked: boolean;
   workshops_ordering_blocked_message: string;
   services_ordering_blocked: boolean;
   services_ordering_blocked_message: string;
+  wg_blocked_dates: BlockedDateRange[];
   last_updated_by: string;
   last_updated_at: string;
 };

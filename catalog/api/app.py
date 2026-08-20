@@ -1649,6 +1649,7 @@ async def get_system_status_from_configmap():
         'workshops_ordering_blocked_message': '',
         'services_ordering_blocked': False,
         'services_ordering_blocked_message': '',
+        'wg_blocked_dates': [],
         'last_updated_by': '',
         'last_updated_at': '',
     }
@@ -1658,11 +1659,16 @@ async def get_system_status_from_configmap():
             namespace=babylon_namespace
         )
         data = configmap.data or {}
+        try:
+            wg_blocked_dates = json.loads(data.get('wg_blocked_dates', '[]'))
+        except (json.JSONDecodeError, TypeError):
+            wg_blocked_dates = []
         return {
             'workshops_ordering_blocked': data.get('workshops_ordering_blocked', 'false').lower() == 'true',
             'workshops_ordering_blocked_message': data.get('workshops_ordering_blocked_message', ''),
             'services_ordering_blocked': data.get('services_ordering_blocked', 'false').lower() == 'true',
             'services_ordering_blocked_message': data.get('services_ordering_blocked_message', ''),
+            'wg_blocked_dates': wg_blocked_dates,
             'last_updated_by': data.get('last_updated_by', ''),
             'last_updated_at': data.get('last_updated_at', ''),
         }
@@ -1720,7 +1726,8 @@ async def update_system_status(request):
         'workshops_ordering_blocked',
         'workshops_ordering_blocked_message',
         'services_ordering_blocked',
-        'services_ordering_blocked_message'
+        'services_ordering_blocked_message',
+        'wg_blocked_dates',
     }
 
     for key in data.keys():
@@ -1751,7 +1758,16 @@ async def update_system_status(request):
 
         # Update with new values
         for key, value in data.items():
-            if key.endswith('_blocked'):
+            if key == 'wg_blocked_dates':
+                if not isinstance(value, list):
+                    raise web.HTTPBadRequest(reason="wg_blocked_dates must be a list")
+                for entry in value:
+                    if not isinstance(entry, dict) or 'startDate' not in entry or 'endDate' not in entry:
+                        raise web.HTTPBadRequest(reason="Each blocked date entry must have startDate and endDate")
+                    if entry['endDate'] < entry['startDate']:
+                        raise web.HTTPBadRequest(reason="endDate must be on or after startDate")
+                current_data[key] = json.dumps(value)
+            elif key.endswith('_blocked'):
                 current_data[key] = 'true' if value else 'false'
             else:
                 current_data[key] = str(value) if value is not None else ''

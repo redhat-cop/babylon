@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -23,7 +23,8 @@ import {
 } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
+import { BlockedDateRange, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
+import useSystemStatus from '@app/utils/useSystemStatus';
 import { CatalogItem, SalesforceItem } from '@app/types';
 import { DEMO_DOMAIN, displayName } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
@@ -42,9 +43,17 @@ import './white-glove.css';
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
 
+function createBlockedDateValidator(blockedDates: BlockedDateRange[]): (date: Date) => boolean {
+  return (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return !blockedDates.some((range) => dateStr >= range.startDate && dateStr <= range.endDate);
+  };
+}
+
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
   const { userNamespace } = useSession().getSession();
+  const { wgBlockedDates } = useSystemStatus();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
@@ -70,6 +79,8 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [shareWith, setShareWith] = useState<string[]>([]);
   const [shareWithInput, setShareWithInput] = useState('');
   const [notes, setNotes] = useState('');
+
+  const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
 
   const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
 
@@ -290,6 +301,21 @@ const WhiteGloveCreateContent: React.FC = () => {
             />
           </FormGroup>
 
+          {wgBlockedDates.length > 0 && (
+            <Alert variant="info" isInline title="Some dates are unavailable">
+              <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                {wgBlockedDates.map((range, i) => (
+                  <li key={i}>
+                    {range.startDate === range.endDate
+                      ? range.startDate
+                      : `${range.startDate} to ${range.endDate}`}
+                    {range.message ? ` — ${range.message}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+
           <FormGroup label="Event Start Date" isRequired fieldId="event-date">
             <DateTimePickerButton date={eventDate} timezone={timezone} onClick={() => setIsStartDateModalOpen(true)} />
             {isShortLeadTime && (
@@ -472,6 +498,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         date={eventDate}
         minDate={Date.now()}
         title="Event Start Date"
+        additionalValidators={[blockedDateValidator]}
         onConfirm={(date) => {
           setEventDate(date);
           if (eventEndDate <= date) {
@@ -487,6 +514,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         date={eventEndDate}
         minDate={eventDate.getTime()}
         title="Event End Date"
+        additionalValidators={[blockedDateValidator]}
         onConfirm={(date) => {
           setEventEndDate(date);
           setIsEndDateModalOpen(false);

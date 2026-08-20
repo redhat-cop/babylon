@@ -25,6 +25,7 @@ export default function useSystemStatus() {
         workshops_ordering_blocked_message: '',
         services_ordering_blocked: false,
         services_ordering_blocked_message: '',
+        wg_blocked_dates: [],
         last_updated_by: '',
         last_updated_at: '',
       },
@@ -41,6 +42,7 @@ export default function useSystemStatus() {
     workshopOrderingBlockedMessage: data?.workshops_ordering_blocked_message ?? '',
     isServiceOrderingBlocked: data?.services_ordering_blocked ?? false,
     serviceOrderingBlockedMessage: data?.services_ordering_blocked_message ?? '',
+    wgBlockedDates: data?.wg_blocked_dates ?? [],
   };
 }
 
