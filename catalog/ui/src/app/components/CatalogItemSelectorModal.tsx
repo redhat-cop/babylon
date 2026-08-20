@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, Suspense, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
 import Fuse from 'fuse.js';
 import { Grid, CellComponentProps } from 'react-window';
 import {
@@ -105,7 +105,7 @@ const SelectableCatalogItemCard: React.FC<{
   onToggle: (catalogItem: CatalogItem, isSelected: boolean) => void;
   onClick?: (catalogItem: CatalogItem) => void;
   isMultiSelectMode: boolean;
-}> = ({ catalogItem, isSelected, onToggle, onClick, isMultiSelectMode }) => {
+}> = React.memo(({ catalogItem, isSelected, onToggle, onClick, isMultiSelectMode }) => {
   const { description, descriptionFormat } = getDescription(catalogItem);
   const provider = getProvider(catalogItem);
   const stage = getStage(catalogItem);
@@ -210,7 +210,9 @@ const SelectableCatalogItemCard: React.FC<{
       </div>
     </div>
   );
-};
+});
+
+SelectableCatalogItemCard.displayName = 'SelectableCatalogItemCard';
 
 interface CatalogItemSelectorModalProps {
   isOpen: boolean;
@@ -366,32 +368,27 @@ const CatalogItemsContent: React.FC<{
     return searchFuse.search("'" + searchValue.split(' ').join(" '")).map((x) => x.item);
   }, [searchValue, selectedCategories, allowedCatalogItems]);
 
-  // Ref for measuring container dimensions
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerDimensions, setContainerDimensions] = useState({ width: 800, height: 600 });
+  const [gridSize, setGridSize] = useState({ width: 800, height: 600 });
 
-  // Measure container dimensions
   useEffect(() => {
-    const updateDimensions = () => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        setContainerDimensions({
+    const el = containerRef.current;
+    if (!el) return undefined;
+
+    const observer = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0) {
+        setGridSize({
           width: rect.width,
-          height: rect.height,
+          height: window.innerHeight - rect.top,
         });
       }
-    };
-
-    if (containerRef.current) {
-      updateDimensions();
-    }
-
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
-  // Calculate grid dimensions for react-window
-  const columnCount = Math.max(1, Math.floor(containerDimensions.width / (GRID_COLUMN_WIDTH + GUTTER_SIZE)));
+  const columnCount = Math.max(1, Math.floor(gridSize.width / (GRID_COLUMN_WIDTH + GUTTER_SIZE)));
 
   // Convert flat array to grid structure
   const catalogItemsGrid = useMemo(() => {
@@ -403,7 +400,7 @@ const CatalogItemsContent: React.FC<{
   }, [filteredCatalogItems, columnCount]);
 
   return (
-    <>
+    <div ref={containerRef} style={{ width: '100%' }}>
       {filteredCatalogItems.length === 0 ? (
         <EmptyState>
           <Title headingLevel="h4" size="lg">
@@ -416,7 +413,7 @@ const CatalogItemsContent: React.FC<{
           </EmptyStateBody>
         </EmptyState>
       ) : (
-        <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+        <div style={{ width: gridSize.width, height: gridSize.height }}>
           <Grid<CatalogCellProps>
             cellComponent={CatalogCell}
             cellProps={{ catalogItemsGrid, selectedItems, onToggleItem, onItemSelect, isMultiSelectMode }}
@@ -427,7 +424,7 @@ const CatalogItemsContent: React.FC<{
           />
         </div>
       )}
-    </>
+    </div>
   );
 };
 
@@ -495,7 +492,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const selectedCatalogNamespaceObj = catalogNamespaces.find((ns) => ns.name === selectedCatalogNamespace);
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={title} width="80%" height="80vh">
+    <Modal isOpen={isOpen} onClose={handleClose} title={title} width="80%">
       <div
         style={{
           display: 'flex',
@@ -583,12 +580,11 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
         <div
           style={{
             flex: 1,
-            overflow: 'auto',
+            overflow: 'hidden',
             border: '1px solid var(--pf-t--color--border--default)',
             borderRadius: '4px',
-            padding: '16px',
             marginBottom: '16px',
-            minHeight: 0, // This ensures the flex item can shrink below its content size
+            minHeight: 0,
           }}
         >
           {isOpen ? (
