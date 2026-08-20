@@ -13,6 +13,7 @@ import {
   SelfPacedLab,
   Service,
   ServiceNamespace,
+  TPurposeOpts,
   Workshop,
 } from '@app/types';
 
@@ -553,6 +554,12 @@ export function upsertSalesforceItem(annotations: Record<string, string>, newIte
   }
 
   setSalesforceItems(annotations, items);
+}
+
+export function getPurposeOptsFromCatalogItem(catalogItem: CatalogItem): TPurposeOpts {
+  return catalogItem?.spec?.parameters
+    ?.find((p) => p.name === 'purpose')
+    ?.openAPIV3Schema?.['x-form-options'] || [];
 }
 
 export async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {

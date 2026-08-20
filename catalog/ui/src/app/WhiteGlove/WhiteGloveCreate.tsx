@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useSWRImmutable from 'swr/immutable';
 import {
   Alert,
   Breadcrumb,
@@ -23,10 +24,10 @@ import {
 } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { BlockedDateRange, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest } from '@app/api';
+import { apiPaths, BlockedDateRange, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest, silentFetcher } from '@app/api';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import { CatalogItem, SalesforceItem } from '@app/types';
-import { DEMO_DOMAIN, displayName } from '@app/util';
+import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -36,8 +37,6 @@ import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import useSession from '@app/utils/useSession';
-import purposeOptions from '@app/MultiWorkshops/purposeOptions.json';
-
 import '@app/Catalog/catalog-item-form.css';
 import './white-glove.css';
 
@@ -52,7 +51,7 @@ function createBlockedDateValidator(blockedDates: BlockedDateRange[]): (date: Da
 
 const WhiteGloveCreateContent: React.FC = () => {
   const navigate = useNavigate();
-  const { userNamespace } = useSession().getSession();
+  const { userNamespace, catalogNamespaces } = useSession().getSession();
   const { wgBlockedDates } = useSystemStatus();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,6 +82,23 @@ const WhiteGloveCreateContent: React.FC = () => {
   const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
 
   const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
+
+  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const { data: defaultCatalogItems } = useSWRImmutable(
+    defaultCatalogNamespace ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 }) : null,
+    silentFetcher,
+  );
+
+  const purposeOpts = useMemo(() => {
+    for (const item of selectedCatalogItems) {
+      const opts = getPurposeOptsFromCatalogItem(item);
+      if (opts.length > 0) return opts;
+    }
+    if (defaultCatalogItems?.items?.[0]) {
+      return getPurposeOptsFromCatalogItem(defaultCatalogItems.items[0]);
+    }
+    return [];
+  }, [selectedCatalogItems, defaultCatalogItems]);
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
     const items = Array.isArray(catalogItemOrItems) ? catalogItemOrItems : [catalogItemOrItems];
@@ -252,7 +268,7 @@ const WhiteGloveCreateContent: React.FC = () => {
 
           <ActivityPurposeSelector
             value={{ purpose, activity, explanation }}
-            purposeOpts={purposeOptions}
+            purposeOpts={purposeOpts}
             onChange={(newActivity: string, newPurpose: string, newExplanation: string) => {
               setActivity(newActivity || '');
               setPurpose(newPurpose || '');
