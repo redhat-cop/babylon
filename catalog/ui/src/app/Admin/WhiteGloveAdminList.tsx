@@ -2,10 +2,18 @@ import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
 import {
+  Alert,
   Breadcrumb,
   BreadcrumbItem,
+  Button,
+  Card,
+  CardBody,
+  CardTitle,
+  FormGroup,
+  Form,
   PageSection,
   Pagination,
+  TextInput,
   Title,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
@@ -13,13 +21,14 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, deleteWhiteGloveRequest, fetcher, silentFetcher } from '@app/api';
+import { apiPaths, deleteWhiteGloveRequest, fetcher, silentFetcher, updateSystemStatus } from '@app/api';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useSystemStatus from '@app/utils/useSystemStatus';
 
 import '@app/Services/service-status.css';
 import '@app/WhiteGlove/white-glove.css';
@@ -45,6 +54,126 @@ const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = (
   );
   const assignee = data?.assignee?.displayName || fallback;
   return <>{assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}</>;
+};
+
+const BlockedDatesManager: React.FC = () => {
+  const { wgBlockedDates, mutate } = useSystemStatus();
+  const [newStartDate, setNewStartDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function addBlockedRange() {
+    if (!newStartDate || !newEndDate) return;
+    if (newEndDate < newStartDate) {
+      setError('End date must be on or after start date');
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateSystemStatus({
+        wg_blocked_dates: [...wgBlockedDates, { startDate: newStartDate, endDate: newEndDate, message: newMessage }],
+      });
+      await mutate();
+      setNewStartDate('');
+      setNewEndDate('');
+      setNewMessage('');
+    } catch {
+      setError('Failed to add blocked dates');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function removeBlockedRange(index: number) {
+    setIsSaving(true);
+    setError(null);
+    try {
+      await updateSystemStatus({
+        wg_blocked_dates: wgBlockedDates.filter((_, i) => i !== index),
+      });
+      await mutate();
+    } catch {
+      setError('Failed to remove blocked dates');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <Card style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+      <CardTitle>Blocked Dates</CardTitle>
+      <CardBody>
+        <p style={{ marginBottom: '12px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+          Block date ranges to prevent users from scheduling white glove requests on those days.
+        </p>
+        {error && <Alert variant="danger" isInline title={error} style={{ marginBottom: '12px' }} />}
+        <Form>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <FormGroup label="Start Date" fieldId="blocked-start">
+              <TextInput
+                type="date"
+                id="blocked-start"
+                value={newStartDate}
+                onChange={(_e, v) => setNewStartDate(v)}
+              />
+            </FormGroup>
+            <FormGroup label="End Date" fieldId="blocked-end">
+              <TextInput
+                type="date"
+                id="blocked-end"
+                value={newEndDate}
+                onChange={(_e, v) => setNewEndDate(v)}
+              />
+            </FormGroup>
+            <FormGroup label="Message" fieldId="blocked-msg">
+              <TextInput
+                id="blocked-msg"
+                value={newMessage}
+                onChange={(_e, v) => setNewMessage(v)}
+                placeholder="e.g. On vacation, no capacity"
+                style={{ minWidth: '250px' }}
+              />
+            </FormGroup>
+            <Button
+              variant="primary"
+              onClick={addBlockedRange}
+              isDisabled={!newStartDate || !newEndDate || isSaving}
+              isLoading={isSaving}
+            >
+              Add
+            </Button>
+          </div>
+        </Form>
+        {wgBlockedDates.length > 0 && (
+          <Table aria-label="Blocked dates" variant="compact" style={{ marginTop: '16px' }}>
+            <Thead>
+              <Tr>
+                <Th>Start</Th>
+                <Th>End</Th>
+                <Th>Message</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {wgBlockedDates.map((range, i) => (
+                <Tr key={i}>
+                  <Td dataLabel="Start">{range.startDate}</Td>
+                  <Td dataLabel="End">{range.endDate}</Td>
+                  <Td dataLabel="Message">{range.message || '—'}</Td>
+                  <Td dataLabel="Actions">
+                    <ButtonCircleIcon onClick={() => removeBlockedRange(i)} description="Remove" icon={TrashIcon} />
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        )}
+      </CardBody>
+    </Card>
+  );
 };
 
 const defaultPerPage = 20;
@@ -98,6 +227,8 @@ const WhiteGloveAdminListContent: React.FC = () => {
         <Title headingLevel="h1" size="lg" style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           White Glove Requests
         </Title>
+
+        <BlockedDatesManager />
 
         <Pagination
           itemCount={requests.length}

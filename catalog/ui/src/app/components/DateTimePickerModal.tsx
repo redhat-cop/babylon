@@ -31,7 +31,8 @@ const DateTimePickerModalDialog: React.FC<{
   title: string;
   onConfirm: (date: Date) => void;
   onClose: () => void;
-}> = ({ isOpen, date, minDate, title, onConfirm, onClose }) => {
+  additionalValidators?: Array<(date: Date) => boolean>;
+}> = ({ isOpen, date, minDate, title, onConfirm, onClose, additionalValidators }) => {
   const [modalRef, openModal] = useModal();
   const [timezone, setTimezone] = useState(getBrowserTimezone);
   const [selectedDate, setSelectedDate] = useState<Date>(date);
@@ -54,6 +55,7 @@ const DateTimePickerModalDialog: React.FC<{
             onSelect={(d: Date) => setSelectedDate(d)}
             minDate={minDate}
             timezone={timezone}
+            additionalValidators={additionalValidators}
           />
         </FormGroup>
       </Form>

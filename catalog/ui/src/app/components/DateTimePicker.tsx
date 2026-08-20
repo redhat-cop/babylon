@@ -43,7 +43,8 @@ const DateTimePicker: React.FC<{
   maxDate?: number;
   forceUpdateTimestamp?: number;
   timezone?: string;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone = getBrowserTimezone() }) => {
+  additionalValidators?: Array<(date: Date) => boolean>;
+}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone = getBrowserTimezone(), additionalValidators }) => {
   const dateFormat = (date: Date) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',
@@ -166,7 +167,7 @@ const DateTimePicker: React.FC<{
     <CalendarMonth
       date={calendarDate}
       onChange={(_event, newValueDate: Date) => onSelectCalendar(newValueDate)}
-      validators={[rangeValidatorDate]}
+      validators={[rangeValidatorDate, ...(additionalValidators || [])]}
     />
   );
 
