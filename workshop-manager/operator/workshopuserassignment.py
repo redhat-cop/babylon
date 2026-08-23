@@ -1,7 +1,7 @@
 import kopf
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
 from labuserinterface import LabUserInterface
 
@@ -9,8 +9,8 @@ import workshop as workshop_import
 
 
 class WorkshopUserAssignment(CachedKopfObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'WorkshopUserAssignment'
     plural = 'workshopuserassignments'
 
@@ -28,7 +28,7 @@ class WorkshopUserAssignment(CachedKopfObject):
     @classmethod
     async def delete_for_resource_claim(cls, namespace, resource_claim_name, logger):
         async for workshop_user_assignment in cls.list(
-            label_selector=f"{Babylon.resource_claim_label}={resource_claim_name}",
+            label_selector=f"{OperatorRuntime.resource_claim_label}={resource_claim_name}",
             namespace=namespace,
         ):
             await workshop_user_assignment.delete()
@@ -42,16 +42,16 @@ class WorkshopUserAssignment(CachedKopfObject):
         if obj:
             return obj
 
-        label_selector = f"{Babylon.workshop_label}={workshop_name}"
+        label_selector = f"{OperatorRuntime.workshop_label}={workshop_name}"
         if resource_claim_name:
-            label_selector += f",{Babylon.resource_claim_label}={resource_claim_name}"
+            label_selector += f",{OperatorRuntime.resource_claim_label}={resource_claim_name}"
         else:
-            label_selector += f",!{Babylon.resource_claim_label}"
+            label_selector += f",!{OperatorRuntime.resource_claim_label}"
         if user_name:
-            label_selector += f",{Babylon.user_name_label}={user_name}"
+            label_selector += f",{OperatorRuntime.user_name_label}={user_name}"
         else:
-            label_selector += f",!{Babylon.user_name_label}"
-        obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+            label_selector += f",!{OperatorRuntime.user_name_label}"
+        obj_list = await OperatorRuntime.custom_objects_api.list_namespaced_custom_object(
             group=cls.api_group,
             namespace=namespace,
             plural=cls.plural,
@@ -85,9 +85,9 @@ class WorkshopUserAssignment(CachedKopfObject):
             "metadata": {
                 "generateName": f"{workshop_name}-",
                 "labels": {
-                    Babylon.workshop_id_label: workshop_id,
-                    Babylon.workshop_label: workshop_name,
-                    Babylon.resource_claim_label: resource_claim.name,
+                    OperatorRuntime.workshop_id_label: workshop_id,
+                    OperatorRuntime.workshop_label: workshop_name,
+                    OperatorRuntime.resource_claim_label: resource_claim.name,
                 },
                 "ownerReferences": [resource_claim.as_owner_ref()],
             },
@@ -104,10 +104,10 @@ class WorkshopUserAssignment(CachedKopfObject):
         if messages:
             definition['spec']['messages'] = messages
         if user_name:
-            definition['metadata']['labels'][Babylon.user_name_label] = user_name
+            definition['metadata']['labels'][OperatorRuntime.user_name_label] = user_name
             definition['spec']['userName'] = user_name
 
-        definition = await Babylon.custom_objects_api.create_namespaced_custom_object(
+        definition = await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
             group=cls.api_group,
             namespace=namespace,
             plural=cls.plural,
@@ -137,7 +137,7 @@ class WorkshopUserAssignment(CachedKopfObject):
 
     @property
     def ignore(self):
-        return Babylon.babylon_ignore_label in self.labels
+        return OperatorRuntime.babylon_ignore_label in self.labels
 
     @property
     def lab_user_interface(self):

@@ -515,7 +515,6 @@ async def provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger)
     """Provision a new cluster for TenantClusterPool"""
     logger.info("Provisioning cluster for %s", tenant_cluster_pool)
 
-
     # Basic ResourceClaim labels indicate TenantClusterPool name
     resource_claim_labels = {
         OperatorRuntime.tenant_cluster_pool_label: tenant_cluster_pool.name,

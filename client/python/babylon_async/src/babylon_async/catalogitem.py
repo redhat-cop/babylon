@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import Any, List, Mapping
 
 from datetime import datetime, timedelta
+import json
 
 import deepmerge
 import jinja2
@@ -19,6 +20,8 @@ template_merger = deepmerge.Merger(
     ["override"],
     ["override"],
 )
+
+OPS_ANNOTATION = 'babylon.gpte.redhat.com/ops'
 
 class CatalogItem(K8sObject):
     api_group = "babylon.gpte.redhat.com"
@@ -44,6 +47,22 @@ class CatalogItem(K8sObject):
         return self.spec.display_name
 
     @property
+    def has_deleted_ops_annotation(self):
+        """Indicate whether agnosticv-operator has indicated the CatalogItem
+        is pending delete after services are gone."""
+        if not OPS_ANNOTATION in self.annotations:
+            return False
+        value = json.dumps(self.annotations[OPS_ANNOTATION])
+        if not value.get('status', {}).get('id') == 'under-maintenance':
+            return False
+        comments = value.get('comments', [])
+        if len(comments) != 1:
+            return False
+        if comments[0]['message'] != "Deleted from AgnosticV":
+            return False
+        return True
+
+    @property
     def parameters(self) -> list[CatalogItemSpecParameter]:
         return self.spec.parameters
 
@@ -52,8 +71,23 @@ class CatalogItem(K8sObject):
         return self.metadata.labels.get('babylon.gpte.redhat.com/Provider')
 
     @property
+    def sandboxes(self) -> List[CatalogItemSpecSandbox]:
+        """Return representation of sandboxes used by CatalogItem.
+        Return empty list if no sandboxes are used."""
+        return self.spec.sandboxes or []
+
+    @property
     def spec(self) -> CatalogItemSpec:
         return CatalogItemSpec(self._definition['spec'])
+
+    def get_tenant_cluster_component_names(self) -> List[str]:
+        """Return list of tenant cluster component names referenced in sandboxes"""
+        return [
+            sandbox.tenant_cluster.component_name
+            for sandbox in self.sandboxes
+            if sandbox.tenant_cluster is not None
+        ]
+
 
     async def check_resource_pool_match(self,
         resource_pool: ResourcePool,
@@ -233,6 +267,16 @@ class CatalogItemSpec:
         return CatalogItemSpecRuntime(self._definition['runtime'])
 
     @property
+    def sandboxes(self) -> CatalogItemSpecSandboxes|None:
+        """Return representation of sandboxes used by CatalogItem.
+        Return None if no sandboxes are used."""
+        if 'sandboxes' not in self._definition:
+            return None
+        return [
+            CatalogItemSpecSandbox(item) for item in self._definition['sandboxes']
+        ]
+
+    @property
     def terms_of_service(self) -> str|None:
         return self._definition.get('termsOfService')
 
@@ -407,3 +451,40 @@ class CatalogItemSpecRuntime:
     @property
     def maximum(self) -> timedelta:
         return timedelta(seconds=pytimeparse.parse(self._definition['maximum']))
+
+class CatalogItemSpecSandbox:
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def annotations(self) -> Mapping[str, str]|None:
+        """Return annotatations to add to the sandbox account."""
+        return self._definition.get('annotations')
+
+    @property
+    def cloud_selector(self) -> Mapping[str, str]|None:
+        """Return cloud selector,
+        a dictionary of strings to select the cloud provider using annotations."""
+        return self._definition.get('cloudSelector')
+
+    @property
+    def kind(self) -> str:
+        """Return sandbox kind"""
+        return self._definition['kind']
+
+    @property
+    def tenant_cluster(self) -> CatalogItemSpecSandboxTenantCluster|None:
+        """Return tenant cluster information if set."""
+        if 'tenantCluster' not in self._definition:
+            return None
+        return CatalogItemSpecSandboxTenantCluster(self._definition['tenantCluster'])
+
+class CatalogItemSpecSandboxTenantCluster:
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def component_name(self) -> str:
+        """Return component name used to name resources associated with the tenant cluster
+        including ResourceProvider and AnarchyGovernor."""
+        return self._definition['componentName']

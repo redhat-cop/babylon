@@ -100,6 +100,11 @@ class TenantClusterPool(K8sObject):
             return None
         return TenantClusterPoolStatus(self._definition['status'])
 
+    @property
+    def tenant_pools(self) -> Mapping[TenantClusterPoolSpecTenantPool]:
+        """Configuration to maintain pools of provisioned tenant items."""
+        return self.spec.tenant_pools or {}
+
     async def add_cluster_to_status(self,
         resource_claim_name:str,
         retries:int=10,
@@ -227,6 +232,13 @@ class TenantClusterPool(K8sObject):
             # All labels managed from AgnosticV
             merged['metadata']['labels'] = definition['metadata']['labels']
 
+            # Tenant pool merge, drop deleted catalog items and keep scaling.
+            merged['spec']['tenantPools'] = deepcopy(definition['spec'].get('tenantPools', {}))
+            for name, tenant_pool in self.tenant_pools.items():
+                # If name not in merged then tenant catalog item deleted
+                if name in merged['spec']['tenantPools']:
+                    merged['spec']['tenantPools'][name]['minAvailable'] = tenant_pool.min_available
+
             if merged == self._definition:
                 return False
             if dry_run:
@@ -284,12 +296,14 @@ class TenantClusterPoolSpec:
         )
 
     @property
-    def tenant_pools(self) -> List[TenantClusterPoolSpecTenantPool]:
+    def tenant_pools(self) -> Mapping[TenantClusterPoolSpecTenantPool]|None:
         """Configuration to maintain pools of provisioned tenant items."""
-        return [
-            TenantClusterPoolSpecTenantPool(item)
-            for item in self._definition.get('tenantPools', [])
-        ]
+        if 'tenantPools' not in self._definition:
+            return None
+        return {
+            key: TenantClusterPoolSpecTenantPool(value)
+            for key, value in self._definition.get('tenantPools', {}).items()
+        }
 
 
 class TenantClusterPoolSpecClusterProvisioning:

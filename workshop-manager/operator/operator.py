@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import asyncio
 import kopf
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from resourceclaim import ResourceClaim
 from workshop import Workshop
 from workshopprovision import WorkshopProvision
@@ -18,7 +18,7 @@ from infinite_relative_backoff import InfiniteRelativeBackoff
 
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
-    await Babylon.on_startup()
+    await OperatorRuntime.on_startup()
 
     # Never give up from network errors
     settings.networking.error_backoffs = InfiniteRelativeBackoff()
@@ -27,7 +27,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     settings.persistence.diffbase_storage = kopf.StatusDiffBaseStorage(field='status.diffBase')
 
     # Use operator domain as finalizer
-    settings.persistence.finalizer = f"{Babylon.babylon_domain}/workshop-manager"
+    settings.persistence.finalizer = f"{OperatorRuntime.babylon_domain}/workshop-manager"
 
     # Store progress in status
     settings.persistence.progress_storage = kopf.StatusProgressStorage(field='status.kopf.progress')
@@ -46,25 +46,25 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
-    await Babylon.on_cleanup()
+    await OperatorRuntime.on_cleanup()
 
 
 @kopf.on.event(
     ResourceClaim.api_group, ResourceClaim.api_version, ResourceClaim.plural,
     labels={
-        Babylon.workshop_label: kopf.PRESENT,
-        Babylon.resource_broker_ignore_label: kopf.ABSENT,
+        OperatorRuntime.workshop_label: kopf.PRESENT,
+        OperatorRuntime.resource_broker_ignore_label: kopf.ABSENT,
+        OperatorRuntime.tenant_cluster_pool_label: kopf.ABSENT,
     },
 )
 async def resource_claim_event(event, logger, **_):
+    """Watch ResourceClaims related to workshops but not tenant cluster pools."""
     await ResourceClaim.handle_workshop_event(event, logger=logger)
-
-
 
 
 @kopf.on.create(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_create(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -72,7 +72,7 @@ async def workshop_create(logger, **kwargs):
 
 @kopf.on.delete(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_delete(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -80,7 +80,7 @@ async def workshop_delete(logger, **kwargs):
 
 @kopf.on.resume(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_resume(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -88,7 +88,7 @@ async def workshop_resume(logger, **kwargs):
 
 @kopf.on.update(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_update(logger, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -97,7 +97,7 @@ async def workshop_update(logger, **kwargs):
 @kopf.daemon(
     Workshop.api_group, Workshop.api_version, Workshop.plural,
     cancellation_timeout = 1,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_daemon(logger, stopped, **kwargs):
     workshop = Workshop.load(**kwargs)
@@ -115,7 +115,7 @@ async def workshop_daemon(logger, stopped, **kwargs):
 
 @kopf.on.create(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_create(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -123,7 +123,7 @@ async def workshop_provision_create(logger, **kwargs):
 
 @kopf.on.delete(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_delete(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -131,7 +131,7 @@ async def workshop_provision_delete(logger, **kwargs):
 
 @kopf.on.resume(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_resume(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -139,7 +139,7 @@ async def workshop_provision_resume(logger, **kwargs):
 
 @kopf.on.update(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_update(logger, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -148,7 +148,7 @@ async def workshop_provision_update(logger, **kwargs):
 @kopf.daemon(
     WorkshopProvision.api_group, WorkshopProvision.api_version, WorkshopProvision.plural,
     cancellation_timeout = 1,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_provision_daemon(logger, stopped, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
@@ -167,7 +167,7 @@ async def workshop_provision_daemon(logger, stopped, **kwargs):
 
 @kopf.on.create(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_create(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
@@ -175,7 +175,7 @@ async def workshop_user_assignment_create(logger, **kwargs):
 
 @kopf.on.delete(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_delete(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
@@ -183,7 +183,7 @@ async def workshop_user_assignment_delete(logger, **kwargs):
 
 @kopf.on.update(
     WorkshopUserAssignment.api_group, WorkshopUserAssignment.api_version, WorkshopUserAssignment.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def workshop_user_assignment_update(logger, **kwargs):
     workshop_user_assignment = WorkshopUserAssignment.load(**kwargs)
@@ -192,7 +192,7 @@ async def workshop_user_assignment_update(logger, **kwargs):
 
 @kopf.on.create(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def multiworkshop_create(logger, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
@@ -200,7 +200,7 @@ async def multiworkshop_create(logger, **kwargs):
 
 @kopf.on.delete(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def multiworkshop_delete(logger, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
@@ -208,7 +208,7 @@ async def multiworkshop_delete(logger, **kwargs):
 
 @kopf.on.resume(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def multiworkshop_resume(logger, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
@@ -216,7 +216,7 @@ async def multiworkshop_resume(logger, **kwargs):
 
 @kopf.on.update(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def multiworkshop_update(logger, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)
@@ -225,7 +225,7 @@ async def multiworkshop_update(logger, **kwargs):
 @kopf.daemon(
     MultiWorkshop.api_group, MultiWorkshop.api_version, MultiWorkshop.plural,
     cancellation_timeout = 1,
-    labels={Babylon.babylon_ignore_label: kopf.ABSENT},
+    labels={OperatorRuntime.babylon_ignore_label: kopf.ABSENT},
 )
 async def multiworkshop_daemon(logger, stopped, **kwargs):
     multiworkshop = MultiWorkshop.load(**kwargs)

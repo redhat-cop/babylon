@@ -133,8 +133,8 @@ spec:
               tenantPools:
                 description: >-
                   Configuration to keep a pool of provisioned tenant items.
-                type: array
-                items:
+                type: object
+                additionalProperties:
                   description: >-
                     Tenant item to maintain pooled in provisions on the
                     clusters.
