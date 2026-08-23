@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 
-from typing import List
+from typing import List, Mapping
 
 import kopf
 
@@ -29,7 +29,7 @@ webhook_runner = None
 @kopf.on.startup()
 async def on_startup(settings: kopf.OperatorSettings, logger, **_):
     global webhook_server, webhook_runner
-    
+
     await OperatorRuntime.on_startup()
     await CatalogItemController.on_startup()
 
@@ -53,12 +53,12 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 
     # Reduce kopf log verbosity
     configure_kopf_logging()
-    
+
     # Start webhook server if enabled
     webhook_port_env = os.environ.get('WEBHOOK_PORT', '8090')
     webhook_port = int(webhook_port_env)
     webhook_enabled = os.environ.get('WEBHOOK_ENABLED', 'true').lower() == 'true'
-    
+
     logger.info(f"Webhook configuration: WEBHOOK_ENABLED={webhook_enabled}, WEBHOOK_PORT env='{webhook_port_env}', parsed port={webhook_port}")
 
     if webhook_enabled:
@@ -74,7 +74,7 @@ async def on_startup(settings: kopf.OperatorSettings, logger, **_):
 @kopf.on.cleanup()
 async def on_cleanup(logger, **_):
     global webhook_server, webhook_runner
-    
+
     # Stop webhook server
     if webhook_runner:
         try:
@@ -84,7 +84,7 @@ async def on_cleanup(logger, **_):
             logger.error(f"Error stopping webhook server: {e}")
         webhook_server = None
         webhook_runner = None
-    
+
     await CatalogItemController.on_cleanup()
     await OperatorRuntime.on_cleanup()
 
@@ -153,11 +153,44 @@ async def agnoticvrepo_daemon(logger, stopped, **kwargs):
 
 async def manage_agnosticv_component(agnosticv_component: AgnosticVComponent, logger) -> None:
     """Manage all configuraton configured from AgnosticV"""
+    try:
+        agnosticv_repo = await agnosticv_component.get_agnosticv_repo()
+    except BabylonApiException as exception:
+        if exception.status != 404:
+            raise
+        logger.warning("Failed to get AgnosticVRepo for %s", agnosticv_component)
+        return
+
+    try:
+        linked_agnosticv_components = await agnosticv_component.get_linked_agnosticv_components(
+            recurse=True,
+        )
+    except BabylonApiException as exception:
+        if exception.status != 404:
+            raise
+        logger.warning("Failed to get linked components for %s", agnosticv_component)
+        return
+
+    try:
+        tenant_cluster_components = await agnosticv_component.get_tenant_cluster_components()
+    except BabylonApiException as exception:
+        if exception.status != 404:
+            raise
+        logger.warning("Failed to get tenant cluster components for %s", agnosticv_component)
+        return
+
     anarchy_governor, deprecated_anarchy_governors = await manage_anarchy_governor(
-        agnosticv_component, logger
+        agnosticv_component,
+        tenant_cluster_components,
+        logger
     )
+
     catalog_item = await manage_catalog_item(
-        agnosticv_component, logger
+        agnosticv_component,
+        agnosticv_repo,
+        linked_agnosticv_components,
+        tenant_cluster_components,
+        logger
     )
     resource_provider = await manage_resource_provider(
         agnosticv_component, logger
@@ -199,10 +232,13 @@ async def manage_agnosticv_component(agnosticv_component: AgnosticVComponent, lo
     })
 
 async def manage_anarchy_governor(
-    agnosticv_component: AgnosticVComponent, logger
+    agnosticv_component: AgnosticVComponent,
+    tenant_cluster_components: Mapping[str, AgnosticVComponent],
+    logger,
 ) -> (AnarchyGovernor|None, List[AnarchyGovernor]):
     anarchy_governor_definition = agnosticv_component.get_anarchy_governor_definition(
         environment_level=OperatorRuntime.environment_level,
+        tenant_cluster_components=tenant_cluster_components,
     )
     if anarchy_governor_definition is None:
         return None, []
@@ -243,32 +279,19 @@ async def manage_anarchy_governor(
     return anarchy_governor, deprecated_anarchy_governors
 
 async def manage_catalog_item(
-    agnosticv_component: AgnosticVComponent, logger
+    agnosticv_component: AgnosticVComponent,
+    agnosticv_repo: AgnosticVRepo,
+    linked_agnosticv_components: List[AgnosticVComponent],
+    tenant_cluster_components: Mapping[str, AgnosticVComponent],
+    logger,
 ) -> CatalogItem|None:
     if agnosticv_component.catalog_disable:
-        return None
-
-    try:
-        agnosticv_repo = await agnosticv_component.get_agnosticv_repo()
-    except BabylonApiException as exception:
-        if exception.status != 404:
-            raise
-        logger.warning("Failed to get AgnosticVRepo for %s", agnosticv_component)
-        return None
-
-    try:
-        linked_agnosticv_components = await agnosticv_component.get_linked_agnosticv_components(
-            recurse=True,
-        )
-    except BabylonApiException as exception:
-        if exception.status != 404:
-            raise
-        logger.warning("Failed to get linked components for %s", agnosticv_component)
         return None
 
     catalog_item_definition = agnosticv_component.get_catalog_item_definition(
         agnosticv_repo=agnosticv_repo,
         linked_agnosticv_components=linked_agnosticv_components,
+        tenant_cluster_components=tenant_cluster_components,
     )
     if catalog_item_definition is None:
         return None

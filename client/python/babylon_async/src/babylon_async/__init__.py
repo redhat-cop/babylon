@@ -1,5 +1,5 @@
 from .client import BabylonClient
-from .exceptions import BabylonApiException
+from .exceptions import BabylonApiException, BabylonComponentDefinitionException
 
 from .agnosticvcomponent import AgnosticVComponent
 from .agnosticvrepo import AgnosticVRepo

@@ -28,3 +28,6 @@ class BabylonApiException(Exception):
                 error_message += "HTTP response body: {0}\n".format(self.kubernetes_api_exception.body)
 
         return error_message
+
+class BabylonComponentDefinitionException(Exception):
+    pass

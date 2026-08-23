@@ -7,13 +7,13 @@ from pydantic.utils import deep_update
 
 import resourceclaim
 import workshopprovision
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
 
 
 class Workshop(CachedKopfObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'Workshop'
     plural = 'workshops'
 
@@ -39,11 +39,11 @@ class Workshop(CachedKopfObject):
 
     @property
     def asset_uuid(self):
-        return self.labels.get(Babylon.asset_uuid_label)
+        return self.labels.get(OperatorRuntime.asset_uuid_label)
 
     @property
     def ignore(self):
-        return Babylon.babylon_ignore_label in self.labels
+        return OperatorRuntime.babylon_ignore_label in self.labels
 
     @property
     def lifespan_start(self):
@@ -69,11 +69,11 @@ class Workshop(CachedKopfObject):
 
     @property
     def ordered_by(self):
-        return self.annotations.get(Babylon.ordered_by_annotation)
+        return self.annotations.get(OperatorRuntime.ordered_by_annotation)
 
     @property
     def requester(self):
-        return self.annotations.get(Babylon.requester_annotation)
+        return self.annotations.get(OperatorRuntime.requester_annotation)
 
     @property
     def resource_claim_names(self) -> list[str]:
@@ -82,11 +82,11 @@ class Workshop(CachedKopfObject):
 
     @property
     def service_url(self):
-        return self.annotations.get(Babylon.url_annotation)
+        return self.annotations.get(OperatorRuntime.url_annotation)
 
     @property
     def white_gloved(self):
-        return self.labels.get(Babylon.white_glove_label)
+        return self.labels.get(OperatorRuntime.white_glove_label)
 
     @property
     def workshop_provision_names(self) -> list[str]:
@@ -100,7 +100,7 @@ class Workshop(CachedKopfObject):
 
     @property
     def workshop_id(self):
-        return self.labels.get(Babylon.workshop_id_label)
+        return self.labels.get(OperatorRuntime.workshop_id_label)
 
     @property
     def workshop_url(self):
@@ -108,8 +108,8 @@ class Workshop(CachedKopfObject):
 
     @property
     def _effective_base_url(self):
-        if Babylon.workshop_base_url:
-            return Babylon.workshop_base_url
+        if OperatorRuntime.workshop_base_url:
+            return OperatorRuntime.workshop_base_url
         if self.service_url:
             parsed = urlparse(self.service_url)
             if parsed.scheme and parsed.netloc:
@@ -159,7 +159,7 @@ class Workshop(CachedKopfObject):
 
     async def list_resource_claims(self):
         async for resource_claim in resourceclaim.ResourceClaim.list(
-            label_selector=f"{Babylon.workshop_label}={self.name}",
+            label_selector=f"{OperatorRuntime.workshop_label}={self.name}",
             namespace=self.namespace,
         ):
             yield resource_claim
@@ -176,7 +176,7 @@ class Workshop(CachedKopfObject):
     async def __delete_service_access_role(self, logger) -> None:
         """Delete service access role for this workshop."""
         try:
-            await Babylon.rbac_authorization_api.delete_namespaced_role(
+            await OperatorRuntime.rbac_authorization_api.delete_namespaced_role(
                 self.name, self.namespace
             )
             logger.info("Deleted service access role for %s", self)
@@ -187,7 +187,7 @@ class Workshop(CachedKopfObject):
     async def __delete_service_access_role_binding(self, logger) -> None:
         """Delete service access role binding for this workshop."""
         try:
-            await Babylon.rbac_authorization_api.delete_namespaced_role_binding(
+            await OperatorRuntime.rbac_authorization_api.delete_namespaced_role_binding(
                 self.name, self.namespace
             )
             logger.info("Deleted service access role binding for %s", self)
@@ -225,7 +225,7 @@ class Workshop(CachedKopfObject):
             {
                 "metadata": {
                     "labels": {
-                        Babylon.workshop_id_label: workshop_id,
+                        OperatorRuntime.workshop_id_label: workshop_id,
                     }
                 }
             }
