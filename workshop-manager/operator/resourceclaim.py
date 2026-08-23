@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from k8sobject import K8sObject
 from labuserinterface import LabUserInterface
 from userassignment import UserAssignment
@@ -14,8 +14,8 @@ import workshop as workshop_import
 import workshopuserassignment
 
 class ResourceClaim(K8sObject):
-    api_group = Babylon.poolboy_domain
-    api_version = Babylon.poolboy_api_version
+    api_group = OperatorRuntime.poolboy_domain
+    api_version = OperatorRuntime.poolboy_api_version
     kind = 'ResourceClaim'
     plural = 'resourceclaims'
 
@@ -74,6 +74,12 @@ class ResourceClaim(K8sObject):
         return datetime.strptime(
             lifespan_end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
         ).replace(tzinfo=timezone.utc)
+
+    @property
+    def is_detached(self) -> bool:
+        """Indicate if ResourceHandle is detached from ResourceClaim.
+        Indicates auto-destroy has been triggered."""
+        return self.definition.get('status', {}).get('resourceHandle', {}).get('detached', False)
 
     @property
     def is_failed(self):
@@ -162,7 +168,7 @@ class ResourceClaim(K8sObject):
 
     @property
     def workshop_name(self):
-        return self.labels.get(Babylon.workshop_label)
+        return self.labels.get(OperatorRuntime.workshop_label)
 
     def as_user_assignment(self):
         annotations = self.definition['metadata'].get('annotations', {})
@@ -190,9 +196,9 @@ class ResourceClaim(K8sObject):
             if 'provision_messages' in state_vars:
                 provision_messages.extend(state_vars['provision_messages'])
 
-        if Babylon.lab_ui_url_annotation in annotations:
+        if OperatorRuntime.lab_ui_url_annotation in annotations:
             lab_user_interface = LabUserInterface(
-                url = annotations[Babylon.lab_ui_url_annotation]
+                url = annotations[OperatorRuntime.lab_ui_url_annotation]
             )
 
         return UserAssignment(
@@ -242,12 +248,12 @@ class ResourceClaim(K8sObject):
                         )
                         break
 
-        if Babylon.lab_ui_urls_annotation in annotations:
+        if OperatorRuntime.lab_ui_urls_annotation in annotations:
             try:
-                lab_ui_urls = json.loads(annotations[Babylon.lab_ui_urls_annotation])
+                lab_ui_urls = json.loads(annotations[OperatorRuntime.lab_ui_urls_annotation])
             except json.decoder.JSONDecodeError as exception:
                 logger.warning(
-                    f"Failed to parse {Babylon.lab_ui_urls_annotation} annotation "
+                    f"Failed to parse {OperatorRuntime.lab_ui_urls_annotation} annotation "
                     f"for ResourceClaim {self.name} in {self.namespace}: {exception.msg}"
                 )
             if isinstance(lab_ui_urls, dict):
@@ -270,7 +276,7 @@ class ResourceClaim(K8sObject):
                         )
             else:
                 logger.warning(
-                    f"{Babylon.lab_ui_urls_annotation} annotation for ResourceClaim "
+                    f"{OperatorRuntime.lab_ui_urls_annotation} annotation for ResourceClaim "
                     f"{self.name} in {self.namespace} is not a dictionary!"
                 )
 
@@ -292,7 +298,7 @@ class ResourceClaim(K8sObject):
 
             # Override lifespan in ResourceHandle to allow extension required by ResourceClaim
             if self.resource_handle_name and self.resource_handle_namespace:
-                await Babylon.custom_objects_api.patch_namespaced_custom_object(
+                await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
                     group = self.api_group,
                     name = self.resource_handle_name,
                     namespace = self.resource_handle_namespace,

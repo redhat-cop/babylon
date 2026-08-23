@@ -11,13 +11,13 @@ from datetime import datetime, timezone, timedelta
 
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
 
 
 class MultiWorkshop(CachedKopfObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'MultiWorkshop'
     plural = 'multiworkshops'
 
@@ -98,7 +98,7 @@ class MultiWorkshop(CachedKopfObject):
 
     @property
     def multi_workshop_id(self):
-        return self.labels.get(Babylon.multi_workshop_id_label)
+        return self.labels.get(OperatorRuntime.multi_workshop_id_label)
 
     @property
     def portal_url(self):
@@ -106,21 +106,21 @@ class MultiWorkshop(CachedKopfObject):
 
     @property
     def _effective_base_url(self):
-        if Babylon.workshop_base_url:
-            return Babylon.workshop_base_url
+        if OperatorRuntime.workshop_base_url:
+            return OperatorRuntime.workshop_base_url
         return ''
 
     @property
     def created_by(self):
-        return self.annotations.get(f'{Babylon.babylon_domain}/created-by', '')
+        return self.annotations.get(f'{OperatorRuntime.babylon_domain}/created-by', '')
 
     @property
     def ordered_by(self):
-        return self.annotations.get(Babylon.ordered_by_annotation, self.created_by)
+        return self.annotations.get(OperatorRuntime.ordered_by_annotation, self.created_by)
 
     @property
     def requester(self):
-        return self.annotations.get(Babylon.requester_annotation, self.created_by)
+        return self.annotations.get(OperatorRuntime.requester_annotation, self.created_by)
 
     @staticmethod
     def generate_k8s_name(base_name, max_length=63):
@@ -147,16 +147,16 @@ class MultiWorkshop(CachedKopfObject):
         # List workshops already created for this MultiWorkshop
         existing_workshops = {}
         try:
-            workshop_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
-                group=Babylon.babylon_domain,
-                version=Babylon.babylon_api_version,
+            workshop_list = await OperatorRuntime.custom_objects_api.list_namespaced_custom_object(
+                group=OperatorRuntime.babylon_domain,
+                version=OperatorRuntime.babylon_api_version,
                 namespace=self.namespace,
                 plural='workshops',
-                label_selector=f"{Babylon.babylon_domain}/multiworkshop={self.name}",
+                label_selector=f"{OperatorRuntime.babylon_domain}/multiworkshop={self.name}",
             )
             for item in workshop_list.get('items', []):
                 asset_key = item.get('metadata', {}).get('labels', {}).get(
-                    f'{Babylon.babylon_domain}/asset-key'
+                    f'{OperatorRuntime.babylon_domain}/asset-key'
                 )
                 if asset_key:
                     existing_workshops[asset_key] = item['metadata']['name']
@@ -187,9 +187,9 @@ class MultiWorkshop(CachedKopfObject):
             if asset_name:
                 try:
                     asset_ns = asset.get('namespace', self.namespace)
-                    await Babylon.custom_objects_api.get_namespaced_custom_object(
-                        group=Babylon.babylon_domain,
-                        version=Babylon.babylon_api_version,
+                    await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                        group=OperatorRuntime.babylon_domain,
+                        version=OperatorRuntime.babylon_api_version,
                         namespace=asset_ns,
                         plural='workshops',
                         name=asset_name,
@@ -226,9 +226,9 @@ class MultiWorkshop(CachedKopfObject):
         asset_display_name = asset.get('displayName', '')
         asset_description = asset.get('description', '')
 
-        catalog_item_def = await Babylon.custom_objects_api.get_namespaced_custom_object(
-            group=Babylon.babylon_domain,
-            version=Babylon.babylon_api_version,
+        catalog_item_def = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+            group=OperatorRuntime.babylon_domain,
+            version=OperatorRuntime.babylon_api_version,
             namespace=asset_namespace,
             plural='catalogitems',
             name=asset_key,
@@ -242,16 +242,16 @@ class MultiWorkshop(CachedKopfObject):
 
         # --- Workshop labels ---
         workshop_labels = {
-            Babylon.catalog_item_name_label: ci_meta['name'],
-            Babylon.catalog_item_namespace_label: ci_meta['namespace'],
-            f'{Babylon.demo_domain}/white-glove': 'false',
-            f'{Babylon.demo_domain}/lock-enabled': 'true',
-            f'{Babylon.babylon_domain}/multiworkshop': self.name,
-            f'{Babylon.babylon_domain}/asset-key': asset_key,
+            OperatorRuntime.catalog_item_name_label: ci_meta['name'],
+            OperatorRuntime.catalog_item_namespace_label: ci_meta['namespace'],
+            f'{OperatorRuntime.demo_domain}/white-glove': 'false',
+            f'{OperatorRuntime.demo_domain}/lock-enabled': 'true',
+            f'{OperatorRuntime.babylon_domain}/multiworkshop': self.name,
+            f'{OperatorRuntime.babylon_domain}/asset-key': asset_key,
         }
-        asset_uuid = ci_labels.get(Babylon.asset_uuid_label)
+        asset_uuid = ci_labels.get(OperatorRuntime.asset_uuid_label)
         if asset_uuid:
-            workshop_labels[Babylon.asset_uuid_label] = asset_uuid
+            workshop_labels[OperatorRuntime.asset_uuid_label] = asset_uuid
 
         # --- Workshop annotations ---
         is_scheduled = False
@@ -263,32 +263,32 @@ class MultiWorkshop(CachedKopfObject):
                 pass
 
         workshop_annotations = {
-            f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
-            f'{Babylon.demo_domain}/scheduled': 'true' if is_scheduled else 'false',
-            f'{Babylon.babylon_domain}/created-by': self.created_by,
-            f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
-            f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
+            f'{OperatorRuntime.babylon_domain}/category': ci_spec.get('category', ''),
+            f'{OperatorRuntime.demo_domain}/scheduled': 'true' if is_scheduled else 'false',
+            f'{OperatorRuntime.babylon_domain}/created-by': self.created_by,
+            f'{OperatorRuntime.babylon_domain}/multiworkshop-source': self.name,
+            f'{OperatorRuntime.babylon_domain}/multiworkshop-uid': self.uid,
         }
         if self.requester:
-            workshop_annotations[Babylon.requester_annotation] = self.requester
+            workshop_annotations[OperatorRuntime.requester_annotation] = self.requester
         if self.ordered_by:
-            workshop_annotations[Babylon.ordered_by_annotation] = self.ordered_by
+            workshop_annotations[OperatorRuntime.ordered_by_annotation] = self.ordered_by
         if self.purpose:
-            workshop_annotations[Babylon.purpose_annotation] = self.purpose
+            workshop_annotations[OperatorRuntime.purpose_annotation] = self.purpose
         if self.purpose_activity:
-            workshop_annotations[Babylon.purpose_activity_annotation] = self.purpose_activity
+            workshop_annotations[OperatorRuntime.purpose_activity_annotation] = self.purpose_activity
         if self.salesforce_items:
-            workshop_annotations[Babylon.salesforce_items_annotation] = json.dumps(self.salesforce_items)
-        workshop_annotations[f'{Babylon.demo_domain}/provide_salesforce-id_later'] = (
+            workshop_annotations[OperatorRuntime.salesforce_items_annotation] = json.dumps(self.salesforce_items)
+        workshop_annotations[f'{OperatorRuntime.demo_domain}/provide_salesforce-id_later'] = (
             str(not bool(self.salesforce_items)).lower()
         )
 
         message_templates = ci_spec.get('messageTemplates', {})
         if message_templates.get('info'):
-            workshop_annotations[f'{Babylon.demo_domain}/info-message-template'] = json.dumps(message_templates['info'])
+            workshop_annotations[f'{OperatorRuntime.demo_domain}/info-message-template'] = json.dumps(message_templates['info'])
         workshop_user_mode = ci_spec.get('workshopUserMode', 'none')
         if workshop_user_mode != 'none' and message_templates.get('user'):
-            workshop_annotations[f'{Babylon.demo_domain}/user-message-template'] = json.dumps(message_templates['user'])
+            workshop_annotations[f'{OperatorRuntime.demo_domain}/user-message-template'] = json.dumps(message_templates['user'])
 
         # --- Workshop spec ---
         workshop_spec = {
@@ -322,7 +322,7 @@ class MultiWorkshop(CachedKopfObject):
             workshop_spec['description'] = asset_description
 
         workshop_definition = {
-            'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+            'apiVersion': f'{OperatorRuntime.babylon_domain}/{OperatorRuntime.babylon_api_version}',
             'kind': 'Workshop',
             'metadata': {
                 'name': workshop_name,
@@ -338,11 +338,11 @@ class MultiWorkshop(CachedKopfObject):
         workshop_def = None
         for attempt in range(3):
             try:
-                workshop_def = await Babylon.custom_objects_api.create_namespaced_custom_object(
-                    group=Babylon.babylon_domain,
+                workshop_def = await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
+                    group=OperatorRuntime.babylon_domain,
                     namespace=self.namespace,
                     plural='workshops',
-                    version=Babylon.babylon_api_version,
+                    version=OperatorRuntime.babylon_api_version,
                     body=workshop_definition,
                 )
                 break
@@ -359,19 +359,19 @@ class MultiWorkshop(CachedKopfObject):
 
         # --- WorkshopProvision ---
         provision_labels = {
-            Babylon.catalog_item_name_label: ci_meta['name'],
-            Babylon.catalog_item_namespace_label: ci_meta['namespace'],
-            f'{Babylon.babylon_domain}/multiworkshop': self.name,
-            f'{Babylon.babylon_domain}/asset-key': asset_key,
+            OperatorRuntime.catalog_item_name_label: ci_meta['name'],
+            OperatorRuntime.catalog_item_namespace_label: ci_meta['namespace'],
+            f'{OperatorRuntime.babylon_domain}/multiworkshop': self.name,
+            f'{OperatorRuntime.babylon_domain}/asset-key': asset_key,
         }
         if asset_uuid:
-            provision_labels[Babylon.asset_uuid_label] = asset_uuid
+            provision_labels[OperatorRuntime.asset_uuid_label] = asset_uuid
 
         provision_annotations = {
-            f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
-            f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
-            f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
-            Babylon.resource_pool_annotation: 'disabled',
+            f'{OperatorRuntime.babylon_domain}/category': ci_spec.get('category', ''),
+            f'{OperatorRuntime.babylon_domain}/multiworkshop-source': self.name,
+            f'{OperatorRuntime.babylon_domain}/multiworkshop-uid': self.uid,
+            OperatorRuntime.resource_pool_annotation: 'disabled',
         }
 
         # Collect catalog item parameter defaults (mirrors CatalogItemFormReducer init)
@@ -412,7 +412,7 @@ class MultiWorkshop(CachedKopfObject):
             }
 
         provision_definition = {
-            'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+            'apiVersion': f'{OperatorRuntime.babylon_domain}/{OperatorRuntime.babylon_api_version}',
             'kind': 'WorkshopProvision',
             'metadata': {
                 'name': workshop_name,
@@ -420,7 +420,7 @@ class MultiWorkshop(CachedKopfObject):
                 'labels': provision_labels,
                 'annotations': provision_annotations,
                 'ownerReferences': [{
-                    'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+                    'apiVersion': f'{OperatorRuntime.babylon_domain}/{OperatorRuntime.babylon_api_version}',
                     'controller': True,
                     'kind': 'Workshop',
                     'name': workshop_name,
@@ -430,11 +430,11 @@ class MultiWorkshop(CachedKopfObject):
             'spec': provision_spec,
         }
 
-        await Babylon.custom_objects_api.create_namespaced_custom_object(
-            group=Babylon.babylon_domain,
+        await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
+            group=OperatorRuntime.babylon_domain,
             namespace=self.namespace,
             plural='workshopprovisions',
-            version=Babylon.babylon_api_version,
+            version=OperatorRuntime.babylon_api_version,
             body=provision_definition,
         )
         logger.info(f"Created WorkshopProvision {workshop_name} for asset {asset_key} in {self}")
@@ -460,9 +460,9 @@ class MultiWorkshop(CachedKopfObject):
             ws_namespace = asset.get('namespace', self.namespace)
 
             try:
-                item = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                    group=Babylon.babylon_domain,
-                    version=Babylon.babylon_api_version,
+                item = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                    group=OperatorRuntime.babylon_domain,
+                    version=OperatorRuntime.babylon_api_version,
                     namespace=ws_namespace,
                     plural='workshops',
                     name=ws_name,
@@ -478,7 +478,7 @@ class MultiWorkshop(CachedKopfObject):
                 continue
 
             ws_labels = item.get('metadata', {}).get('labels', {})
-            lock_enabled = ws_labels.get(f'{Babylon.demo_domain}/lock-enabled', 'false')
+            lock_enabled = ws_labels.get(f'{OperatorRuntime.demo_domain}/lock-enabled', 'false')
             if lock_enabled != 'true':
                 continue
 
@@ -503,9 +503,9 @@ class MultiWorkshop(CachedKopfObject):
                 continue
 
             try:
-                await Babylon.custom_objects_api.patch_namespaced_custom_object(
-                    group=Babylon.babylon_domain,
-                    version=Babylon.babylon_api_version,
+                await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
+                    group=OperatorRuntime.babylon_domain,
+                    version=OperatorRuntime.babylon_api_version,
                     namespace=ws_namespace,
                     plural='workshops',
                     name=ws_name,
@@ -540,15 +540,15 @@ class MultiWorkshop(CachedKopfObject):
 
             try:
                 asset_namespace = asset.get('namespace', self.namespace)
-                workshop = await Babylon.custom_objects_api.get_namespaced_custom_object(
-                    group=Babylon.babylon_domain,
+                workshop = await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                    group=OperatorRuntime.babylon_domain,
                     version='v1',
                     namespace=asset_namespace,
                     plural='workshops',
                     name=workshop_name
                 )
 
-                workshop_id = workshop.get('metadata', {}).get('labels', {}).get(f'{Babylon.babylon_domain}/workshop-id')
+                workshop_id = workshop.get('metadata', {}).get('labels', {}).get(f'{OperatorRuntime.babylon_domain}/workshop-id')
                 if workshop_id:
                     asset_copy = asset.copy()
                     asset_copy['workshopId'] = workshop_id
@@ -589,11 +589,11 @@ class MultiWorkshop(CachedKopfObject):
 
         while True:
             multi_workshop_id = ''.join(random.choice('23456789abcdefghjkmnpqrstuvwxyz') for i in range(6))
-            workshop_list = await Babylon.custom_objects_api.list_cluster_custom_object(
+            workshop_list = await OperatorRuntime.custom_objects_api.list_cluster_custom_object(
                 group=self.api_group,
                 version=self.api_version,
                 plural=self.plural,
-                label_selector=f"{Babylon.multi_workshop_id_label}={multi_workshop_id}",
+                label_selector=f"{OperatorRuntime.multi_workshop_id_label}={multi_workshop_id}",
             )
             if not workshop_list.get('items'):
                 break
@@ -601,7 +601,7 @@ class MultiWorkshop(CachedKopfObject):
         await self.merge_patch({
             "metadata": {
                 "labels": {
-                    Babylon.multi_workshop_id_label: multi_workshop_id,
+                    OperatorRuntime.multi_workshop_id_label: multi_workshop_id,
                 }
             }
         })

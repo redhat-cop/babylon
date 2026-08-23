@@ -518,6 +518,49 @@ spec:
                     type: string
                   maximum:
                     type: string
+              sandboxes:
+                description: >-
+                  Sandboxes this CI requests from the sandbox API.
+                  Used to:
+                  - Check sandbox availability
+                  - Determine tenant cluster catalog item for workshop provisioning.
+                type: array
+                items:
+                  description: >-
+                    Sandbox request definition.
+                  type: object
+                  properties:
+                    annotations:
+                      type: object
+                      description: >-
+                        A dictionary of strings to add to the sandbox accounts as annotations.
+                      additionalProperties:
+                        type: string
+                    cloudSelector:
+                      type: object
+                      description: >-
+                        A dictionary of strings to select the cloud provider using annotations
+                      additionalProperties:
+                        type: string
+                    kind:
+                      type: string
+                      enum:
+                        - AwsSandbox
+                        - AzureSandbox
+                        - DNSSandbox
+                        - IBMResourceGroupSandbox
+                        - OcpSandbox
+                        - RosaSandbox
+                        - SSLSandbox
+                    tenantCluster:
+                      type: object
+                      description: >-
+                        Component name which provides tenant cluster capacity.
+                      properties:
+                        componentName:
+                          type: string
+                      required:
+                      - componentName
               supportedActions:
                 description: >-
                   Lifecycle actions supported when ordering this catalog item.

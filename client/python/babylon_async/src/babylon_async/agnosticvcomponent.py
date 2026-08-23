@@ -4,7 +4,9 @@ from copy import deepcopy
 import json
 
 from typing import List, Mapping
+from weakref import ref, ReferenceType
 
+from .exceptions import BabylonComponentDefinitionException
 from .k8s_object import K8sObject
 from .agnosticvrepo import AgnosticVRepo
 from .anarchygovernor import AnarchyGovernor
@@ -375,6 +377,21 @@ class AgnosticVComponent(K8sObject):
         return self.__meta__.get('runtime', {}).get('maximum', '8h')
 
     @property
+    def sandbox_host(self) -> AgnosticVComponentSpecDefinitionSandboxHost|None:
+        """Return representation of sandbox_host metadata if defined for component."""
+        sandbox_host = self.__meta__.get('sandbox_host')
+        if sandbox_host is None:
+            return None
+        return AgnosticVComponentSpecDefinitionSandboxHost(sandbox_host)
+
+    @property
+    def sandboxes(self) -> List[AgnosticVComponentSpecDefinitionSandbox]:
+        """Return list of sandboxes for AgnosticVComponent.
+
+        Return empty list if no sandboxes are configured."""
+        return self.spec.sandboxes or []
+
+    @property
     def scheduler_enable(self):
         return self.__meta__.get('scheduler', {}).get('enable')
 
@@ -392,7 +409,7 @@ class AgnosticVComponent(K8sObject):
     @property
     def spec(self) -> AgnosticVComponentSpec:
         """Return AgnosticVComponentSpec"""
-        return AgnosticVComponentSpec(self._definition['spec'])
+        return AgnosticVComponentSpec(ref(self), self._definition['spec'])
 
     @property
     def stage(self) -> str:
@@ -403,7 +420,7 @@ class AgnosticVComponent(K8sObject):
 
     @property
     def status(self) -> AgnosticVComponentStatus|None:
-        """Return AgnosticVComponentSpec"""
+        """Return AgnosticVComponentStatus"""
         if 'status' not in self._definition:
             return None
         return AgnosticVComponentStatus(self._definition['status'])
@@ -436,6 +453,7 @@ class AgnosticVComponent(K8sObject):
 
     def get_anarchy_governor_definition(self,
         environment_level: str,
+        tenant_cluster_components: Mapping[str, AgnosticVComponent]=[],
     ) -> Mapping|None:
         """Get AnarchyGovernor definition
         Return None if item is configured without a deployer."""
@@ -520,21 +538,47 @@ class AgnosticVComponent(K8sObject):
 
         # Automatic mutation of sandbox selectors
         if 'sandboxes' in pruned_meta:
-            for item in pruned_meta['sandboxes']:
-                if (
-                    item.get('kind') == 'OcpSandbox' and
-                    'lab' in item.get('cloud_selector', {})
-                ):
-                    # Add environment_level cloud_selctor for OcpSandboxes provided by tenant clusters
-                    item['cloud_selector']['environment_level'] = environment_level
-                    # Add ":<lab-key>" to lab selector value if set in annotations of ResourceClaim
-                    item['cloud_selector']['lab'] = (
-                        item['cloud_selector']['lab'] +
-                        "{{" +
-                        "(':' ~ resouce_claim.metadata.annotations['babylon.gpte.redhat.com/lab-key']) " +
-                        "if 'babylon.gpte.redhat.com/lab-key' in resource_claim.metadata.annotations else ''" +
-                        "}}"
-                    )
+            pruned_meta['sandboxes'] = []
+            for sandbox in self.sandboxes:
+                sandbox_definition = deepcopy(sandbox._definition)
+                # Dynamic adjustment for OcpSandbox
+                if sandbox.kind == 'OcpSandbox':
+                    cloud_selector = sandbox.cloud_selector
+                    # Get cloud_selector from tenant_cluster if available and cloud_selector is not
+                    if cloud_selector is None:
+                        if sandbox.tenant_cluster is None:
+                            raise BabylonComponentDefinitionException(
+                                "OcpSandbox sandboxes must have cloud_selector or tenant_cluster"
+                            )
+                        tenant_cluster_component = tenant_cluster_components.get(
+                            sandbox.tenant_cluster.component_name
+                        )
+                        if tenant_cluster_component is None:
+                            raise BabylonComponentDefinitionException(
+                                f"No definition for tenant cluster component {sandbox.tenant_cluster.component_name} available."
+                            )
+                        if tenant_cluster_component.sandbox_host is None:
+                            raise BabylonComponentDefinitionException(
+                                f"Tenant cluster component {sandbox.tenant_cluster.component_name} does not have sandbox_host!"
+                            )
+                        cloud_selector = tenant_cluster_component.sandbox_host.annotations
+
+                    if 'lab' in cloud_selector:
+                        # Dynamic adjustment of cloud selector...
+                        cloud_selector = deepcopy(cloud_selector)
+                        # Add environment_level cloud_selctor for OcpSandboxes provided by tenant clusters
+                        cloud_selector['environment_level'] = environment_level
+                        # Add ":<lab-key>" to lab selector value if set in annotations of ResourceClaim
+                        cloud_selector['lab'] = (
+                            cloud_selector['lab'] +
+                            "{{" +
+                            "(':' ~ resouce_claim.metadata.annotations['babylon.gpte.redhat.com/lab-key']) " +
+                            "if 'babylon.gpte.redhat.com/lab-key' in resource_claim.metadata.annotations else ''" +
+                            "}}"
+                        )
+                    sandbox_definition['cloud_selector'] = cloud_selector
+
+                pruned_meta['sandboxes'].append(sandbox_definition)
 
         # FIXME - more should be removed from __meta__, really __meta__ should not be passed at all
         definition['spec']['vars']['job_vars']['__meta__'] = pruned_meta
@@ -601,7 +645,8 @@ class AgnosticVComponent(K8sObject):
 
     def get_catalog_item_definition(self,
         agnosticv_repo: AgnosticVRepo,
-        linked_agnosticv_components: List[AgnosticVComponent],
+        linked_agnosticv_components: List[AgnosticVComponent]=[],
+        tenant_cluster_components: Mapping[str, AgnosticVComponent]=[],
     ) -> Mapping|None:
         """Get CatalogItem definition from AgnosticV component.
         Return None if catalog is disabled."""
@@ -676,6 +721,33 @@ class AgnosticVComponent(K8sObject):
                     if key not in {'components', 'variable'}
                 }
                 definition['spec']['parameters'].append(parameter)
+
+        # Expose select properties of sandboxes in catalog item for checking
+        # capacity and provisioning tenant clusters if needed for workshops.
+        for sandbox in self.sandboxes:
+            sandbox_entry = {"kind": sandbox.kind}
+            if sandbox.annotations is not None:
+                sandbox_entry['annotations'] = sandbox.annotations
+            if sandbox.cloud_selector is not None:
+                sandbox_entry['cloudSelector'] = sandbox.cloud_selector
+            if sandbox.tenant_cluster is not None:
+                sandbox_entry['tenantCluster'] = {
+                    "componentName": sandbox.tenant_cluster.component_name,
+                }
+                # Set cloud selector from tenant cluster if unset
+                if 'cloudSelector' not in sandbox_entry:
+                    tenant_cluster_component = tenant_cluster_components.get(
+                        sandbox.tenant_cluster.component_name
+                    )
+                    if tenant_cluster_component is None:
+                        raise BabylonComponentDefinitionException(
+                            f"No definition for tenant cluster component {sandbox.tenant_cluster.component_name} available."
+                        )
+                    if tenant_cluster_component.sandbox_host is None:
+                        raise BabylonComponentDefinitionException(
+                            f"Tenant cluster component {sandbox.tenant_cluster.component_name} does not have sandbox_host!"
+                        )
+                    sandbox_entry['cloudSelector'] = tenant_cluster_component.sandbox_host.annotations
 
         if self.catalog_terms_of_service is not None:
             definition['spec']['termsOfService'] = self.catalog_terms_of_service
@@ -1085,9 +1157,8 @@ class AgnosticVComponent(K8sObject):
                         definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '|default(omit)|object}}'
 
         if self.catalog_parameters:
-            if self.deployer_type:
-                open_api_schema_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']
-                open_api_schema_job_vars = open_api_schema_vars['properties']['job_vars']
+            open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars'] if self.deployer_type is not None else None
+
             for parameter in self.catalog_parameters:
                 parameter_name = parameter['name']
                 resource_broker_parameter = {
@@ -1105,9 +1176,9 @@ class AgnosticVComponent(K8sObject):
                 for component in parameter.get('components', [{"name": "current"}]):
                     component_name = component.get('name')
                     for linked_provider_config in definition['spec'].get('linkedResourceProviders', []):
-                        if component_name == 'all' or component_name == linked_provider_config['resourceName']:
+                        if component_name in ('all', linked_provider_config['resourceName']):
                             linked_provider_config.setdefault('parameterValues', {})[parameter_name] = '{{' + parameter_name + '|object}}'
-                    if component_name == 'all' or component_name == 'current':
+                    if component_name in ('all', 'current'):
                         apply_parameter_to_current = True
 
                 # Below here is customization for how the parameter value is used to manage the
@@ -1138,17 +1209,19 @@ class AgnosticVComponent(K8sObject):
                     # No variable, nothing else to do
                     continue
 
-                open_api_schema_job_vars.setdefault('properties', {})
-                open_api_schema_job_vars.setdefault('required', [])
+                if open_api_schema_job_vars is not None:
+                    open_api_schema_job_vars.setdefault('properties', {})
+                    open_api_schema_job_vars.setdefault('required', [])
                 default = None
                 parameter_open_api_schema = parameter.get('openAPIV3Schema', {})
                 if 'default' in parameter_open_api_schema:
                     default = parameter_open_api_schema['default']
                 if 'description' in parameter:
                     parameter_open_api_schema['description'] = parameter['description']
-                open_api_schema_job_vars['properties'][variable] = parameter_open_api_schema
-                if parameter.get('required'):
-                    open_api_schema_job_vars['required'].append(variable)
+                if open_api_schema_job_vars is not None:
+                    open_api_schema_job_vars['properties'][variable] = parameter_open_api_schema
+                    if parameter.get('required'):
+                        open_api_schema_job_vars['required'].append(variable)
                 if parameter.get('allowUpdate'):
                     definition['spec']['updateFilters'].append({
                         "pathMatch": f"/spec/vars/job_vars/{variable}(/.*)?"
@@ -1160,6 +1233,7 @@ class AgnosticVComponent(K8sObject):
                     'vars', {}
                 ).setdefault(
                     'job_vars', {}
+                # FIXME? default set above, but isn't used?
                 )[variable] = '{{' + parameter_name + '|default(omit)|object}}'
 
         return definition
@@ -1171,12 +1245,7 @@ class AgnosticVComponent(K8sObject):
     ) -> Mapping|None:
         """Get TenantClusterPool definition.
         Return None if item is not a host cluster for tenants."""
-        sandbox_host = self.definition.get('__meta__', {}).get('sandbox_host')
-        if (
-            self.asset_uuid is None or
-            sandbox_host is None or
-            'annotations' not in sandbox_host
-        ):
+        if self.asset_uuid is None or self.sandbox_host is None:
             return None
         definition = {
             "apiVersion": TenantClusterPool.api_group_version,
@@ -1204,7 +1273,7 @@ class AgnosticVComponent(K8sObject):
                 "maxClusters": 0,
                 "minAvailableSandboxPlacements": 0,
                 "minClusters": 0,
-                "sandboxHost": deepcopy(sandbox_host),
+                "sandboxHost": deepcopy(self.sandbox_host._definition),
             },
         }
         definition['spec']['sandboxHost']['annotations']['environment_level'] = environment_level
@@ -1245,15 +1314,36 @@ class AgnosticVComponent(K8sObject):
             ret.append(agnosticv_component)
         return ret
 
+    async def get_tenant_cluster_components(
+        self,
+        cache: bool=False,
+    ) -> Mapping[str, AgnosticVComponent]:
+        """Get AgnosticVComponent definitions for linked components."""
+        ret = {}
+        for sandbox in self.sandboxes:
+            if sandbox.tenant_cluster is None:
+                continue
+            ret[sandbox.tenant_cluster.component_name] = await self.client.get_agnosticv_component(
+                name=sandbox.tenant_cluster.component_name,
+                cache=cache,
+            )
+        return ret
+
 
 class AgnosticVComponentSpec:
-    def __init__(self, definition):
+    def __init__(self, obj:ReferenceType[AgnosticVComponent], definition:Mapping):
+        self._obj = obj
         self._definition = definition
 
     @property
     def agnosticv_repo(self) -> str:
         """Return name of AgnosticVRepo associated with this component"""
         return self._definition['agnosticvRepo']
+
+    @property
+    def definition(self) -> Mapping:
+        """Return definition of component from AgnosticV"""
+        return self._definition['definition']
 
     @property
     def path(self) -> str:
@@ -1273,8 +1363,137 @@ class AgnosticVComponentSpec:
         return self._definition.get('pullRequestNumber')
 
     @property
-    def definition(self) -> Mapping:
-        return self._definition['definition']
+    def sandboxes(self) -> List[AgnosticVComponentSpecDefinitionSandbox]|None:
+        """Return list of sandboxes for AgnosticVComponent.
+
+        Return None if no sandboxes are configured."""
+
+        sandboxes = self._definition.get('definition', {}).get('__meta__', {}).get('sandboxes')
+        if sandboxes is None:
+            return None
+        return [
+            AgnosticVComponentSpecDefinitionSandbox(self._obj, item) for item in sandboxes
+        ]
+
+class AgnosticVComponentSpecDefinitionSandbox:
+    def __init__(self, obj:ReferenceType[AgnosticVComponent], definition:Mapping):
+        self._obj = obj
+        self._definition = definition
+
+    @property
+    def annotations(self) -> Mapping|None:
+        return self._definition.get('annotations')
+
+    @property
+    def cloud_selector(self) -> Mapping|None:
+        return self._definition.get('cloud_selector')
+
+    @property
+    def kind(self) -> str:
+        """Sandbox kind, one of:
+        - AwsSandbox
+        - AzureSandbox
+        - DNSSandbox
+        - IBMResourceGroupSandbox
+        - OcpSandbox
+        - SSLSandbox
+        """
+        return self._definition.get('kind')
+
+    @property
+    def limit_range(self) -> Mapping|None:
+        """LimitRange to be applied to the namespace of the OcpSandbox.
+        The way limit range is applied depends on how the target OpenShift
+        shared cluster is configured.
+        By default, if a limit range value is missing, the default limit
+        range of the shared cluster is applied to the namespace."""
+        return self._definition.get('limit_range')
+
+    @property
+    def namespace_suffix(self) -> str|None:
+        """The suffix to add to the namespace name for the OcpSandbox."""
+        return self._definition.get('namespace_suffix')
+
+    @property
+    def quota(self) -> Mapping|None:
+        """The quota to apply to the OpenShift namespace.
+        Quota to be applied to the namespace of the OcpSandbox
+        The way quota is applied depends on how the target OpenShift sharel cluster is configured.
+        By default, if a quota value is missing,
+        the default quota of the shared cluster is applied to the namespace.
+
+        If the shared cluster is configured with StrictDefaultSandboxQuota,
+        the default sandbox quota should be strictly enforced.
+        If set to true, the default sandbox quota will be enforced as a hard limit.
+        Requested quota not be allowed to exceed the default.
+        By default it's false.
+
+        If set to false, the default sandbox-quota will be updated
+        to the requested quota even if some values are greater."""
+        return self._definition.get('quota')
+
+    @property
+    def resourcegroup_suffix(self) -> str|None:
+        """The suffix to add to the namespace name for the IBMResourceGroupSandbox."""
+        return self._definition.get('resourcegroup_suffix')
+
+    @property
+    def sandbox_suffix(self) -> str|None:
+        """The suffix to add to the namespace name for the DNSSandbox
+        and future new sandboxes implementations."""
+        return self._definition.get('sandbox_suffix')
+
+    @property
+    def tenant_cluster(self) -> AgnosticVComponentSpecDefinitionSandboxTenantCluster|None:
+        """Configuration to reference another component which provides the cluster
+        used by a tenant with OcpSandbox."""
+        value = self._definition.get('tenant_cluster')
+        if value is None:
+            return None
+        return AgnosticVComponentSpecDefinitionSandboxTenantCluster(self._obj, value)
+
+    @property
+    def var(self) -> str|None:
+        return self._definition.get('var')
+
+class AgnosticVComponentSpecDefinitionSandboxHost:
+    """Representation of sandbox_host metadata."""
+    def __init__(self, definition:Mapping):
+        self._definition = definition
+
+    @property
+    def annotations(self) -> Mapping:
+        return self._definition['annotations']
+
+    @property
+    def max_placements(self) -> int:
+        return self._definition['max_placements']
+
+
+class AgnosticVComponentSpecDefinitionSandboxTenantCluster:
+    def __init__(self, obj:ReferenceType[AgnosticVComponent], definition:Mapping):
+        self._obj = obj
+        self._definition = definition
+
+    @property
+    def item(self) -> str:
+        """Return raw "item" value"""
+        return self._definition.get('item')
+
+    @property
+    def component_name(self) -> str:
+        """Return component name which provides tenant cluster."""
+        component_name_parts = [part.lower().replace('_', '-') for part in self.item.split('/')]
+        obj = self._obj()
+        if obj is None:
+            raise Exception("Unable to resolve object reference!")
+        # Add account to match parent if not given in the reference
+        if len(component_name_parts) == 1:
+            component_name_parts.insert(0, obj.account)
+        # Add stage to match parent if not given in the reference
+        if len(component_name_parts) == 2:
+            component_name_parts.append(obj.stage)
+        return '.'.join(component_name_parts)
 
 class AgnosticVComponentStatus:
     def __init__(self, definition):
