@@ -62,6 +62,14 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       document.head.appendChild(el);
     });
 
+    const inlineStyles = doc.querySelectorAll('style');
+    inlineStyles.forEach((style) => {
+      const el = document.createElement('style');
+      el.setAttribute('data-rhpc', 'true');
+      el.textContent = style.textContent;
+      document.head.appendChild(el);
+    });
+
     const scriptElements = doc.querySelectorAll('script[src]');
     const newScripts: HTMLScriptElement[] = [];
     scriptElements.forEach((script) => {
@@ -92,6 +100,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
     return () => {
       setPartnerScriptsReady(false);
+      document.head.querySelectorAll('style[data-rhpc]').forEach((el) => el.remove());
       document.head.querySelectorAll('link[href*="connect.redhat.com"]').forEach((el) => el.remove());
       document.head.querySelectorAll('script[src*="connect.redhat.com"]').forEach((el) => el.remove());
     };
@@ -167,7 +176,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                     ),
                     {
                       FORCE_BODY: true,
-                      ADD_TAGS: ['style', 'svg', 'path'],
+                      ADD_TAGS: ['svg', 'path'],
                       ADD_ATTR: [
                         'part',
                         'slot',
