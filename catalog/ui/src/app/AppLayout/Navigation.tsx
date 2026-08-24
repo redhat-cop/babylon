@@ -20,7 +20,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled } = useInterfaceConfig();
+  const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled, white_glove_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
@@ -101,7 +101,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   ) : null;
 
-  const whiteGloveNavigation = userNamespace ? (
+  const whiteGloveNavigation = userNamespace && white_glove_enabled ? (
     <NavItem>
       <NavLink
         to="/white-glove"
@@ -201,11 +201,13 @@ const Navigation: React.FC = () => {
           ResourceProviders
         </NavLink>
       </NavItem>
-      <NavItem>
-        <NavLink className={locationStartsWith('/admin/white-glove-requests') ? 'pf-m-current' : ''} to="/admin/white-glove-requests">
-          White Glove Requests
-        </NavLink>
-      </NavItem>
+      {white_glove_enabled ? (
+        <NavItem>
+          <NavLink className={locationStartsWith('/admin/white-glove-requests') ? 'pf-m-current' : ''} to="/admin/white-glove-requests">
+            White Glove Requests
+          </NavLink>
+        </NavItem>
+      ) : null}
       <NavItem>
         <NavLink className={locationStartsWith('/admin/ops') ? 'pf-m-current' : ''} to="/admin/ops">
           Ops Workshop Control

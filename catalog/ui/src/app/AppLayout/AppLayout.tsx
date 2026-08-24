@@ -22,6 +22,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
+  const [partnerScriptsReady, setPartnerScriptsReady] = useState(false);
   useDocumentTitle(title);
   const { isAdmin, email, fullName } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
@@ -48,8 +49,22 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(partnerHeaderHtml, 'text/html');
-    const scripts = doc.querySelectorAll('script[src]');
-    scripts.forEach((script) => {
+
+    const linkElements = doc.querySelectorAll('link[rel="stylesheet"]');
+    linkElements.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+      const absoluteHref = href.startsWith('/') ? `https://connect.redhat.com${href}` : href;
+      if (document.querySelector(`link[href="${absoluteHref}"]`)) return;
+      const el = document.createElement('link');
+      el.rel = 'stylesheet';
+      el.href = absoluteHref;
+      document.head.appendChild(el);
+    });
+
+    const scriptElements = doc.querySelectorAll('script[src]');
+    const newScripts: HTMLScriptElement[] = [];
+    scriptElements.forEach((script) => {
       const src = script.getAttribute('src');
       if (!src) return;
       const absoluteSrc = src.startsWith('/') ? `https://connect.redhat.com${src}` : src;
@@ -57,16 +72,33 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       const el = document.createElement('script');
       el.src = absoluteSrc;
       if (script.getAttribute('type')) el.type = script.getAttribute('type');
+      newScripts.push(el);
       document.head.appendChild(el);
     });
 
+    if (newScripts.length === 0) {
+      setPartnerScriptsReady(true);
+    } else {
+      let loaded = 0;
+      const onLoad = () => {
+        loaded++;
+        if (loaded >= newScripts.length) setPartnerScriptsReady(true);
+      };
+      newScripts.forEach((el) => {
+        el.addEventListener('load', onLoad);
+        el.addEventListener('error', onLoad);
+      });
+    }
+
     return () => {
+      setPartnerScriptsReady(false);
+      document.head.querySelectorAll('link[href*="connect.redhat.com"]').forEach((el) => el.remove());
       document.head.querySelectorAll('script[src*="connect.redhat.com"]').forEach((el) => el.remove());
     };
   }, [partnerHeaderHtml]);
 
   useEffect(() => {
-    if (!partnerHeaderHtml || !email) return;
+    if (!partnerScriptsReady || !email) return;
 
     const loginName = email.includes('@') ? email.split('@')[0] : email;
 
@@ -79,7 +111,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
         },
       }),
     );
-  }, [partnerHeaderHtml, email, fullName]);
+  }, [partnerScriptsReady, email, fullName]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
