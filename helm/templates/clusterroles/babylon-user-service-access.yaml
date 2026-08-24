@@ -59,3 +59,15 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - whitegloverequests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
