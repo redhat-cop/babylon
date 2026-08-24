@@ -107,6 +107,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
         detail: {
           login_name: loginName,
           email_address: email,
+          company_name: '',
           ...(fullName ? { name: fullName } : {}),
         },
       }),
@@ -166,15 +167,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                     ),
                     {
                       FORCE_BODY: true,
-                      ADD_TAGS: [
-                        'style',
-                        'rh-navigation-primary',
-                        'rh-navigation-primary-item',
-                        'rh-cta',
-                        'rh-icon',
-                        'svg',
-                        'path',
-                      ],
+                      ADD_TAGS: ['style', 'svg', 'path'],
                       ADD_ATTR: [
                         'part',
                         'slot',
@@ -187,14 +180,12 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                         'fill',
                         'd',
                         'xmlns',
-                        'data-rhpc-personal-info-provided',
-                        'data-rhpc-personal-info-key',
-                        'data-pii',
-                        'data-analytics-region',
-                        'data-analytics-category',
-                        'data-analytics-level',
-                        'data-analytics-text',
                       ],
+                      CUSTOM_ELEMENT_HANDLING: {
+                        tagNameCheck: /^(rh|pfe)-/,
+                        attributeNameCheck: /^data-/,
+                        allowCustomizedBuiltInElements: true,
+                      },
                     },
                   ),
                 }}
