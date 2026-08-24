@@ -145,6 +145,7 @@ spec:
                     description: >-
                       Unique value to include in "lab" annotation and cloud selector to isolate
                       clusters used by this WorkshopProvision.
+                    type: string
                   name:
                     description: >-
                       Name of TenantClusterPool
