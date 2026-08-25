@@ -2,10 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: babylon-system-status
-  namespace: {{ include "babylon-catalog.namespaceName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
   labels:
     component: babylon-system-status
-    {{- include "babylon-catalog.labels" . | nindent 4 }}
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
 data:
   # Workshop ordering block configuration
   # Set to "true" to block all workshop ordering (during incidents, capacity issues, etc.)
