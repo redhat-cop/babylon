@@ -24,20 +24,8 @@ jobs:
 
       - name: Lint all charts
         run: |
-          charts=(
-            helm
-            admin/helm
-            agnosticv-operator/helm
-            catalog/helm
-            catalog-manager/helm
-            cost-tracker/helm
-            lab-ui-manager/helm
-            notifier/helm
-            selfpacedlab-manager/helm
-            workshop-manager/helm
-          )
           failed=0
-          for chart in "${charts[@]}"; do
+          for chart in $(find . -name Chart.yaml -not -path '*/node_modules/*' -exec dirname {} \;); do
             echo "::group::$chart"
             helm lint "$chart" || failed=1
             echo "::endgroup::"
