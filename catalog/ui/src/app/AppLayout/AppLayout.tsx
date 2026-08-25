@@ -116,25 +116,11 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       ...(fullName ? { name: fullName } : {}),
     };
 
-    const dispatchLogin = () => {
+    const timeout = setTimeout(() => {
       document.dispatchEvent(new CustomEvent('rhpc-nav:login', { detail }));
-    };
+    }, 500);
 
-    // Wait for the partner nav element to appear in the DOM before dispatching.
-    if (document.querySelector('.rhpc-portal-nav-universal')) {
-      dispatchLogin();
-      return;
-    }
-
-    const observer = new MutationObserver(() => {
-      if (document.querySelector('.rhpc-portal-nav-universal')) {
-        observer.disconnect();
-        dispatchLogin();
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    return () => observer.disconnect();
+    return () => clearTimeout(timeout);
   }, [partnerScriptsReady, email, fullName]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
@@ -171,6 +157,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       </Page>
     );
   };
+
+  if (partner_connect_header_enabled && !partnerScriptsReady) {
+    return <LoadingSection />;
+  }
 
   return (
     <NotificationDrawerProvider>
