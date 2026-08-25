@@ -110,17 +110,31 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     if (!partnerScriptsReady || !email) return;
 
     const loginName = email.includes('@') ? email.split('@')[0] : email;
+    const detail = {
+      login_name: loginName,
+      email_address: email,
+      ...(fullName ? { name: fullName } : {}),
+    };
 
-    document.dispatchEvent(
-      new CustomEvent('rhpc-nav:login', {
-        detail: {
-          login_name: loginName,
-          email_address: email,
-          company_name: '',
-          ...(fullName ? { name: fullName } : {}),
-        },
-      }),
-    );
+    const dispatchLogin = () => {
+      document.dispatchEvent(new CustomEvent('rhpc-nav:login', { detail }));
+    };
+
+    // Wait for the partner nav element to appear in the DOM before dispatching.
+    if (document.querySelector('.rhpc-portal-nav-universal')) {
+      dispatchLogin();
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('.rhpc-portal-nav-universal')) {
+        observer.disconnect();
+        dispatchLogin();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
   }, [partnerScriptsReady, email, fullName]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');

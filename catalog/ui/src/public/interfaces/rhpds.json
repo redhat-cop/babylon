@@ -8,7 +8,7 @@
   "feedback_link": "https://redhat.atlassian.net/servicedesk/customer/portal/69/group/75/create/165",
   "learn_more_link": "https://content.redhat.com/us/en/product/cross-portfolio-initiatives/rhdp.html",
   "sfdc_enabled": true,
-  "partner_connect_header_enabled": false,
+  "partner_connect_header_enabled": true,
   "rcars_enabled": true,
   "white_glove_enabled": true
 }
