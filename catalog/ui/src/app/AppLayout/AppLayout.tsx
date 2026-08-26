@@ -107,21 +107,23 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   }, [partnerHeaderHtml]);
 
   useEffect(() => {
-    if (!partnerScriptsReady || !email) return;
-
-    const loginName = email.includes('@') ? email.split('@')[0] : email;
-    const detail = {
-      login_name: loginName,
-      email_address: email,
-      ...(fullName ? { name: fullName } : {}),
-    };
+    if (!partnerScriptsReady) return;
 
     const timeout = setTimeout(() => {
-      document.dispatchEvent(new CustomEvent('rhpc-nav:login', { detail }));
+      const loginName = email.includes('@') ? email.split('@')[0] : email;
+      document.dispatchEvent(
+        new CustomEvent('rhpc-nav:login', {
+          detail: {
+            login_name: loginName,
+            email_address: email,
+            ...(fullName ? { name: fullName } : {}),
+          },
+        }),
+      );
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [partnerScriptsReady, email, fullName]);
+  }, [partnerScriptsReady]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
