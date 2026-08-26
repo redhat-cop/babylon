@@ -107,8 +107,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   }, [partnerHeaderHtml]);
 
   useEffect(() => {
-    if (!partnerScriptsReady) return () => {};
-
     const timeout = setTimeout(() => {
       const loginName = email.includes('@') ? email.split('@')[0] : email;
       document.dispatchEvent(
