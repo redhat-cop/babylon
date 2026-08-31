@@ -253,6 +253,9 @@ tenantClusterPoolManager:
     requests:
       cpu: 200m
       memory: 256Mi
+  sandboxApi:
+    bitwardenSyncSecret:
+      name: sandbox_api_shared-cluster-manager_login_token
   sharedClusterNamespace:
     create: true
     name: shared-clusters
