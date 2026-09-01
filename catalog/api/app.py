@@ -956,7 +956,7 @@ async def catalog_item_incidents(request):
         url=f"{reporting_api}/catalog_incident/incidents/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
-@routes.post("/api/external_item/{asset_uuid}")
+@routes.post("/api/external_item/{asset_uuid}/request")
 async def external_item_request(request):
     asset_uuid = request.match_info.get('asset_uuid')
     data = await request.json()
