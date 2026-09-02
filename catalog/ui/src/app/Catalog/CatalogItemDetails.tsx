@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -77,6 +77,16 @@ enum CatalogItemAccess {
 }
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem: catalogItemProp, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const navigate = useNavigate();
   const { userNamespace, isAdmin, groups } = useSession().getSession();
   const { data: catalogItemFromApi } = useSWR<CatalogItem>(
