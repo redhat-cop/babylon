@@ -1,6 +1,8 @@
 nodeLinker: hoisted
 allowBuilds:
+  '@parcel/watcher': true
   core-js: true
+  unrs-resolver: true
 overrides:
   dompurify: ^3.4.8
   js-yaml@<=4.1.1: ^4.1.2
