@@ -468,7 +468,7 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
     await resource_claim.disable_autostop()
     await resource_claim.disable_autodestroy()
 
-    # If ate is not started then cluster is pending
+    # If not started then cluster is pending
     if resource_claim.state != 'started':
         return ClusterState.PENDING, 0
 
