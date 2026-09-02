@@ -242,7 +242,7 @@ tenantClusterPoolManager:
   image:
     repository: quay.io/rhpds/babylon-tenant-cluster-pool-manager
     pullPolicy: IfNotPresent
-    tag: v0.1.1
+    tag: v0.1.2
   namespace:
     create: true
     name: babylon-tenant-cluster-pool-manager
