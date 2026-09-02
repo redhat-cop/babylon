@@ -18,7 +18,7 @@ class TenantClusterPool(K8sObject):
 
     @classmethod
     def agnosticv_to_definition(cls,
-        agnosticv_component: AgnosticVComponent,
+        agnosticv_component: "AgnosticVComponent",
         name: str,
         namespace: str,
     ) -> Mapping:

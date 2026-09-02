@@ -18,6 +18,9 @@ class OperatorRuntime():
     tenant_cluster_action_annotation = f"{babylon_domain}/tenant-cluster-action"
     tenant_cluster_pool_annotation = f"{babylon_domain}/tenant-cluster-pool"
     tenant_cluster_pool_label = f"{babylon_domain}/tenant-cluster-pool"
+    workshop_label = f"{babylon_domain}/workshop"
+    workshop_provision_label = f"{babylon_domain}/workshop-provision"
+    workshop_uid_label = f"{babylon_domain}/workshop-uid"
 
     sandbox_api_auth_token = os.environ.get('SANDBOX_API_AUTH_TOKEN')
     sandbox_api_url = os.environ.get('SANDBOX_API_URL')

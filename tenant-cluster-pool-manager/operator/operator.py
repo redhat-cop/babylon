@@ -468,8 +468,14 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
     await resource_claim.disable_autostop()
     await resource_claim.disable_autodestroy()
 
+    # If ate is not started then cluster is pending
     if resource_claim.state != 'started':
         return ClusterState.PENDING, 0
+
+    # If any resource is missing state or is not ready then cluster is still pending
+    for resource in resource_claim.status.resources:
+        if resource.state is None or not resource.ready:
+            return ClusterState.PENDING, 0
 
     sandbox_config = await OperatorRuntime.sandbox_api.get_ocp_shared_cluster_configuration(cluster.name)
 
@@ -508,10 +514,30 @@ async def manage_tenant_cluster_pool_clusters(tenant_cluster_pool, logger):
 async def provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger):
     """Provision a new cluster for TenantClusterPool"""
     logger.info("Provisioning cluster for %s", tenant_cluster_pool)
+
+
+    # Basic ResourceClaim labels indicate TenantClusterPool name
+    resource_claim_labels = {
+        OperatorRuntime.tenant_cluster_pool_label: tenant_cluster_pool.name,
+    }
+
+    # Pass along any workshop labels to ResourceClaim if set on TenantClusterPool
+    for label in (
+        OperatorRuntime.workshop_label,
+        OperatorRuntime.workshop_provision_label,
+        OperatorRuntime.workshop_uid_label,
+    ):
+        if label in tenant_cluster_pool.labels:
+            resource_claim_labels[label] = tenant_cluster_pool.labels[label]
+
     resource_claim = await OperatorRuntime.babylon.create_resource_claim(
-        labels={
-            OperatorRuntime.tenant_cluster_pool_label: tenant_cluster_pool.name,
+        annotations={
+            OperatorRuntime.tenant_cluster_pool_annotation: json.dumps({
+                "name": tenant_cluster_pool.name,
+                "role": "cluster",
+            }, separators=(',', ':'))
         },
+        labels=resource_claim_labels,
         name=f"{tenant_cluster_pool.name}-*",
         namespace=tenant_cluster_pool.namespace,
         owner=tenant_cluster_pool,

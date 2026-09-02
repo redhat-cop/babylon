@@ -230,10 +230,10 @@ class ResourceClaim(K8sObject):
         """
         # First check if uuid is present in status summary, if so return that
         status_summary = self.status.summary
-        if status_summary is defined:
+        if status_summary is not None:
             if 'uuid' in status_summary:
                 return status_summary['uuid']
-            if 'uuid' in status_sumray.get('provision_data', {}):
+            if 'uuid' in status_summary.get('provision_data', {}):
                 return status_summary['provision_data']['uuid']
 
         # Fallback to attempting to get uuid from AnarchySubject in resources
@@ -249,12 +249,14 @@ class ResourceClaim(K8sObject):
 
     @property
     def white_glove(self) -> bool:
+        """Return whether white-glove is set in labels."""
         if self.metadata.labels is None:
             return False
         return self.metadata.labels.get('demo.redhat.com/white-glove') == 'true'
 
     @property
     def workshop_id(self) -> str|None:
+        """Return workshop-id assigned by workshop manager if ResourceClaim belongs to a Workshop"""
         if self.metadata.labels is not None:
             return self.metadata.labels.get('babylon.gpte.redhat.com/workshop-id')
         return None
