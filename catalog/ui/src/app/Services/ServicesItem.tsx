@@ -404,15 +404,20 @@ const ServicesItemComponent: React.FC<{
     status: sandboxApiStatus,
     updating: tenantActionUpdating,
     performAction: performSandboxAction,
+    placementCount: sandboxPlacementCount,
   } = useSandboxApi(
     isTenantClusterItem ? clusterName : '',
     resourceClaim.metadata.namespace,
     resourceClaim.metadata.name,
   );
   const isRunning = useMemo(() => {
+    const summaryState = resourceClaim.status?.summary?.state;
+    if (summaryState) {
+      return summaryState === 'started' || summaryState === 'running';
+    }
     const resource = resourceClaim.status?.resources?.[0]?.state;
     return resource?.kind === 'AnarchySubject' && resource.spec?.vars?.current_state === 'started';
-  }, [resourceClaim.status?.resources]);
+  }, [resourceClaim.status?.summary?.state, resourceClaim.status?.resources]);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -1297,6 +1302,8 @@ const ServicesItemComponent: React.FC<{
                               updating={tenantActionUpdating}
                               performAction={performSandboxAction}
                               isDisabled={!isRunning}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
                             />
                           </div>
                         ) : sandboxApiStatus === 'available' ? (
@@ -1309,6 +1316,8 @@ const ServicesItemComponent: React.FC<{
                               status={sandboxApiStatus}
                               updating={tenantActionUpdating}
                               performAction={performSandboxAction}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
                             />
                           </div>
                         ) : sandboxApiStatus === 'disabled' ? (
@@ -1320,6 +1329,8 @@ const ServicesItemComponent: React.FC<{
                               status={sandboxApiStatus}
                               updating={tenantActionUpdating}
                               performAction={performSandboxAction}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
                             />
                           </div>
                         ) : null}

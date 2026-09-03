@@ -111,7 +111,7 @@ const ClusterRow: React.FC<{
   cluster: TenantClusterPoolStatusCluster;
   namespace: string;
 }> = ({ cluster, namespace }) => {
-  const { status, placementCount, maxPlacements, updating, pendingAction, performAction } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+  const { status, placementCount, maxPlacements, updating, pendingAction, performAction, isRunning } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
 
   return (
     <Tr>
@@ -134,8 +134,10 @@ const ClusterRow: React.FC<{
           updating={updating}
           pendingAction={pendingAction}
           performAction={performAction}
-          isDisabled={cluster.sandboxApiState !== 'available' && cluster.sandboxApiState !== 'removed'}
+          isDisabled={!isRunning}
           size="sm"
+          placementCount={placementCount}
+          clusterName={cluster.name}
         />
       </Td>
     </Tr>
