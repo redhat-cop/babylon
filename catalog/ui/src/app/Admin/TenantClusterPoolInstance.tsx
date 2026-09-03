@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -8,6 +8,8 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   EmptyState,
+  HelperText,
+  HelperTextItem,
   Label,
   NumberInput,
   PageSection,
@@ -16,6 +18,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Switch,
   Tabs,
   Tab,
   TabTitleText,
@@ -172,6 +175,20 @@ const TenantClusterPoolInstanceComponent: React.FC<{
   const clusters = tenantClusterPool?.status?.clusters || [];
   const spec = tenantClusterPool?.spec;
 
+  const [enabledUpdating, setEnabledUpdating] = useState(false);
+
+  const handleEnabledToggle = useCallback(async () => {
+    setEnabledUpdating(true);
+    try {
+      await patchTenantClusterPool(tenantClusterPoolNamespace, tenantClusterPoolName, {
+        spec: { enabled: spec?.enabled === false },
+      });
+      mutate();
+    } finally {
+      setEnabledUpdating(false);
+    }
+  }, [tenantClusterPoolNamespace, tenantClusterPoolName, spec?.enabled, mutate]);
+
   return (
     <>
       <PageSection hasBodyWrapper={false} key="header" className="admin-header">
@@ -268,6 +285,19 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
+                    <DescriptionListTerm>Enabled</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Switch
+                        id="tenant-cluster-pool-enabled"
+                        isChecked={spec?.enabled !== false}
+                        onChange={handleEnabledToggle}
+                        isDisabled={clusters.length > 0 || enabledUpdating}
+                      />
+                      {enabledUpdating ? [' ', <Spinner key="spinner" size="md" />] : null}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
+                  <DescriptionListGroup>
                     <DescriptionListTerm>Max Clusters</DescriptionListTerm>
                     <DescriptionListDescription>
                       <TenantClusterPoolNumberInput
@@ -292,6 +322,13 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                         max={spec?.maxClusters ?? 999}
                         mutate={mutate}
                       />
+                      {spec?.enabled === false && (spec?.minClusters ?? 0) > 0 ? (
+                        <HelperText>
+                          <HelperTextItem variant="warning">
+                            Tenant Cluster Pool is disabled, Min Clusters will have no effect
+                          </HelperTextItem>
+                        </HelperText>
+                      ) : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
@@ -305,6 +342,13 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                         value={spec?.minAvailableSandboxPlacements ?? 0}
                         mutate={mutate}
                       />
+                      {(spec?.maxClusters ?? 0) === 0 ? (
+                        <HelperText>
+                          <HelperTextItem variant="warning">
+                            Max Clusters is zero
+                          </HelperTextItem>
+                        </HelperText>
+                      ) : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 

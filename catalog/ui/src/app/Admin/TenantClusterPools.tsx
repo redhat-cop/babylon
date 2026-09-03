@@ -3,7 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
   Label,
+  List,
+  ListItem,
   PageSection,
+  Spinner,
   Split,
   SplitItem,
   Title,
@@ -46,7 +49,26 @@ const ClusterChildRow: React.FC<{
   cluster: TenantClusterPoolStatusCluster;
   namespace: string;
 }> = ({ cluster, namespace }) => {
-  const { status, placementCount, maxPlacements, updating, pendingAction, performAction } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+  const { status, placementCount, maxPlacements, updating, pendingAction, performAction, resourceClaimCreationTimestamp } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+
+  if (status === 'loading') {
+    return (
+      <tr className="tenant-pools-child-row">
+        <td></td>
+        <td>
+          <Link
+            to={`/services/${namespace}/${cluster.resourceClaimName}`}
+            className="tenant-pools-name-link"
+          >
+            {cluster.resourceClaimName}
+          </Link>
+        </td>
+        <td colSpan={6}>
+          <Spinner size="sm" />
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <tr className="tenant-pools-child-row">
@@ -64,11 +86,9 @@ const ClusterChildRow: React.FC<{
           {cluster.sandboxApiState}
         </Label>
       </td>
-      <td>{status === 'loading' ? <span className="tenant-pools-muted">-</span> : `${placementCount}/${maxPlacements ?? '-'}`}</td>
+      <td>{`${placementCount}/${maxPlacements ?? '-'}`}</td>
       <td>
-        {status === 'loading' ? (
-          <span className="tenant-pools-muted">-</span>
-        ) : status === 'available' ? (
+        {status === 'available' ? (
           <span className="tenant-pools-onboarded"><CheckCircleIcon /> Onboarded</span>
         ) : status === 'disabled' ? (
           <span className="tenant-pools-not-onboarded">Disabled</span>
@@ -87,6 +107,11 @@ const ClusterChildRow: React.FC<{
         />
       </td>
       <td></td>
+      <td>
+        {resourceClaimCreationTimestamp ? (
+          <TimeInterval toTimestamp={resourceClaimCreationTimestamp} />
+        ) : '-'}
+      </td>
     </tr>
   );
 };
@@ -141,6 +166,16 @@ const TenantClusterPools: React.FC = () => {
     [filterFunction, tenantClusterPools],
   );
 
+  const enabledPools = useMemo(
+    () => filteredPools.filter((pool) => pool.spec.enabled !== false),
+    [filteredPools],
+  );
+
+  const disabledPools = useMemo(
+    () => filteredPools.filter((pool) => pool.spec.enabled === false),
+    [filteredPools],
+  );
+
   const togglePool = useCallback((poolKey: string) => {
     setExpandedPools((prev) => {
       const next = new Set(prev);
@@ -184,94 +219,108 @@ const TenantClusterPools: React.FC = () => {
         </PageSection>
       ) : (
         <PageSection hasBodyWrapper={false} key="body" className="admin-body">
-          <div className="tenant-pools-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '28px' }}></th>
-                  <th>Name</th>
-                  <th>Clusters</th>
-                  <th>Pool Saturation</th>
-                  <th>Max Capacity</th>
-                  <th>Placements</th>
-                  <th>Sandbox API State</th>
-                  <th>Created At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPools.map((pool) => {
-                  const poolKey = `${pool.metadata.namespace}/${pool.metadata.name}`;
-                  const isExpanded = expandedPools.has(poolKey);
-                  const clusters = pool.status?.clusters || [];
-                  const clusterCount = clusters.length;
-                  const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
+          {enabledPools.length > 0 && (
+            <div className="tenant-pools-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: '28px' }}></th>
+                    <th>Name</th>
+                    <th>Clusters</th>
+                    <th>Pool Saturation</th>
+                    <th>Max Capacity</th>
+                    <th>Placements</th>
+                    <th>Sandbox API State</th>
+                    <th>Created At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enabledPools.map((pool) => {
+                    const poolKey = `${pool.metadata.namespace}/${pool.metadata.name}`;
+                    const isExpanded = expandedPools.has(poolKey);
+                    const clusters = pool.status?.clusters || [];
+                    const clusterCount = clusters.length;
+                    const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
+                    const occupiedCount = clusterCount - availableCount;
+                    const poolSaturationPercent = clusterCount > 0 ? Math.round((occupiedCount / clusterCount) * 100) : 0;
+                    const saturationColor: 'green' | 'orange' | 'red' = poolSaturationPercent < 70 ? 'green' : poolSaturationPercent < 90 ? 'orange' : 'red';
+                    const maxPlacementsPerCluster = pool.spec?.sandboxHost?.max_placements || 50;
+                    const maxTotalPlacements = clusterCount * maxPlacementsPerCluster;
 
-                  // Pool saturation (cluster allocation)
-                  const occupiedCount = clusterCount - availableCount;
-                  const poolSaturationPercent = clusterCount > 0 ? Math.round((occupiedCount / clusterCount) * 100) : 0;
-                  const saturationColor: 'green' | 'orange' | 'red' = poolSaturationPercent < 70 ? 'green' : poolSaturationPercent < 90 ? 'orange' : 'red';
-
-                  // Theoretical max capacity (workshop slots)
-                  const maxPlacementsPerCluster = pool.spec?.sandboxHost?.max_placements || 50;
-                  const maxTotalPlacements = clusterCount * maxPlacementsPerCluster;
-                  const theoreticalMaxWorkshops = occupiedCount * maxPlacementsPerCluster;
-
-                  return (
-                    <React.Fragment key={poolKey}>
-                      <tr
-                        className="tenant-pools-group-header"
-                        onClick={() => togglePool(poolKey)}
-                      >
-                        <td className="tenant-pools-expand-cell">
-                          {isExpanded ? (
-                            <AngleDownIcon className="tenant-pools-expand-icon" />
-                          ) : (
-                            <AngleRightIcon className="tenant-pools-expand-icon" />
-                          )}
-                        </td>
-                        <td>
-                          <Link
-                            to={`/admin/tenantclusterpools/${pool.metadata.namespace}/${pool.metadata.name}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <strong>{pool.metadata.name}</strong>
-                          </Link>{' '}
-                          <Label isCompact color="blue">
-                            {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
-                          </Label>
-                        </td>
-                        <td>{availableCount} / {clusterCount} available</td>
-                        <td>
-                          <Tooltip content={`Pool saturation: ${poolSaturationPercent}% (${occupiedCount}/${clusterCount} clusters occupied)`}>
-                            <Label isCompact color={saturationColor}>
-                              {poolSaturationPercent}%
+                    return (
+                      <React.Fragment key={poolKey}>
+                        <tr
+                          className="tenant-pools-group-header"
+                          onClick={clusterCount > 0 ? () => togglePool(poolKey) : undefined}
+                          style={clusterCount === 0 ? { cursor: 'default' } : undefined}
+                        >
+                          <td className="tenant-pools-expand-cell">
+                            {clusterCount > 0 ? (
+                              isExpanded ? (
+                                <AngleDownIcon className="tenant-pools-expand-icon" />
+                              ) : (
+                                <AngleRightIcon className="tenant-pools-expand-icon" />
+                              )
+                            ) : null}
+                          </td>
+                          <td>
+                            <Link
+                              to={`/admin/tenantclusterpools/${pool.metadata.namespace}/${pool.metadata.name}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <strong>{pool.metadata.name}</strong>
+                            </Link>{' '}
+                            <Label isCompact color="blue">
+                              {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
                             </Label>
-                          </Tooltip>
-                        </td>
-                        <td>
-                          <Tooltip content={`Theoretical max: 0-${theoreticalMaxWorkshops} workshops deployed (max ${maxTotalPlacements} total). View Ops page for actual workshop counts.`}>
-                            <span style={{ whiteSpace: 'nowrap' }}>
-                              0-{theoreticalMaxWorkshops} workshops (max {maxTotalPlacements})
-                            </span>
-                          </Tooltip>
-                        </td>
-                        <td></td>
-                        <td></td>
-                        <td>
-                          <TimeInterval toTimestamp={pool.metadata.creationTimestamp} />
-                        </td>
-                      </tr>
-                      {isExpanded
-                        ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => (
-                            <ClusterChildRow key={idx} cluster={cluster} namespace={pool.metadata.namespace} />
-                          ))
-                        : null}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                          <td>{availableCount} / {clusterCount} available</td>
+                          <td>
+                            {clusterCount > 0 ? (
+                              <Tooltip content={`Pool saturation: ${poolSaturationPercent}% (${occupiedCount}/${clusterCount} clusters occupied)`}>
+                                <Label isCompact color={saturationColor}>
+                                  {poolSaturationPercent}%
+                                </Label>
+                              </Tooltip>
+                            ) : '-'}
+                          </td>
+                          <td>{maxTotalPlacements}</td>
+                          <td></td>
+                          <td></td>
+                          <td>
+                            <TimeInterval toTimestamp={pool.metadata.creationTimestamp} />
+                          </td>
+                        </tr>
+                        {isExpanded
+                          ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => (
+                              <ClusterChildRow key={idx} cluster={cluster} namespace={pool.metadata.namespace} />
+                            ))
+                          : null}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {disabledPools.length > 0 && (
+            <>
+              <Title headingLevel="h4" size="lg" style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+                Disabled Tenant Cluster Pools
+              </Title>
+              <List isPlain isBordered>
+                {disabledPools.map((pool) => (
+                  <ListItem key={`${pool.metadata.namespace}/${pool.metadata.name}`}>
+                    <Link to={`/admin/tenantclusterpools/${pool.metadata.namespace}/${pool.metadata.name}`}>
+                      {pool.metadata.name}
+                    </Link>
+                    {' — '}
+                    <TimeInterval toTimestamp={pool.metadata.creationTimestamp} />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
         </PageSection>
       )}
       <Footer />

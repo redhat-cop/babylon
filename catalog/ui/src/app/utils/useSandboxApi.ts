@@ -13,6 +13,7 @@ interface UseSandboxApiResult {
   updating: boolean;
   pendingAction: string | null;
   performAction: (action: string) => Promise<void>;
+  resourceClaimCreationTimestamp: string | null;
 }
 
 export default function useSandboxApi(
@@ -23,19 +24,19 @@ export default function useSandboxApi(
   const { data: placementsData, isLoading, mutate: mutatePlacements } = useSWR(
     clusterName ? apiPaths.SANDBOX_CLUSTER_PLACEMENTS({ clusterName }) : null,
     silentFetcher,
-    { shouldRetryOnError: false, refreshInterval: 8000 },
+    { shouldRetryOnError: false, refreshInterval: 8000, suspense: false },
   );
   const { data: configData, mutate: mutateConfig } = useSWR(
     clusterName && placementsData?.placements
       ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName })
       : null,
     silentFetcher,
-    { shouldRetryOnError: false, refreshInterval: 8000 },
+    { shouldRetryOnError: false, refreshInterval: 8000, suspense: false },
   );
   const { data: resourceClaim } = useSWR<ResourceClaim>(
     resourceClaimName ? apiPaths.RESOURCE_CLAIM({ namespace, resourceClaimName }) : null,
     silentFetcher,
-    { shouldRetryOnError: false, refreshInterval: 8000 },
+    { shouldRetryOnError: false, refreshInterval: 8000, suspense: false },
   );
 
   const pendingAction = useMemo(() => {
@@ -71,5 +72,7 @@ export default function useSandboxApi(
     }
   }, [namespace, resourceClaimName, mutatePlacements, mutateConfig]);
 
-  return { status, placementCount, maxPlacements, updating, pendingAction, performAction };
+  const resourceClaimCreationTimestamp = resourceClaim?.metadata?.creationTimestamp ?? null;
+
+  return { status, placementCount, maxPlacements, updating, pendingAction, performAction, resourceClaimCreationTimestamp };
 }

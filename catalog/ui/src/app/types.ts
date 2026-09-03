@@ -498,6 +498,7 @@ export interface TenantClusterPoolSpec {
   clusterProvisioning: {
     provider: { name: string; parameterValues?: Record<string, unknown> };
   };
+  enabled?: boolean;
   maxClusters?: number;
   minClusters?: number;
   minAvailableSandboxPlacements?: number;
