@@ -342,7 +342,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                         value={spec?.minAvailableSandboxPlacements ?? 0}
                         mutate={mutate}
                       />
-                      {(spec?.maxClusters ?? 0) === 0 ? (
+                      {(spec?.maxClusters ?? 0) === 0 && (spec?.minAvailableSandboxPlacements ?? 0) > 0 ? (
                         <HelperText>
                           <HelperTextItem variant="warning">
                             Max Clusters is zero
