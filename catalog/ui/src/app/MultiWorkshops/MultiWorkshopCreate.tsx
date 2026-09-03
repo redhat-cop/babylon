@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
@@ -49,7 +49,7 @@ import {
   DEMO_DOMAIN,
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
-import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
+import { formatCurrency, formatTime, CUSTOM_LABELS, getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -120,6 +120,19 @@ const MultiWorkshopCreate: React.FC = () => {
       ],
     };
   });
+
+  const catalogItemsFilter = useCallback(
+    (items: CatalogItem[]) => {
+      const filtered = isAdmin
+        ? items
+        : items.filter(
+            (item) =>
+              item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`] === 'true',
+          );
+      return filtered.filter((item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported);
+    },
+    [isAdmin],
+  );
 
   const { data: whiteGloveRequest } = useSWR<WhiteGloveRequest>(
     wgrNamespace && wgrName
@@ -1034,6 +1047,7 @@ const MultiWorkshopCreate: React.FC = () => {
         onClose={closeCatalogSelector}
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for Workshop"
+        catalogItemsFilter={catalogItemsFilter}
       />
       <UserDisabledModal
         isOpen={isUserDisabledModalOpen}

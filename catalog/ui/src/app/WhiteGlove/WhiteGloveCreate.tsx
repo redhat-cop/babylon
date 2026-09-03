@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWRImmutable from 'swr/immutable';
 import {
@@ -28,6 +28,7 @@ import { apiPaths, BlockedDateRange, createWhiteGloveRequest, createJiraTicketFo
 import useSystemStatus from '@app/utils/useSystemStatus';
 import { CatalogItem, SalesforceItem } from '@app/types';
 import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
+import { getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
@@ -99,6 +100,11 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
     return [];
   }, [selectedCatalogItems, defaultCatalogItems]);
+
+  const catalogItemsFilter = useCallback(
+    (items: CatalogItem[]) => items.filter((item) => getSLA(item) !== SLAs.Unsupported),
+    [],
+  );
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
     const items = Array.isArray(catalogItemOrItems) ? catalogItemOrItems : [catalogItemOrItems];
@@ -507,6 +513,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for White Glove Request"
         defaultMultiSelect={false}
+        catalogItemsFilter={catalogItemsFilter}
       />
 
       <DateTimePickerModalDialog

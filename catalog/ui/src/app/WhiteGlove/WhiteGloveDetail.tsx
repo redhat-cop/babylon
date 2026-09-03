@@ -52,6 +52,7 @@ import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
+import { getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
@@ -355,6 +356,11 @@ const WhiteGloveDetailContent: React.FC = () => {
     const updated = current.filter((e) => e !== email);
     patchSpec({ shareWith: updated.length > 0 ? updated : null }, `Updated "Share With": removed ${email}`);
   }
+
+  const catalogItemsFilter = useCallback(
+    (items: CatalogItem[]) => items.filter((item) => getSLA(item) !== SLAs.Unsupported),
+    [],
+  );
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
     const items = Array.isArray(catalogItemOrItems) ? catalogItemOrItems : [catalogItemOrItems];
@@ -897,6 +903,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           onSelect={handleCatalogItemSelect}
           title="Select Catalog Item"
           defaultMultiSelect={false}
+          catalogItemsFilter={catalogItemsFilter}
         />
       )}
 
