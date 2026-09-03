@@ -14,6 +14,7 @@ interface UseSandboxApiResult {
   pendingAction: string | null;
   performAction: (action: string) => Promise<void>;
   resourceClaimCreationTimestamp: string | null;
+  isRunning: boolean;
 }
 
 export default function useSandboxApi(
@@ -74,5 +75,14 @@ export default function useSandboxApi(
 
   const resourceClaimCreationTimestamp = resourceClaim?.metadata?.creationTimestamp ?? null;
 
-  return { status, placementCount, maxPlacements, updating, pendingAction, performAction, resourceClaimCreationTimestamp };
+  const isRunning = useMemo(() => {
+    const summaryState = resourceClaim?.status?.summary?.state;
+    if (summaryState) {
+      return summaryState === 'started' || summaryState === 'running';
+    }
+    const resource = resourceClaim?.status?.resources?.[0]?.state;
+    return resource?.kind === 'AnarchySubject' && resource.spec?.vars?.current_state === 'started';
+  }, [resourceClaim?.status?.summary?.state, resourceClaim?.status?.resources]);
+
+  return { status, placementCount, maxPlacements, updating, pendingAction, performAction, resourceClaimCreationTimestamp, isRunning };
 }
