@@ -38,8 +38,6 @@ import {
   getSLA,
   getSLABadgeClass,
   formatString,
-  CUSTOM_LABELS,
-  SLAs,
 } from '@app/Catalog/catalog-utils';
 import StarRating from '@app/components/StarRating';
 import StatusPageIcons from '@app/components/StatusPageIcons';
@@ -221,6 +219,7 @@ interface CatalogItemSelectorModalProps {
   title?: string;
   singleSelect?: boolean;
   defaultMultiSelect?: boolean;
+  catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
 }
 
 // Fetch catalog items from multiple namespaces
@@ -239,26 +238,14 @@ async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]> {
   return catalogItems;
 }
 
-// Filter catalog items for multi-asset workshop selection
-// Non-admins: require multiAsset = true label
-// Admins: no filtering
-function filterCatalogItemsForMultiWorkshop(items: CatalogItem[], isAdmin: boolean): CatalogItem[] {
-  if (isAdmin) return items;
-
-  return items.filter((item) => {
-    const isMultiAsset =
-      item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`];
-    return isMultiAsset === 'true';
-  });
-}
-
 // Component that fetches catalog items for category selector
 const CategorySelectorContent: React.FC<{
   selectedCatalogNamespace: string | null;
   onSelect: (categories: string[]) => void;
   selected: string[];
-}> = ({ selectedCatalogNamespace, onSelect, selected }) => {
-  const { catalogNamespaces, isAdmin } = useSession().getSession();
+  catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
+}> = ({ selectedCatalogNamespace, onSelect, selected, catalogItemsFilter }) => {
+  const { catalogNamespaces } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -267,11 +254,8 @@ const CategorySelectorContent: React.FC<{
   );
 
   const catalogItems: CatalogItem[] = useMemo(
-    () =>
-      filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin).filter(
-        (item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported,
-      ),
-    [catalogItemsArr, isAdmin],
+    () => catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : (catalogItemsArr || []),
+    [catalogItemsArr, catalogItemsFilter],
   );
 
   return (
@@ -290,6 +274,7 @@ const CatalogItemsContent: React.FC<{
   isMultiSelectMode: boolean;
   selectedItems: Map<string, CatalogItem>;
   onToggleItem: (catalogItem: CatalogItem, isSelected: boolean) => void;
+  catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
 }> = ({
   searchValue,
   selectedCatalogNamespace,
@@ -298,8 +283,9 @@ const CatalogItemsContent: React.FC<{
   isMultiSelectMode,
   selectedItems,
   onToggleItem,
+  catalogItemsFilter,
 }) => {
-  const { catalogNamespaces, isAdmin } = useSession().getSession();
+  const { catalogNamespaces } = useSession().getSession();
   const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
@@ -308,11 +294,8 @@ const CatalogItemsContent: React.FC<{
   );
 
   const allowedCatalogItems = useMemo(
-    () =>
-      filterCatalogItemsForMultiWorkshop(catalogItemsArr || [], isAdmin).filter(
-        (item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported,
-      ),
-    [catalogItemsArr, isAdmin],
+    () => catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : (catalogItemsArr || []),
+    [catalogItemsArr, catalogItemsFilter],
   );
 
   const filteredCatalogItems = useMemo(() => {
@@ -435,6 +418,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   title = 'Select Catalog Item',
   singleSelect = false,
   defaultMultiSelect,
+  catalogItemsFilter,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
@@ -572,6 +556,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 selectedCatalogNamespace={selectedCatalogNamespace}
                 onSelect={setSelectedCategories}
                 selected={selectedCategories}
+                catalogItemsFilter={catalogItemsFilter}
               />
             </Suspense>
           ) : null}
@@ -597,6 +582,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 isMultiSelectMode={isMultiSelectMode}
                 selectedItems={selectedItems}
                 onToggleItem={handleToggleItem}
+                catalogItemsFilter={catalogItemsFilter}
               />
             </Suspense>
           ) : null}
