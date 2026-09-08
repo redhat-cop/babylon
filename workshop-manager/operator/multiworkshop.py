@@ -770,7 +770,7 @@ class MultiWorkshop(CachedKopfObject):
                 continue
 
             plural = 'selfpacedlabs' if asset_type == 'SelfPacedLab' else 'workshops'
-            id_label = f'{Babylon.babylon_domain}/workshop-id'
+            id_label = f'{Babylon.babylon_domain}/selfpacedlab-id' if asset_type == 'SelfPacedLab' else f'{Babylon.babylon_domain}/workshop-id'
 
             try:
                 asset_namespace = asset.get('namespace', self.namespace)
