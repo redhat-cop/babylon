@@ -101,9 +101,9 @@ spec:
                       type: string
                     type:
                       description: >-
-                        Type of asset: 'Workshop' for catalog-based workshops, 'external' for external URL-based workshops.
+                        Type of asset: 'Workshop' for catalog-based workshops, 'external' for external URL-based workshops, 'SelfPacedLab' for self-paced lab assets.
                       type: string
-                      enum: ['Workshop', 'external']
+                      enum: ['Workshop', 'external', 'SelfPacedLab']
                   required:
                   - key
                   - name
