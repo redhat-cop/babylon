@@ -1492,7 +1492,7 @@ export async function createMultiWorkshop(multiworkshopData: {
     namespace: string;
     displayName?: string;
     description?: string;
-    type?: 'Workshop' | 'external';
+    type?: 'Workshop' | 'external' | 'SelfPacedLab';
   }>;
   namespace: string;
   readyByDate?: string;
@@ -2157,6 +2157,57 @@ export async function addOwnerReferenceToWorkshopAndLock({
         },
         annotations: {
           ...workshop.metadata.annotations,
+          [`${BABYLON_DOMAIN}/multiworkshop-source`]: ownerReference.name,
+          [`${BABYLON_DOMAIN}/multiworkshop-uid`]: ownerReference.uid,
+        },
+      },
+    },
+  });
+}
+
+export async function lockSelfPacedLab(selfPacedLab: SelfPacedLab): Promise<SelfPacedLab> {
+  return await patchSelfPacedLab({
+    name: selfPacedLab.metadata.name,
+    namespace: selfPacedLab.metadata.namespace,
+    patch: {
+      metadata: {
+        labels: {
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
+        },
+      },
+    },
+  });
+}
+
+export async function addOwnerReferenceToSelfPacedLabAndLock({
+  selfPacedLab,
+  ownerReference,
+}: {
+  selfPacedLab: SelfPacedLab;
+  ownerReference: K8sOwnerReference;
+}): Promise<SelfPacedLab> {
+  const existingOwnerReferences = selfPacedLab.metadata.ownerReferences || [];
+  const alreadyHasOwner = existingOwnerReferences.some(
+    (ref) => ref.uid === ownerReference.uid && ref.kind === ownerReference.kind,
+  );
+
+  if (alreadyHasOwner) {
+    return selfPacedLab;
+  }
+
+  return await patchSelfPacedLab({
+    name: selfPacedLab.metadata.name,
+    namespace: selfPacedLab.metadata.namespace,
+    patch: {
+      metadata: {
+        ownerReferences: [...existingOwnerReferences, ownerReference],
+        labels: {
+          ...selfPacedLab.metadata.labels,
+          [`${BABYLON_DOMAIN}/multiworkshop`]: ownerReference.name,
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
+        },
+        annotations: {
+          ...selfPacedLab.metadata.annotations,
           [`${BABYLON_DOMAIN}/multiworkshop-source`]: ownerReference.name,
           [`${BABYLON_DOMAIN}/multiworkshop-uid`]: ownerReference.uid,
         },

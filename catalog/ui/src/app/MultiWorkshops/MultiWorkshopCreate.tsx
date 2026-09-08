@@ -115,7 +115,7 @@ const MultiWorkshopCreate: React.FC = () => {
           namespace: '',
           displayName: '',
           description: '',
-          type: 'Workshop' as 'Workshop' | 'external',
+          type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
         },
       ],
     };
@@ -164,7 +164,7 @@ const MultiWorkshopCreate: React.FC = () => {
             namespace: whiteGloveRequest.spec.catalogItemNamespace,
             displayName: '',
             description: '',
-            type: 'Workshop' as 'Workshop' | 'external',
+            type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
           }))
         : prev.assets,
     }));
@@ -469,7 +469,7 @@ const MultiWorkshopCreate: React.FC = () => {
           namespace: '',
           displayName: '',
           description: '',
-          type: 'Workshop' as 'Workshop' | 'external',
+          type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
         },
       ],
     }));
@@ -495,7 +495,7 @@ const MultiWorkshopCreate: React.FC = () => {
         namespace: catalogItem.metadata.namespace,
         displayName: displayName(catalogItem),
         description: '',
-        type: 'Workshop' as 'Workshop' | 'external',
+        type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
       }));
 
       setCreateFormData((prev) => {
@@ -526,7 +526,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 name: key,
                 namespace,
                 displayName: workshopDisplayName,
-                type: 'Workshop' as 'Workshop' | 'external',
+                type: asset.type === 'SelfPacedLab' ? 'SelfPacedLab' : 'Workshop',
               }
             : asset,
         ),
@@ -540,6 +540,17 @@ const MultiWorkshopCreate: React.FC = () => {
   function closeCatalogSelector() {
     setIsCatalogSelectorOpen(false);
     setCurrentAssetIndex(null);
+  }
+
+  function toggleAssetSelfPacedLab(index: number, enabled: boolean) {
+    setCreateFormData((prev) => ({
+      ...prev,
+      assets: prev.assets.map((asset, i) =>
+        i === index
+          ? { ...asset, type: enabled ? 'SelfPacedLab' : 'Workshop' }
+          : asset,
+      ),
+    }));
   }
 
   return (
@@ -929,6 +940,34 @@ const MultiWorkshopCreate: React.FC = () => {
                       rows={3}
                     />
                   </FormGroup>
+                  {asset.key && (
+                    <FormGroup fieldId={`asset-selfpacedlab-switch-${index}`} style={{ marginTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Switch
+                          id={`asset-selfpacedlab-switch-${index}`}
+                          aria-label="Order as self-paced lab"
+                          label="Order as self-paced lab"
+                          isChecked={asset.type === 'SelfPacedLab'}
+                          hasCheckIcon
+                          onChange={(_event, isChecked) => toggleAssetSelfPacedLab(index, isChecked)}
+                        />
+                        <Tooltip
+                          position="right"
+                          content={
+                            <p>
+                              Create a self-paced lab with a warm pool of pre-provisioned instances that users claim on
+                              demand, instead of a workshop.
+                            </p>
+                          }
+                        >
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Self-paced lab information"
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
+                      </div>
+                    </FormGroup>
+                  )}
                 </CardBody>
               </Card>
             ))}

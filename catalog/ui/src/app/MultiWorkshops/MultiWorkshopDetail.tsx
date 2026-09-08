@@ -42,8 +42,8 @@ import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { apiPaths, fetcher, silentFetcher, patchMultiWorkshop, lockWorkshop, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock } from '@app/api';
-import { CatalogItem, MultiWorkshop, ResourceClaim, ServiceAccess, Workshop } from '@app/types';
+import { apiPaths, fetcher, silentFetcher, patchMultiWorkshop, lockWorkshop, lockSelfPacedLab, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock, addOwnerReferenceToSelfPacedLabAndLock } from '@app/api';
+import { CatalogItem, MultiWorkshop, ResourceClaim, SelfPacedLab, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';
@@ -168,6 +168,41 @@ const MultiWorkshopDetail: React.FC = () => {
             result.push(workshop);
           } catch (e) {
             console.warn(`Failed to fetch shared workshop ${sa.spec.namespace}/${sa.spec.name}:`, e);
+          }
+        }
+      }
+      return result;
+    },
+    { refreshInterval: 30000 }
+  );
+
+  // Fetch self-paced labs in the same namespace
+  const { data: selfPacedLabs } = useSWR<SelfPacedLab[]>(
+    namespace ? `selfpacedlabs-${namespace}` : null,
+    () => fetcherItemsInAllPages((continueId) =>
+      apiPaths.SELF_PACED_LABS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+    ),
+    { refreshInterval: 30000 }
+  );
+
+  // Fetch self-paced labs shared with the user via ServiceAccess
+  const { data: sharedSelfPacedLabs } = useSWR<SelfPacedLab[]>(
+    namespace ? `shared-selfpacedlabs-${namespace}` : null,
+    async () => {
+      const serviceAccesses = await fetcherItemsInAllPages((continueId) =>
+        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
+      ) as ServiceAccess[];
+
+      const result: SelfPacedLab[] = [];
+      for (const sa of serviceAccesses) {
+        if (sa.spec.kind === 'SelfPacedLab') {
+          try {
+            const spl = await fetcher(
+              apiPaths.SELF_PACED_LAB({ namespace: sa.spec.namespace, selfPacedLabName: sa.spec.name })
+            ) as SelfPacedLab;
+            result.push(spl);
+          } catch (e) {
+            console.warn(`Failed to fetch shared self-paced lab ${sa.spec.namespace}/${sa.spec.name}:`, e);
           }
         }
       }
@@ -344,28 +379,28 @@ const MultiWorkshopDetail: React.FC = () => {
     if (!multiworkshop || selectedWorkshops.length === 0) return;
 
     try {
-      const selectedEntries = allAvailableWorkshops.filter(
-        ({ workshop }) => selectedWorkshops.includes(workshop.metadata.uid),
+      const selectedEntries = allAvailableServices.filter(
+        ({ resource }) => selectedWorkshops.includes(resource.metadata.uid),
       );
 
-      const newAssets = selectedEntries.map(({ workshop }) => {
+      const newAssets = selectedEntries.map(({ resource, serviceType }) => {
         const asset: Record<string, string> = {
-          key: workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || workshop.metadata.name,
-          name: workshop.metadata.name,
-          namespace: workshop.metadata.namespace,
-          displayName: workshop.spec?.displayName || workshop.metadata.name,
-          description: stripHtmlTags(workshop.spec?.description || '') || undefined,
-          type: 'Workshop',
+          key: resource.metadata?.labels?.[`${BABYLON_DOMAIN}/catalogItemName`] || resource.metadata.name,
+          name: resource.metadata.name,
+          namespace: resource.metadata.namespace,
+          displayName: resource.spec?.displayName || resource.metadata.name,
+          description: stripHtmlTags(resource.spec?.description || '') || undefined,
+          type: serviceType,
         };
-        const workshopId = workshop.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-        if (workshopId) {
-          asset.workshopId = workshopId;
+        if (serviceType === 'Workshop') {
+          const workshopId = resource.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+          if (workshopId) {
+            asset.workshopId = workshopId;
+          }
         }
         return asset;
       });
 
-      // Only add ownerReferences for local (same-namespace) workshops;
-      // cross-namespace ownerReferences are not supported by Kubernetes
       const ownerReference = {
         apiVersion: `${BABYLON_DOMAIN}/v1`,
         controller: true,
@@ -375,11 +410,19 @@ const MultiWorkshopDetail: React.FC = () => {
       };
 
       await Promise.all(
-        selectedEntries.map(async ({ workshop, isShared }) => {
-          if (isShared) {
-            await lockWorkshop(workshop);
+        selectedEntries.map(async ({ resource, isShared, serviceType }) => {
+          if (serviceType === 'Workshop') {
+            if (isShared) {
+              await lockWorkshop(resource as Workshop);
+            } else {
+              await addOwnerReferenceToWorkshopAndLock({ workshop: resource as Workshop, ownerReference });
+            }
           } else {
-            await addOwnerReferenceToWorkshopAndLock({ workshop, ownerReference });
+            if (isShared) {
+              await lockSelfPacedLab(resource as SelfPacedLab);
+            } else {
+              await addOwnerReferenceToSelfPacedLabAndLock({ selfPacedLab: resource as SelfPacedLab, ownerReference });
+            }
           }
         }),
       );
@@ -400,7 +443,7 @@ const MultiWorkshopDetail: React.FC = () => {
       mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
       setSelectedWorkshops([]);
     } catch (error) {
-      console.error('Failed to add workshops:', error);
+      console.error('Failed to add services:', error);
     }
   }
 
@@ -462,14 +505,18 @@ const MultiWorkshopDetail: React.FC = () => {
     );
   }
 
-  // Combine local and shared workshops into a unified available list
-  const allAvailableWorkshops = useMemo(() => {
+  // Combine local and shared workshops + self-paced labs into a unified available list
+  const allAvailableServices = useMemo(() => {
     const seen = new Set<string>();
-    const result: Array<{ workshop: Workshop; isShared: boolean }> = [];
+    const result: Array<{
+      resource: Workshop | SelfPacedLab;
+      isShared: boolean;
+      serviceType: 'Workshop' | 'SelfPacedLab';
+    }> = [];
 
     const existingAssetKeys = new Set(
       (multiworkshop?.spec.assets || [])
-        .filter(a => a.type === 'Workshop' && a.name)
+        .filter(a => (a.type === 'Workshop' || a.type === 'SelfPacedLab') && a.name)
         .map(a => `${a.namespace || namespace}/${a.name}`),
     );
 
@@ -478,7 +525,7 @@ const MultiWorkshopDetail: React.FC = () => {
       if (w.metadata.ownerReferences?.length > 0) continue;
       if (existingAssetKeys.has(`${w.metadata.namespace}/${w.metadata.name}`)) continue;
       seen.add(w.metadata.uid);
-      result.push({ workshop: w, isShared: false });
+      result.push({ resource: w, isShared: false, serviceType: 'Workshop' });
     }
 
     for (const w of sharedWorkshops || []) {
@@ -486,22 +533,39 @@ const MultiWorkshopDetail: React.FC = () => {
       if (seen.has(w.metadata.uid)) continue;
       if (existingAssetKeys.has(`${w.metadata.namespace}/${w.metadata.name}`)) continue;
       seen.add(w.metadata.uid);
-      result.push({ workshop: w, isShared: true });
+      result.push({ resource: w, isShared: true, serviceType: 'Workshop' });
+    }
+
+    for (const spl of selfPacedLabs || []) {
+      if (spl.metadata.deletionTimestamp) continue;
+      if (spl.metadata.ownerReferences?.length > 0) continue;
+      if (existingAssetKeys.has(`${spl.metadata.namespace}/${spl.metadata.name}`)) continue;
+      seen.add(spl.metadata.uid);
+      result.push({ resource: spl, isShared: false, serviceType: 'SelfPacedLab' });
+    }
+
+    for (const spl of sharedSelfPacedLabs || []) {
+      if (spl.metadata.deletionTimestamp) continue;
+      if (seen.has(spl.metadata.uid)) continue;
+      if (existingAssetKeys.has(`${spl.metadata.namespace}/${spl.metadata.name}`)) continue;
+      seen.add(spl.metadata.uid);
+      result.push({ resource: spl, isShared: true, serviceType: 'SelfPacedLab' });
     }
 
     return result;
-  }, [workshops, sharedWorkshops, multiworkshop, namespace]);
+  }, [workshops, sharedWorkshops, selfPacedLabs, sharedSelfPacedLabs, multiworkshop, namespace]);
 
   // Filter combined list by search value
-  const filteredAvailableWorkshops = allAvailableWorkshops.filter(({ workshop }) => {
+  const filteredAvailableServices = allAvailableServices.filter(({ resource, serviceType }) => {
     if (!workshopSearchValue.trim()) return true;
     const searchLower = workshopSearchValue.toLowerCase();
-    const displayName = workshop.spec?.displayName || workshop.metadata.name;
+    const name = resource.spec?.displayName || resource.metadata.name;
     return (
-      displayName.toLowerCase().includes(searchLower) ||
-      workshop.metadata.name.toLowerCase().includes(searchLower) ||
-      workshop.metadata.namespace.toLowerCase().includes(searchLower) ||
-      (workshop.spec?.description && workshop.spec.description.toLowerCase().includes(searchLower))
+      name.toLowerCase().includes(searchLower) ||
+      resource.metadata.name.toLowerCase().includes(searchLower) ||
+      resource.metadata.namespace.toLowerCase().includes(searchLower) ||
+      (resource.spec?.description && resource.spec.description.toLowerCase().includes(searchLower)) ||
+      serviceType.toLowerCase().includes(searchLower)
     );
   });
 
@@ -574,8 +638,8 @@ const MultiWorkshopDetail: React.FC = () => {
       <Modal
         ref={modalAddWorkshop}
         onConfirm={onAddWorkshopsConfirm}
-        title="Add Existing Workshops"
-        confirmText="Add Selected Workshops"
+        title="Add Existing Workshops or Self-Paced Labs"
+        confirmText="Add Selected"
         isDisabled={selectedWorkshops.length === 0}
         variant="large"
         onClose={() => {
@@ -585,40 +649,41 @@ const MultiWorkshopDetail: React.FC = () => {
       >
         <div>
           <p style={{ marginBottom: '16px' }}>
-            Select workshops from your namespace or shared with you to add to this event.
+            Select workshops or self-paced labs from your namespace or shared with you to add to this event.
           </p>
-          
+
           <SearchInput
-            placeholder="Search workshops..."
+            placeholder="Search workshops and self-paced labs..."
             value={workshopSearchValue}
             onChange={(_event, value) => setWorkshopSearchValue(value)}
             onClear={() => setWorkshopSearchValue('')}
             style={{ marginBottom: '16px' }}
           />
 
-          {filteredAvailableWorkshops.length === 0 ? (
+          {filteredAvailableServices.length === 0 ? (
             <EmptyState variant="sm">
               <EmptyStateBody>
-                {allAvailableWorkshops.length === 0 
-                  ? "No workshops available. All existing workshops may already be included, or no workshops have been shared with you."
-                  : "No workshops match your search criteria."
+                {allAvailableServices.length === 0
+                  ? "No workshops or self-paced labs available. All existing services may already be included, or none have been shared with you."
+                  : "No services match your search criteria."
                 }
               </EmptyStateBody>
             </EmptyState>
           ) : (
-            <Table aria-label="Available workshops" variant="compact">
+            <Table aria-label="Available workshops and self-paced labs" variant="compact">
               <Thead>
                 <Tr>
                   <Th width={10}></Th>
                   <Th>Display Name</Th>
+                  <Th>Type</Th>
                   <Th>Name</Th>
                   <Th>Namespace</Th>
                   <Th width={15}>Created</Th>
                 </Tr>
               </Thead>
               <Tbody>
-                {filteredAvailableWorkshops.map(({ workshop, isShared }) => {
-                  const uid = workshop.metadata.uid;
+                {filteredAvailableServices.map(({ resource, isShared, serviceType }) => {
+                  const uid = resource.metadata.uid;
                   const handleSelectionToggle = () => {
                     const isSelected = selectedWorkshops.includes(uid);
                     if (isSelected) {
@@ -629,38 +694,47 @@ const MultiWorkshopDetail: React.FC = () => {
                   };
 
                   return (
-                    <Tr 
+                    <Tr
                       key={uid}
                       isSelectable
                       isRowSelected={selectedWorkshops.includes(uid)}
                     >
                       <Td>
                         <Checkbox
-                          id={`workshop-${uid}`}
+                          id={`service-${uid}`}
                           isChecked={selectedWorkshops.includes(uid)}
                           onChange={handleSelectionToggle}
                         />
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
-                        <strong>{workshop.spec?.displayName || workshop.metadata.name}</strong>
+                        <strong>{resource.spec?.displayName || resource.metadata.name}</strong>
                         {isShared ? (
-                          <Label key="shared-label" tooltipDescription={<div>This workshop has been shared with you</div>}>
+                          <Label key="shared-label" tooltipDescription={<div>This service has been shared with you</div>}>
                             Shared
                           </Label>
                         ) : null}
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
+                        <Label key="type-label" tooltipDescription={
+                          serviceType === 'SelfPacedLab'
+                            ? <div>Self-paced lab with a warm pool of pre-provisioned instances</div>
+                            : <div>Workshop with provisioned instances per seat</div>
+                        }>
+                          {serviceType === 'SelfPacedLab' ? 'Self-Paced Lab' : 'Workshop'}
+                        </Label>
+                      </Td>
+                      <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                          {workshop.metadata.name}
+                          {resource.metadata.name}
                         </span>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                          {workshop.metadata.namespace}
+                          {resource.metadata.namespace}
                         </span>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
-                        <TimeInterval toTimestamp={workshop.metadata.creationTimestamp} />
+                        <TimeInterval toTimestamp={resource.metadata.creationTimestamp} />
                       </Td>
                     </Tr>
                   );
@@ -668,16 +742,16 @@ const MultiWorkshopDetail: React.FC = () => {
               </Tbody>
             </Table>
           )}
-          
+
           {selectedWorkshops.length > 0 && (
-            <div style={{ 
-              marginTop: '16px', 
-              padding: '12px', 
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
               backgroundColor: 'var(--pf-t--global--background--color--200)',
               borderRadius: '4px'
             }}>
               <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
-                {selectedWorkshops.length} workshop{selectedWorkshops.length !== 1 ? 's' : ''} selected
+                {selectedWorkshops.length} service{selectedWorkshops.length !== 1 ? 's' : ''} selected
               </p>
             </div>
           )}
@@ -953,7 +1027,7 @@ const MultiWorkshopDetail: React.FC = () => {
                       <Button 
                         variant="primary" 
                         onClick={openModalAddWorkshop}
-                        isDisabled={allAvailableWorkshops.length === 0}
+                        isDisabled={allAvailableServices.length === 0}
                       >
                         Add preprovisioned asset
                       </Button>

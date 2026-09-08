@@ -145,7 +145,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.35.9
+        tag: v0.35.10
       replicaCount: 1
       resources:
         requests:
@@ -268,7 +268,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.10.7
+    tag: v0.10.8
   namespace:
     create: true
     name: babylon-workshop-manager
