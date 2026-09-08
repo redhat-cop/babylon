@@ -30,9 +30,11 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
+import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import {
   createMultiWorkshop,
   dateToApiString,
@@ -900,45 +902,45 @@ const MultiWorkshopCreate: React.FC = () => {
                     </Button>
                   </div>
                   <FormGroup label="Catalog Item" fieldId={`asset-key-${index}`} style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1 }}>
-                        <TextInput
-                          id={`asset-key-${index}`}
-                          placeholder="Select a catalog item..."
-                          value={asset.key && asset.namespace ? `${asset.namespace}.${asset.key}` : ''}
-                          readOnly
-                          style={{
-                            backgroundColor: 'var(--pf-t--color--background--disabled)',
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => openCatalogSelector(index)}
-                        />
-                      </div>
+                    <div>
+                      {asset.key && (
+                        <div className="multiworkshop-create__catalog-chip">
+                          <div className="multiworkshop-create__catalog-chip-icon">
+                            {(() => {
+                              const entry = catalogItemsData.data?.find(
+                                (e) => e.asset.key === asset.key && e.asset.namespace === asset.namespace,
+                              );
+                              return entry?.catalogItem ? (
+                                <CatalogItemIcon catalogItem={entry.catalogItem} />
+                              ) : null;
+                            })()}
+                          </div>
+                          <span className="multiworkshop-create__catalog-chip-name">
+                            {asset.displayName || asset.key}
+                          </span>
+                          <Button
+                            variant="plain"
+                            aria-label="Remove catalog item"
+                            onClick={() => {
+                              setCreateFormData((prev) => ({
+                                ...prev,
+                                assets: prev.assets.map((a, i) =>
+                                  i === index
+                                    ? { ...a, key: '', name: '', namespace: '', displayName: '', type: 'Workshop' as const }
+                                    : a,
+                                ),
+                              }));
+                            }}
+                            className="multiworkshop-create__catalog-chip-remove"
+                          >
+                            <TimesIcon />
+                          </Button>
+                        </div>
+                      )}
                       <Button variant="secondary" onClick={() => openCatalogSelector(index)}>
-                        {asset.key ? 'Change' : 'Select'}
+                        {asset.key ? 'Change' : 'Select catalog item'}
                       </Button>
                     </div>
-                  </FormGroup>
-                  <FormGroup
-                    label="Workshop Display Name"
-                    fieldId={`asset-display-name-${index}`}
-                    style={{ marginBottom: '12px' }}
-                  >
-                    <TextInput
-                      id={`workshop-display-name-${index}`}
-                      placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
-                      value={asset.displayName}
-                      onChange={(_, value) => updateAsset(index, 'displayName', value)}
-                    />
-                  </FormGroup>
-                  <FormGroup label="Workshop Description" fieldId={`asset-description-${index}`}>
-                    <TextArea
-                      id={`asset-description-${index}`}
-                      placeholder="Optional description for this workshop"
-                      value={asset.description}
-                      onChange={(_, value) => updateAsset(index, 'description', value)}
-                      rows={3}
-                    />
                   </FormGroup>
                   {asset.key && (
                     <FormGroup fieldId={`asset-selfpacedlab-switch-${index}`} style={{ marginTop: '12px' }}>
