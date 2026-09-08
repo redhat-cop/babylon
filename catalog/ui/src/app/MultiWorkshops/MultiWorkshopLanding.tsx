@@ -24,10 +24,12 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
   const displayName = asset.displayName || asset.key;
   
   // Determine the URL based on asset type
-  const workshopUrl = asset.type === 'external' 
-    ? asset.url 
-    : asset.workshopId 
-      ? `/workshop/${asset.workshopId}` 
+  const workshopUrl = asset.type === 'external'
+    ? asset.url
+    : asset.workshopId
+      ? asset.type === 'SelfPacedLab'
+        ? `/selfpacedlab/${asset.workshopId}`
+        : `/workshop/${asset.workshopId}`
       : null;
 
   if (!isAvailable) {
