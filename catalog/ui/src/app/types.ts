@@ -855,7 +855,7 @@ export interface MultiWorkshopAsset {
   description?: string;
   workshopId?: string;
   url?: string; // For external workshops
-  type?: 'Workshop' | 'external'; // Asset type
+  type?: 'Workshop' | 'external' | 'SelfPacedLab'; // Asset type
   productFamily?: string;
   product?: string;
 }

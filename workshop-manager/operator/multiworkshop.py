@@ -169,7 +169,7 @@ class MultiWorkshop(CachedKopfObject):
             asset_key = asset.get('key', '')
             asset_type = asset.get('type', 'Workshop')
 
-            if asset_type == 'external' or not asset_key.strip():
+            if asset_type in ('external', 'SelfPacedLab') or not asset_key.strip():
                 updated_assets.append(asset)
                 continue
 
