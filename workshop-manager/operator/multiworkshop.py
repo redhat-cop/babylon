@@ -763,33 +763,37 @@ class MultiWorkshop(CachedKopfObject):
         updated_assets = []
 
         for asset in assets:
-            workshop_name = asset.get('name')
-            if asset.get('workshopId') or not workshop_name:
+            asset_name = asset.get('name')
+            asset_type = asset.get('type', 'Workshop')
+            if asset.get('workshopId') or not asset_name:
                 updated_assets.append(asset)
                 continue
 
+            plural = 'selfpacedlabs' if asset_type == 'SelfPacedLab' else 'workshops'
+            id_label = f'{Babylon.babylon_domain}/workshop-id'
+
             try:
                 asset_namespace = asset.get('namespace', self.namespace)
-                workshop = await Babylon.custom_objects_api.get_namespaced_custom_object(
+                resource = await Babylon.custom_objects_api.get_namespaced_custom_object(
                     group=Babylon.babylon_domain,
                     version='v1',
                     namespace=asset_namespace,
-                    plural='workshops',
-                    name=workshop_name
+                    plural=plural,
+                    name=asset_name,
                 )
 
-                workshop_id = workshop.get('metadata', {}).get('labels', {}).get(f'{Babylon.babylon_domain}/workshop-id')
-                if workshop_id:
+                resource_id = resource.get('metadata', {}).get('labels', {}).get(id_label)
+                if resource_id:
                     asset_copy = asset.copy()
-                    asset_copy['workshopId'] = workshop_id
+                    asset_copy['workshopId'] = resource_id
                     updated_assets.append(asset_copy)
                     needs_update = True
-                    logger.info(f"Found workshop ID {workshop_id} for MultiWorkshop {self.name} asset {asset['key']}")
+                    logger.info(f"Found {plural} ID {resource_id} for MultiWorkshop {self.name} asset {asset['key']}")
                 else:
                     updated_assets.append(asset)
 
             except Exception as e:
-                logger.debug(f"Could not get workshop {workshop_name} for MultiWorkshop {self.name}: {e}")
+                logger.debug(f"Could not get {plural} {asset_name} for MultiWorkshop {self.name}: {e}")
                 updated_assets.append(asset)
 
         if needs_update:

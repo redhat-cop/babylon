@@ -1069,8 +1069,15 @@ const MultiWorkshopDetail: React.FC = () => {
                                   {asset.displayName || asset.key}
                                 </a>
                               ) : asset.name && asset.type === 'Workshop' ? (
-                                <Link 
+                                <Link
                                   to={`/workshops/${asset.namespace}/${asset.name}`}
+                                  style={{ textDecoration: 'none' }}
+                                >
+                                  {asset.name}
+                                </Link>
+                              ) : asset.name && asset.type === 'SelfPacedLab' ? (
+                                <Link
+                                  to={`/selfpacedlabs/${asset.namespace}/${asset.name}`}
                                   style={{ textDecoration: 'none' }}
                                 >
                                   {asset.name}
@@ -1106,6 +1113,11 @@ const MultiWorkshopDetail: React.FC = () => {
                             </div>
                             <div>
                               {(() => {
+                                if (asset.type === 'SelfPacedLab') {
+                                  const spl = selfPacedLabs?.find(s => s.metadata.name === asset.name) || sharedSelfPacedLabs?.find(s => s.metadata.name === asset.name);
+                                  const lifespanEnd = spl?.spec?.lifespan?.end;
+                                  return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
+                                }
                                 if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
                                 const workshop = workshops?.find(w => w.metadata.name === asset.name) || sharedWorkshops?.find(w => w.metadata.name === asset.name);
                                 const lifespanEnd = workshop?.spec?.lifespan?.end;
