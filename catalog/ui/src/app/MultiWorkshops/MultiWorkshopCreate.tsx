@@ -35,8 +35,6 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import BetaBadge from '@app/components/BetaBadge';
 import {
   createMultiWorkshop,
-  createSelfPacedLab,
-  createSelfPacedLabProvisionItem,
   dateToApiString,
   fetcher,
   apiPaths,
@@ -80,7 +78,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const [searchParams] = useSearchParams();
   const wgrParam = searchParams.get('wgr');
   const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
-  const { userNamespace, isAdmin, email, serviceNamespaces, catalogNamespaces } = useSession().getSession();
+  const { userNamespace, isAdmin, serviceNamespaces, catalogNamespaces } = useSession().getSession();
   const helpLink = useHelpLink();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,13 +116,6 @@ const MultiWorkshopCreate: React.FC = () => {
           displayName: '',
           description: '',
           type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
-          selfPacedLab: null as {
-            poolSize: number;
-            assignedLifespan: string;
-            unassignedLifespan: string;
-            concurrency: number;
-            startDelay: number;
-          } | null,
         },
       ],
     };
@@ -174,7 +165,6 @@ const MultiWorkshopCreate: React.FC = () => {
             displayName: '',
             description: '',
             type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
-            selfPacedLab: null,
           }))
         : prev.assets,
     }));
@@ -400,7 +390,7 @@ const MultiWorkshopCreate: React.FC = () => {
           namespace: asset.namespace.trim(),
           ...(asset.displayName?.trim() && { displayName: asset.displayName.trim() }),
           ...(asset.description?.trim() && { description: asset.description.trim() }),
-          type: asset.selfPacedLab ? 'SelfPacedLab' as const : (asset.type || 'Workshop'),
+          type: asset.type || 'Workshop',
         }));
 
       const readyByDate =
@@ -426,52 +416,6 @@ const MultiWorkshopCreate: React.FC = () => {
       };
 
       const createdMultiWorkshop = await createMultiWorkshop(payload);
-
-      const selfPacedAssets = createFormData.assets.filter(
-        (asset) => asset.selfPacedLab && asset.key.trim() !== '' && asset.namespace.trim() !== '',
-      );
-
-      for (const asset of selfPacedAssets) {
-        const catalogItemEntry = catalogItemsData.data?.find(
-          (entry) => entry.asset.key === asset.key && entry.asset.namespace === asset.namespace,
-        );
-        if (!catalogItemEntry?.catalogItem) continue;
-
-        const parameterValues: Record<string, unknown> = {
-          purpose: createFormData.purpose,
-          purpose_activity: createFormData.activity,
-          purpose_explanation: createFormData.explanation,
-        };
-
-        const selfPacedLab = await createSelfPacedLab({
-          catalogItem: catalogItemEntry.catalogItem,
-          displayName: asset.displayName || undefined,
-          description: asset.description || undefined,
-          openRegistration: true,
-          serviceNamespace: selectedNamespace || userNamespace,
-          endDate: createFormData.endDate,
-          startDate: createFormData.startDate,
-          email,
-          parameterValues,
-          skippedSfdc: !hasAtLeastOneSalesforce,
-          whiteGloved: !!whiteGloveRequest,
-          salesforceItems: createFormData.salesforceItems,
-        });
-
-        await createSelfPacedLabProvisionItem({
-          catalogItem: catalogItemEntry.catalogItem,
-          poolSize: asset.selfPacedLab.poolSize,
-          assignedLifespan: asset.selfPacedLab.assignedLifespan,
-          unassignedLifespan: asset.selfPacedLab.unassignedLifespan,
-          concurrency: asset.selfPacedLab.concurrency,
-          startDelay: asset.selfPacedLab.startDelay,
-          parameters: {
-            ...parameterValues,
-            salesforce_items: JSON.stringify(createFormData.salesforceItems),
-          },
-          selfPacedLab,
-        });
-      }
 
       if (whiteGloveRequest && wgrNamespace && wgrName) {
         try {
@@ -526,7 +470,6 @@ const MultiWorkshopCreate: React.FC = () => {
           displayName: '',
           description: '',
           type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
-          selfPacedLab: null,
         },
       ],
     }));
@@ -553,7 +496,6 @@ const MultiWorkshopCreate: React.FC = () => {
         displayName: displayName(catalogItem),
         description: '',
         type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
-        selfPacedLab: null,
       }));
 
       setCreateFormData((prev) => {
@@ -584,7 +526,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 name: key,
                 namespace,
                 displayName: workshopDisplayName,
-                type: (asset.selfPacedLab ? 'SelfPacedLab' : 'Workshop') as 'Workshop' | 'external' | 'SelfPacedLab',
+                type: asset.type === 'SelfPacedLab' ? 'SelfPacedLab' : 'Workshop',
               }
             : asset,
         ),
@@ -600,38 +542,12 @@ const MultiWorkshopCreate: React.FC = () => {
     setCurrentAssetIndex(null);
   }
 
-  const selfPacedLabDefaults = useMemo(
-    () => ({
-      poolSize: 5,
-      assignedLifespan: '4h',
-      unassignedLifespan: '24h',
-      concurrency: 5,
-      startDelay: 10,
-    }),
-    [],
-  );
-
   function toggleAssetSelfPacedLab(index: number, enabled: boolean) {
     setCreateFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset, i) =>
         i === index
-          ? {
-              ...asset,
-              selfPacedLab: enabled ? { ...selfPacedLabDefaults } : null,
-              type: enabled ? 'SelfPacedLab' : 'Workshop',
-            }
-          : asset,
-      ),
-    }));
-  }
-
-  function updateAssetSelfPacedLab(index: number, field: string, value: number | string) {
-    setCreateFormData((prev) => ({
-      ...prev,
-      assets: prev.assets.map((asset, i) =>
-        i === index && asset.selfPacedLab
-          ? { ...asset, selfPacedLab: { ...asset.selfPacedLab, [field]: value } }
+          ? { ...asset, type: enabled ? 'SelfPacedLab' : 'Workshop' }
           : asset,
       ),
     }));
@@ -1031,7 +947,7 @@ const MultiWorkshopCreate: React.FC = () => {
                           id={`asset-selfpacedlab-switch-${index}`}
                           aria-label="Order as self-paced lab"
                           label="Order as self-paced lab"
-                          isChecked={!!asset.selfPacedLab}
+                          isChecked={asset.type === 'SelfPacedLab'}
                           hasCheckIcon
                           onChange={(_event, isChecked) => toggleAssetSelfPacedLab(index, isChecked)}
                         />
@@ -1051,90 +967,6 @@ const MultiWorkshopCreate: React.FC = () => {
                         </Tooltip>
                       </div>
                     </FormGroup>
-                  )}
-                  {asset.selfPacedLab && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        padding: '16px',
-                        backgroundColor: 'var(--pf-t--color--background--secondary--default)',
-                        borderRadius: 'var(--pf-t--global--border--radius--small)',
-                      }}
-                    >
-                      <Title headingLevel="h5" size="md" style={{ marginBottom: '12px' }}>
-                        Self-Paced Lab Settings
-                      </Title>
-                      <FormGroup label="Pool Size" fieldId={`asset-spl-poolsize-${index}`} isRequired>
-                        <NumberInput
-                          id={`asset-spl-poolsize-${index}`}
-                          value={asset.selfPacedLab.poolSize}
-                          min={1}
-                          max={100}
-                          onMinus={() =>
-                            updateAssetSelfPacedLab(index, 'poolSize', Math.max(1, asset.selfPacedLab.poolSize - 1))
-                          }
-                          onPlus={() =>
-                            updateAssetSelfPacedLab(index, 'poolSize', Math.min(100, asset.selfPacedLab.poolSize + 1))
-                          }
-                          onChange={(event) => {
-                            const v = parseInt((event.target as HTMLInputElement).value) || 1;
-                            updateAssetSelfPacedLab(index, 'poolSize', Math.max(1, Math.min(100, v)));
-                          }}
-                        />
-                      </FormGroup>
-                      <FormGroup
-                        label="Assigned Lifespan"
-                        fieldId={`asset-spl-assigned-${index}`}
-                        isRequired
-                        style={{ marginTop: '8px' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <TextInput
-                            id={`asset-spl-assigned-${index}`}
-                            type="text"
-                            value={asset.selfPacedLab.assignedLifespan}
-                            onChange={(_event, value) => updateAssetSelfPacedLab(index, 'assignedLifespan', value)}
-                            placeholder="e.g. 4h, 1d, 8h"
-                          />
-                          <Tooltip
-                            position="right"
-                            content={<p>How long a user keeps their assigned instance (e.g. 4h, 1d).</p>}
-                          >
-                            <OutlinedQuestionCircleIcon
-                              aria-label="Assigned lifespan duration"
-                              className="tooltip-icon-only"
-                            />
-                          </Tooltip>
-                        </div>
-                      </FormGroup>
-                      <FormGroup
-                        label="Unassigned Lifespan"
-                        fieldId={`asset-spl-unassigned-${index}`}
-                        isRequired
-                        style={{ marginTop: '8px' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <TextInput
-                            id={`asset-spl-unassigned-${index}`}
-                            type="text"
-                            value={asset.selfPacedLab.unassignedLifespan}
-                            onChange={(_event, value) => updateAssetSelfPacedLab(index, 'unassignedLifespan', value)}
-                            placeholder="e.g. 24h, 2d"
-                          />
-                          <Tooltip
-                            position="right"
-                            content={
-                              <p>How long an unassigned instance lives before being replaced (e.g. 24h).</p>
-                            }
-                          >
-                            <OutlinedQuestionCircleIcon
-                              aria-label="Unassigned lifespan duration"
-                              className="tooltip-icon-only"
-                            />
-                          </Tooltip>
-                        </div>
-                      </FormGroup>
-                    </div>
                   )}
                 </CardBody>
               </Card>

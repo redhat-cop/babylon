@@ -135,9 +135,9 @@ class MultiWorkshop(CachedKopfObject):
         return f"{truncated}-{suffix}"
 
     async def create_workshops_for_assets(self, logger):
-        """Create Workshop and WorkshopProvision CRs for each catalog asset.
+        """Create Workshop/WorkshopProvision or SelfPacedLab/SelfPacedLabProvisionItem CRs for each catalog asset.
 
-        Idempotent: skips assets that already have a Workshop (checked via label selector).
+        Idempotent: skips assets that already have a Workshop or SelfPacedLab (checked via label selector).
         """
         catalog_assets = self.catalog_assets
         if not catalog_assets:
@@ -163,14 +163,52 @@ class MultiWorkshop(CachedKopfObject):
         except Exception as e:
             logger.warning(f"Failed to list existing workshops for {self}: {e}")
 
+        # List self-paced labs already created for this MultiWorkshop
+        existing_selfpacedlabs = {}
+        try:
+            spl_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+                group=Babylon.babylon_domain,
+                version=Babylon.babylon_api_version,
+                namespace=self.namespace,
+                plural='selfpacedlabs',
+                label_selector=f"{Babylon.babylon_domain}/multiworkshop={self.name}",
+            )
+            for item in spl_list.get('items', []):
+                asset_key = item.get('metadata', {}).get('labels', {}).get(
+                    f'{Babylon.babylon_domain}/asset-key'
+                )
+                if asset_key:
+                    existing_selfpacedlabs[asset_key] = item['metadata']['name']
+        except Exception as e:
+            logger.warning(f"Failed to list existing self-paced labs for {self}: {e}")
+
         updated_assets = []
 
         for asset in self.assets:
             asset_key = asset.get('key', '')
             asset_type = asset.get('type', 'Workshop')
 
-            if asset_type in ('external', 'SelfPacedLab') or not asset_key.strip():
+            if asset_type == 'external' or not asset_key.strip():
                 updated_assets.append(asset)
+                continue
+
+            if asset_type == 'SelfPacedLab':
+                # Already created — skip
+                if asset_key in existing_selfpacedlabs:
+                    asset_copy = dict(asset)
+                    asset_copy['name'] = existing_selfpacedlabs[asset_key]
+                    updated_assets.append(asset_copy)
+                    continue
+
+                try:
+                    spl_name = await self._create_selfpacedlab_and_provision(asset, logger)
+                    asset_copy = dict(asset)
+                    asset_copy['name'] = spl_name
+                    asset_copy['namespace'] = self.namespace
+                    updated_assets.append(asset_copy)
+                except Exception as e:
+                    logger.error(f"Failed to create self-paced lab for asset {asset_key} in {self}: {e}")
+                    updated_assets.append(asset)
                 continue
 
             # Already created — skip
@@ -440,6 +478,198 @@ class MultiWorkshop(CachedKopfObject):
         logger.info(f"Created WorkshopProvision {workshop_name} for asset {asset_key} in {self}")
 
         return workshop_name
+
+    async def _create_selfpacedlab_and_provision(self, asset, logger):
+        """Create a SelfPacedLab and its SelfPacedLabProvisionItem for a single asset.
+
+        Returns the self-paced lab name.
+        """
+        asset_key = asset['key']
+        asset_namespace = asset['namespace']
+        asset_display_name = asset.get('displayName', '')
+        asset_description = asset.get('description', '')
+
+        catalog_item_def = await Babylon.custom_objects_api.get_namespaced_custom_object(
+            group=Babylon.babylon_domain,
+            version=Babylon.babylon_api_version,
+            namespace=asset_namespace,
+            plural='catalogitems',
+            name=asset_key,
+        )
+        ci_meta = catalog_item_def.get('metadata', {})
+        ci_labels = ci_meta.get('labels', {})
+        ci_spec = catalog_item_def.get('spec', {})
+
+        base_spl_name = f"{self.name}-{ci_meta['name']}"
+        spl_name = self.generate_k8s_name(base_spl_name)
+
+        # --- SelfPacedLab labels ---
+        spl_labels = {
+            Babylon.catalog_item_name_label: ci_meta['name'],
+            Babylon.catalog_item_namespace_label: ci_meta['namespace'],
+            f'{Babylon.demo_domain}/white-glove': 'false',
+            f'{Babylon.demo_domain}/lock-enabled': 'true',
+            f'{Babylon.babylon_domain}/multiworkshop': self.name,
+            f'{Babylon.babylon_domain}/asset-key': asset_key,
+        }
+        asset_uuid = ci_labels.get(Babylon.asset_uuid_label)
+        if asset_uuid:
+            spl_labels[Babylon.asset_uuid_label] = asset_uuid
+
+        # --- SelfPacedLab annotations ---
+        spl_annotations = {
+            f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
+            f'{Babylon.babylon_domain}/created-by': self.created_by,
+            f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
+            f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
+        }
+        if self.requester:
+            spl_annotations[Babylon.requester_annotation] = self.requester
+        if self.ordered_by:
+            spl_annotations[Babylon.ordered_by_annotation] = self.ordered_by
+        if self.purpose:
+            spl_annotations[Babylon.purpose_annotation] = self.purpose
+        if self.purpose_activity:
+            spl_annotations[Babylon.purpose_activity_annotation] = self.purpose_activity
+        if self.salesforce_items:
+            spl_annotations[Babylon.salesforce_items_annotation] = json.dumps(self.salesforce_items)
+        spl_annotations[f'{Babylon.demo_domain}/provide_salesforce-id_later'] = (
+            str(not bool(self.salesforce_items)).lower()
+        )
+
+        if ci_spec.get('supportLink'):
+            spl_annotations[f'{Babylon.babylon_domain}/support-link'] = ci_spec['supportLink']
+
+        # --- SelfPacedLab spec ---
+        spl_spec = {
+            'openRegistration': True,
+            'lifespan': {},
+        }
+        if self.start_date:
+            spl_spec['lifespan']['start'] = self.start_date
+        if self.end_date:
+            spl_spec['lifespan']['end'] = self.end_date
+
+        spl_display = asset_display_name or f"{self.display_name} - {asset_key}"
+        if spl_display:
+            spl_spec['displayName'] = spl_display
+        if asset_description:
+            spl_spec['description'] = asset_description
+
+        spl_definition = {
+            'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+            'kind': 'SelfPacedLab',
+            'metadata': {
+                'name': spl_name,
+                'namespace': self.namespace,
+                'labels': spl_labels,
+                'annotations': spl_annotations,
+                'ownerReferences': [self.as_owner_ref()],
+            },
+            'spec': spl_spec,
+        }
+
+        # Create SelfPacedLab (retry on 409 name conflict)
+        spl_def = None
+        for attempt in range(3):
+            try:
+                spl_def = await Babylon.custom_objects_api.create_namespaced_custom_object(
+                    group=Babylon.babylon_domain,
+                    namespace=self.namespace,
+                    plural='selfpacedlabs',
+                    version=Babylon.babylon_api_version,
+                    body=spl_definition,
+                )
+                break
+            except k8sApiException as e:
+                if e.status == 409 and attempt < 2:
+                    spl_name = self.generate_k8s_name(base_spl_name)
+                    spl_definition['metadata']['name'] = spl_name
+                else:
+                    raise
+
+        spl_uid = spl_def['metadata']['uid']
+        spl_name = spl_def['metadata']['name']
+        logger.info(f"Created SelfPacedLab {spl_name} for asset {asset_key} in {self}")
+
+        # --- SelfPacedLabProvisionItem ---
+        provision_labels = {
+            Babylon.catalog_item_name_label: ci_meta['name'],
+            Babylon.catalog_item_namespace_label: ci_meta['namespace'],
+            f'{Babylon.babylon_domain}/multiworkshop': self.name,
+            f'{Babylon.babylon_domain}/asset-key': asset_key,
+        }
+        if asset_uuid:
+            provision_labels[Babylon.asset_uuid_label] = asset_uuid
+
+        provision_annotations = {
+            f'{Babylon.babylon_domain}/category': ci_spec.get('category', ''),
+            f'{Babylon.babylon_domain}/multiworkshop-source': self.name,
+            f'{Babylon.babylon_domain}/multiworkshop-uid': self.uid,
+        }
+
+        # Collect catalog item parameter defaults
+        provision_parameters = {}
+        for param in ci_spec.get('parameters', []):
+            param_name = param.get('name')
+            if not param_name or param_name in ('purpose', 'salesforce_id'):
+                continue
+            schema = param.get('openAPIV3Schema', {})
+            default_value = schema.get('default') if 'default' in schema else param.get('value')
+            if default_value is None:
+                continue
+            provision_parameters[param_name] = default_value
+
+        if self.purpose:
+            provision_parameters['purpose'] = self.purpose
+        if self.purpose_activity:
+            provision_parameters['purpose_activity'] = self.purpose_activity
+        if self.salesforce_items:
+            provision_parameters['salesforce_items'] = json.dumps(self.salesforce_items)
+
+        provision_spec = {
+            'catalogItem': {
+                'name': ci_meta['name'],
+                'namespace': ci_meta['namespace'],
+            },
+            'poolSize': 5,
+            'assignedLifespan': '4h',
+            'unassignedLifespan': '24h',
+            'concurrency': 5,
+            'startDelay': 10,
+            'selfPacedLabName': spl_name,
+            'parameters': provision_parameters,
+        }
+
+        provision_definition = {
+            'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+            'kind': 'SelfPacedLabProvisionItem',
+            'metadata': {
+                'name': spl_name,
+                'namespace': self.namespace,
+                'labels': provision_labels,
+                'annotations': provision_annotations,
+                'ownerReferences': [{
+                    'apiVersion': f'{Babylon.babylon_domain}/{Babylon.babylon_api_version}',
+                    'controller': True,
+                    'kind': 'SelfPacedLab',
+                    'name': spl_name,
+                    'uid': spl_uid,
+                }],
+            },
+            'spec': provision_spec,
+        }
+
+        await Babylon.custom_objects_api.create_namespaced_custom_object(
+            group=Babylon.babylon_domain,
+            namespace=self.namespace,
+            plural='selfpacedlabprovisionitems',
+            version=Babylon.babylon_api_version,
+            body=provision_definition,
+        )
+        logger.info(f"Created SelfPacedLabProvisionItem {spl_name} for asset {asset_key} in {self}")
+
+        return spl_name
 
     async def sync_workshops_schedule(self, logger):
         """Sync auto-stop and auto-destroy dates from this MultiWorkshop to child
