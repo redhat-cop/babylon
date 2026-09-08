@@ -40,7 +40,7 @@
     "@types/json2csv": "^5.0.7",
     "@types/lodash.throttle": "^4.1.9",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react-dom": "^19.2.7",
     "@types/react-router-dom": "^5.3.3",
     "@typescript-eslint/eslint-plugin": "^8.68.0",
     "@typescript-eslint/parser": "^8.69.0",
