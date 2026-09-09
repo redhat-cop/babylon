@@ -543,6 +543,9 @@ class WorkshopProvision(CachedKopfObject):
                 start_datetime=self.action_schedule_start,
                 stop_datetime=self.action_schedule_stop,
             )
+            # Don't count tenant cluster resourceclaims
+            if resource_claim.is_tenant_cluster:
+                continue
             if resource_claim.provision_complete:
                 if resource_claim.is_failed:
                     failed_count += 1

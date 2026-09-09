@@ -103,6 +103,11 @@ class ResourceClaim(K8sObject):
         return not 'provider' in self.definition['spec']
 
     @property
+    def is_tenant_cluster(self) -> bool:
+        """Return whether ResourceClaim is a managed by a TenantClusterPool"""
+        return OperatorRuntime.tenant_cluster_pool_label in self.labels
+
+    @property
     def provision_complete(self):
         if not 'status' in self.definition \
         or not 'resources' in self.definition['status']:

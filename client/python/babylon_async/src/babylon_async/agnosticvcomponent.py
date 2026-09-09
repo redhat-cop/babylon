@@ -1260,8 +1260,9 @@ class AgnosticVComponent(K8sObject):
                     }
                 }
             })
-            definition['spec']['override']['spec']['vars']['sandbox_api_lab_key'] = '{{sandbox_api_lab_key|default(omit)}}'
-
+            definition['spec']['override']['spec']['vars']['sandbox_api_lab_key'] = (
+                '{{resource_handle.parameter_values.sandbox_api_lab_key|default(omit)}}'
+            )
         return definition
 
 
