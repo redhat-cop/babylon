@@ -904,13 +904,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {formState.workshop ? (
+        {formState.workshop && isAdmin ? (
           <FormGroup key="self-paced-lab-switch" fieldId="self-paced-lab-switch">
             <div className="catalog-item-form__group-control--single">
               <Switch
                 id="self-paced-lab-switch"
                 aria-label="Enable self-paced lab"
-                label="Enable self-paced lab"
+                label="Enable self-paced lab (admins only)"
                 isChecked={!!formState.selfPacedLab}
                 hasCheckIcon
                 onChange={(_event, isChecked) => {

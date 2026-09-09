@@ -942,13 +942,13 @@ const MultiWorkshopCreate: React.FC = () => {
                       </Button>
                     </div>
                   </FormGroup>
-                  {asset.key && (
+                  {asset.key && isAdmin && (
                     <FormGroup fieldId={`asset-selfpacedlab-switch-${index}`} style={{ marginTop: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Switch
                           id={`asset-selfpacedlab-switch-${index}`}
                           aria-label="Order as self-paced lab"
-                          label="Order as self-paced lab"
+                          label="Order as self-paced lab (admins only)"
                           isChecked={asset.type === 'SelfPacedLab'}
                           hasCheckIcon
                           onChange={(_event, isChecked) => toggleAssetSelfPacedLab(index, isChecked)}
