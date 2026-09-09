@@ -294,6 +294,14 @@ class AgnosticVComponent(K8sObject):
         return self.status.deprecated_anarchy_governors or []
 
     @property
+    def has_tenant_cluster(self) -> bool:
+        """Return true if item has sandbox with a declared tenant cluster."""
+        for sandbox in self.sandboxes:
+            if sandbox.tenant_cluster is not None:
+                return True
+        return False
+
+    @property
     def last_update(self) -> Mapping|None:
         return self.__meta__.get('last_update')
 
@@ -568,13 +576,10 @@ class AgnosticVComponent(K8sObject):
                         cloud_selector = deepcopy(cloud_selector)
                         # Add environment_level cloud_selctor for OcpSandboxes provided by tenant clusters
                         cloud_selector['environment_level'] = environment_level
-                        # Add ":<lab-key>" to lab selector value if set in annotations of ResourceClaim
+                        # Add ":<lab-key>" to lab selector value if sandbox_api_lab_key is available
                         cloud_selector['lab'] = (
                             cloud_selector['lab'] +
-                            "{{" +
-                            "(':' ~ resouce_claim.metadata.annotations['babylon.gpte.redhat.com/lab-key']) " +
-                            "if 'babylon.gpte.redhat.com/lab-key' in resource_claim.metadata.annotations else ''" +
-                            "}}"
+                            "{{ (':' ~ sandbox_api_lab_key) if sandbox_api_lab_key is defined else '' }}"
                         )
                     sandbox_definition['cloud_selector'] = cloud_selector
 
@@ -1240,6 +1245,22 @@ class AgnosticVComponent(K8sObject):
                     'job_vars', {}
                 # FIXME? default set above, but isn't used?
                 )[variable] = '{{' + parameter_name + '|default(omit)|object}}'
+
+        # Pass sandbox_api_lab_key as var in AnarchySubject if set as parameter.
+        # This allows the workshop manager to associate AnarchySubjects to TenantClusterPools.
+        if self.has_tenant_cluster:
+            definition['spec']['parameters'].append({
+                "name": "sandbox_api_lab_key",
+                "allowUpdate": False,
+                "required": False,
+                "validation": {
+                    "openAPIV3Schema": {
+                        "pattern": "^[a-z0-9]+$",
+                        "type": "string",
+                    }
+                }
+            })
+            definition['spec']['override']['spec']['vars']['sandbox_api_lab_key'] = '{{sandbox_api_lab_key|default(omit)}}'
 
         return definition
 
