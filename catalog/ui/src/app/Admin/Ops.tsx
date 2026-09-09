@@ -582,7 +582,7 @@ const Ops: React.FC = () => {
 
   // Fetch TenantClusterPools for cluster assignment tracking (cluster-wide query)
   const { data: allTcpData } = useSWR<TenantClusterPoolList>(
-    apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
+    apiPaths.TENANT_CLUSTER_POOLS({ limit: FETCH_LIMIT }),
     fetcher,
     { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
   );
