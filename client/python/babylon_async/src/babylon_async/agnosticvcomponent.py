@@ -730,6 +730,7 @@ class AgnosticVComponent(K8sObject):
         # capacity and provisioning tenant clusters if needed for workshops.
         for sandbox in self.sandboxes:
             sandbox_entry = {"kind": sandbox.kind}
+            definition['spec'].setdefault('sandboxes', []).append(sandbox_entry)
             if sandbox.annotations is not None:
                 sandbox_entry['annotations'] = sandbox.annotations
             if sandbox.cloud_selector is not None:
