@@ -1,16 +1,16 @@
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from k8sobject import K8sObject
 
 class CatalogItem(K8sObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'CatalogItem'
     plural = 'catalogitems'
 
     @classmethod
     async def fetch(cls, name, namespace):
         definition = await super().fetch_definition(name=name, namespace=namespace)
-        catalog_namespace = await Babylon.core_v1_api.read_namespace(namespace)
+        catalog_namespace = await OperatorRuntime.core_v1_api.read_namespace(namespace)
         return cls(definition, catalog_namespace)
 
     def __init__(self, definition, catalog_namespace):
@@ -26,7 +26,7 @@ class CatalogItem(K8sObject):
 
     @property
     def display_name(self):
-        return self.annotations.get(Babylon.display_name_annotation, self.name)
+        return self.annotations.get(OperatorRuntime.display_name_annotation, self.name)
 
     @property
     def lab_ui_type(self):

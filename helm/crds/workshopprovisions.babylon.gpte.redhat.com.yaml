@@ -136,23 +136,24 @@ spec:
                 description: Kopf status storage
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
-              tenantClusterPool:
+              labKey:
                 description: >-
-                  TenantClusterPool used to provide capacity for provisioning.
-                type: object
-                properties:
-                  labKey:
-                    description: >-
-                      Unique value to include in "lab" annotation and cloud selector to isolate
-                      clusters used by this WorkshopProvision.
-                    type: string
-                  name:
-                    description: >-
-                      Name of TenantClusterPool
-                    type: string
-                required:
-                - labKey
-                - name
+                  Unique value to include in "lab" annotation and cloud selector to isolate
+                  tenant clusters used by this WorkshopProvision.
+                type: string
+              tenantClusterPools:
+                description: >-
+                  TenantClusterPools used to provide capacity for provisioning.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      description: >-
+                        Name of TenantClusterPool
+                      type: string
+                  required:
+                  - name
         required:
         - apiVersion
         - kind

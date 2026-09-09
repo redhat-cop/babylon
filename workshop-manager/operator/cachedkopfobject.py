@@ -1,6 +1,6 @@
 import asyncio
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from kopfobject import KopfObject
 
 class CachedKopfObject(KopfObject):
@@ -49,7 +49,7 @@ class CachedKopfObject(KopfObject):
     async def preload(cls):
         _continue = None
         while True:
-            obj_list = await Babylon.custom_objects_api.list_cluster_custom_object(
+            obj_list = await OperatorRuntime.custom_objects_api.list_cluster_custom_object(
                 group = cls.api_group,
                 plural = cls.plural,
                 version = cls.api_version,

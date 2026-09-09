@@ -1,21 +1,26 @@
 import re
 from datetime import datetime, timezone
+from math import ceil
 
 import kopf
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 from pydantic.utils import deep_update
+from strgen import StringGenerator
+
+from babylon_async import BabylonApiException
 
 import catalogitem
 import resourceclaim
 import resourceprovider
 import workshop as workshop_import
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
 
+LAB_KEY_GENERATOR = StringGenerator("[a-z0-9]{32}")
 
 class WorkshopProvision(CachedKopfObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'WorkshopProvision'
     plural = 'workshopprovisions'
 
@@ -77,12 +82,16 @@ class WorkshopProvision(CachedKopfObject):
         return self.spec.get('count', 0)
 
     @property
-    def resource_pool(self) -> str|None:
-        return self.spec.get('resourcePool')
+    def has_tenant_cluster_pools(self) -> bool:
+        return 'tenantClusterPools' in self.status
 
     @property
     def ignore(self):
-        return Babylon.babylon_ignore_label in self.labels
+        return OperatorRuntime.babylon_ignore_label in self.labels
+
+    @property
+    def lab_key(self) -> str|None:
+        return self.status.get('labKey')
 
     @property
     def lifespan_end(self):
@@ -107,12 +116,16 @@ class WorkshopProvision(CachedKopfObject):
         return self.spec.get('parameters', {})
 
     @property
+    def resource_pool(self) -> str|None:
+        return self.spec.get('resourcePool')
+
+    @property
     def start_delay(self):
         return self.spec.get('startDelay', 10)
 
     @property
     def workshop_name(self):
-        return self.spec.get('workshopName', self.labels.get(Babylon.workshop_label))
+        return self.spec.get('workshopName', self.labels.get(OperatorRuntime.workshop_label))
 
     @property
     def workshop_namespace(self):
@@ -124,7 +137,7 @@ class WorkshopProvision(CachedKopfObject):
         )
         resource_provider = await resourceprovider.ResourceProvider.fetch(
             name=self.catalog_item_name,
-            namespace=Babylon.poolboy_namespace,
+            namespace=OperatorRuntime.poolboy_namespace,
         )
         try:
             catalog_item = await catalogitem.CatalogItem.fetch(
@@ -140,22 +153,22 @@ class WorkshopProvision(CachedKopfObject):
             raise
 
         resource_claim_definition = {
-            "apiVersion": f"{Babylon.poolboy_domain}/{Babylon.poolboy_api_version}",
+            "apiVersion": f"{OperatorRuntime.poolboy_domain}/{OperatorRuntime.poolboy_api_version}",
             "kind": "ResourceClaim",
             "metadata": {
                 "annotations": {
-                    Babylon.catalog_display_name_annotation: catalog_item.catalog_display_name,
-                    Babylon.catalog_item_display_name_annotation: catalog_item.display_name,
-                    Babylon.notifier_annotation: "disable",
+                    OperatorRuntime.catalog_display_name_annotation: catalog_item.catalog_display_name,
+                    OperatorRuntime.catalog_item_display_name_annotation: catalog_item.display_name,
+                    OperatorRuntime.notifier_annotation: "disable",
                 },
                 "generateName": f"{catalog_item.name}-",
                 "labels": {
-                    Babylon.catalog_item_name_label: catalog_item.name,
-                    Babylon.catalog_item_namespace_label: catalog_item.namespace,
-                    Babylon.workshop_label: workshop.name,
-                    Babylon.workshop_id_label: workshop.workshop_id,
-                    Babylon.workshop_uid_label: workshop.uid,
-                    Babylon.workshop_provision_label: self.name,
+                    OperatorRuntime.catalog_item_name_label: catalog_item.name,
+                    OperatorRuntime.catalog_item_namespace_label: catalog_item.namespace,
+                    OperatorRuntime.workshop_label: workshop.name,
+                    OperatorRuntime.workshop_id_label: workshop.workshop_id,
+                    OperatorRuntime.workshop_uid_label: workshop.uid,
+                    OperatorRuntime.workshop_provision_label: self.name,
                 },
                 "namespace": f"{self.namespace}",
                 "ownerReferences": [self.as_owner_ref()],
@@ -179,31 +192,31 @@ class WorkshopProvision(CachedKopfObject):
 
         if self.resource_pool is not None:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.resource_pool_annotation
+                OperatorRuntime.resource_pool_annotation
             ] = self.resource_pool
 
         if workshop.asset_uuid:
             resource_claim_definition['metadata']['labels'][
-                Babylon.asset_uuid_label
+                OperatorRuntime.asset_uuid_label
             ] = workshop.asset_uuid
 
         if workshop.requester:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.requester_annotation
+                OperatorRuntime.requester_annotation
             ] = workshop.requester
 
         if workshop.ordered_by:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.ordered_by_annotation
+                OperatorRuntime.ordered_by_annotation
             ] = workshop.ordered_by
 
         if workshop.white_gloved:
             resource_claim_definition['metadata']['labels'][
-                Babylon.white_glove_label
+                OperatorRuntime.white_glove_label
             ] = workshop.white_gloved
 
         if catalog_item.lab_ui_type:
-            resource_claim_definition['metadata']['labels'][Babylon.lab_ui_label] = (
+            resource_claim_definition['metadata']['labels'][OperatorRuntime.lab_ui_label] = (
                 catalog_item.lab_ui_type
             )
 
@@ -232,22 +245,22 @@ class WorkshopProvision(CachedKopfObject):
 
         if 'purpose' in self.parameters:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.purpose_annotation
+                OperatorRuntime.purpose_annotation
             ] = self.parameters['purpose']
 
         if 'purpose_activity' in self.parameters:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.purpose_activity_annotation
+                OperatorRuntime.purpose_activity_annotation
             ] = self.parameters['purpose_activity']
 
         if 'salesforce_id' in self.parameters:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.salesforce_id_annotation
+                OperatorRuntime.salesforce_id_annotation
             ] = self.parameters['salesforce_id']
 
         if 'salesforce_items' in self.parameters:
             resource_claim_definition['metadata']['annotations'][
-                Babylon.salesforce_items_annotation
+                OperatorRuntime.salesforce_items_annotation
             ] = self.parameters['salesforce_items']
 
         resource_claim = await resourceclaim.ResourceClaim.create(
@@ -260,7 +273,7 @@ class WorkshopProvision(CachedKopfObject):
                 {
                     "metadata": {
                         "annotations": {
-                            Babylon.url_annotation: f"{url_prefix}/services/{resource_claim.namespace}/{resource_claim.name}"
+                            OperatorRuntime.url_annotation: f"{url_prefix}/services/{resource_claim.namespace}/{resource_claim.name}"
                         }
                     }
                 }
@@ -269,6 +282,103 @@ class WorkshopProvision(CachedKopfObject):
         logger.info(f"Created {resource_claim} for {self}")
         await workshop.add_resource_claim_to_status(resource_claim, logger=logger)
         return resource_claim
+
+    async def __create_tenant_cluster_pools(self, logger) -> None:
+        """Create any TenantClusterPools needed for this WorkshopProvision."""
+        workshop = await self.get_workshop()
+        try:
+            catalog_item = await OperatorRuntime.babylon.get_catalog_item(
+                name=self.catalog_item_name,
+                namespace=self.catalog_item_namespace,
+            )
+        except BabylonApiException as exception:
+            if exception.status == 404:
+                logger.error(
+                    "Unable to check if TenantClusterPools should be created for %s: "
+                    "CatalogItem %s not found in namespace %s",
+                    self, self.catalog_item_name,  self.catalog_item_namespace,
+                )
+            raise
+
+        tenant_cluster_component_names = catalog_item.get_tenant_cluster_component_names()
+        if len(tenant_cluster_component_names) == 0:
+            return
+
+        await self.__set_lab_key(logger=logger)
+
+        for component_name in tenant_cluster_component_names:
+            # Get reference TenantClusterPool definition from shared-clusters namespace
+            try:
+                shared_tenant_cluster_pool = await OperatorRuntime.babylon.get_tenant_cluster_pool(
+                    name=component_name,
+                    namespace="shared-clusters",
+                )
+            except BabylonApiException as exception:
+                if exception.status == 404:
+                    logger.error(
+                        "Unable to create TenantClusterPool for %s, "
+                        "Shared TenantClusterPool %s not found in shared-clusters",
+                        self, component_name,
+                    )
+                raise
+
+            # Clone reference definition
+            definition = shared_tenant_cluster_pool.get_definition()
+
+            # Discard dynamic fields
+            definition['metadata'].pop('creationTimestamp', None)
+            definition['metadata'].pop('finalizers', None)
+            definition['metadata'].pop('generation', None)
+            definition['metadata'].pop('managedFields', None)
+            definition['metadata'].pop('resourceVersion', None)
+            definition['metadata'].pop('uid', None)
+            definition.pop('status', None)
+
+            # Ask k8s to generate name based on WorkshopProvision name
+            del definition['metadata']['name']
+            definition['metadata']['generateName'] = f"{self.name}-"
+
+            # Set namespace to match WorkshopProvision
+            definition['metadata']['namespace'] = self.namespace
+
+            # Set WorkshopProvision as owner to setup automatic deletion
+            definition['metadata']['ownerReferences'] = [self.as_owner_ref()]
+
+            # Set Workshop and WorkshopProvision labels
+            definition['metadata']['labels'].update({
+                OperatorRuntime.workshop_label: workshop.name,
+                OperatorRuntime.workshop_id_label: workshop.workshop_id,
+                OperatorRuntime.workshop_uid_label: workshop.uid,
+                OperatorRuntime.workshop_provision_label: self.name,
+            })
+
+            # Add lab key to lab annotation
+            sandbox_annotations = definition['spec']['sandboxHost']['annotations']
+            sandbox_annotations['lab'] += f":{self.lab_key}"
+
+            # Add sandbox annotations for Workshop and WorkshopProvision information
+            sandbox_annotations['workshop_name'] = workshop.name
+            sandbox_annotations['workshop_namespace'] = workshop.namespace
+            sandbox_annotations['workshop_provision_name'] = self.name
+
+            # Ensure TenantClusterPool is enabled
+            definition['spec']['enabled'] = True
+
+            # Set tenant cluster pool sizing
+            cluster_count = ceil(
+                self.count / shared_tenant_cluster_pool.sandbox_host.max_placements
+            )
+            definition['spec']['maxClusters'] = cluster_count
+            definition['spec']['minAvailableSandboxPlacements'] = 0
+            definition['spec']['minClusters'] = cluster_count
+
+            tenant_cluster_pool = await OperatorRuntime.babylon.create_tenant_cluster_pool(definition)
+
+            await self.merge_patch_status({
+                "tenantClusterPools": self.status.get('tenantClusterPools', []) + [{
+                    "name": tenant_cluster_pool.name,
+                }]
+            })
 
     async def delete_all_resource_claims(self, logger):
         logger.info(f"Deleting all ResourceClaims for {self}")
@@ -284,6 +394,7 @@ class WorkshopProvision(CachedKopfObject):
     async def handle_create(self, logger):
         async with self.lock:
             await self.set_owner_references(logger=logger)
+            await self.__create_tenant_cluster_pools(logger=logger)
 
     async def handle_delete(self, logger):
         try:
@@ -312,8 +423,8 @@ class WorkshopProvision(CachedKopfObject):
 
     async def list_resource_claims(self):
         async for resource_claim in resourceclaim.ResourceClaim.list(
-            label_selector=f"{Babylon.workshop_label}={self.workshop_name},"
-            f"{Babylon.workshop_provision_label}={self.name}",
+            label_selector=f"{OperatorRuntime.workshop_label}={self.workshop_name},"
+            f"{OperatorRuntime.workshop_provision_label}={self.name}",
             namespace=self.namespace,
         ):
             # Ignore ResourceClaims that are being deleted (have deletionTimestamp)
@@ -341,7 +452,14 @@ class WorkshopProvision(CachedKopfObject):
             await self.manage_action_schedule_and_lifespan(
                 logger=logger, workshop=workshop
             )
-            await self.manage_resource_claims(logger=logger, workshop=workshop)
+            tenant_cluster_pool_capacity = await self.__manage_tenant_cluster_pools(
+                logger=logger,
+            )
+            await self.manage_resource_claims(
+                logger=logger,
+                tenant_cluster_pool_capacity=tenant_cluster_pool_capacity,
+                workshop=workshop,
+            )
 
     async def manage_action_schedule_and_lifespan(self, logger, workshop):
         patch = {}
@@ -401,13 +519,18 @@ class WorkshopProvision(CachedKopfObject):
         if patch:
             await self.merge_patch(patch)
 
-    async def manage_resource_claims(self, logger, workshop):
+    async def manage_resource_claims(self,
+        logger,
+        tenant_cluster_pool_capacity: int,
+        workshop,
+    ):
         logger.debug(f"Manage ResourceClaims for {self}")
 
         resource_claim_count = 0
         provisioning_count = 0
         failed_count = 0
         active_count = 0
+        detached_count = 0
 
         async for resource_claim in self.list_resource_claims():
             resource_claim_count += 1
@@ -424,6 +547,8 @@ class WorkshopProvision(CachedKopfObject):
                     active_count += 1
             else:
                 provisioning_count += 1
+            if resource_claim.is_detached:
+                detached_count += 1
 
         # Store counts in WorkshopProvision status
         # We don't know how many failed resourceclaims were deleted, so can't
@@ -445,10 +570,17 @@ class WorkshopProvision(CachedKopfObject):
         # Do not start any provisions if failure threshold is exceeded
         if self.count != 0:
             if (
-                Babylon.workshop_fail_percentage_threshold
+                OperatorRuntime.workshop_fail_percentage_threshold
                 <= failed_count / self.count * 100
             ):
                 return
+
+        # Check TenantClusterPool capacity
+        if (
+            self.has_tenant_cluster_pools and
+            tenant_cluster_pool_capacity <= resource_claim_count - detached_count
+        ):
+            return
 
         # Start provisions up to count and within concurrency limit
         if (
@@ -456,6 +588,15 @@ class WorkshopProvision(CachedKopfObject):
             and provisioning_count < self.concurrency
         ):
             await self.create_resource_claim(logger=logger, workshop=workshop)
+
+    async def __set_lab_key(self, logger):
+        """Set secure lab key in status.
+        This value is used for associating TenantClusterPools with the WorkshopProvision."""
+        if self.status and 'labKey' in self.status:
+            return
+        await self.merge_patch_status({
+            "labKey": LAB_KEY_GENERATOR.render()
+        })
 
     async def set_owner_references(self, logger):
         try:
@@ -469,14 +610,65 @@ class WorkshopProvision(CachedKopfObject):
 
         if (
             self.owner_references != [workshop.as_owner_ref()]
-            or self.labels.get(Babylon.workshop_label) != self.workshop_name
+            or self.labels.get(OperatorRuntime.workshop_label) != self.workshop_name
         ):
             logger.info(f"Setting ownerReferences for {self} to {workshop}")
             await self.merge_patch(
                 {
                     "metadata": {
-                        "labels": {Babylon.workshop_label: self.workshop_name},
+                        "labels": {OperatorRuntime.workshop_label: self.workshop_name},
                         "ownerReferences": [workshop.as_owner_ref()],
                     }
                 }
             )
+
+    async def __manage_tenant_cluster_pools(self, logger) -> int:
+        """Manage scaling of tenant cluster pools and return available capacity."""
+        if not self.has_tenant_cluster_pools:
+            return 0
+
+        overall_capacity = None
+        for entry in self.status['tenantClusterPools']:
+            try:
+                tenant_cluster_pool = await OperatorRuntime.babylon.get_tenant_cluster_pool(
+                    name=entry['name'],
+                    namespace=self.namespace,
+                )
+            except BabylonApiException:
+                logger.exception(
+                    "Failed to get TenantClusterPool %s for %s",
+                    entry['name'], self,
+                )
+                continue
+
+            # Scale up TenantClusterPool if needed
+            cluster_count = ceil(self.count / tenant_cluster_pool.sandbox_host.max_placements)
+            if (
+                tenant_cluster_pool.min_clusters < cluster_count or
+                tenant_cluster_pool.max_clusters < cluster_count
+            ):
+                logger.info("Scaling %s to %s clusters", tenant_cluster_pool, cluster_count)
+                await tenant_cluster_pool.patch({
+                    "spec": {
+                        "maxClusters": cluster_count,
+                        "minClusters": cluster_count,
+                    }
+                })
+
+            # Super simple capacity logic!
+            # Just loop over clusters and status and add max_placements capacity if available.
+            # Actually checking the sandbox api would produce race conditions and is unnecessarily
+            # complicated because the TenantClusterPool is dedicated to this WorkshopProvision.
+            capacity = 0
+            for cluster in tenant_cluster_pool.status.clusters:
+                if cluster.sandbox_api_state == 'available':
+                    capacity += tenant_cluster_pool.sandbox_host.max_placements
+
+            # Probably WorkshopProvisions will only have a single TenantClusterPool, so this
+            # may never come up, but if there are multiple then this would mean that each
+            # tenant spans two TenantClusterPools and so all must have capacity to provision
+            # tenants.
+            if overall_capacity is None or capacity < overall_capacity:
+                overall_capacity = capacity
+
+        return overall_capacity or 0

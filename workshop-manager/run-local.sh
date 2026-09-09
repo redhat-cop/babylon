@@ -11,6 +11,8 @@ else
   pip install -r dev-requirements.txt
 fi
 
+pip install ../client/python/babylon_async
+
 cd ./operator
 
 exec kopf run \

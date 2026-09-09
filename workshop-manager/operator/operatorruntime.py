@@ -1,7 +1,9 @@
 import kubernetes_asyncio
 import os
 
-class Babylon():
+from babylon_async import BabylonClient
+
+class OperatorRuntime:
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
     babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
     poolboy_domain = os.environ.get('POOLBOY_DOMAIN', 'poolboy.gpte.redhat.com')
@@ -31,6 +33,7 @@ class Babylon():
     resource_claim_label = f"{poolboy_domain}/resource-claim"
     resource_pool_annotation = f"{poolboy_domain}/resource-pool-name"
     service_access_annotation = f"{babylon_domain}/service-access"
+    tenant_cluster_pool_label = f"{babylon_domain}/tenant-cluster-pool"
     url_annotation = f"{babylon_domain}/url"
     multi_workshop_id_label = f"{babylon_domain}/multi-workshop-id"
     workshop_label = f"{babylon_domain}/workshop"
@@ -61,6 +64,7 @@ class Babylon():
             await kubernetes_asyncio.config.load_kube_config()
 
         cls.api_client = kubernetes_asyncio.client.ApiClient()
+        cls.babylon = await BabylonClient.create(api_client=cls.api_client)
         cls.core_v1_api = kubernetes_asyncio.client.CoreV1Api(cls.api_client)
         cls.rbac_authorization_api = kubernetes_asyncio.client.RbacAuthorizationV1Api(cls.api_client)
         cls.custom_objects_api = kubernetes_asyncio.client.CustomObjectsApi(cls.api_client)
