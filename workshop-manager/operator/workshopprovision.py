@@ -190,6 +190,9 @@ class WorkshopProvision(CachedKopfObject):
                 "when": self.auto_detach_condition
             }
 
+        if self.lab_key is not None:
+            resource_claim_definition['spec']['provider']['parameterValues']['sandbox_api_lab_key'] = self.lab_key
+
         if self.resource_pool is not None:
             resource_claim_definition['metadata']['annotations'][
                 OperatorRuntime.resource_pool_annotation
