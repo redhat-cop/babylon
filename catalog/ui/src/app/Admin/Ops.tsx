@@ -82,7 +82,6 @@ import {
   dateToApiString,
   deleteResourceClaim,
   fetcher,
-  fetcherItemsInAllPages,
   lockWorkshop,
   patchWorkshop,
   patchWorkshopProvision,
@@ -93,7 +92,7 @@ import {
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
-  TenantClusterPool,
+  TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
 } from '@app/types';
@@ -582,20 +581,17 @@ const Ops: React.FC = () => {
   }, [allMwData]);
 
   // Fetch TenantClusterPools for cluster assignment tracking (cluster-wide query)
-  const { data: allTcpData } = useSWR<TenantClusterPool[]>(
-    apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
-    () =>
-      fetcherItemsInAllPages((continueId) =>
-        apiPaths.TENANT_CLUSTER_POOLS({ limit: FETCH_LIMIT, continueId }),
-      ),
+  const { data: allTcpData } = useSWR<TenantClusterPoolList>(
+    apiPaths.TENANT_CLUSTER_POOLS({ limit: FETCH_LIMIT }),
+    fetcher,
     { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
   );
 
   // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
   const tenantClusterLookup = useMemo(() => {
     const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; maxPlacements: number }>();
-    if (allTcpData) {
-      for (const pool of allTcpData) {
+    if (allTcpData?.items) {
+      for (const pool of allTcpData.items) {
         if (pool.status?.clusters) {
           const totalClusters = pool.status.clusters.length;
           const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
