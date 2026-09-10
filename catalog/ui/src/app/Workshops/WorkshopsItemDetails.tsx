@@ -70,6 +70,7 @@ const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
   resourceClaims?: ResourceClaim[];
+  clusterResourceClaims?: ResourceClaim[];
   workshopProvisions?: WorkshopProvision[];
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
@@ -80,6 +81,7 @@ const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate,
   workshopProvisions = [],
   resourceClaims,
+  clusterResourceClaims = [],
   workshop,
   showModal,
   workshopUserAssignments,
@@ -432,9 +434,13 @@ const WorkshopsItemDetails: React.FC<{
                   <CheckCircleIcon key="scheduled-icon" /> Scheduled
                 </span>
                 {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
               </>
-            ) : resourceClaims.length > 0 ? (
-              <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} />
+            ) : resourceClaims.length > 0 || clusterResourceClaims.length > 0 ? (
+              <>
+                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
+              </>
             ) : (
               <p>...</p>
             )}

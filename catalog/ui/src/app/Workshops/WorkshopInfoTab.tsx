@@ -42,9 +42,10 @@ export function getWorkshopInfoMessageTemplate(workshop?: Workshop): MessageTemp
 const WorkshopInfoTab: React.FC<{
   workshop: Workshop;
   resourceClaims: ResourceClaim[];
+  clusterResourceClaims?: ResourceClaim[];
   workshopProvisions: WorkshopProvision[];
   showModal: ({ action, resourceClaims }: ModalState) => void;
-}> = ({ workshop, resourceClaims, workshopProvisions, showModal }) => {
+}> = ({ workshop, resourceClaims, clusterResourceClaims = [], workshopProvisions, showModal }) => {
   const [now] = useState(() => Date.now());
   const [selectedInfoClaimIndex, setSelectedInfoClaimIndex] = useState(0);
   const [infoSourceSelectOpen, setInfoSourceSelectOpen] = useState(false);
@@ -118,9 +119,13 @@ const WorkshopInfoTab: React.FC<{
                     <CheckCircleIcon key="scheduled-icon" /> Scheduled
                   </span>
                   {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                  {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
                 </>
-              ) : resourceClaims.length > 0 ? (
-                <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} />
+              ) : resourceClaims.length > 0 || clusterResourceClaims.length > 0 ? (
+                <>
+                  {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                  {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
+                </>
               ) : (
                 <p>...</p>
               )}

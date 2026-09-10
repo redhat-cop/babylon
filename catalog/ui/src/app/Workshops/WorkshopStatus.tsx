@@ -30,7 +30,8 @@ function cmp(a: { state: string }, b: { state: string }) {
 const WorkshopStatus: React.FC<{
   resourceClaims: ResourceClaim[];
   totalCount?: number;
-}> = ({ resourceClaims, totalCount }) => {
+  label?: string;
+}> = ({ resourceClaims, totalCount, label = 'Instances' }) => {
   const resourceClaimsStatus: { uid: string; state: string }[] = [];
   for (let resourceClaim of resourceClaims.filter((rc) => !rc.metadata.deletionTimestamp)) {
     const summary = resourceClaim.status?.summary;
@@ -79,13 +80,13 @@ const WorkshopStatus: React.FC<{
       {Object.entries(statusCount).map(([status, count]: [string, unknown]) => {
         const { state, phase } = getPhaseState(status);
         const isRunning = state.toLowerCase() === 'running';
-        const label =
+        const statusLabel =
           isRunning && totalCount != null
-            ? `${count as number}/${totalCount} Instances`
-            : `${count as number} Instances`;
+            ? `${count as number}/${totalCount} ${label}`
+            : `${count as number} ${label}`;
         return (
           <div key={state}>
-            <span style={{ paddingRight: '12px' }}>{label}</span>
+            <span style={{ paddingRight: '12px' }}>{statusLabel}</span>
             <InnerStatus phase={phase} state={state} />
           </div>
         );

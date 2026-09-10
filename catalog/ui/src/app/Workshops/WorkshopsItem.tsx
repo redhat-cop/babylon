@@ -668,6 +668,7 @@ const WorkshopsItemComponent: React.FC<{
                 workshop={workshop}
                 showModal={showModal}
                 resourceClaims={instanceResourceClaims}
+                clusterResourceClaims={clusterResourceClaims}
                 workshopProvisions={workshopProvisions}
                 workshopUserAssignments={userAssigmentsList?.items || []}
                 usageCost={usageCost}
@@ -682,6 +683,7 @@ const WorkshopsItemComponent: React.FC<{
                 <WorkshopInfoTab
                   workshop={workshop}
                   resourceClaims={instanceResourceClaims}
+                  clusterResourceClaims={clusterResourceClaims}
                   workshopProvisions={workshopProvisions || []}
                   showModal={showModal}
                 />
