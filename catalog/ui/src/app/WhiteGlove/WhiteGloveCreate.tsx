@@ -190,7 +190,7 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
   }
 
-  const isFormValid = !!eventName.trim() && (needConsultation || selectedCatalogItems.length > 0) && !!activity && !!purpose && !!deliveryMode && !!audienceType;
+  const isFormValid = !!eventName.trim() && (needConsultation || selectedCatalogItems.length > 0) && !!activity && !!purpose && !!deliveryMode && !!audienceType && salesforceItems.length > 0;
 
   return (
     <>
@@ -301,6 +301,7 @@ const WhiteGloveCreateContent: React.FC = () => {
             fieldId="salesforce_id"
             items={salesforceItems}
             onChange={setSalesforceItems}
+            isRequired
           />
 
           <FormGroup
