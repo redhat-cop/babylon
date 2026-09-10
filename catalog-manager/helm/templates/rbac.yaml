@@ -44,6 +44,7 @@ rules:
   - {{ .Values.babylon.domain }}
   resources:
   - catalogitems
+  - catalogitems/status
   verbs:
   - get
   - list
