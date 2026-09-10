@@ -2,11 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { K8sObjectReference, ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ServiceStatus from '@app/Services/ServiceStatus';
 import useSession from '@app/utils/useSession';
@@ -27,50 +27,55 @@ const WorkshopsItemClusters: React.FC<{
   }
 
   return (
-    <SelectableTable
-      columns={['Name', 'GUID', 'Status', 'Created']}
-      onSelectAll={() => undefined}
-      rows={activeClaims.map((resourceClaim: ResourceClaim) => {
-        const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
-        const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+    <Table aria-label="Clusters" variant="compact">
+      <Thead>
+        <Tr>
+          <Th>Name</Th>
+          <Th>GUID</Th>
+          <Th>Status</Th>
+          <Th>Created</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {activeClaims.map((resourceClaim: ResourceClaim) => {
+          const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
+          const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
 
-        return {
-          cells: [
-            <>
-              <Link
-                key="services"
-                to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
-              >
-                {displayName(resourceClaim)}
-              </Link>
-              {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
-            </>,
-            <>
-              {guid ? (
-                isAdmin && resourceHandle ? (
-                  [
-                    <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.name}`}>
-                      {guid}
-                    </Link>,
-                    <OpenshiftConsoleLink key="console" reference={resourceHandle} />,
-                  ]
+          return (
+            <Tr key={resourceClaim.metadata.uid}>
+              <Td>
+                <Link to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}>
+                  {displayName(resourceClaim)}
+                </Link>
+                {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
+              </Td>
+              <Td>
+                {guid ? (
+                  isAdmin && resourceHandle ? (
+                    <>
+                      <Link to={`/admin/resourcehandles/${resourceHandle.name}`}>{guid}</Link>
+                      <OpenshiftConsoleLink reference={resourceHandle} />
+                    </>
+                  ) : (
+                    guid
+                  )
                 ) : (
-                  guid
-                )
-              ) : (
-                <p>-</p>
-              )}
-            </>,
-            <ServiceStatus key="status" resourceClaim={resourceClaim} />,
-            <>
-              <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
-              <br key="break" />
-              (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
-            </>,
-          ],
-        };
-      })}
-    />
+                  '-'
+                )}
+              </Td>
+              <Td>
+                <ServiceStatus resourceClaim={resourceClaim} />
+              </Td>
+              <Td>
+                <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
+                <br />
+                (<TimeInterval toTimestamp={resourceClaim.metadata.creationTimestamp} />)
+              </Td>
+            </Tr>
+          );
+        })}
+      </Tbody>
+    </Table>
   );
 };
 

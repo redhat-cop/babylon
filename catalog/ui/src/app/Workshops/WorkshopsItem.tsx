@@ -369,7 +369,7 @@ const WorkshopsItemComponent: React.FC<{
       workshop,
       dateToApiString(new Date()),
       dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-      resourceClaims,
+      instanceResourceClaims,
     );
     mutateWorkshop(workshopUpdated);
   }
@@ -426,7 +426,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       // If workshop has readyBy date, update it to be provisioning date + lead time
       if (workshop.spec?.lifespan?.readyBy) {
@@ -454,7 +454,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       mutateWorkshop(workshopUpdated);
       // Highlight auto-destroy in details after changing start date
@@ -469,7 +469,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       const workshopUpdated = await patchWorkshop({
         name: workshop.metadata.name,
@@ -530,7 +530,7 @@ const WorkshopsItemComponent: React.FC<{
                   : 'stop'
           }
           workshop={workshop}
-          resourceClaims={resourceClaims}
+          resourceClaims={instanceResourceClaims}
           workshopProvisions={workshopProvisions}
         />
       </Modal>
@@ -627,15 +627,15 @@ const WorkshopsItemComponent: React.FC<{
                       ? null
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
-                    Array.isArray(resourceClaims) && resourceClaims.length === 0
+                    Array.isArray(instanceResourceClaims) && instanceResourceClaims.length === 0
                       ? enableManageWorkshopProvisions && !isWorkshopStarted(workshop, workshopProvisions)
                         ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
                         : null
-                      : checkWorkshopCanStart(resourceClaims)
-                        ? () => showModal({ action: 'startServices', resourceClaims })
+                      : checkWorkshopCanStart(instanceResourceClaims)
+                        ? () => showModal({ action: 'startServices', resourceClaims: instanceResourceClaims })
                         : null,
-                  stop: checkWorkshopCanStop(resourceClaims)
-                    ? () => showModal({ action: 'stopServices', resourceClaims })
+                  stop: checkWorkshopCanStop(instanceResourceClaims)
+                    ? () => showModal({ action: 'stopServices', resourceClaims: instanceResourceClaims })
                     : null,
                   reorder: canReorderWorkshop(workshop, catalogItem, workshopProvision, groups, isAdmin)
                     ? () => openModalReorder()
@@ -667,7 +667,7 @@ const WorkshopsItemComponent: React.FC<{
                 onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
                 workshop={workshop}
                 showModal={showModal}
-                resourceClaims={resourceClaims}
+                resourceClaims={instanceResourceClaims}
                 workshopProvisions={workshopProvisions}
                 workshopUserAssignments={userAssigmentsList?.items || []}
                 usageCost={usageCost}
@@ -681,7 +681,7 @@ const WorkshopsItemComponent: React.FC<{
               {activeTab === 'info' ? (
                 <WorkshopInfoTab
                   workshop={workshop}
-                  resourceClaims={resourceClaims || []}
+                  resourceClaims={instanceResourceClaims}
                   workshopProvisions={workshopProvisions || []}
                   showModal={showModal}
                 />
@@ -692,6 +692,13 @@ const WorkshopsItemComponent: React.FC<{
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (
                 <WorkshopsItemProvisioning workshop={workshop} workshopProvisions={workshopProvisions} />
+              ) : null}
+            </Tab>
+          ) : null}
+          {clusterResourceClaims.length > 0 ? (
+            <Tab eventKey="clusters" title={<TabTitleText>Clusters</TabTitleText>}>
+              {activeTab === 'clusters' ? (
+                <WorkshopsItemClusters resourceClaims={clusterResourceClaims} />
               ) : null}
             </Tab>
           ) : null}
@@ -707,13 +714,6 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          {clusterResourceClaims.length > 0 ? (
-            <Tab eventKey="clusters" title={<TabTitleText>Clusters</TabTitleText>}>
-              {activeTab === 'clusters' ? (
-                <WorkshopsItemClusters resourceClaims={clusterResourceClaims} />
-              ) : null}
-            </Tab>
-          ) : null}
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
