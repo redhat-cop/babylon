@@ -62,6 +62,7 @@ import WorkshopActionModal from '@app/components/WorkshopActionModal';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
+import WorkshopsItemClusters from './WorkshopsItemClusters';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
@@ -251,6 +252,16 @@ const WorkshopsItemComponent: React.FC<{
       revalidateIfStale: false, // Don't auto-revalidate stale data
       dedupingInterval: 3000, // Dedupe requests
     },
+  );
+
+  const instanceResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((r) => !r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    [resourceClaims],
+  );
+
+  const clusterResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((r) => !!r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    [resourceClaims],
   );
 
   // Check if workshop has an info message template
@@ -690,12 +701,19 @@ const WorkshopsItemComponent: React.FC<{
                 modalState={modalState}
                 showModal={showModal}
                 setSelectedResourceClaims={setSelectedResourceClaims}
-                resourceClaims={resourceClaims || []}
+                resourceClaims={instanceResourceClaims}
                 workshopProvisions={workshopProvisions}
                 userAssignments={userAssigmentsList?.items || []}
               />
             ) : null}
           </Tab>
+          {clusterResourceClaims.length > 0 ? (
+            <Tab eventKey="clusters" title={<TabTitleText>Clusters</TabTitleText>}>
+              {activeTab === 'clusters' ? (
+                <WorkshopsItemClusters resourceClaims={clusterResourceClaims} />
+              ) : null}
+            </Tab>
+          ) : null}
           <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
