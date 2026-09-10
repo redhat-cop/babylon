@@ -39,7 +39,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
   const { data: partnerHeaderHtml } = useSWRImmutable<string>(
     partner_connect_header_enabled
-      ? 'https://connect.redhat.com/en/api/chrome/authenticated/4.0/universal_and_primary?include_dependencies=true'
+      ? 'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary?include_dependencies=true'
       : null,
     publicFetcher,
   );
