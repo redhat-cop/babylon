@@ -32,10 +32,12 @@ async def manage_catalog_item_is_disabled(catalog_item, logger):
 
 async def manage_catalog_item_rating(catalog_item, logger):
     rating = await CatalogItemService(catalog_item, logger=logger).get_rating_from_api()
+    if rating.rating_score is None:
+        return
     logger.info(
         f"Rating of {catalog_item.name} is {rating.rating_score} of {rating.total_ratings} -- was {catalog_item.rating.rating_score} of {catalog_item.rating.total_ratings}"
     )
-    if rating != catalog_item.rating and rating.rating_score is not None:
+    if rating != catalog_item.rating:
         patch = {
             "metadata": {
                 "labels": {Babylon.catalog_item_rating_label: str(rating.rating_score)},
