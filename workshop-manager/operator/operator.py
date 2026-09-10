@@ -153,6 +153,8 @@ async def workshop_provision_update(logger, **kwargs):
 async def workshop_provision_daemon(logger, stopped, **kwargs):
     workshop_provision = WorkshopProvision.load(**kwargs)
     try:
+        # Initial sleep to allow for initialization to complete
+        await asyncio.sleep(workshop_provision.start_delay)
         while not stopped:
             if workshop_provision.lifespan_end \
             and workshop_provision.lifespan_end < datetime.now(timezone.utc):
