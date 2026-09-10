@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Page, PageSection, PageSidebar, PageSidebarBody } from '@patternfly/react-core';
 import { IAppRouteAccessControl } from '@app/types';
 import Header from '@app/Header/Header';
@@ -22,9 +22,8 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(true);
   const [isNavOpenMobile, setIsNavOpenMobile] = useState(false);
-  const [partnerScriptsReady, setPartnerScriptsReady] = useState(false);
   useDocumentTitle(title);
-  const { isAdmin, email, fullName } = useSession().getSession();
+  const { isAdmin } = useSession().getSession();
   const { partner_connect_header_enabled } = useInterfaceConfig();
 
   const onNavToggleMobile = () => {
@@ -39,89 +38,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
 
   const { data: partnerHeaderHtml } = useSWRImmutable<string>(
     partner_connect_header_enabled
-      ? 'https://connect.redhat.com/en/api/chrome/authenticated/4.0/universal_and_primary?include_dependencies=true'
+      ? 'https://connect.redhat.com/en/api/chrome/authenticated/3.0/universal_and_primary'
       : null,
     publicFetcher,
   );
-
-  useEffect(() => {
-    if (!partnerHeaderHtml) return () => {};
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(partnerHeaderHtml, 'text/html');
-
-    const linkElements = doc.querySelectorAll('link[rel="stylesheet"]');
-    linkElements.forEach((link) => {
-      const href = link.getAttribute('href');
-      if (!href) return;
-      const absoluteHref = href.startsWith('/') ? `https://connect.redhat.com${href}` : href;
-      if (document.querySelector(`link[href="${absoluteHref}"]`)) return;
-      const el = document.createElement('link');
-      el.rel = 'stylesheet';
-      el.href = absoluteHref;
-      document.head.appendChild(el);
-    });
-
-    const inlineStyles = doc.querySelectorAll('style');
-    inlineStyles.forEach((style) => {
-      const el = document.createElement('style');
-      el.setAttribute('data-rhpc', 'true');
-      el.textContent = style.textContent;
-      document.head.appendChild(el);
-    });
-
-    const scriptElements = doc.querySelectorAll('script[src]');
-    const newScripts: HTMLScriptElement[] = [];
-    scriptElements.forEach((script) => {
-      const src = script.getAttribute('src');
-      if (!src) return;
-      const absoluteSrc = src.startsWith('/') ? `https://connect.redhat.com${src}` : src;
-      if (document.querySelector(`script[src="${absoluteSrc}"]`)) return;
-      const el = document.createElement('script');
-      el.src = absoluteSrc;
-      if (script.getAttribute('type')) el.type = script.getAttribute('type');
-      newScripts.push(el);
-      document.head.appendChild(el);
-    });
-
-    if (newScripts.length === 0) {
-      setPartnerScriptsReady(true);
-    } else {
-      let loaded = 0;
-      const onLoad = () => {
-        loaded++;
-        if (loaded >= newScripts.length) setPartnerScriptsReady(true);
-      };
-      newScripts.forEach((el) => {
-        el.addEventListener('load', onLoad);
-        el.addEventListener('error', onLoad);
-      });
-    }
-
-    return () => {
-      setPartnerScriptsReady(false);
-      document.head.querySelectorAll('style[data-rhpc]').forEach((el) => el.remove());
-      document.head.querySelectorAll('link[href*="connect.redhat.com"]').forEach((el) => el.remove());
-      document.head.querySelectorAll('script[src*="connect.redhat.com"]').forEach((el) => el.remove());
-    };
-  }, [partnerHeaderHtml]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const loginName = email.includes('@') ? email.split('@')[0] : email;
-      document.dispatchEvent(
-        new CustomEvent('rhpc-nav:login', {
-          detail: {
-            login_name: loginName,
-            email_address: email,
-            ...(fullName ? { name: fullName } : {}),
-          },
-        }),
-      );
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [partnerScriptsReady]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
 
@@ -158,10 +78,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     );
   };
 
-  if (partner_connect_header_enabled && !partnerScriptsReady) {
-    return <LoadingSection />;
-  }
-
   return (
     <NotificationDrawerProvider>
       <Suspense fallback={<LoadingSection />}>
@@ -180,25 +96,18 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
                     ),
                     {
                       FORCE_BODY: true,
-                      ADD_TAGS: ['svg', 'path'],
+                      ADD_TAGS: ['style', 'pfe-navigation', 'pfe-navigation-dropdown', 'svg', 'path'],
                       ADD_ATTR: [
                         'part',
                         'slot',
+                        'dropdown-width',
                         'icon',
-                        'set',
                         'name',
-                        'variant',
-                        'color-palette',
                         'viewBox',
                         'fill',
                         'd',
                         'xmlns',
                       ],
-                      CUSTOM_ELEMENT_HANDLING: {
-                        tagNameCheck: /^(rh|pfe)-/,
-                        attributeNameCheck: /^data-/,
-                        allowCustomizedBuiltInElements: true,
-                      },
                     },
                   ),
                 }}
