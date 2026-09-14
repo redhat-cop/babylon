@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import json
+from datetime import datetime
 
-from hashlib import sha1
 from typing import Any, List, Mapping
 
 from .exceptions import BabylonApiException
@@ -101,9 +100,23 @@ class TenantClusterPool(K8sObject):
         return TenantClusterPoolStatus(self._definition['status'])
 
     @property
-    def tenant_pools(self) -> Mapping[TenantClusterPoolSpecTenantPool]:
-        """Configuration to maintain pools of provisioned tenant items."""
-        return self.spec.tenant_pools or {}
+    def tenant_pools(self) -> List[TenantClusterPoolMergedTenantPool]:
+        """Merged configuration and status of pools of tenant items."""
+
+        spec_and_status = {}
+        for name, spec in (self.spec.tenant_pools or {}).items():
+            spec_and_status[name] = [spec, None]
+
+        for name, status in (self.status.tenant_pools or {}).items():
+            if name in spec_and_status:
+                spec_and_status[name][1] = status
+            else:
+                spec_and_status[name] = [None, status]
+
+        return [
+            TenantClusterPoolMergedTenantPool(key, *value)
+            for key, value in spec_and_status.items()
+        ]
 
     async def add_cluster_to_status(self,
         resource_claim_name:str,
@@ -296,7 +309,7 @@ class TenantClusterPoolSpec:
         )
 
     @property
-    def tenant_pools(self) -> Mapping[TenantClusterPoolSpecTenantPool]|None:
+    def tenant_pools(self) -> Mapping[str, TenantClusterPoolSpecTenantPool]|None:
         """Configuration to maintain pools of provisioned tenant items."""
         if 'tenantPools' not in self._definition:
             return None
@@ -399,16 +412,6 @@ class TenantClusterPoolSpecTenantPool:
         return self._definition.get('minAvailable', 0)
 
     @property
-    def hash_identifier(self) -> str:
-        """Short hash identifier for the tenant pool."""
-        return sha1(
-            json.dumps({
-                "name": self.provider.name,
-                "parameterValues": self.provider.parameter_values,
-            }).encode('utf-8')
-        ).hexdigest()
-
-    @property
     def provider(self) -> TenantClusterPoolSpecTenantPoolProvider:
         """ResourceProvider configuration used to provision pooled
         ResourceHandles for the tenant."""
@@ -447,6 +450,16 @@ class TenantClusterPoolStatus:
             for item in self._definition['clusters']
         ]
 
+    @property
+    def tenant_pools(self) -> Mapping[str, TenantClusterPoolStatusTenantPool]|None:
+        """Configuration to maintain pools of provisioned tenant items."""
+        if 'tenantPools' not in self._definition:
+            return None
+        return {
+            key: TenantClusterPoolStatusTenantPool(value)
+            for key, value in self._definition.get('tenantPools', {}).items()
+        }
+
 class TenantClusterPoolStatusCluster:
     """Status of cluster in TenantClusterPool"""
     def __init__(self, definition):
@@ -481,3 +494,136 @@ class TenantClusterPoolStatusCluster:
         babylon-cluster-tenant-pool-manager."""
 
         return self._definition['sandboxApiState']
+
+class TenantClusterPoolStatusTenantPool:
+    """Status of provisioned tenant items."""
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def resource_handles(self) -> Mapping[str, TenantClusterPoolStatusTenantPoolResourceHandle]:
+        """State of ResourceHandles associated to TenantPool."""
+        return {
+            key: TenantClusterPoolStatusTenantPoolResourceHandle(value)
+            for key, value in self._definition.get('resourceHandles', {}).items()
+        }
+
+class TenantClusterPoolStatusTenantPoolResourceHandle:
+    """Status of pooled tenant item ResourceHandle."""
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def creation_datetime(self) -> datetime:
+        """Return datetime object representing when ResourceHandle was created."""
+        return datetime.strptime(self.creation_timestamp, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def creation_timestamp(self) -> str:
+        """Return timestamp when ResourceHandle was created."""
+        return self._definition['creationTimestamp']
+
+    @property
+    def has_sandbox_placement(self) -> bool:
+        """Flag indicating if the ResourceHandle has a sandbox placement"""
+        return 'sandboxPlacement' in self._definition
+
+    @property
+    def is_claimed(self) -> bool:
+        """Flag indicating if the ResourceHandle is bound to a ResourceClaim."""
+        return 'resourceClaim' in self._definition
+
+    @property
+    def resource_claim(self) -> TenantClusterPoolStatusTenantPoolResourceHandleResourceClaim|None:
+        """ResourceClaim bound to tenant ResourceHandle if claimed"""
+        if not self.is_claimed:
+            return None
+        return TenantClusterPoolStatusTenantPoolResourceHandleResourceClaim(
+            self._definition['resourceClaim']
+        )
+
+    @property
+    def sandbox_placement(self) -> TenantClusterPoolStatusTenantPoolResourceHandleSandboxPlacement|None:
+        """Select data for sandbox placement associated with ResourceHandle"""
+        if not self.has_sandbox_placement:
+            return None
+        return TenantClusterPoolStatusTenantPoolResourceHandleSandboxPlacement(
+            self._definition['sandboxPlacement']
+        )
+
+class TenantClusterPoolStatusTenantPoolResourceHandleResourceClaim:
+    """ResourceClaim information for tenant ResourceHandle"""
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def name(self) -> str:
+        return self._definition['name']
+
+    @property
+    def namespace(self) -> str:
+        return self._definition['namespace']
+
+class TenantClusterPoolStatusTenantPoolResourceHandleSandboxPlacement:
+    """SandboxPlacement information for tenant ResourceHandle"""
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def annotations(self) -> Mapping[str, str]:
+        """Annotations for the sandbox placement"""
+        return self._definition['annotations']
+
+    @property
+    def id(self) -> int:
+        """Sandbox placement id"""
+        return self._definition['id']
+
+    @property
+    def service_uuid(self) -> str:
+        """Service UUID for the sandbox placement. From the AnarchySubject uuid."""
+        return self._definition['service_uuid']
+
+    @property
+    def status(self) -> str:
+        """Sandbox string from the sandbox placement"""
+        return self._definition['status']
+
+class TenantClusterPoolMergedTenantPool:
+    """Combined spec and status representation of TenantPool"""
+    def __init__(self,
+        name:str,
+        spec:TenantClusterPoolSpecTenantPool|None,
+        status:TenantClusterPoolStatusTenantPool|None,
+    ):
+        self.name = name
+        self.spec = spec
+        self.status = status
+
+    @property
+    def is_deleted(self) -> bool:
+        """Indication that tenant pool is defined is status but removed from spec."""
+        return self.spec is None
+
+    @property
+    def min_available(self) -> int:
+        """Minimum number of unbound ResourceHandles to maintain pooled and
+        available for ResourceClaims."""
+        if self.spec is None:
+            return 0
+        return self.spec.min_available
+
+    @property
+    def provider(self) -> TenantClusterPoolSpecTenantPoolProvider|None:
+        """ResourceProvider configuration used to provision pooled
+        ResourceHandles for the tenant."""
+        if self.spec is None:
+            return None
+        return self.spec.provider
+
+    @property
+    def resource_handles(self) -> Mapping[str, TenantClusterPoolStatusTenantPoolResourceHandle]:
+        """State of ResourceHandles associated to TenantPool."""
+        if self.status is None:
+            return {}
+        return self.status.resource_handles
