@@ -375,6 +375,9 @@ class WorkshopProvision(CachedKopfObject):
             definition['spec']['minAvailableSandboxPlacements'] = 0
             definition['spec']['minClusters'] = cluster_count
 
+            # No tenantPools for workshops
+            definition['spec'].pop('tenantPools', None)
+
             tenant_cluster_pool = await OperatorRuntime.babylon.create_tenant_cluster_pool(definition)
 
             await self.merge_patch_status({
