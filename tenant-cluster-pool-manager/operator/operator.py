@@ -380,24 +380,6 @@ async def handle_tenant_cluster_without_sandbox_config(
     return ClusterState.STARTED, tenant_cluster_pool.sandbox_host.max_placements
 
 
-async def manage_tenant_cluster_pool_cluster(tenant_cluster_pool, cluster, logger) -> (int, int):
-    """Manage cluster for TenantClusterPool
-    Return cluster state and number of available placements"""
-    try:
-        resource_claim = await OperatorRuntime.babylon.get_resource_claim(
-            name=cluster.resource_claim_name,
-            namespace=tenant_cluster_pool.namespace,
-        )
-    except BabylonApiException as err:
-        if err.status != 404:
-            raise
-        await handle_tenant_cluster_deleted(tenant_cluster_pool, cluster, logger)
-        return ClusterState.DELETED, 0
-
-    return await manage_tenant_cluster_pool_cluster_with_resource_claim(
-        tenant_cluster_pool, cluster, resource_claim, logger,
-    )
-
 async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
     """Manage TenantClusterePool"""
 
@@ -430,6 +412,26 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
         )
     ):
         await provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger)
+
+    await manage_tenant_pools(tenant_cluster_pools, logger)
+
+async def manage_tenant_cluster_pool_cluster(tenant_cluster_pool, cluster, logger) -> (int, int):
+    """Manage cluster for TenantClusterPool
+    Return cluster state and number of available placements"""
+    try:
+        resource_claim = await OperatorRuntime.babylon.get_resource_claim(
+            name=cluster.resource_claim_name,
+            namespace=tenant_cluster_pool.namespace,
+        )
+    except BabylonApiException as err:
+        if err.status != 404:
+            raise
+        await handle_tenant_cluster_deleted(tenant_cluster_pool, cluster, logger)
+        return ClusterState.DELETED, 0
+
+    return await manage_tenant_cluster_pool_cluster_with_resource_claim(
+        tenant_cluster_pool, cluster, resource_claim, logger,
+    )
 
 async def manage_tenant_cluster_pool_cluster_with_resource_claim(
     tenant_cluster_pool:TenantClusterPool,
@@ -510,6 +512,18 @@ async def manage_tenant_cluster_pool_clusters(tenant_cluster_pool, logger):
             have_cluster_pending = True
 
     return total_available_placement_count, cluster_count, have_cluster_pending
+
+async def manage_tenant_pools(tenant_cluster_pools, logger) -> None:
+    """Manage TenantPools for TenantClusterPool"""
+    # Only manage tenant pools for TenantClusterPools in shared-clusters namespace
+    if tenant_cluster_pool.namespace != OperatorRuntime.shared_clusters_namespace:
+        return
+
+    for tenant_pool in tenant_cluster_pool.tenant_pools:
+        pass
+
+    # FIXME
+
 
 async def provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger):
     """Provision a new cluster for TenantClusterPool"""

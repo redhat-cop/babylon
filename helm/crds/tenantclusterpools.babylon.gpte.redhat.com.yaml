@@ -162,13 +162,6 @@ spec:
             type: object
             x-kubernetes-preserve-unknown-fields: true
             properties:
-              diffBase:
-                description: Kopf diffbase
-                type: string
-              kopf:
-                description: Kopf status storage
-                type: object
-                x-kubernetes-preserve-unknown-fields: true
               clusters:
                 description: >-
                   Clusters managed for this TenantClusterPool
@@ -210,6 +203,42 @@ spec:
                   required:
                   - resourceClaimName
                   - sandboxApiState
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              kopf:
+                description: Kopf status storage
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              tenantPools:
+                description: >-
+                  Status of tenant pool keyed by component name.
+                type: object
+                additionalProperties:
+                  description: >-
+                    Status of tenant pool.
+                  type: object
+                  properties:
+                    resourceHandles:
+                      description: >-
+                        ResourceHandles which belong to this TenantPool, keyed by ResourceHandle name.
+                      type: object
+                      additionalProperties:
+                        description: >-
+                          State of ResourceHandle for tenant pool.
+                        type: object
+                        properties:
+                          claimed:
+                            description: >-
+                              Flag indicating if ResourceHandle has been claimed.
+                            type: boolean
+                          creationTimestamp:
+                            description: >-
+                              Timestamp when ResourceHandle was created.
+                            format: date-time
+                            type: string
+                        required:
+                        - creationTimestamp
         required:
         - apiVersion
         - kind

@@ -1,11 +1,13 @@
-import kubernetes_asyncio
 import os
+
+import kubernetes_asyncio
 
 from babylon_async import BabylonClient
 
 from sandboxapi import SandboxAPI
 
 class OperatorRuntime():
+    """Central class for access to operator global state and configuration."""
     babylon_cluster = os.environ.get('BABYLON_CLUSTER', 'unknown')
     babylon_domain = os.environ.get('BABYLON_DOMAIN', 'babylon.gpte.redhat.com')
     babylon_api_version = os.environ.get('BABYLON_API_VERSION', 'v1')
@@ -24,6 +26,8 @@ class OperatorRuntime():
 
     sandbox_api_auth_token = os.environ.get('SANDBOX_API_AUTH_TOKEN')
     sandbox_api_url = os.environ.get('SANDBOX_API_URL')
+
+    shared_clusters_namespace = os.environ.get('SHARED_CLUSTERS_NAMESPACE', 'shared-clusters')
 
     @classmethod
     async def on_cleanup(cls):
