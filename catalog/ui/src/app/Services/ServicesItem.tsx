@@ -1049,6 +1049,7 @@ const ServicesItemComponent: React.FC<{
             ) : null}
             <Tab eventKey="details" key="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
+                <>
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
@@ -1513,104 +1514,105 @@ const ServicesItemComponent: React.FC<{
                       </DescriptionListGroup>
                     </>
                   ) : null}
-                  {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
-                    const resourceState = resourceStatus?.state;
-                    const componentDisplayName =
-                      catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
-                      resourceStatus?.name;
-                    const currentState =
-                      resourceState?.kind === 'AnarchySubject'
-                        ? resourceState.spec.vars?.current_state ?? ''
-                        : '';
-                    const stopTimestamp =
-                      resourceState?.kind === 'AnarchySubject'
-                        ? resourceState?.spec.vars.action_schedule?.stop
-                        : null;
-                    const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-                    const stopDate = stopTime ? new Date(stopTime) : null;
-                    const provisionData =
-                      resourceState?.kind === 'AnarchySubject'
-                        ? resourceState.spec.vars?.provision_data
-                        : JSON.parse(resourceState?.data?.userData || '{}');
-                    const provisionMessages =
-                      resourceState?.kind === 'AnarchySubject'
-                        ? resourceState?.spec?.vars?.provision_messages
-                        : provisionData?.msg;
-                    const provisionDataEntries = provisionData
-                      ? Object.entries(provisionData).filter(([key]) => {
-                          if (
-                            key === 'bookbag_url' ||
-                            key === 'lab_ui_url' ||
-                            key === 'labUserInterfaceUrl' ||
-                            key === 'showroom_primary_view_url' ||
-                            key === 'msg' ||
-                            key === 'users'
-                          ) {
+                </DescriptionList>
+                {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
+                  const resourceState = resourceStatus?.state;
+                  const componentDisplayName =
+                    catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
+                    resourceStatus?.name;
+                  const currentState =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.current_state ?? ''
+                      : '';
+                  const stopTimestamp =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.stop
+                      : null;
+                  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+                  const stopDate = stopTime ? new Date(stopTime) : null;
+                  const provisionData =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.provision_data
+                      : JSON.parse(resourceState?.data?.userData || '{}');
+                  const provisionMessages =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec?.vars?.provision_messages
+                      : provisionData?.msg;
+                  const provisionDataEntries = provisionData
+                    ? Object.entries(provisionData).filter(([key]) => {
+                        if (
+                          key === 'bookbag_url' ||
+                          key === 'lab_ui_url' ||
+                          key === 'labUserInterfaceUrl' ||
+                          key === 'showroom_primary_view_url' ||
+                          key === 'msg' ||
+                          key === 'users'
+                        ) {
+                          return false;
+                        }
+                        if (userData) {
+                          if (userData[key]) {
+                            return true;
+                          } else {
                             return false;
                           }
-                          if (userData) {
-                            if (userData[key]) {
-                              return true;
-                            } else {
-                              return false;
-                            }
-                          } else {
-                            return true;
-                          }
-                        })
+                        } else {
+                          return true;
+                        }
+                      })
+                    : null;
+
+                  const startTimestamp =
+                    resourceState?.kind == 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.start
                       : null;
+                  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+                  const startDate = startTime ? new Date(startTime) : null;
 
-                    const startTimestamp =
-                      resourceState?.kind == 'AnarchySubject'
-                        ? resourceState?.spec.vars.action_schedule?.start
-                        : null;
-                    const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-                    const startDate = startTime ? new Date(startTime) : null;
+                  const detailsProps = {
+                    resourceState,
+                    isAdmin,
+                    groups,
+                    externalPlatformUrl,
+                    isPartOfWorkshop: isManagedInstance,
+                    startDate,
+                    startTimestamp,
+                    stopDate,
+                    currentState,
+                    provisionDataEntries,
+                    provisionMessages,
+                  };
 
-                    const detailsProps = {
-                      resourceState,
-                      isAdmin,
-                      groups,
-                      externalPlatformUrl,
-                      isPartOfWorkshop: isManagedInstance,
-                      startDate,
-                      startTimestamp,
-                      stopDate,
-                      currentState,
-                      provisionDataEntries,
-                      provisionMessages,
-                    };
-
-                    if (resourceClaim.status?.resources?.length > 1) {
-                      return (
-                        <Card
-                          key={idx}
-                          id={`component-card-${idx}`}
-                          isExpanded={expanded.includes(`item-${idx}`)}
-                          isCompact
-                          className="services-item__component-card"
+                  if (resourceClaim.status?.resources?.length > 1) {
+                    return (
+                      <Card
+                        key={idx}
+                        id={`component-card-${idx}`}
+                        isExpanded={expanded.includes(`item-${idx}`)}
+                        isCompact
+                        className="services-item__component-card"
+                      >
+                        <CardHeader
+                          onExpand={() => toggle(`item-${idx}`)}
+                          toggleButtonProps={{
+                            id: `component-toggle-${idx}`,
+                            'aria-label': `Toggle ${componentDisplayName}`,
+                          }}
                         >
-                          <CardHeader
-                            onExpand={() => toggle(`item-${idx}`)}
-                            toggleButtonProps={{
-                              id: `component-toggle-${idx}`,
-                              'aria-label': `Toggle ${componentDisplayName}`,
-                            }}
-                          >
-                            <CardTitle>{componentDisplayName}</CardTitle>
-                          </CardHeader>
-                          <CardExpandableContent>
-                            <CardBody>
-                              <ComponentDetailsList {...detailsProps} isInsideCard />
-                            </CardBody>
-                          </CardExpandableContent>
-                        </Card>
-                      );
-                    }
+                          <CardTitle>{componentDisplayName}</CardTitle>
+                        </CardHeader>
+                        <CardExpandableContent>
+                          <CardBody>
+                            <ComponentDetailsList {...detailsProps} isInsideCard />
+                          </CardBody>
+                        </CardExpandableContent>
+                      </Card>
+                    );
+                  }
 
-                    return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
-                  })}
-                </DescriptionList>
+                  return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
+                })}
+                </>
               ) : null}
             </Tab>
 
