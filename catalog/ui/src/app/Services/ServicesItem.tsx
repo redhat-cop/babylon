@@ -24,10 +24,11 @@ import {
   Tab,
   TabTitleText,
   Title,
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionToggle,
+  Card,
+  CardBody,
+  CardExpandableContent,
+  CardHeader,
+  CardTitle,
   ExpandableSection,
   List,
   ListItem,
@@ -94,7 +95,6 @@ import {
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
 import CurrencyAmount from '@app/components/CurrencyAmount';
-import ConditionalWrapper from '@app/components/ConditionalWrapper';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -144,6 +144,7 @@ const ComponentDetailsList: React.FC<{
   groups: string[];
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
+  isInsideCard?: boolean;
   startDate: Date;
   startTimestamp: string;
   stopDate: Date;
@@ -156,6 +157,7 @@ const ComponentDetailsList: React.FC<{
   groups,
   externalPlatformUrl,
   isPartOfWorkshop,
+  isInsideCard,
   startDate,
   startTimestamp,
   stopDate,
@@ -191,7 +193,7 @@ const ComponentDetailsList: React.FC<{
   );
   const [now] = useState(() => Date.now());
   return (
-    <DescriptionList isHorizontal>
+    <DescriptionList isHorizontal={!isInsideCard}>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
           {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
@@ -1006,7 +1008,15 @@ const ServicesItemComponent: React.FC<{
                   Self-Paced Lab
                 </Label>
               ) : null}
-              {serviceAlias ? (
+              {isTenantClusterItem ? (
+                <Label
+                  key="service-item__tenant-cluster"
+                  tooltipDescription={<div>This service is a tenant cluster</div>}
+                >
+                  Cluster
+                </Label>
+              ) : null}
+              {serviceAlias && !isTenantClusterItem ? (
                 <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
                   {serviceAlias}
                 </Label>
@@ -1047,6 +1057,7 @@ const ServicesItemComponent: React.FC<{
             ) : null}
             <Tab eventKey="details" key="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
+                <>
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
@@ -1061,31 +1072,33 @@ const ServicesItemComponent: React.FC<{
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Alias</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <div
-                        className="service-item__group-control--single"
-                        style={{ maxWidth: 300, paddingBottom: '16px' }}
-                      >
-                        <TextInput
-                          type="text"
-                          key="service-alias"
-                          id="service-alias"
-                          onChange={async (_event: unknown, value: string) => {
-                            setServiceAlias(value);
-                          }}
-                          value={serviceAlias}
-                        />
-                        <Tooltip position="right" content={<div>Alias name for the service.</div>}>
-                          <OutlinedQuestionCircleIcon
-                            aria-label="Alias name for the service."
-                            className="tooltip-icon-only"
+                  {!isTenantClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Alias</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <div
+                          className="service-item__group-control--single"
+                          style={{ maxWidth: 300, paddingBottom: '16px' }}
+                        >
+                          <TextInput
+                            type="text"
+                            key="service-alias"
+                            id="service-alias"
+                            onChange={async (_event: unknown, value: string) => {
+                              setServiceAlias(value);
+                            }}
+                            value={serviceAlias}
                           />
-                        </Tooltip>
-                      </div>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                          <Tooltip position="right" content={<div>Alias name for the service.</div>}>
+                            <OutlinedQuestionCircleIcon
+                              aria-label="Alias name for the service."
+                              className="tooltip-icon-only"
+                            />
+                          </Tooltip>
+                        </div>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
                   {labUserInterfaceUrl ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
@@ -1278,11 +1291,13 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {isTenantClusterItem && sandboxApiStatus !== 'loading' ? (
+                  {isTenantClusterItem ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Sandbox API</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {pendingTenantAction ? (
+                        {sandboxApiStatus === 'loading' ? (
+                          <Spinner size="md" />
+                        ) : pendingTenantAction ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             <Spinner size="md" />
                             {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
@@ -1507,117 +1522,105 @@ const ServicesItemComponent: React.FC<{
                       </DescriptionListGroup>
                     </>
                   ) : null}
-                  <ConditionalWrapper
-                    condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
-                    wrapper={(children) => (
-                      <section>
-                        <header>
-                          <h3
-                            style={{
-                              fontSize: 'var(--pf-t--global--font--size--sm)',
-                              fontWeight: 'var(--pf-t--global--font--weight--heading--bold)',
-                              lineHeight: 'var(--pf-t--global--font--line-height--heading)',
-                              marginBottom: 'var(--pf-t--global--spacer--sm)',
-                            }}
-                          >
-                            Components
-                          </h3>
-                        </header>
-                        <Accordion asDefinitionList={false}>
-                          {children}
-                        </Accordion>
-                      </section>
-                    )}
-                  >
-                    <div>
-                      {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
-                        const resourceState = resourceStatus?.state;
-                        const componentDisplayName =
-                          catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
-                          resourceStatus?.name;
-                        const currentState =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState.spec.vars?.current_state ?? ''
-                            : '';
-                        const stopTimestamp =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState?.spec.vars.action_schedule?.stop
-                            : null;
-                        const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-                        const stopDate = stopTime ? new Date(stopTime) : null;
-                        const provisionData =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState.spec.vars?.provision_data
-                            : JSON.parse(resourceState?.data?.userData || '{}');
-                        const provisionMessages =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState?.spec?.vars?.provision_messages
-                            : provisionData?.msg;
-                        const provisionDataEntries = provisionData
-                          ? Object.entries(provisionData).filter(([key]) => {
-                              if (
-                                key === 'bookbag_url' ||
-                                key === 'lab_ui_url' ||
-                                key === 'labUserInterfaceUrl' ||
-                                key === 'showroom_primary_view_url' ||
-                                key === 'msg' ||
-                                key === 'users'
-                              ) {
-                                return false;
-                              }
-                              if (userData) {
-                                if (userData[key]) {
-                                  return true;
-                                } else {
-                                  return false;
-                                }
-                              } else {
-                                return true;
-                              }
-                            })
-                          : null;
-
-                        const startTimestamp =
-                          resourceState?.kind == 'AnarchySubject'
-                            ? resourceState?.spec.vars.action_schedule?.start
-                            : null;
-                        const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-                        const startDate = startTime ? new Date(startTime) : null;
-
-                        return (
-                          <ConditionalWrapper
-                            key={idx}
-                            condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
-                            wrapper={(children) => (
-                              <Accordion asDefinitionList={false}>
-                                <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
-                                  <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
-                                    {componentDisplayName}
-                                  </AccordionToggle>
-                                  <AccordionContent id={`item-${idx}`}>{children}</AccordionContent>
-                                </AccordionItem>
-                              </Accordion>
-                            )}
-                          >
-                            <ComponentDetailsList
-                              resourceState={resourceState}
-                              isAdmin={isAdmin}
-                              groups={groups}
-                              externalPlatformUrl={externalPlatformUrl}
-                              isPartOfWorkshop={isManagedInstance}
-                              startDate={startDate}
-                              startTimestamp={startTimestamp}
-                              stopDate={stopDate}
-                              currentState={currentState}
-                              provisionDataEntries={provisionDataEntries}
-                              provisionMessages={provisionMessages}
-                            />
-                          </ConditionalWrapper>
-                        );
-                      })}
-                    </div>
-                  </ConditionalWrapper>
                 </DescriptionList>
+                {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
+                  const resourceState = resourceStatus?.state;
+                  const componentDisplayName =
+                    catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
+                    resourceStatus?.name;
+                  const currentState =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.current_state ?? ''
+                      : '';
+                  const stopTimestamp =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.stop
+                      : null;
+                  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+                  const stopDate = stopTime ? new Date(stopTime) : null;
+                  const provisionData =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.provision_data
+                      : JSON.parse(resourceState?.data?.userData || '{}');
+                  const provisionMessages =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec?.vars?.provision_messages
+                      : provisionData?.msg;
+                  const provisionDataEntries = provisionData
+                    ? Object.entries(provisionData).filter(([key]) => {
+                        if (
+                          key === 'bookbag_url' ||
+                          key === 'lab_ui_url' ||
+                          key === 'labUserInterfaceUrl' ||
+                          key === 'showroom_primary_view_url' ||
+                          key === 'msg' ||
+                          key === 'users'
+                        ) {
+                          return false;
+                        }
+                        if (userData) {
+                          if (userData[key]) {
+                            return true;
+                          } else {
+                            return false;
+                          }
+                        } else {
+                          return true;
+                        }
+                      })
+                    : null;
+
+                  const startTimestamp =
+                    resourceState?.kind == 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.start
+                      : null;
+                  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+                  const startDate = startTime ? new Date(startTime) : null;
+
+                  const detailsProps = {
+                    resourceState,
+                    isAdmin,
+                    groups,
+                    externalPlatformUrl,
+                    isPartOfWorkshop: isManagedInstance,
+                    startDate,
+                    startTimestamp,
+                    stopDate,
+                    currentState,
+                    provisionDataEntries,
+                    provisionMessages,
+                  };
+
+                  if (resourceClaim.status?.resources?.length > 1) {
+                    return (
+                      <Card
+                        key={idx}
+                        id={`component-card-${idx}`}
+                        isExpanded={expanded.includes(`item-${idx}`)}
+                        isCompact
+                        className="services-item__component-card"
+                      >
+                        <CardHeader
+                          onExpand={() => toggle(`item-${idx}`)}
+                          toggleButtonProps={{
+                            id: `component-toggle-${idx}`,
+                            'aria-label': `Toggle ${componentDisplayName}`,
+                          }}
+                        >
+                          <CardTitle>{componentDisplayName}</CardTitle>
+                        </CardHeader>
+                        <CardExpandableContent>
+                          <CardBody>
+                            <ComponentDetailsList {...detailsProps} isInsideCard />
+                          </CardBody>
+                        </CardExpandableContent>
+                      </Card>
+                    );
+                  }
+
+                  return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
+                })}
+                </>
               ) : null}
             </Tab>
 
@@ -1635,7 +1638,7 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
 
-            {workshopName && !isPartOfWorkshop ? (
+            {workshopName && !isPartOfWorkshop && !isTenantClusterItem ? (
               <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                 {activeTab === 'workshop' ? (
                   <WorkshopsItemDetails
@@ -1646,7 +1649,7 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
-            {workshopName && !isPartOfWorkshop ? (
+            {workshopName && !isPartOfWorkshop && !isTenantClusterItem ? (
               <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <WorkshopsItemUserAssignments
@@ -1655,7 +1658,7 @@ const ServicesItemComponent: React.FC<{
                   />
                 ) : null}
               </Tab>
-            ) : serviceHasUsers ? (
+            ) : serviceHasUsers && !isTenantClusterItem ? (
               <Tab eventKey="users" key="enable-users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <>
