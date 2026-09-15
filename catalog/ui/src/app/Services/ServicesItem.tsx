@@ -144,6 +144,7 @@ const ComponentDetailsList: React.FC<{
   groups: string[];
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
+  isInsideCard?: boolean;
   startDate: Date;
   startTimestamp: string;
   stopDate: Date;
@@ -156,6 +157,7 @@ const ComponentDetailsList: React.FC<{
   groups,
   externalPlatformUrl,
   isPartOfWorkshop,
+  isInsideCard,
   startDate,
   startTimestamp,
   stopDate,
@@ -191,7 +193,7 @@ const ComponentDetailsList: React.FC<{
   );
   const [now] = useState(() => Date.now());
   return (
-    <DescriptionList isHorizontal>
+    <DescriptionList isHorizontal={!isInsideCard}>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
           {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
@@ -1565,21 +1567,19 @@ const ServicesItemComponent: React.FC<{
                     const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
                     const startDate = startTime ? new Date(startTime) : null;
 
-                    const details = (
-                      <ComponentDetailsList
-                        resourceState={resourceState}
-                        isAdmin={isAdmin}
-                        groups={groups}
-                        externalPlatformUrl={externalPlatformUrl}
-                        isPartOfWorkshop={isManagedInstance}
-                        startDate={startDate}
-                        startTimestamp={startTimestamp}
-                        stopDate={stopDate}
-                        currentState={currentState}
-                        provisionDataEntries={provisionDataEntries}
-                        provisionMessages={provisionMessages}
-                      />
-                    );
+                    const detailsProps = {
+                      resourceState,
+                      isAdmin,
+                      groups,
+                      externalPlatformUrl,
+                      isPartOfWorkshop: isManagedInstance,
+                      startDate,
+                      startTimestamp,
+                      stopDate,
+                      currentState,
+                      provisionDataEntries,
+                      provisionMessages,
+                    };
 
                     if (resourceClaim.status?.resources?.length > 1) {
                       return (
@@ -1600,13 +1600,15 @@ const ServicesItemComponent: React.FC<{
                             <CardTitle>{componentDisplayName}</CardTitle>
                           </CardHeader>
                           <CardExpandableContent>
-                            <CardBody>{details}</CardBody>
+                            <CardBody>
+                              <ComponentDetailsList {...detailsProps} isInsideCard />
+                            </CardBody>
                           </CardExpandableContent>
                         </Card>
                       );
                     }
 
-                    return <React.Fragment key={idx}>{details}</React.Fragment>;
+                    return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
                   })}
                 </DescriptionList>
               ) : null}
