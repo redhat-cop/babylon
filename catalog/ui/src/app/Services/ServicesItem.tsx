@@ -1280,11 +1280,13 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {isTenantClusterItem && sandboxApiStatus !== 'loading' ? (
+                  {isTenantClusterItem ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Sandbox API</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {pendingTenantAction ? (
+                        {sandboxApiStatus === 'loading' ? (
+                          <Spinner size="md" />
+                        ) : pendingTenantAction ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             <Spinner size="md" />
                             {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
