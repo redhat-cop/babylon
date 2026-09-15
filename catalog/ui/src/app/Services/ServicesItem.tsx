@@ -1008,6 +1008,14 @@ const ServicesItemComponent: React.FC<{
                   Self-Paced Lab
                 </Label>
               ) : null}
+              {isTenantClusterItem ? (
+                <Label
+                  key="service-item__tenant-cluster"
+                  tooltipDescription={<div>This service is a tenant cluster</div>}
+                >
+                  Cluster
+                </Label>
+              ) : null}
               {serviceAlias && !isTenantClusterItem ? (
                 <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
                   {serviceAlias}
