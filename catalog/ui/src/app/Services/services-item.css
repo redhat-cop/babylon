@@ -136,3 +136,11 @@
   display: flex;
   align-items: center;
 }
+
+.services-item__component-card.pf-v6-c-card {
+  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+.services-item__component-card .pf-v6-c-card__title {
+  font-size: var(--pf-t--global--font--size--body--default);
+}
