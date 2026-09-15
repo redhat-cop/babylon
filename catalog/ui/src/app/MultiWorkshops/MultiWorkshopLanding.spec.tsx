@@ -1,5 +1,5 @@
 import React from 'react';
-import { waitFor, screen } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { render as customRender } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';
 import MultiWorkshopLanding from './MultiWorkshopLanding';
