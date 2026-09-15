@@ -141,6 +141,16 @@
   margin-top: var(--pf-t--global--spacer--sm);
 }
 
+.services-item__component-card .pf-v6-c-card__header {
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+}
+
 .services-item__component-card .pf-v6-c-card__title {
   font-size: var(--pf-t--global--font--size--body--default);
+  flex: 1;
+  max-width: none;
+}
+
+.services-item__component-card .pf-v6-c-card__body {
+  padding-top: 0;
 }
