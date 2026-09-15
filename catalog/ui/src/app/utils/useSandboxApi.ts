@@ -27,7 +27,7 @@ export default function useSandboxApi(
     silentFetcher,
     { shouldRetryOnError: false, refreshInterval: 8000, suspense: false },
   );
-  const { data: configData, mutate: mutateConfig } = useSWR(
+  const { data: configData, isLoading: isConfigLoading, mutate: mutateConfig } = useSWR(
     clusterName && placementsData?.placements
       ? apiPaths.SANDBOX_CLUSTER_CONFIG({ clusterName })
       : null,
@@ -51,12 +51,12 @@ export default function useSandboxApi(
   }, [resourceClaim?.metadata?.annotations]);
 
   const status: SandboxApiStatus = useMemo(() => {
-    if (isLoading) return 'loading';
+    if (isLoading || isConfigLoading) return 'loading';
     if (placementsData?.placements) {
       return configData?.valid === true ? 'available' : 'disabled';
     }
     return 'not onboarded';
-  }, [isLoading, placementsData, configData]);
+  }, [isLoading, isConfigLoading, placementsData, configData]);
 
   const placementCount = placementsData?.placements?.length ?? 0;
   const maxPlacements: number | null = configData?.max_placements ?? null;
