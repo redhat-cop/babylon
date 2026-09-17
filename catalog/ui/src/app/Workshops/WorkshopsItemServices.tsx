@@ -135,7 +135,7 @@ const WorkshopsItemServices: React.FC<{
     <>
       <SelectableTable
         key="table"
-        columns={['Name', 'GUID', 'Status', 'Assigned User', 'Created', 'Actions']}
+        columns={['Name', 'GUID', 'Status', 'Assigned User(s)', 'Created', 'Actions']}
         onSelectAll={(isSelected: boolean) => {
           if (isSelected) {
             setSelectedUids(resourceClaims.map((resourceClaim) => resourceClaim.metadata.uid));
