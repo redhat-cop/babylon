@@ -1,0 +1,99 @@
+.whats-new-header {
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.whats-new-last-updated {
+  margin-top: var(--pf-t--global--spacer--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  font-size: var(--pf-t--global--font--size--sm);
+}
+
+.whats-new-content {
+  max-width: 900px;
+  line-height: 1.6;
+}
+
+.whats-new-content h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+.whats-new-content h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.whats-new-content h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.whats-new-content h4 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.whats-new-content h5 {
+  font-size: 1em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.whats-new-content h6 {
+  font-size: 0.9em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.whats-new-content p {
+  margin: 0.5em 0;
+}
+
+.whats-new-content ul,
+.whats-new-content ol {
+  padding-left: 2em;
+  margin: 0.5em 0;
+}
+
+.whats-new-content ul {
+  list-style-type: disc;
+}
+
+.whats-new-content ol {
+  list-style-type: decimal;
+}
+
+.whats-new-content ul ul {
+  list-style-type: circle;
+}
+
+.whats-new-content ul ul ul {
+  list-style-type: square;
+}
+
+.whats-new-content li {
+  display: list-item;
+  margin: 0.25em 0;
+}
+
+.whats-new-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.whats-new-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.whats-new-content th,
+.whats-new-content td {
+  border: 1px solid var(--pf-t--global--border--color--default);
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
+  text-align: left;
+}
