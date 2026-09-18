@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Badge, Checkbox } from '@patternfly/react-core';
 import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-icon';
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
-import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
+import type { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import WorkshopBar from './WorkshopBar';
 
 interface ProvisionProgress {

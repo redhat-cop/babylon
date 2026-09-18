@@ -1,32 +1,8 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import { Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import {
-  Backdrop,
-  Button,
-  Card,
-  CardBody,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerPanelContent,
-  EmptyState,
-  PageSection,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-  Title,
-  Tooltip,
-  Select,
-  SelectOption,
-  SelectList,
-  MenuToggleElement,
-  MenuToggle,
-} from '@patternfly/react-core';
+import { Backdrop, Button, Card, CardBody, Drawer, DrawerContent, DrawerContentBody, DrawerPanelContent, EmptyState, PageSection, Sidebar, SidebarContent, SidebarPanel, Split, SplitItem, Stack, StackItem, Title, Tooltip, Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
@@ -34,7 +10,7 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { Bookmark, BookmarkList, CatalogItem, CatalogItemIncidents } from '@app/types';
+import type { Bookmark, BookmarkList, CatalogItem, CatalogItemIncidents } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import {

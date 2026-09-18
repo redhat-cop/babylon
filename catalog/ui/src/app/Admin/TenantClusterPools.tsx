@@ -17,7 +17,7 @@ import AngleRightIcon from '@patternfly/react-icons/dist/js/icons/angle-right-ic
 import AngleDownIcon from '@patternfly/react-icons/dist/js/icons/angle-down-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
+import type { TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import TimeInterval from '@app/components/TimeInterval';
 import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';

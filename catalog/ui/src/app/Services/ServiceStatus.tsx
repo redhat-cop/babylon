@@ -7,7 +7,7 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import HourglassHalfIcon from '@patternfly/react-icons/dist/js/icons/hourglass-half-icon';
-import { AnarchySubject, ResourceClaim } from '@app/types';
+import type { AnarchySubject, ResourceClaim } from '@app/types';
 import { getMostRelevantResourceAndTemplate } from './service-utils';
 
 import './service-status.css';

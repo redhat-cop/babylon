@@ -1,6 +1,6 @@
 import React from 'react';
 import PackageIcon from '@patternfly/react-icons/dist/js/icons/package-icon';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 
 const CatalogItemIcon: React.FC<{
   catalogItem: CatalogItem;

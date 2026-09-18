@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { getPhaseState, getStatus, InnerStatus } from '@app/Services/ServiceStatus';
 import { getAutoTimes, getMostRelevantResourceAndTemplate } from '@app/Services/service-utils';
 

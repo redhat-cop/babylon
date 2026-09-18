@@ -87,7 +87,7 @@ import {
   patchWorkshopProvision,
   scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
-import {
+import type {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,

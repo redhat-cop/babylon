@@ -22,7 +22,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyGovernor, fetcher } from '@app/api';
-import { AnarchyGovernor, AnarchySubjectList } from '@app/types';
+import type { AnarchyGovernor, AnarchySubjectList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';

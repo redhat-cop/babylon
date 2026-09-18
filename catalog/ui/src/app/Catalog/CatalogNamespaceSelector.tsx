@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Radio, Stack, StackItem, Title } from '@patternfly/react-core';
-import { CatalogNamespace } from '@app/types';
+import type { CatalogNamespace } from '@app/types';
 import { displayName } from '@app/util';
 import { ALL_CATALOGS_NS } from './catalog-utils';
 

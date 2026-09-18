@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ResourcePoolSelector from './ResourcePoolSelector';
-import { ResourcePool } from '@app/types';
+import type { ResourcePool } from '@app/types';
 
 const mockResourcePools: ResourcePool[] = [
   {

@@ -17,7 +17,7 @@ import {
   ModalHeader,
   SearchInput,
 } from '@patternfly/react-core';
-import { User, UserList } from '@app/types';
+import type { User, UserList } from '@app/types';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 import useSession from '@app/utils/useSession';
 

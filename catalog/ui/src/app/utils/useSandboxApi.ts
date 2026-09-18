@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import useSWR from 'swr';
 import { apiPaths, silentFetcher, setTenantClusterAction } from '@app/api';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 
 export type SandboxApiStatus = 'loading' | 'not onboarded' | 'available' | 'disabled';

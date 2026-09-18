@@ -2,39 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import {
-  ActionList,
-  ActionListItem,
-  Alert,
-  Breadcrumb,
-  BreadcrumbItem,
-  Button,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Form,
-  FormGroup,
-  Label,
-  LabelGroup,
-  MenuToggle,
-  MenuToggleElement,
-  PageSection,
-  ProgressStep,
-  ProgressStepper,
-  Radio,
-  Select,
-  SelectList,
-  SelectOption,
-  Split,
-  SplitItem,
-  Tab,
-  Tabs,
-  TabTitleText,
-  TextArea,
-  TextInput,
-  Title,
-} from '@patternfly/react-core';
+import { ActionList, ActionListItem, Alert, Breadcrumb, BreadcrumbItem, Button, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, Form, FormGroup, Label, LabelGroup, MenuToggle, PageSection, ProgressStep, ProgressStepper, Radio, Select, SelectList, SelectOption, Split, SplitItem, Tab, Tabs, TabTitleText, TextArea, TextInput, Title } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFooter, ModalHeader as PFModalHeader } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
@@ -42,7 +11,7 @@ import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
-import { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
+import type { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';

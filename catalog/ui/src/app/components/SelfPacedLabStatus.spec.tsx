@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import SelfPacedLabStatus from './SelfPacedLabStatus';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 
 describe('SelfPacedLabStatus', () => {
   describe('with poolCount prop', () => {

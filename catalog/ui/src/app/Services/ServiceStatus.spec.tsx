@@ -2,7 +2,7 @@ import React from 'react';
 import stoppedResourceClaimObj from '../__mocks__/resourceClaim--stopped.json';
 import failedResourceClaimObj from '../__mocks__/resourceClaim--provision-fail.json';
 import { render, waitFor } from '@app/utils/test-utils';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import ServiceStatus from './ServiceStatus';
 
 jest.mock('react-redux', () => {

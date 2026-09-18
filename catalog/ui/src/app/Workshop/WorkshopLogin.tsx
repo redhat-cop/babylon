@@ -16,7 +16,7 @@ import ArrowRightIcon from '@patternfly/react-icons/dist/js/icons/arrow-right-ic
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
-import { WorkshopDetails } from './workshopApi';
+import type { WorkshopDetails } from './workshopApi';
 import { renderContent } from '@app/util';
 
 import './workshop-login.css';

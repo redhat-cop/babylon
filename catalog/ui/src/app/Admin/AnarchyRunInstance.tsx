@@ -23,7 +23,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyRun, fetcher, retryAnarchyRun } from '@app/api';
-import { AnarchyRun } from '@app/types';
+import type { AnarchyRun } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import AnsibleRunLog from '@app/components/AnsibleRunLog';
 import LocalTimestamp from '@app/components/LocalTimestamp';

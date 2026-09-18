@@ -20,7 +20,7 @@ import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclama
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { apiPaths, fetcher, silentFetcher } from '@app/api';
-import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
+import type { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Alert, AlertGroup, Form, FormGroup, Switch } from '@patternfly/react-core';
-import { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
+import type { ResourceClaim, WorkshopWithResourceClaims } from '@app/types';
 import { displayName } from '@app/util';
 import DateTimePicker from '@app/components/DateTimePicker';
 import TimezoneSelector from '@app/components/TimezoneSelector';

@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from '@app/store';
 import { createMemoryHistory, MemoryHistory } from 'history';
 import { SWRConfig } from 'swr';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {

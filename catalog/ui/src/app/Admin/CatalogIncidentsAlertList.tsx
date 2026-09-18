@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Badge, Label, Panel, PanelMain, Title } from '@patternfly/react-core';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
-import { CatalogItem, CatalogItemIncidents } from '@app/types';
+import type { CatalogItem, CatalogItemIncidents } from '@app/types';
 import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import TimeInterval from '@app/components/TimeInterval';
 import { fetchCatalog } from '@app/Catalog/Catalog';

@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { IAppRoute } from './types';
+import type { IAppRoute } from './types';
 import AppLayout from './AppLayout/AppLayout';
 import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';

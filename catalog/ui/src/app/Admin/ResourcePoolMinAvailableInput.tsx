@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NumberInput, Spinner } from '@patternfly/react-core';
 import { patchResourcePool } from '@app/api';
-import { ResourcePool } from '@app/types';
+import type { ResourcePool } from '@app/types';
 
 const ResourcePoolMinAvailableInput: React.FC<{
   resourcePoolName: string;

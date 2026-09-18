@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { apiPaths, fetcher, patchWorkshopProvision } from '@app/api';
-import { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
+import type { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
 import { displayName } from '@app/util';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import PatientNumberInput from '@app/components/PatientNumberInput';

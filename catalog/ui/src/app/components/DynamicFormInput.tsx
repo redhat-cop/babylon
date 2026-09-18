@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Checkbox,
-  MenuToggle,
-  MenuToggleElement,
-  NumberInput,
-  Radio,
-  Select,
-  SelectList,
-  SelectOption,
-  TextInput,
-} from '@patternfly/react-core';
+import { Checkbox, MenuToggle, NumberInput, Radio, Select, SelectList, SelectOption, TextInput } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 
 const DynamicFormInput: React.FC<{
   id?: string;

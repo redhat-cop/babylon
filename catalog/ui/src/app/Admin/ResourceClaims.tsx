@@ -22,7 +22,7 @@ import {
   startAllResourcesInResourceClaim,
   stopAllResourcesInResourceClaim,
 } from '@app/api';
-import { ResourceClaim, ResourceClaimList, ServiceActionActions } from '@app/types';
+import type { ResourceClaim, ResourceClaimList, ServiceActionActions } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import HourglassHalfIcon from '@patternfly/react-icons/dist/js/icons/hourglass-half-icon';
 import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
 
 const SelfPacedLabStatus: React.FC<{

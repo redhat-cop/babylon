@@ -1,29 +1,12 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
 import Fuse from 'fuse.js';
-import { Grid, CellComponentProps } from 'react-window';
-import {
-  Modal,
-  Button,
-  SearchInput,
-  EmptyState,
-  EmptyStateBody,
-  Title,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  MenuToggle,
-  MenuToggleElement,
-  Checkbox,
-  Split,
-  SplitItem,
-  CardBody,
-  CardHeader,
-  Badge,
-  Tooltip,
-} from '@patternfly/react-core';
+import { Grid } from 'react-window';
+import type { CellComponentProps } from 'react-window';
+import { Modal, Button, SearchInput, EmptyState, EmptyStateBody, Title, Dropdown, DropdownItem, DropdownList, MenuToggle, Checkbox, Split, SplitItem, CardBody, CardHeader, Badge, Tooltip } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useSWR from 'swr';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';

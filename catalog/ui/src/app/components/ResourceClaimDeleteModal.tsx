@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
 
 const ResourceClaimDeleteModal: React.FC<{

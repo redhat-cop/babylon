@@ -24,7 +24,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, deleteWhiteGloveRequest, fetcher, silentFetcher, updateSystemStatus } from '@app/api';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
-import { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
+import type { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import TimeInterval from '@app/components/TimeInterval';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';

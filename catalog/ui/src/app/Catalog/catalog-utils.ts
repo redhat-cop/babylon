@@ -1,4 +1,4 @@
-import { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
+import type { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
 
 export const ALL_CATALOGS_NS = 'all';

@@ -16,7 +16,7 @@ import ArrowRightIcon from '@patternfly/react-icons/dist/js/icons/arrow-right-ic
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
-import { SelfPacedLabDetails } from './selfPacedLabApi';
+import type { SelfPacedLabDetails } from './selfPacedLabApi';
 import { renderContent } from '@app/util';
 
 import '@app/Workshop/workshop-login.css';

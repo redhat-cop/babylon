@@ -5,9 +5,9 @@ import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
-import { WorkshopDetails } from './workshopApi';
+import type { WorkshopDetails } from './workshopApi';
 import { createAsciiDocAttributes } from '@app/Services/service-utils';
-import { MessageTemplate } from '@app/types';
+import type { MessageTemplate } from '@app/types';
 import AdocWrapper from '@app/components/AdocWrapper';
 
 import './workshop-content.css';

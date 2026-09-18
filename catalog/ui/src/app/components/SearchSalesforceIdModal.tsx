@@ -19,7 +19,7 @@ import {
 } from '@patternfly/react-core';
 import LoadingIcon from './LoadingIcon';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
+import type { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
 async function fetchAccounts(accountValue: string, sfdcType: SfdcType): Promise<SalesforceAccount[]> {

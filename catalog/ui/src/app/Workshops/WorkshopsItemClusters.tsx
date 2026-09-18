@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { K8sObjectReference, ResourceClaim } from '@app/types';
+import type { K8sObjectReference, ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';

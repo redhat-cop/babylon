@@ -1,23 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  Masthead,
-  MastheadLogo,
-  MastheadContent,
-  MastheadMain,
-  MastheadToggle,
-  MastheadBrand,
-  MenuToggle,
-  PageToggleButton,
-  MenuToggleElement,
-  Toolbar,
-  ToolbarContent,
-  ToolbarGroup,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownList, DropdownItem, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadToggle, MastheadBrand, MenuToggle, PageToggleButton, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
