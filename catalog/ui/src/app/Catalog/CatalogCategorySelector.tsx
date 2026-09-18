@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Checkbox, Tooltip, Stack, StackItem, Title } from '@patternfly/react-core';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import { formatString, getCategory } from './catalog-utils';
 

@@ -1,6 +1,6 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import {
+import type {
   AccessControl,
   AnarchySubject,
   CatalogItem,

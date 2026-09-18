@@ -34,7 +34,7 @@ import {
   startWorkshopServices,
   stopWorkshop,
 } from '@app/api';
-import {
+import type {
   NamespaceList,
   CatalogItem,
   RequestUsageCost,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { canExecuteAction, checkResourceClaimCanStop, isResourceClaimPartOfWorkshop } from '@app/util';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import LocalTimestamp from './LocalTimestamp';
 import TimeInterval from './TimeInterval';

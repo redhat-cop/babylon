@@ -1,4 +1,4 @@
-import { K8sObject } from '@app/types';
+import type { K8sObject } from '@app/types';
 
 export interface SelectedUidsAction {
   type: string;

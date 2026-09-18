@@ -5,7 +5,7 @@ import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/re
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteResourceHandle, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourceHandle, ResourceHandleList } from '@app/types';
+import type { ResourceHandle, ResourceHandleList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import LoadingIcon from '@app/components/LoadingIcon';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResourceClaimWithCollaborator, ServiceActionActions } from '@app/types';
+import type { ResourceClaimWithCollaborator, ServiceActionActions } from '@app/types';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 

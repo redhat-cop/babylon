@@ -18,7 +18,7 @@ import useSWR from 'swr';
 import { apiFetch, apiPaths } from '@app/api';
 import LoadingSection from '@app/components/LoadingSection';
 import CurrencyAmount from '@app/components/CurrencyAmount';
-import { UserActivityResponse } from '@app/types';
+import type { UserActivityResponse } from '@app/types';
 import './Activity.css';
 
 function getMonthDateRange(monthOffset: number = 0): { start_date: string; end_date: string } {

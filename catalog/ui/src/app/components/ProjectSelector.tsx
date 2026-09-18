@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import { List, RowComponentProps } from 'react-window';
+import { List } from 'react-window';
+import type { RowComponentProps } from 'react-window';
 import useSession from '@app/utils/useSession';
-import { ServiceNamespace } from '@app/types';
+import type { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 import { namespaceToServiceNamespaceMapper } from '@app/util';
 import LoadingIcon from './LoadingIcon';

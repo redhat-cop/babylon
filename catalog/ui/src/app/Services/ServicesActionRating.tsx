@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResourceClaim, ServiceActionActions } from '@app/types';
+import type { ResourceClaim, ServiceActionActions } from '@app/types';
 import StarRating from '@app/components/StarRating';
 import { Form, FormGroup, Radio, TextArea } from '@patternfly/react-core';
 import { apiPaths, fetcher } from '@app/api';

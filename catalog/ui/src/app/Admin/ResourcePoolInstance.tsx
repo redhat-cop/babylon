@@ -37,7 +37,7 @@ import {
   fetcherItemsInAllPages,
 } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
+import type { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import DateTimePicker from '@app/components/DateTimePicker';
 import TimezoneSelector from '@app/components/TimezoneSelector';

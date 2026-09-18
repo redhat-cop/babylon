@@ -3,9 +3,9 @@ import {
   createServiceRequest,
   createWorkshop,
   createWorkshopProvision,
-  CreateServiceRequestParameterValues,
 } from '@app/api';
-import {
+import type { CreateServiceRequestParameterValues } from '@app/api';
+import type {
   CatalogItem,
   ResourceClaim,
   ServiceNamespace,

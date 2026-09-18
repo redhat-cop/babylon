@@ -1,4 +1,4 @@
-import { WorkshopUserAssignmentSpec } from '@app/types';
+import type { WorkshopUserAssignmentSpec } from '@app/types';
 
 class WorkshopLoginFailedError extends Error {}
 

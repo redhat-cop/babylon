@@ -1,5 +1,6 @@
 import React from 'react';
-import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
+import { NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
+import type { LinkProps } from 'react-router-dom';
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';

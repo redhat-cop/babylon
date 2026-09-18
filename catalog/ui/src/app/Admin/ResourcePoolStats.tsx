@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { Spinner } from '@patternfly/react-core';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { ResourceHandle } from '@app/types';
+import type { ResourceHandle } from '@app/types';
 import useSWR from 'swr';
 import { FETCH_BATCH_LIMIT } from '@app/util';
 import getPoolStatus from './getPoolStatus';

@@ -6,7 +6,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 import { renderContent, BABYLON_DOMAIN } from '@app/util';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 
 const UserMessage: React.FC<{

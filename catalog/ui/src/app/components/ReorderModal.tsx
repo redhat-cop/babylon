@@ -8,18 +8,17 @@ import {
   DescriptionListTerm,
 } from '@patternfly/react-core';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import CatalogItemFormAutoStopDestroyModal, {
-  TDatesTypes,
-} from '@app/Catalog/CatalogItemFormAutoStopDestroyModal';
+import CatalogItemFormAutoStopDestroyModal from '@app/Catalog/CatalogItemFormAutoStopDestroyModal';
+import type { TDatesTypes } from '@app/Catalog/CatalogItemFormAutoStopDestroyModal';
 import ReorderScheduleStartModal from '@app/components/ReorderScheduleStartModal';
 import { isAutoStopDisabled } from '@app/Catalog/catalog-utils';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import {
   getInitialReorderSchedule,
   isValidReorderSchedule,
   parseCatalogDuration,
-  ReorderSchedule,
 } from '@app/reorder-utils';
+import type { ReorderSchedule } from '@app/reorder-utils';
 
 type ScheduleModalType = 'start' | TDatesTypes | null;
 

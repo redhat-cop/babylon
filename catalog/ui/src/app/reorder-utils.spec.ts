@@ -6,7 +6,7 @@ import {
   isNoAutoStop,
   isValidReorderSchedule,
 } from './reorder-utils';
-import { CatalogItem, ResourceClaim, Workshop } from '@app/types';
+import type { CatalogItem, ResourceClaim, Workshop } from '@app/types';
 
 const catalogItem: CatalogItem = {
   apiVersion: 'babylon.gpte.redhat.com/v1',

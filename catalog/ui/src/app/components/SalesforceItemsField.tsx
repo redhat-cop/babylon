@@ -4,7 +4,7 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { SalesforceItem, SfdcType } from '@app/types';
+import type { SalesforceItem, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 import { checkSalesforceId, apiFetch } from '@app/api';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, waitFor, fireEvent, generateSession } from '../utils/test-utils';
 import Catalog from './Catalog';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),

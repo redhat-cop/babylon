@@ -4,7 +4,7 @@ import { generateSession, render, waitFor } from '../utils/test-utils';
 import CatalogItemAdmin from './CatalogItemAdmin';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import catalogItemIncident from '../__mocks__/catalogItemIncident.json';
-import { CatalogItem, CatalogItemIncident } from '@app/types';
+import type { CatalogItem, CatalogItemIncident } from '@app/types';
 import userEvent from '@testing-library/user-event';
 import { apiPaths, fetcher } from '@app/api';
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox, Tooltip } from '@patternfly/react-core';
-import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
+import type { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import { displayName, BABYLON_DOMAIN, getStageFromK8sObject } from '@app/util';
 import { dateUrgency, relativeTime } from '../Ops';
 

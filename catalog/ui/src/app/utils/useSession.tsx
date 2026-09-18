@@ -15,9 +15,9 @@ import {
   selectUserRoles,
   useAppDispatch,
   useAppSelector,
-  AppDispatch,
 } from '@app/store';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { AppDispatch } from '@app/store';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import useImpersonateUser from './useImpersonateUser';
 
 async function getSessionFn(dispatch: AppDispatch) {

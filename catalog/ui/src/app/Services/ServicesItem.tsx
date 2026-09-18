@@ -62,7 +62,7 @@ import {
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
 } from '@app/api';
-import {
+import type {
   AnarchySubject,
   CatalogItem,
   K8sObject,

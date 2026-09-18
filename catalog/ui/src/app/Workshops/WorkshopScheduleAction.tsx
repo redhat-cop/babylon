@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Form, FormGroup, Switch } from '@patternfly/react-core';
-import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import type { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
 import TimezoneSelector from '@app/components/TimezoneSelector';
 import { getBrowserTimezone } from '@app/components/timezones';

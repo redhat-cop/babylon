@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Button, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from '@patternfly/react-core';
-import { SandboxApiStatus } from '@app/utils/useSandboxApi';
+import type { SandboxApiStatus } from '@app/utils/useSandboxApi';
 
 const actionLabels: Record<string, string> = {
   onboard: 'Onboarding...',

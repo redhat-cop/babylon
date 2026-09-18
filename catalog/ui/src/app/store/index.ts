@@ -1,6 +1,6 @@
 import { createAction, createReducer, configureStore, createSelector } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 
 export interface ActionSetImpersonation {
   admin: boolean;

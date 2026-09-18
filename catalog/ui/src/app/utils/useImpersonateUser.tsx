@@ -6,8 +6,8 @@ import {
   selectImpersonationUser,
   useAppDispatch,
   useAppSelector,
-  AppDispatch,
 } from '@app/store';
+import type { AppDispatch } from '@app/store';
 
 const KEY = 'impersonateUser';
 

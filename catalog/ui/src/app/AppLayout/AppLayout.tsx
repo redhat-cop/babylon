@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Page, PageSection, PageSidebar, PageSidebarBody } from '@patternfly/react-core';
-import { IAppRouteAccessControl } from '@app/types';
+import type { IAppRouteAccessControl } from '@app/types';
 import Header from '@app/Header/Header';
 import LoadingSection from '@app/components/LoadingSection';
 import useDocumentTitle from '@app/utils/useDocumentTitle';

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import useSWR from 'swr';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { ResourceClaim, Workshop } from '@app/types';
+import type { ResourceClaim, Workshop } from '@app/types';
 import { BABYLON_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 
 const SERVICE_QUOTA_LIMIT = 5;

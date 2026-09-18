@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-core';
 
 import { apiPaths, publicFetcher } from '@app/api';
-import { MultiWorkshop, MultiWorkshopAsset } from '@app/types';
+import type { MultiWorkshop, MultiWorkshopAsset } from '@app/types';
 import { formatString } from '@app/Catalog/catalog-utils';
 import Footer from '@app/components/Footer';
 import heroImg from './hero-img.jpeg';
