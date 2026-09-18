@@ -69,6 +69,7 @@ const Header: React.FC<{
     return <UserInterfaceLogo onClick={() => navigate('/')} theme={theme} />;
   }
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
+    if (!value) return;
     event.preventDefault();
     setIsUserHelpDropdownOpen(false);
     window.open(value as string, '_blank');
@@ -112,7 +113,23 @@ const Header: React.FC<{
     );
   }
 
-  // 5. About RHDP
+  // 5. What's New (admin only)
+  if (isAdmin) {
+    userHelpDropdownItems.push(
+      <DropdownItem
+        key="whats-new"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsUserHelpDropdownOpen(false);
+          navigate('/whats-new');
+        }}
+      >
+        What&apos;s New
+      </DropdownItem>,
+    );
+  }
+
+  // 6. About RHDP
   if (learn_more_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="learn-more" value={learn_more_link}>
