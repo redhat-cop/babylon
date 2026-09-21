@@ -50,6 +50,7 @@ const WhiteGloveList = React.lazy(() => import('@app/WhiteGlove/WhiteGloveList')
 const WhiteGloveCreate = React.lazy(() => import('@app/WhiteGlove/WhiteGloveCreate'));
 const WhiteGloveDetail = React.lazy(() => import('@app/WhiteGlove/WhiteGloveDetail'));
 const WhiteGloveAdminList = React.lazy(() => import('@app/Admin/WhiteGloveAdminList'));
+const WhatsNew = React.lazy(() => import('@app/WhatsNew/WhatsNew'));
 
 const appRoutes: IAppRoute[] = [
   {
@@ -422,6 +423,12 @@ const appRoutes: IAppRoute[] = [
     component: RatingsPage,
     path: '/admin/ratings',
     title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: WhatsNew,
+    path: '/whats-new',
+    title: "Babylon | What's New",
     accessControl: 'admin',
   },
 ];

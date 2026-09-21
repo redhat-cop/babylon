@@ -2834,6 +2834,7 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  WHATS_NEW: () => `/api/whats-new`,
   JIRA_ISSUE: ({ issueKey }: { issueKey: string }) => `/api/jira/issue/${issueKey}`,
   WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
