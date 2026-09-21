@@ -8,8 +8,8 @@ import {
   InputGroupItem,
   DropdownList,
 } from '@patternfly/react-core';
-import type { MenuToggleElement } from '@patternfly/react-core';
 import { Dropdown, DropdownItem, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import OutlinedClockIcon from '@patternfly/react-icons/dist/js/icons/outlined-clock-icon';
 import { getLang } from '@app/util';

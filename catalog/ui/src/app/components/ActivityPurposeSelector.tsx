@@ -1,15 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { FormGroup, Radio, TextInput, Tooltip, Select, SelectList, SelectOption, MenuToggle } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import {
-  FormGroup,
-  Radio,
-  TextInput,
-  Tooltip,
-  Select,
-  SelectList,
-  SelectOption,
-  MenuToggle,
-} from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
 import type { TPurposeOpts } from '@app/types';

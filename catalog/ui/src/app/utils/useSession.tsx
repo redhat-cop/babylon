@@ -1,6 +1,5 @@
 import { useMemo, useCallback } from 'react';
 import { getApiSession } from '@app/api';
-import type { AppDispatch } from '@app/store';
 import {
   actionStartSession,
   selectAuthUser,
@@ -17,6 +16,7 @@ import {
   useAppDispatch,
   useAppSelector,
 } from '@app/store';
+import type { AppDispatch } from '@app/store';
 import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import useImpersonateUser from './useImpersonateUser';
 

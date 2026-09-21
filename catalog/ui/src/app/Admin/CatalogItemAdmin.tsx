@@ -17,8 +17,8 @@ import {
   Title,
   Tooltip,
   } from '@patternfly/react-core';
-import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher } from '@app/api';

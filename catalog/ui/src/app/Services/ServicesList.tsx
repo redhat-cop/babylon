@@ -30,17 +30,7 @@ import {
   stopAllResourcesInResourceClaim,
   stopWorkshop,
 } from '@app/api';
-import type {
-  ResourceClaim,
-  ResourceClaimWithCollaborator,
-  SelfPacedLab,
-  SelfPacedLabWithResourceClaims,
-  Service,
-  ServiceAccess,
-  ServiceActionActions,
-  Workshop,
-  WorkshopWithResourceClaims,
-} from '@app/types';
+import type { ResourceClaim, ResourceClaimWithCollaborator, SelfPacedLab, SelfPacedLabWithResourceClaims, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import { fetcher } from '@app/api';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {

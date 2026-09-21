@@ -2,24 +2,8 @@ import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
+import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, FormGroup, Button, NumberInput, Popover, Label, LabelGroup, Alert, TextInput } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import {
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
-  Tooltip,
-  Switch,
-  MenuToggle,
-  FormGroup,
-  Button,
-  NumberInput,
-  Popover,
-  Label,
-  LabelGroup,
-  Alert,
-  TextInput,
-} from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
@@ -35,14 +19,7 @@ import {
   optionalFetcher,
   FORBIDDEN_RESPONSE,
 } from '@app/api';
-import type {
-  RequestUsageCost,
-  ResourceClaim,
-  ServiceAccessConfig,
-  Workshop,
-  WorkshopProvision,
-  WorkshopUserAssignment,
-} from '@app/types';
+import type { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';

@@ -4,8 +4,8 @@ import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import useSWR, { mutate } from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import type { DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
 import { DragDropSort } from '@patternfly/react-drag-drop';
+import type { DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
 import {
   PageSection,
   Title,

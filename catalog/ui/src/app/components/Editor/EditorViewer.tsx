@@ -1,8 +1,8 @@
 import React from 'react';
 import { $getRoot, $insertNodes } from 'lexical';
 import { $generateNodesFromDOM } from '@lexical/html';
-import type { InitialEditorStateType } from '@lexical/react/LexicalComposer';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import type { InitialEditorStateType } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';

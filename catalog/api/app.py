@@ -1248,6 +1248,43 @@ async def update_jira_issue_labels(request):
     return web.json_response({"ok": True})
 
 
+confluence_page_id = os.environ.get('CONFLUENCE_WHATS_NEW_PAGE_ID', '479821972')
+
+@routes.get("/api/whats-new")
+async def get_whats_new(request):
+    await get_proxy_user(request)
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Confluence integration is not configured")
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Accept": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.get(
+            f"{jira_base_url}/wiki/rest/api/content/{confluence_page_id}"
+            f"?expand=body.view,version,title",
+            headers=headers,
+        ) as resp:
+            if resp.status == 404:
+                raise web.HTTPNotFound(reason="What's New page not found")
+            if resp.status != 200:
+                error_body = await resp.text()
+                logging.error(f"Confluence API error ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to fetch What's New content: {resp.status}")
+            data = await resp.json()
+
+    return web.json_response({
+        "title": data.get("title", ""),
+        "body": data.get("body", {}).get("view", {}).get("value", ""),
+        "version": data.get("version", {}).get("number"),
+        "lastUpdated": data.get("version", {}).get("when"),
+    })
+
+
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
     await get_proxy_user(request)

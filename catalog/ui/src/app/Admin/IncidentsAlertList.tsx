@@ -1,7 +1,7 @@
 import React, { useReducer, useState } from 'react';
 import { Button, Form, FormGroup, Panel, PanelMain, Switch, Title } from '@patternfly/react-core';
-import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';

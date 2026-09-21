@@ -1,6 +1,6 @@
 import useSWR from 'swr';
-import type { SystemStatus } from '@app/api';
 import { apiPaths, fetcher } from '@app/api';
+import type { SystemStatus } from '@app/api';
 
 /**
  * Hook to get the current system status including ordering blocks.

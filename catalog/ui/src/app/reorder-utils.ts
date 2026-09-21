@@ -1,7 +1,17 @@
 import parseDuration from 'parse-duration';
+import {
+  createServiceRequest,
+  createWorkshop,
+  createWorkshopProvision,
+} from '@app/api';
 import type { CreateServiceRequestParameterValues } from '@app/api';
-import { createServiceRequest, createWorkshop, createWorkshopProvision } from '@app/api';
-import type { CatalogItem, ResourceClaim, ServiceNamespace, Workshop, WorkshopProvision } from '@app/types';
+import type {
+  CatalogItem,
+  ResourceClaim,
+  ServiceNamespace,
+  Workshop,
+  WorkshopProvision,
+} from '@app/types';
 import {
   BABYLON_DOMAIN,
   checkAccessControl,

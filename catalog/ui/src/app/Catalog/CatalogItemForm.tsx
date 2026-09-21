@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { workshopInstanceLimit } from '@app/Workshops/workshop-instance-limits';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import type { EditorState, LexicalEditor } from 'lexical';
@@ -21,12 +22,11 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
-import type { CreateServiceRequestParameterValues } from '@app/api';
 import {
   apiFetch,
   apiPaths,
@@ -41,6 +41,7 @@ import {
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
+import type { CreateServiceRequestParameterValues } from '@app/api';
 import type {
   AvailabilityCheckResponse,
   CatalogItem,
@@ -70,8 +71,8 @@ import TermsOfService from '@app/components/TermsOfService';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import type { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import CatalogItemFormAutoStopDestroyModal from './CatalogItemFormAutoStopDestroyModal';
+import type { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
 import CatalogItemFormStartModal from './CatalogItemFormStartModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -1134,7 +1135,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <div className="catalog-item-form__group-control--single">
                     <PatientNumberInput
                       min={0}
-                      max={catalogItem.spec.workshopUiMaxInstances || 40}
+                      max={workshopInstanceLimit(catalogItem)}
                       adminModifier={true}
                       onChange={(v) =>
                         dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })

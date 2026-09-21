@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import type { RowComponentProps } from 'react-window';
 import { List } from 'react-window';
+import type { RowComponentProps } from 'react-window';
 import useSession from '@app/utils/useSession';
 import type { ServiceNamespace } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';

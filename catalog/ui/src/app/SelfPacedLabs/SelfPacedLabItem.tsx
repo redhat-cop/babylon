@@ -5,33 +5,8 @@ import { $generateHtmlFromNodes } from '@lexical/html';
 import MonacoEditor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
+import { Breadcrumb, BreadcrumbItem, Bullseye, Button, CodeBlock, CodeBlockCode, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, EmptyState, EmptyStateBody, NumberInput, PageSection, Split, SplitItem, Spinner, Switch, Tabs, Tab, TabTitleText, Title, Tooltip, MenuToggle } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  Bullseye,
-  Button,
-  CodeBlock,
-  CodeBlockCode,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  EmptyState,
-  EmptyStateBody,
-  NumberInput,
-  PageSection,
-  Split,
-  SplitItem,
-  Spinner,
-  Switch,
-  Tabs,
-  Tab,
-  TabTitleText,
-  Title,
-  Tooltip,
-  MenuToggle,
-} from '@patternfly/react-core';
 import {
   Alert,
   FormGroup,
@@ -65,14 +40,7 @@ import {
   patchServiceAccessConfig,
   SERVICES_KEY,
 } from '@app/api';
-import type {
-  CatalogItem,
-  ResourceClaim,
-  SelfPacedLab,
-  SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType,
-  SelfPacedLabUserAssignmentList,
-  ServiceAccessConfig,
-} from '@app/types';
+import type { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType, SelfPacedLabUserAssignmentList, ServiceAccessConfig } from '@app/types';
 import {
   BABYLON_DOMAIN,
   DEMO_DOMAIN,

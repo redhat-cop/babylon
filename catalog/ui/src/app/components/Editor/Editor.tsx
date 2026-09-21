@@ -1,8 +1,8 @@
 import React from 'react';
-import type { EditorState, LexicalEditor } from 'lexical';
 import { $getRoot, $insertNodes, TextNode } from 'lexical';
-import type { InitialEditorStateType } from '@lexical/react/LexicalComposer';
+import type { EditorState, LexicalEditor } from 'lexical';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import type { InitialEditorStateType } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';

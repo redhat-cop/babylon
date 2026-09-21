@@ -88,17 +88,11 @@ import {
   scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
 import type {
-  Workshop,
-  WorkshopList,
-  WorkshopProvision,
-  WorkshopProvisionList,
-  WorkshopUserAssignment,
-  WorkshopUserAssignmentList,
-  ResourceClaim,
-  ResourceClaimList,
-  MultiWorkshop,
-  MultiWorkshopList,
-  TenantClusterPoolList,
+  Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
+  WorkshopUserAssignment, WorkshopUserAssignmentList,
+  ResourceClaim, ResourceClaimList,
+  MultiWorkshop, MultiWorkshopList,
+  TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
 } from '@app/types';

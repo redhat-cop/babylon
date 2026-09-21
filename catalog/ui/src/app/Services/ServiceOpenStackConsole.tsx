@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, DropdownList, Spinner } from '@patternfly/react-core';
-import type { MenuToggleElement } from '@patternfly/react-core';
 import { Dropdown, MenuToggle, DropdownItem } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
   getOpenStackServersForResourceClaim,

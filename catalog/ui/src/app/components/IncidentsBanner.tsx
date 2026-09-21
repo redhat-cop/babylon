@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import type { BannerColor } from '@patternfly/react-core';
 import { Banner, Button } from '@patternfly/react-core';
+import type { BannerColor } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import type { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
