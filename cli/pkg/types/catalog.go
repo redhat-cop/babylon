@@ -1,10 +1,10 @@
 package types
 
 type CatalogItem struct {
-	APIVersion string          `json:"apiVersion" yaml:"apiVersion"`
-	Kind       string          `json:"kind" yaml:"kind"`
-	Metadata   ObjectMeta      `json:"metadata" yaml:"metadata"`
-	Spec       CatalogItemSpec `json:"spec" yaml:"spec"`
+	APIVersion string             `json:"apiVersion" yaml:"apiVersion"`
+	Kind       string             `json:"kind" yaml:"kind"`
+	Metadata   ObjectMeta         `json:"metadata" yaml:"metadata"`
+	Spec       CatalogItemSpec    `json:"spec" yaml:"spec"`
 	Status     *CatalogItemStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
@@ -25,6 +25,7 @@ type CatalogItemSpec struct {
 	UserData              interface{}             `json:"userData,omitempty" yaml:"userData,omitempty"`
 	WorkshopUiDisabled    bool                    `json:"workshopUiDisabled,omitempty" yaml:"workshopUiDisabled,omitempty"`
 	WorkshopUserMode      string                  `json:"workshopUserMode,omitempty" yaml:"workshopUserMode,omitempty"`
+	WorkshopLabUiRedirect bool                    `json:"workshopLabUiRedirect,omitempty" yaml:"workshopLabUiRedirect,omitempty"`
 }
 
 type MessageTemplates struct {
@@ -51,8 +52,8 @@ type CatalogItemParameter struct {
 }
 
 type SchemaSpec struct {
-	Type    string      `json:"type,omitempty" yaml:"type,omitempty"`
-	Default interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Type    string        `json:"type,omitempty" yaml:"type,omitempty"`
+	Default interface{}   `json:"default,omitempty" yaml:"default,omitempty"`
 	Enum    []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
 }
 

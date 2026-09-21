@@ -106,11 +106,11 @@ func (c *Client) CreateWorkshop(
 	}
 
 	annotations := map[string]string{
-		types.BabylonDomain + "/category":  catalogItem.Spec.Category,
-		types.BabylonDomain + "/url":       fmt.Sprintf("%s/workshops/%s/%s", c.BaseURL, serviceNamespace, name),
-		types.DemoDomain + "/requester":    requester,
-		types.DemoDomain + "/orderedBy":    c.Session.User,
-		types.DemoDomain + "/scheduled":    "false",
+		types.BabylonDomain + "/category": catalogItem.Spec.Category,
+		types.BabylonDomain + "/url":      fmt.Sprintf("%s/workshops/%s/%s", c.BaseURL, serviceNamespace, name),
+		types.DemoDomain + "/requester":   requester,
+		types.DemoDomain + "/orderedBy":   c.Session.User,
+		types.DemoDomain + "/scheduled":   "false",
 	}
 
 	if catalogItem.Spec.MessageTemplates != nil {
@@ -135,6 +135,12 @@ func (c *Client) CreateWorkshop(
 		labels["gpte.redhat.com/asset-uuid"] = uuid
 	}
 
+	lifespan := &types.WorkshopLifespan{End: formatTime(endDate)}
+	if catalogItem.Spec.Lifespan != nil {
+		lifespan.Maximum = catalogItem.Spec.Lifespan.Maximum
+		lifespan.RelativeMaximum = catalogItem.Spec.Lifespan.RelativeMaximum
+	}
+
 	workshop := &types.Workshop{
 		APIVersion: types.BabylonDomain + "/v1",
 		Kind:       "Workshop",
@@ -149,10 +155,11 @@ func (c *Client) CreateWorkshop(
 			AccessPassword:    accessPassword,
 			MultiuserServices: catalogItem.Spec.WorkshopUserMode != "none",
 			OpenRegistration:  openRegistration,
-			Lifespan: &types.WorkshopLifespan{
-				End: formatTime(endDate),
-			},
+			Lifespan:          lifespan,
 		},
+	}
+	if catalogItem.Spec.WorkshopLabUiRedirect {
+		workshop.Spec.LabUserInterface = &types.LabUserInterface{Redirect: true}
 	}
 
 	// Create workshop with retry on 409

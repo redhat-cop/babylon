@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -44,21 +43,9 @@ Examples:
 			return fmt.Errorf("invalid --end-date: %w", err)
 		}
 
-		// Parse parameters
-		params := make(map[string]interface{})
-		paramSchemas := make(map[string]string)
-		for _, p := range catalogItem.Spec.Parameters {
-			if p.OpenAPIV3Schema != nil && p.OpenAPIV3Schema.Type != "" {
-				paramSchemas[p.Name] = p.OpenAPIV3Schema.Type
-			}
-		}
-		for _, p := range workshopParams {
-			parts := strings.SplitN(p, "=", 2)
-			if len(parts) != 2 {
-				return fmt.Errorf("invalid parameter format %q, expected key=value", p)
-			}
-			key, raw := parts[0], parts[1]
-			params[key] = convertParamValue(raw, paramSchemas[key])
+		params, err := parseParameters(workshopParams, catalogItem.Spec.Parameters)
+		if err != nil {
+			return err
 		}
 
 		password := workshopAccessPassword

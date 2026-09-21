@@ -112,6 +112,7 @@ func browserLogin(server string, insecure bool) error {
 	loginURL := fmt.Sprintf("%s/auth/cli-redirect?callback=%s", server, url.QueryEscape(callbackURL))
 
 	credsCh := make(chan cliCredentials, 1)
+	callbackReceived := make(chan struct{}, 1)
 	errCh := make(chan error, 1)
 
 	mux := http.NewServeMux()
@@ -123,7 +124,7 @@ func browserLogin(server string, insecure bool) error {
 
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
-			errCh <- fmt.Errorf("parsing callback form: %w", err)
+			reportLoginError(errCh, fmt.Errorf("parsing callback form: %w", err))
 			return
 		}
 
@@ -144,29 +145,34 @@ func browserLogin(server string, insecure bool) error {
 
 		if token == "" {
 			http.Error(w, "Missing token", http.StatusBadRequest)
-			errCh <- fmt.Errorf("callback received no token")
+			reportLoginError(errCh, fmt.Errorf("callback received no token"))
 			return
 		}
-
-		// Respond with a success page
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, `<!DOCTYPE html><html><body>
-<h2>Login successful!</h2>
-<p>You can close this tab and return to your terminal.</p>
-<script>window.close();</script>
-</body></html>`)
+		select {
+		case callbackReceived <- struct{}{}:
+		default:
+			http.Error(w, "Login callback already received", http.StatusConflict)
+			return
+		}
 
 		credsCh <- cliCredentials{
 			Token:   token,
 			Cookies: cookies,
 			User:    user,
 		}
+
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<!DOCTYPE html><html><body>
+		<h2>Login received</h2>
+		<p>Return to your terminal to confirm that your credentials were saved.</p>
+		<script>window.close();</script>
+		</body></html>`)
 	})
 
 	srv := &http.Server{Handler: mux}
 	go func() {
 		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
-			errCh <- err
+			reportLoginError(errCh, err)
 		}
 	}()
 
@@ -189,8 +195,6 @@ func browserLogin(server string, insecure bool) error {
 		return fmt.Errorf("login timed out after 5 minutes")
 	}
 
-	srv.Shutdown(context.Background())
-
 	// Save to config
 	newCfg := &config.Config{
 		Server: server,
@@ -201,9 +205,12 @@ func browserLogin(server string, insecure bool) error {
 		},
 		Insecure: insecure,
 	}
-	if err := config.Save(cfgFile, newCfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not save config: %v\n", err)
+	saveErr := config.Save(cfgFile, newCfg)
+	if saveErr != nil {
+		srv.Shutdown(context.Background())
+		return fmt.Errorf("saving config: %w", saveErr)
 	}
+	srv.Shutdown(context.Background())
 
 	fmt.Printf("\nLogged in as %s\n", creds.User)
 	fmt.Printf("Config saved to %s\n", config.DefaultPath())
@@ -211,6 +218,12 @@ func browserLogin(server string, insecure bool) error {
 	return nil
 }
 
+func reportLoginError(errCh chan<- error, err error) {
+	select {
+	case errCh <- err:
+	default:
+	}
+}
 
 func normalizeURL(s string) string {
 	s = strings.TrimRight(s, "/")

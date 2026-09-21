@@ -20,7 +20,7 @@ It is built with Go and the https://cobra.dev[Cobra] framework, and communicates
 
 === Non-Goals
 
-* Replacing the full UI experience (workshops, multi-user, admin features)
+* Replacing the full UI experience (advanced multi-user and admin features)
 * Direct Kubernetes API access — all calls go through the Catalog API proxy
 * Interactive parameter forms (parameters are passed as flags)
 
@@ -52,6 +52,11 @@ babylon
 ├── catalog
 │   ├── list          # List available catalog items
 │   └── describe      # Show details of a catalog item
+├── workshop (alias: ws)
+│   ├── create        # Create a workshop from a catalog item
+│   ├── list          # List workshops
+│   ├── status        # Show workshop provisioning status
+│   └── delete        # Delete a workshop
 └── service (alias: svc)
     ├── list          # List your services
     ├── status        # Show service status
@@ -83,11 +88,6 @@ babylon
 | —
 | Output format: `table`, `json`, `yaml`
 | `table`
-
-| `--token`
-| `BABYLON_TOKEN`
-| Authentication token
-| (from config/session)
 
 | `--config`
 | —
@@ -154,29 +154,14 @@ All Kubernetes-style endpoints follow the pattern:
 
 == Authentication
 
-=== Flow
+=== Browser Login Flow
 
-. The CLI sends `GET /auth/session` to the Catalog API.
-  The Catalog API sits behind an OAuth proxy that identifies the user via `X-Forwarded-User` / `X-Forwarded-Email` headers.
-. The API returns a `Session` object containing a short-lived `token`, the user's identity, groups, roles, and available namespaces.
-. The CLI caches the session token in `~/.babylon/config.yaml`.
-. All subsequent API calls include the `Authentication: Bearer {token}` header.
-. On a `401` response, the CLI automatically refreshes the session.
+. Run `babylon login <server-url>`.
+. The CLI opens the Babylon OAuth login page in a browser and starts a localhost callback listener.
+. After browser authentication, the Catalog API posts the session credentials to the callback listener.
+. The CLI saves the resulting session credentials in `~/.babylon/config.yaml` and uses them for subsequent API calls.
 
-=== Direct Token Access
-
-For development or automation, users can bypass the OAuth flow:
-
-[source,bash]
-----
-# Via flag
-babylon service list --server https://babylon.example.com --token <openshift-token>
-
-# Via environment variable
-export BABYLON_SERVER=https://babylon.example.com
-export BABYLON_TOKEN=<openshift-token>
-babylon service list
-----
+The CLI supports browser login only. It does not accept authentication tokens through a command-line flag or environment variable.
 
 === Session Object
 
@@ -326,6 +311,10 @@ IMPORTANT: This command always operates on `session.userNamespace.name` regardle
 This is a safety measure to prevent accidental deletion in shared or admin namespaces.
 
 Requires `--yes` flag or interactive confirmation.
+
+=== `workshop`
+
+The CLI supports `workshop create`, `workshop list`, `workshop status`, and `workshop delete` (also available through the `ws` alias). `create` accepts a catalog item and required `--seats` value, with optional display name, access password, open registration, end date, and parameters. `status --watch` polls until all seats are ready. `delete` requires confirmation unless `--yes` is supplied.
 
 == Safety and Error Handling
 

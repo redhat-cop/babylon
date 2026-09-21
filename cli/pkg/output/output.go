@@ -38,7 +38,17 @@ func printJSON(data interface{}) error {
 }
 
 func printYAML(data interface{}) error {
-	out, err := yaml.Marshal(data)
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	var yamlData interface{}
+	if err := json.Unmarshal(jsonData, &yamlData); err != nil {
+		return err
+	}
+
+	out, err := yaml.Marshal(yamlData)
 	if err != nil {
 		return err
 	}

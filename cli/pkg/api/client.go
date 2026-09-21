@@ -59,13 +59,6 @@ func (c *Client) debugf(format string, args ...interface{}) {
 	}
 }
 
-func maskToken(token string) string {
-	if len(token) <= 10 {
-		return "***"
-	}
-	return token[:6] + "..." + token[len(token)-4:]
-}
-
 // APIError represents an error from the API.
 type APIError struct {
 	StatusCode int
@@ -138,7 +131,7 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 
 	c.debugf("%s %s", method, fullURL)
 	if c.Token != "" {
-		c.debugf("Authentication: Bearer %s", maskToken(c.Token))
+		c.debugf("Authentication: <redacted>")
 	}
 	for name := range c.Cookies {
 		c.debugf("Cookie: %s=<set>", name)
@@ -149,10 +142,25 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	// redirects, which breaks mutating API calls when the server redirects
 	// to a different hostname (e.g. demo.redhat.com → catalog.demo.redhat.com).
 	var redirectChain []string
-	c.HTTPClient.CheckRedirect = func(redirectReq *http.Request, via []*http.Request) error {
-		redirectChain = append(redirectChain, fmt.Sprintf("%s %s", via[0].Method, redirectReq.URL.String()))
+	var redirectErr error
+	originalURL := req.URL
+	httpClient := *c.HTTPClient
+	httpClient.CheckRedirect = func(redirectReq *http.Request, via []*http.Request) error {
+		sourceReq := via[len(via)-1]
+		redirectChain = append(redirectChain, fmt.Sprintf("%s %s", sourceReq.Method, redactedURL(redirectReq.URL)))
 		if len(via) >= 10 {
-			return fmt.Errorf("too many redirects")
+			redirectErr = fmt.Errorf("too many redirects")
+			return http.ErrUseLastResponse
+		}
+		if sourceReq.URL.Scheme == "https" && redirectReq.URL.Scheme == "http" {
+			redirectErr = fmt.Errorf("refusing HTTPS-to-HTTP redirect")
+			return http.ErrUseLastResponse
+		}
+		if !sameOrigin(originalURL, redirectReq.URL) {
+			redirectReq.Header.Del("Authentication")
+			redirectReq.Header.Del("Authorization")
+			redirectReq.Header.Del("Cookie")
+			return nil
 		}
 		// Preserve original method (don't downgrade POST→GET)
 		redirectReq.Method = via[0].Method
@@ -177,18 +185,20 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	}
 
 	reqStart := time.Now()
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot reach Babylon API at %s: %w", c.BaseURL, err)
 	}
 	defer resp.Body.Close()
+	if redirectErr != nil {
+		return nil, redirectErr
+	}
 
 	// If we were redirected to a different host, update BaseURL so subsequent
 	// requests go directly to the correct server and skip the redirect.
 	if resp.Request != nil && resp.Request.URL != nil {
 		finalURL := resp.Request.URL
-		origURL, _ := url.Parse(fullURL)
-		if origURL != nil && finalURL.Host != origURL.Host {
+		if sameOrigin(originalURL, finalURL) && finalURL.Host != originalURL.Host {
 			newBase := finalURL.Scheme + "://" + finalURL.Host
 			c.debugf("Updating BaseURL: %s → %s", c.BaseURL, newBase)
 			c.BaseURL = newBase
@@ -204,6 +214,9 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	}
 	for _, name := range []string{"Content-Type", "Content-Encoding", "Location", "Set-Cookie", "Www-Authenticate"} {
 		if v := resp.Header.Get(name); v != "" {
+			if name == "Location" || name == "Set-Cookie" || name == "Www-Authenticate" {
+				v = "<redacted>"
+			}
 			c.debugf("  %s: %s", name, v)
 		}
 	}
@@ -231,7 +244,7 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 		}
 	}
 
-	if c.Debug {
+	if c.Debug && !strings.HasPrefix(path, "/auth/session") {
 		preview := string(respBody)
 		if len(preview) > 500 {
 			preview = preview[:500] + "...[truncated]"
@@ -269,6 +282,18 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 	}
 
 	return respBody, nil
+}
+
+func sameOrigin(source, destination *url.URL) bool {
+	return strings.EqualFold(source.Scheme, destination.Scheme) && strings.EqualFold(source.Host, destination.Host)
+}
+
+func redactedURL(u *url.URL) string {
+	redacted := *u
+	redacted.User = nil
+	redacted.RawQuery = ""
+	redacted.ForceQuery = false
+	return redacted.String()
 }
 
 func (c *Client) get(path string) ([]byte, error) {

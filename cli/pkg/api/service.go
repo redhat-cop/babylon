@@ -127,15 +127,20 @@ func (c *Client) StartResourceClaim(namespace, name string) (*types.ResourceClai
 	startTimestamp := formatTime(now)
 	stopTimestamp := formatTime(now.Add(runtimeDefault))
 
-	patch := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"provider": map[string]interface{}{
-				"parameterValues": map[string]interface{}{
-					"start_timestamp": startTimestamp,
-					"stop_timestamp":  stopTimestamp,
+	var patch map[string]interface{}
+	if claim.Status != nil && claim.Status.Summary != nil {
+		patch = map[string]interface{}{
+			"spec": map[string]interface{}{
+				"provider": map[string]interface{}{
+					"parameterValues": map[string]interface{}{
+						"start_timestamp": startTimestamp,
+						"stop_timestamp":  stopTimestamp,
+					},
 				},
 			},
-		},
+		}
+	} else {
+		patch = patchLegacyResourceClaimActionSchedule(claim, "start", startTimestamp, stopTimestamp)
 	}
 
 	return c.PatchResourceClaim(namespace, name, patch)
@@ -143,19 +148,79 @@ func (c *Client) StartResourceClaim(namespace, name string) (*types.ResourceClai
 
 // StopResourceClaim stops a running resource claim.
 func (c *Client) StopResourceClaim(namespace, name string) (*types.ResourceClaim, error) {
+	claim, err := c.GetResourceClaim(namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
 	stopTimestamp := formatTime(time.Now().UTC())
 
-	patch := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"provider": map[string]interface{}{
-				"parameterValues": map[string]interface{}{
-					"stop_timestamp": stopTimestamp,
+	var patch map[string]interface{}
+	if claim.Status != nil && claim.Status.Summary != nil {
+		patch = map[string]interface{}{
+			"spec": map[string]interface{}{
+				"provider": map[string]interface{}{
+					"parameterValues": map[string]interface{}{
+						"stop_timestamp": stopTimestamp,
+					},
 				},
 			},
-		},
+		}
+	} else {
+		patch = patchLegacyResourceClaimActionSchedule(claim, "stop", "", stopTimestamp)
 	}
 
 	return c.PatchResourceClaim(namespace, name, patch)
+}
+
+func patchLegacyResourceClaimActionSchedule(claim *types.ResourceClaim, action, startTimestamp, stopTimestamp string) map[string]interface{} {
+	spec := structToMap(claim.Spec)
+	resources, _ := spec["resources"].([]interface{})
+	for _, resource := range resources {
+		resourceMap, ok := resource.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		name, ok := resourceMap["name"].(string)
+		if !ok || !resourceSupportsAction(claim, name, action) {
+			continue
+		}
+		template, ok := resourceMap["template"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		templateSpec, ok := template["spec"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		vars, ok := templateSpec["vars"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		actionSchedule, ok := vars["action_schedule"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if startTimestamp != "" {
+			actionSchedule["start"] = startTimestamp
+		}
+		actionSchedule["stop"] = stopTimestamp
+	}
+	return map[string]interface{}{"spec": spec}
+}
+
+func resourceSupportsAction(claim *types.ResourceClaim, name, action string) bool {
+	if claim.Status == nil {
+		return false
+	}
+	for _, resource := range claim.Status.Resources {
+		if resource.Name != name || resource.State == nil || resource.State.Status == nil {
+			continue
+		}
+		_, supported := resource.State.Status.SupportedActions[action]
+		return supported
+	}
+	return false
 }
 
 // RetireResourceClaim retires a resource claim by setting lifespan end to now.
@@ -224,13 +289,13 @@ func (c *Client) OrderService(catalogItem *types.CatalogItem, serviceNamespace s
 	}
 
 	annotations := map[string]string{
-		types.BabylonDomain + "/catalogDisplayName":     catalogDisplayName,
-		types.BabylonDomain + "/catalogItemDisplayName": displayName,
-		types.DemoDomain + "/requester":                 requester,
-		types.DemoDomain + "/orderedBy":                 c.Session.User,
-		types.BabylonDomain + "/category":               catalogItem.Spec.Category,
-		types.BabylonDomain + "/url":                    fmt.Sprintf("%s/services/%s/%s", c.BaseURL, serviceNamespace, name),
-		types.DemoDomain + "/scheduled":                 "false",
+		types.BabylonDomain + "/catalogDisplayName":       catalogDisplayName,
+		types.BabylonDomain + "/catalogItemDisplayName":   displayName,
+		types.DemoDomain + "/requester":                   requester,
+		types.DemoDomain + "/orderedBy":                   c.Session.User,
+		types.BabylonDomain + "/category":                 catalogItem.Spec.Category,
+		types.BabylonDomain + "/url":                      fmt.Sprintf("%s/services/%s/%s", c.BaseURL, serviceNamespace, name),
+		types.DemoDomain + "/scheduled":                   "false",
 		types.DemoDomain + "/provide_salesforce-id_later": "true",
 	}
 
