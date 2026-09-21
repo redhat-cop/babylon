@@ -8,6 +8,7 @@ CLI_LDFLAGS = -X 'main.version=$(VERSION)' -X 'main.buildCommit=$(COMMIT)' -X 'm
 CLI_PLATFORMS ?= linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
 babylon:
+	@mkdir -p build
 	go build -ldflags="$(CLI_LDFLAGS)" -o build/babylon .
 
 babylon-cross:

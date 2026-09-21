@@ -39,7 +39,8 @@ func TestCreateWorkshopCopiesCatalogLifespanGuardrailsAndLabUIRedirect(t *testin
 		"metadata":{"name":"catalog","namespace":"catalog","labels":{}},
 		"spec":{
 			"lifespan":{"maximum":"14d","relativeMaximum":"7d"},
-			"workshopLabUiRedirect":true
+			"workshopLabUiRedirect":true,
+			"supportLink":"https://example.com/support"
 		}
 	}`), catalogItem); err != nil {
 		t.Fatal(err)
@@ -57,5 +58,9 @@ func TestCreateWorkshopCopiesCatalogLifespanGuardrailsAndLabUIRedirect(t *testin
 	redirect := spec["labUserInterface"].(map[string]interface{})
 	if redirect["redirect"] != true {
 		t.Fatalf("expected lab UI redirect, got %#v", redirect)
+	}
+	annotations := workshopPayload["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})
+	if annotations[types.BabylonDomain+"/support-link"] != "https://example.com/support" {
+		t.Fatalf("expected support link annotation, got %#v", annotations)
 	}
 }

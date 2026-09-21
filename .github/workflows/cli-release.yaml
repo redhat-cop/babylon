@@ -49,6 +49,7 @@ jobs:
           EXT=""
           if [[ "${{ matrix.goos }}" == "windows" ]]; then EXT=".exe"; fi
           OUTPUT="babylon-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          mkdir -p ../build
           go build \
             -ldflags="-X main.version=$VERSION -X main.buildCommit=${{ github.sha }} -X 'main.buildTime=$(date -u)'" \
             -o "../build/${OUTPUT}" .
