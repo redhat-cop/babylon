@@ -6,34 +6,48 @@ on:
     - '*'
     tags:
     - 'catalog-api-v[0-9]*'
+  pull_request:
+    branches:
+    - main
+    paths:
+    - 'catalog/api/**'
 
 permissions:
   contents: read
 
 jobs:
   publish:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     env:
       IMAGE_NAME: babylon-catalog-api
     runs-on: ubuntu-latest
     steps:
     - name: Checkout source
       uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Get image tags
       id: image_tags
       run: |
-        # Version is a semantic version tag or semantic version with release number
-        # GITHUB_REF will be of the form "refs/tags/admin-v0.1.2" or "refs/tags/admin-v0.1.2-1"
-        # To determine RELEASE, strip off the leading "refs/tags/"
-        RELEASE=${GITHUB_REF#refs/tags/catalog-api-}
-        # To determine VERSION, strip off any release number suffix
-        VERSION=${RELEASE/-*/}
-        echo "::set-output name=RELEASE::${RELEASE}"
-        echo "::set-output name=VERSION::${VERSION}"
+        if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+          IMAGE_TAGS=(
+            "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:temporary-pr-${{ github.event.pull_request.number }}"
+          )
+          echo "::set-output name=LABELS::quay.expires-after=14d"
+        else
+          TAG=${GITHUB_REF#refs/tags/}
+          # Version is a semantic version tag or semantic version with release number.
+          RELEASE=${TAG#catalog-api-}
+          # To determine VERSION, strip off any release number suffix.
+          VERSION=${RELEASE/-*/}
 
-        # Only build image if version tag without release number
-        # Releases indicate a change in the repository that should not trigger a new build.
-        if [[ "${VERSION}" == "${RELEASE}" ]]; then
+          # Only build image if version tag without release number.
+          # Releases indicate a change in the repository that should not trigger a new build.
+          if [[ "${VERSION}" != "${RELEASE}" ]]; then
+            exit 0
+          fi
+
           # Publish to latest, minor, and patch tags
           # Ex: latest,v0.1.2,v0.1
           IMAGE_TAGS=(
@@ -41,9 +55,9 @@ jobs:
             "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION%.*}"
             "${{ secrets.REGISTRY_URI }}/${{ secrets.GPTE_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           )
-          # Set IMAGE_TAGS output for use in next step
-          ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
         fi
+        # Set IMAGE_TAGS output for use in next step.
+        ( IFS=$','; echo "::set-output name=IMAGE_TAGS::${IMAGE_TAGS[*]}" )
 
     - name: Set up buildx
       uses: docker/setup-buildx-action@f211e3e9ded2d9377c8cadc4489a4e38014bc4c9 # v1.7.0
@@ -65,3 +79,4 @@ jobs:
         file: catalog/api/Containerfile
         push: true
         tags: ${{ steps.image_tags.outputs.IMAGE_TAGS }}
+        labels: ${{ steps.image_tags.outputs.LABELS }}
