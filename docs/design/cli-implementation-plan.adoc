@@ -136,7 +136,7 @@ cli/cmd/
 
 . Load config from `~/.babylon/config.yaml`
 . Resolve server URL: flag → env var → config
-. Resolve token: flag → env var → config
+. Use the browser-login session credentials from config
 . Create API client
 . Fetch session (`EnsureSession`)
 . Default namespace to user namespace from session
@@ -316,6 +316,15 @@ Produces a statically-linked binary with no CGO dependencies.
 
 ==== Status: [green]#DONE#
 
+== Workshop Commands
+
+The CLI implements the following workshop commands:
+
+* `babylon workshop create <catalog-item-name> --seats <count>` creates a workshop, with optional display name, access password, open registration, end date, and parameters.
+* `babylon workshop list` lists workshops in the selected namespace.
+* `babylon workshop status <workshop-name>` displays per-seat provisioning status; `--watch` polls until all seats are ready.
+* `babylon workshop delete <workshop-name>` deletes a workshop after confirmation, or without prompting when `--yes` is supplied.
+
 === Verification Checklist
 
 [cols="3,1"]
@@ -386,7 +395,6 @@ cli/
 The following features are out of scope for the initial implementation but are natural extensions:
 
 * **Shell completions** — Cobra provides built-in `completion` command for bash/zsh/fish/powershell
-* **Workshop commands** — `babylon workshop list/create/delete` for multi-user workshops
 * **Admin commands** — `babylon admin` for incident management, user lookup, system status
 * **Watch mode** — `babylon service status <name> --watch` for polling status changes
 * **Interactive order** — prompt for required parameters when `--param` is not provided
