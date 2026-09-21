@@ -1,7 +1,9 @@
+import asyncio
 import json
 import gzip
 import unittest
 from types import SimpleNamespace
+from urllib.parse import urlencode
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -705,6 +707,24 @@ class FakeApiClient:
 
 class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
 
+    def setUp(self):
+        self.response_cache_bytes = catalog_app.response_cache_bytes
+        catalog_app.response_cache_bytes = 0
+        self.authorization_api_client = SimpleNamespace(close=AsyncMock())
+        self.proxy_api_client = patch.object(
+            catalog_app, 'proxy_api_client', return_value=self.authorization_api_client
+        )
+        self.proxy_api_client.start()
+        self.addCleanup(self.proxy_api_client.stop)
+        self.check_api_access = patch.object(
+            catalog_app, 'check_api_access', AsyncMock(return_value=True)
+        )
+        self.check_api_access.start()
+        self.addCleanup(self.check_api_access.stop)
+
+    def tearDown(self):
+        catalog_app.response_cache_bytes = self.response_cache_bytes
+
     def session(self):
         return {
             'user': 'alice',
@@ -721,10 +741,16 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'set_impersonation_for_request', AsyncMock()),
         )
 
-    def catalog_item_request(self, path, body=None, method='GET'):
+    def catalog_item_request(
+        self, path, body=None, method='GET', query=None, headers=None, path_qs=None,
+    ):
         request = FakeRequest(body)
         request.method = method
         request.path = path
+        request.path_qs = path_qs or (f'{path}?{urlencode(query)}' if query else path)
+        request.match_info = {'namespace': 'test-catalog'}
+        request.query = query or {}
+        request.headers = headers or {}
         return request
 
     def response_body(self, response):
@@ -824,6 +850,563 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             [item['metadata']['name'] for item in self.response_body(response)['items']],
             ['allowed', 'denied', 'malformed'],
         )
+
+    async def test_catalog_item_cache_authorizes_before_accessing_client_or_cache(self):
+        request = self.catalog_item_request(
+            f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        )
+        api_client = FakeApiClient()
+        denied_session = self.session()
+        denied_session['catalogNamespaces'] = [{'name': 'other-catalog'}]
+        cache = SimpleNamespace(get=lambda _: self.fail('cache accessed before authorization'))
+        auth_patches = self.authenticated_patches(denied_session)
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'app_api_client', api_client),
+        ):
+            with self.assertRaises(web.HTTPForbidden):
+                await catalog_app.openshift_api_proxy_with_cache(request)
+
+        api_client.call_api.assert_not_awaited()
+
+    async def test_catalog_item_list_requires_current_list_authorization_before_cache(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        request = self.catalog_item_request(path)
+        app_client = FakeApiClient()
+        authorization_client = SimpleNamespace(close=AsyncMock())
+        cache = SimpleNamespace(get=lambda _: self.fail('cache accessed after SSAR denial'))
+        check_access = AsyncMock(return_value=False)
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'proxy_api_client', return_value=authorization_client) as proxy_client,
+            patch.object(catalog_app, 'check_api_access', check_access),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'app_api_client', app_client),
+        ):
+            with self.assertRaises(web.HTTPForbidden):
+                await catalog_app.openshift_api_proxy_with_cache(request)
+
+        proxy_client.assert_called_once_with(self.session())
+        check_access.assert_awaited_once_with(
+            authorization_client, BABYLON_DOMAIN, 'catalogitems', 'list', 'test-catalog'
+        )
+        authorization_client.close.assert_awaited_once_with()
+        app_client.call_api.assert_not_awaited()
+
+    async def test_named_catalog_item_requires_current_get_authorization_before_cache(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems/test-item'
+        request = self.catalog_item_request(path)
+        request.match_info['name'] = 'test-item'
+        app_client = FakeApiClient()
+        authorization_client = SimpleNamespace(close=AsyncMock())
+        cache = SimpleNamespace(get=lambda _: self.fail('cache accessed after SSAR denial'))
+        check_access = AsyncMock(return_value=False)
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'proxy_api_client', return_value=authorization_client) as proxy_client,
+            patch.object(catalog_app, 'check_api_access', check_access),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'app_api_client', app_client),
+        ):
+            with self.assertRaises(web.HTTPForbidden):
+                await catalog_app.openshift_api_proxy_with_cache(request)
+
+        proxy_client.assert_called_once_with(self.session())
+        check_access.assert_awaited_once_with(
+            authorization_client, BABYLON_DOMAIN, 'catalogitems', 'get', 'test-catalog', 'test-item'
+        )
+        authorization_client.close.assert_awaited_once_with()
+        app_client.call_api.assert_not_awaited()
+
+    async def test_catalog_item_cache_shares_raw_response_but_filters_per_user(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({
+            'metadata': {'managedFields': ['remove-me']},
+            'items': [
+                {'metadata': {'name': 'users'}, 'spec': {
+                    'accessControl': {'allowGroups': ['users']},
+                }},
+                {'metadata': {'name': 'auditors'}, 'spec': {
+                    'accessControl': {'allowGroups': ['auditors']},
+                }},
+            ],
+        }, headers={'X-Upstream': 'preserved'})
+        users_session = self.session()
+        auditors_session = dict(users_session, groups=['auditors'])
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+        ):
+            users_patches = self.authenticated_patches(users_session)
+            with (users_patches[0], users_patches[1], users_patches[2]):
+                users_response = await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(path)
+                )
+            auditors_patches = self.authenticated_patches(auditors_session)
+            with (auditors_patches[0], auditors_patches[1], auditors_patches[2]):
+                auditors_response = await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(path)
+                )
+
+        self.assertEqual(
+            [item['metadata']['name'] for item in self.response_body(users_response)['items']],
+            ['users'],
+        )
+        self.assertEqual(
+            [item['metadata']['name'] for item in self.response_body(auditors_response)['items']],
+            ['auditors'],
+        )
+        self.assertNotIn('managedFields', self.response_body(users_response)['metadata'])
+        self.assertEqual(users_response.headers['X-Upstream'], 'preserved')
+        api_client.call_api.assert_awaited_once()
+
+    async def test_catalog_item_cache_admin_receives_unfiltered_raw_response(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({
+            'metadata': {},
+            'items': [
+                {'metadata': {'name': 'users'}, 'spec': {
+                    'accessControl': {'allowGroups': ['users']},
+                }},
+                {'metadata': {'name': 'denied'}, 'spec': {
+                    'accessControl': {'denyGroups': ['admins']},
+                }},
+            ],
+        })
+        users_session = self.session()
+        admin_session = dict(users_session, admin=True)
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+        ):
+            users_patches = self.authenticated_patches(users_session)
+            with (users_patches[0], users_patches[1], users_patches[2]):
+                await catalog_app.openshift_api_proxy_with_cache(self.catalog_item_request(path))
+            admin_patches = self.authenticated_patches(admin_session)
+            with (admin_patches[0], admin_patches[1], admin_patches[2]):
+                admin_response = await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(path)
+                )
+
+        self.assertEqual(
+            [item['metadata']['name'] for item in self.response_body(admin_response)['items']],
+            ['users', 'denied'],
+        )
+        api_client.call_api.assert_awaited_once()
+
+    async def test_catalog_item_cache_key_includes_query_params_and_accept(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({'metadata': {}, 'items': []})
+        session = self.session()
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+        ):
+            for query, headers in (
+                ({'labelSelector': 'first'}, {'Accept': 'application/json'}),
+                ({'labelSelector': 'second'}, {'Accept': 'application/json'}),
+                ({'labelSelector': 'first'}, {'Accept': 'application/yaml'}),
+            ):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path, query=query, headers=headers)
+                    )
+
+        self.assertEqual(api_client.call_api.await_count, 3)
+
+    async def test_catalog_item_cache_key_preserves_duplicate_query_value_order(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({'metadata': {}, 'items': []})
+        session = self.session()
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+        ):
+            for path_qs in (
+                f'{path}?labelSelector=first&labelSelector=second',
+                f'{path}?labelSelector=second&labelSelector=first',
+            ):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path, path_qs=path_qs)
+                    )
+
+        self.assertEqual(api_client.call_api.await_count, 2)
+
+    async def test_catalog_item_cache_reloads_expired_entry_before_cleaner_runs(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        stale_response = (
+            json.dumps({'metadata': {}, 'items': []}).encode(),
+            catalog_app.time.time() - catalog_app.response_cache_clean_interval - 1,
+            200,
+            {},
+        )
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({'metadata': {}, 'items': []})
+        cache = {
+            (path, (), None): stale_response,
+            (path, None): stale_response,
+        }
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+        ):
+            await catalog_app.openshift_api_proxy_with_cache(self.catalog_item_request(path))
+
+        api_client.call_api.assert_awaited_once()
+
+    async def test_catalog_item_cache_evicts_oldest_entry_at_capacity(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({'metadata': {}, 'items': []})
+        cache = {}
+        session = self.session()
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'response_cache_max_entries', 2, create=True),
+        ):
+            for query in (
+                {'labelSelector': 'first'},
+                {'labelSelector': 'second'},
+                {'labelSelector': 'third'},
+            ):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path, query=query)
+                    )
+                self.assertLessEqual(len(cache), 2)
+
+        self.assertEqual(api_client.call_api.await_count, 3)
+        self.assertNotIn((f'{path}?labelSelector=first', None), cache)
+        self.assertIn((f'{path}?labelSelector=second', None), cache)
+        self.assertIn((f'{path}?labelSelector=third', None), cache)
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'response_cache_max_entries', 2),
+        ):
+            for query in ({'labelSelector': 'second'}, {'labelSelector': 'third'}):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path, query=query)
+                    )
+
+        self.assertEqual(api_client.call_api.await_count, 3)
+
+    async def test_catalog_item_cache_is_disabled_for_nonpositive_capacity(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        session = self.session()
+
+        for capacity in (0, -1):
+            with self.subTest(capacity=capacity):
+                api_client = FakeApiClient()
+                api_client.call_api.return_value = FakeKubernetesResponse({
+                    'metadata': {}, 'items': [],
+                })
+                cache = {}
+                with (
+                    patch.object(catalog_app, 'app_api_client', api_client),
+                    patch.object(catalog_app, 'response_cache', cache),
+                    patch.object(catalog_app, 'response_cache_max_entries', capacity),
+                ):
+                    for _ in range(2):
+                        auth_patches = self.authenticated_patches(session)
+                        with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                            await catalog_app.openshift_api_proxy_with_cache(
+                                self.catalog_item_request(path)
+                            )
+
+                self.assertEqual(cache, {})
+                self.assertEqual(api_client.call_api.await_count, 2)
+
+    async def test_catalog_item_cache_does_not_store_raw_body_larger_than_byte_limit(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({
+            'metadata': {}, 'items': [],
+        })
+        cache = {}
+        session = self.session()
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'response_cache_max_bytes', 1, create=True),
+        ):
+            for _ in range(2):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path)
+                    )
+
+        self.assertEqual(cache, {})
+        self.assertEqual(api_client.call_api.await_count, 2)
+
+    async def test_catalog_item_cache_evicts_oldest_entry_when_byte_limit_is_exceeded(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        first_body = {'metadata': {}, 'items': [{'metadata': {'name': 'first'}}]}
+        second_body = {'metadata': {}, 'items': [{'metadata': {'name': 'second'}}]}
+        byte_limit = max(
+            len(json.dumps(first_body).encode()),
+            len(json.dumps(second_body).encode()),
+        )
+        api_client = FakeApiClient()
+        api_client.call_api.side_effect = [
+            FakeKubernetesResponse(first_body),
+            FakeKubernetesResponse(second_body),
+        ]
+        cache = {}
+        session = self.session()
+        first_request = self.catalog_item_request(
+            path, query={'labelSelector': 'first'}
+        )
+        second_request = self.catalog_item_request(
+            path, query={'labelSelector': 'second'}
+        )
+        first_key = (f'{path}?labelSelector=first', None)
+        second_key = (f'{path}?labelSelector=second', None)
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'response_cache_max_entries', 2),
+            patch.object(catalog_app, 'response_cache_max_bytes', byte_limit),
+        ):
+            for request in (first_request, second_request, second_request):
+                auth_patches = self.authenticated_patches(session)
+                with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                    await catalog_app.openshift_api_proxy_with_cache(request)
+
+        self.assertNotIn(first_key, cache)
+        self.assertIn(second_key, cache)
+        self.assertEqual(catalog_app.response_cache_bytes, len(cache[second_key][0]))
+        self.assertLessEqual(catalog_app.response_cache_bytes, byte_limit)
+        self.assertEqual(api_client.call_api.await_count, 2)
+
+    async def test_catalog_item_cache_limits_concurrent_unique_key_misses(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        active_misses = 0
+        maximum_active_misses = 0
+
+        class DelayedResponse(FakeKubernetesResponse):
+            async def read(self):
+                nonlocal active_misses, maximum_active_misses
+                active_misses += 1
+                maximum_active_misses = max(maximum_active_misses, active_misses)
+                try:
+                    await asyncio.sleep(0.01)
+                    return await super().read()
+                finally:
+                    active_misses -= 1
+
+        api_client = FakeApiClient()
+        api_client.call_api.side_effect = lambda *args, **kwargs: DelayedResponse({
+            'metadata': {}, 'items': [],
+        })
+        session = self.session()
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+            patch.object(
+                catalog_app,
+                'response_cache_miss_semaphore',
+                asyncio.Semaphore(2),
+                create=True,
+            ),
+        ):
+            requests = [
+                self.catalog_item_request(path, query={'labelSelector': str(index)})
+                for index in range(3)
+            ]
+            auth_patches = self.authenticated_patches(session)
+            with (auth_patches[0], auth_patches[1], auth_patches[2]):
+                responses = await asyncio.gather(*[
+                    catalog_app.openshift_api_proxy_with_cache(request)
+                    for request in requests
+                ])
+
+        self.assertEqual([response.status for response in responses], [201, 201, 201])
+        self.assertEqual(api_client.call_api.await_count, 3)
+        self.assertLessEqual(maximum_active_misses, 2)
+
+    async def test_impersonated_admin_filters_cached_raw_catalog_items(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse({
+            'metadata': {},
+            'items': [
+                {'metadata': {'name': 'target'}, 'spec': {
+                    'accessControl': {'allowGroups': ['target-group']},
+                }},
+                {'metadata': {'name': 'other'}, 'spec': {
+                    'accessControl': {'allowGroups': ['other-group']},
+                }},
+            ],
+        })
+        admin_session = dict(self.session(), admin=True)
+        effective_groups = AsyncMock(return_value=['target-group'])
+        effective_client = SimpleNamespace(close=AsyncMock())
+        effective_namespaces = AsyncMock(return_value=[{'name': 'test-catalog'}])
+
+        with (
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+            patch.object(
+                catalog_app, 'proxy_api_client', return_value=effective_client
+            ) as proxy_client,
+            patch.object(catalog_app, 'get_user_groups', effective_groups),
+            patch.object(catalog_app, 'get_catalog_namespaces', effective_namespaces),
+        ):
+            admin_patches = self.authenticated_patches(admin_session)
+            with (admin_patches[0], admin_patches[1], admin_patches[2]):
+                admin_response = await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(path)
+                )
+            impersonated_patches = self.authenticated_patches(admin_session)
+            with (impersonated_patches[0], impersonated_patches[1], impersonated_patches[2]):
+                impersonated_response = await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(
+                        path, headers={'Impersonate-User': 'target-user'}
+                    )
+                )
+
+        self.assertEqual(
+            [item['metadata']['name'] for item in self.response_body(admin_response)['items']],
+            ['target', 'other'],
+        )
+        self.assertEqual(
+            [item['metadata']['name'] for item in self.response_body(impersonated_response)['items']],
+            ['target'],
+        )
+        effective_groups.assert_awaited_once_with('target-user')
+        self.assertEqual(proxy_client.call_count, 3)
+        effective_namespaces.assert_awaited_once_with(effective_client)
+        self.assertEqual(effective_client.close.await_count, 3)
+        api_client.call_api.assert_awaited_once()
+
+    async def test_impersonated_admin_requires_effective_catalog_namespace_access(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        request = self.catalog_item_request(
+            path, headers={'Impersonate-User': 'target-user'}
+        )
+        session = dict(self.session(), admin=True)
+        app_client = FakeApiClient()
+        effective_client = SimpleNamespace(close=AsyncMock())
+        cache = SimpleNamespace(get=lambda _: self.fail('cache accessed before authorization'))
+        effective_namespaces = AsyncMock(return_value=[{'name': 'other-catalog'}])
+        impersonate = AsyncMock(return_value=['target-group'])
+
+        with (
+            patch.object(catalog_app, 'get_proxy_user', AsyncMock(return_value={
+                'metadata': {'name': 'alice'}
+            })),
+            patch.object(catalog_app, 'get_user_session', AsyncMock(return_value=session)),
+            patch.object(catalog_app, 'proxy_api_client', return_value=effective_client),
+            patch.object(catalog_app, 'set_impersonation_for_request', impersonate),
+            patch.object(catalog_app, 'get_catalog_namespaces', effective_namespaces),
+            patch.object(catalog_app, 'response_cache', cache),
+            patch.object(catalog_app, 'app_api_client', app_client),
+        ):
+            with self.assertRaises(web.HTTPForbidden):
+                await catalog_app.openshift_api_proxy_with_cache(request)
+
+        self.assertEqual(impersonate.await_count, 2)
+        impersonate.assert_any_await(effective_client, session, request)
+        effective_namespaces.assert_awaited_once_with(effective_client)
+        self.assertEqual(effective_client.close.await_count, 2)
+        app_client.call_api.assert_not_awaited()
+
+    async def test_catalog_item_cache_api_errors_preserve_generic_proxy_response(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        session = self.session()
+
+        for status in (404, 500):
+            with self.subTest(status=status):
+                body = json.dumps({'message': f'error {status}'}).encode()
+                exception = catalog_app.kubernetes_asyncio.client.exceptions.ApiException(
+                    status=status
+                )
+                exception.body = body
+                api_client = FakeApiClient()
+                api_client.call_api.side_effect = exception
+                cache = {}
+                auth_patches = self.authenticated_patches(session)
+
+                with (
+                    auth_patches[0],
+                    auth_patches[1],
+                    auth_patches[2],
+                    patch.object(catalog_app, 'app_api_client', api_client),
+                    patch.object(catalog_app, 'response_cache', cache),
+                ):
+                    response = await catalog_app.openshift_api_proxy_with_cache(
+                        self.catalog_item_request(path)
+                    )
+
+                self.assertEqual(response.status, status)
+                self.assertEqual(response.body, body)
+                self.assertEqual(response.content_type, 'application/json')
+                self.assertEqual(cache, {})
+
+    async def test_catalog_item_cache_removes_stale_representation_validators(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        api_client.call_api.return_value = FakeKubernetesResponse(
+            {'metadata': {}, 'items': []},
+            headers={
+                'ETag': '"raw-response"',
+                'Last-Modified': 'Mon, 21 Sep 2026 00:00:00 GMT',
+            },
+        )
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', {}),
+        ):
+            response = await catalog_app.openshift_api_proxy_with_cache(
+                self.catalog_item_request(path)
+            )
+
+        self.assertNotIn('ETag', response.headers)
+        self.assertNotIn('Last-Modified', response.headers)
 
     async def test_policy_denial_is_audited_before_forwarding(self):
         body = {'metadata': {'labels': catalog_labels()}}

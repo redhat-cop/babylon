@@ -109,6 +109,10 @@ catalog:
           cpu: "2"
           memory: "2Gi"
       responseCacheCleanInterval: 60
+      responseCacheMaxEntries: 1000
+      # 32 MiB per worker limits the three-worker cache footprint to 96 MiB.
+      responseCacheMaxBytes: 33554432
+      responseCacheMaxInFlight: 10
     oauthProxy:
       image:
         pullPolicy: Always
