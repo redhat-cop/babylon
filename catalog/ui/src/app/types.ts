@@ -1,4 +1,4 @@
-import { CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 
 export interface AnarchyAction extends K8sObject {
   spec: any;

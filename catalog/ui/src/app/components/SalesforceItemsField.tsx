@@ -1,4 +1,5 @@
-import React, { useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button, FormGroup, TextInput, Tooltip, Radio, HelperText, HelperTextItem } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';

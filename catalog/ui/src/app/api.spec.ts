@@ -1,5 +1,5 @@
 import { FORBIDDEN_RESPONSE, assignSelfPacedLabUser } from './api';
-import { SelfPacedLabUserAssignment } from './types';
+import type { SelfPacedLabUserAssignment } from './types';
 import fetchMock from 'jest-fetch-mock';
 
 describe('optionalFetcher', () => {

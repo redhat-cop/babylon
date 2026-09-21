@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
+import type { CatalogItem, Workshop, WorkshopProvision } from '@app/types';
 import { patchWorkshopProvision } from '@app/api';
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 

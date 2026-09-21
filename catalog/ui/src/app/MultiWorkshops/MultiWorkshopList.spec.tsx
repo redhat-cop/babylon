@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { waitFor } from '@testing-library/react';
 import { render as customRender, generateSession } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';

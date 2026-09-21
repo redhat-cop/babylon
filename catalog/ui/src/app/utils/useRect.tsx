@@ -1,4 +1,5 @@
-import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import throttle from 'lodash.throttle';
 
 const useEffectInEvent = (event: 'resize' | 'scroll', useCapture?: boolean, set?: () => void) => {

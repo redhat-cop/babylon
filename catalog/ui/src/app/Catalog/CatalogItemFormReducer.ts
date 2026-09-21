@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { checkSalesforceId } from '@app/api';
 import type { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';

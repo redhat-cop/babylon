@@ -1,4 +1,5 @@
-import React, { useState, Ref } from 'react';
+import type { Ref } from 'react';
+import React, { useState } from 'react';
 import {
   FormGroup,
   TextInput,
