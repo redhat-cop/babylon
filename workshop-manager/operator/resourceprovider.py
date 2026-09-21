@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 
 import kubernetes_asyncio
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 from k8sobject import K8sObject
 
 class ResourceProvider(K8sObject):
-    api_group = Babylon.poolboy_domain
-    api_version = Babylon.poolboy_api_version
+    api_group = OperatorRuntime.poolboy_domain
+    api_version = OperatorRuntime.poolboy_api_version
     kind = 'ResourceProvider'
     plural = 'resourceproviders'
 

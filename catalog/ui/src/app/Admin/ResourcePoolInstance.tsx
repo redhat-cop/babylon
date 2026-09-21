@@ -26,7 +26,7 @@ import {
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   apiPaths,
   createResourcePoolScaling,
@@ -37,9 +37,11 @@ import {
   fetcherItemsInAllPages,
 } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
+import type { ResourceHandle, ResourcePool, ResourcePoolList, ResourcePoolScaling } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import Modal, { useModal } from '@app/Modal/Modal';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -47,7 +49,7 @@ import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ResourcePoolMinAvailableInput from './ResourcePoolMinAvailableInput';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
 import { BABYLON_DOMAIN, compareK8sObjects, compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 import useMatchMutate from '@app/utils/useMatchMutate';
@@ -75,6 +77,7 @@ const CreateResourcePoolScalingForm: React.FC<{
   const [count, setCount] = useState(1);
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const [now] = useState(() => Date.now());
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   useEffect(() => {
     if (!setOnConfirmCb) return;
@@ -115,6 +118,8 @@ const CreateResourcePoolScalingForm: React.FC<{
   }, [count, onCreated, resourcePool, scheduledDate, setOnConfirmCb]);
 
   return (
+    <>
+    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
     <Form>
       <FormGroup label="Number of ResourceHandles to add" isRequired fieldId="scaling-count">
         <NumberInput
@@ -134,9 +139,11 @@ const CreateResourcePoolScalingForm: React.FC<{
           defaultTimestamp={now}
           onSelect={(date) => setScheduledDate(date)}
           minDate={now}
+          timezone={timezone}
         />
       </FormGroup>
     </Form>
+    </>
   );
 };
 
@@ -167,7 +174,12 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
       compare: compareK8sObjects,
     },
   );
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: resourceHandles, mutate: mutateResourceHandles } = useSWR<ResourceHandle[]>(
     resourcePool

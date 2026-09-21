@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import { createWorkshopForMultiuserService } from '@app/api';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { displayName, randomString } from '@app/util';
 
 const ServicesCreateWorkshop: React.FC<{

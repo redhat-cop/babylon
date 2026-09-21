@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
   Alert,
@@ -34,8 +34,9 @@ import {
   startWorkshopServices,
   stopWorkshop,
 } from '@app/api';
-import {
+import type {
   NamespaceList,
+  CatalogItem,
   RequestUsageCost,
   ResourceClaim,
   ServiceAccessConfig,
@@ -61,6 +62,7 @@ import WorkshopActionModal from '@app/components/WorkshopActionModal';
 import WorkshopActions from './WorkshopActions';
 import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
+import WorkshopsItemClusters from './WorkshopsItemClusters';
 import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
@@ -70,6 +72,14 @@ import Label from '@app/components/Label';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import UserDisabledModal from '@app/components/UserDisabledModal';
+import ReorderModal from '@app/components/ReorderModal';
+import {
+  canReorderWorkshop,
+  getWorkshopReorderSchedule,
+  reorderWorkshop,
+} from '@app/reorder-utils';
+import useSWRImmutable from 'swr/immutable';
 import parseDuration from 'parse-duration';
 
 import './workshops-item.css';
@@ -98,11 +108,13 @@ const WorkshopsItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { mutate } = useSWRConfig();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalSchedule, openModalSchedule] = useModal();
+  const [modalReorder, openModalReorder] = useModal();
+  const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
   const [highlightAutoDestroy, setHighlightAutoDestroy] = useState(false);
@@ -163,6 +175,16 @@ const WorkshopsItemComponent: React.FC<{
 
   const stage = getStageFromK8sObject(workshop);
 
+  const { data: catalogItem } = useSWRImmutable<CatalogItem>(
+    workshop?.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
+      ? apiPaths.CATALOG_ITEM({
+          namespace: workshop.metadata.labels[`${BABYLON_DOMAIN}/catalogItemNamespace`],
+          name: workshop.metadata.labels[`${BABYLON_DOMAIN}/catalogItemName`],
+        })
+      : null,
+    silentFetcher,
+  );
+
   const { data: usageCost } = useSWR<RequestUsageCost>(
     workshop?.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`]
       ? apiPaths.USAGE_COST_WORKSHOP({ workshopId: workshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] })
@@ -201,6 +223,11 @@ const WorkshopsItemComponent: React.FC<{
     },
   );
 
+  const workshopProvision = useMemo(
+    () => workshopProvisions?.find((provision) => provision.metadata.name === workshop?.metadata.name) || workshopProvisions?.[0],
+    [workshop?.metadata.name, workshopProvisions],
+  );
+
   const { data: resourceClaims, mutate: mutateRC } = useSWR<ResourceClaim[]>(
     workshop
       ? apiPaths.RESOURCE_CLAIMS({
@@ -225,6 +252,16 @@ const WorkshopsItemComponent: React.FC<{
       revalidateIfStale: false, // Don't auto-revalidate stale data
       dedupingInterval: 3000, // Dedupe requests
     },
+  );
+
+  const instanceResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((r) => !r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    [resourceClaims],
+  );
+
+  const clusterResourceClaims = useMemo(
+    () => (resourceClaims || []).filter((r) => !!r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    [resourceClaims],
   );
 
   // Check if workshop has an info message template
@@ -332,7 +369,7 @@ const WorkshopsItemComponent: React.FC<{
       workshop,
       dateToApiString(new Date()),
       dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-      resourceClaims,
+      instanceResourceClaims,
     );
     mutateWorkshop(workshopUpdated);
   }
@@ -389,7 +426,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       // If workshop has readyBy date, update it to be provisioning date + lead time
       if (workshop.spec?.lifespan?.readyBy) {
@@ -417,7 +454,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       mutateWorkshop(workshopUpdated);
       // Highlight auto-destroy in details after changing start date
@@ -432,7 +469,7 @@ const WorkshopsItemComponent: React.FC<{
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
-        resourceClaims,
+        instanceResourceClaims,
       );
       const workshopUpdated = await patchWorkshop({
         name: workshop.metadata.name,
@@ -493,10 +530,43 @@ const WorkshopsItemComponent: React.FC<{
                   : 'stop'
           }
           workshop={workshop}
-          resourceClaims={resourceClaims}
+          resourceClaims={instanceResourceClaims}
           workshopProvisions={workshopProvisions}
         />
       </Modal>
+      <Modal
+        ref={modalReorder}
+        onConfirm={() => undefined}
+        passModifiers={true}
+        confirmText="Reorder"
+        onError={(error: unknown) => {
+          if ((error as Response).status === 403) {
+            setIsUserDisabledModalOpen(true);
+          }
+        }}
+      >
+        <ReorderModal
+          catalogItem={catalogItem}
+          displayName={displayName(workshop)}
+          isAdmin={isAdmin}
+          isWorkshop={true}
+          schedule={getWorkshopReorderSchedule(workshop)}
+          onReorder={async (schedule) => {
+            const newWorkshop = await reorderWorkshop({
+              workshop,
+              workshopProvision,
+              catalogItem,
+              email,
+              schedule,
+            });
+            navigate(`/workshops/${newWorkshop.metadata.namespace}/${newWorkshop.metadata.name}`);
+          }}
+        />
+      </Modal>
+      <UserDisabledModal
+        isOpen={isUserDisabledModalOpen}
+        onClose={() => setIsUserDisabledModalOpen(false)}
+      />
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="workshops-item__topbar">
           <ProjectSelector
@@ -557,15 +627,18 @@ const WorkshopsItemComponent: React.FC<{
                       ? null
                       : () => showModal({ action: 'deleteService', resourceClaims: selectedResourceClaims }),
                   start:
-                    Array.isArray(resourceClaims) && resourceClaims.length === 0
+                    Array.isArray(instanceResourceClaims) && instanceResourceClaims.length === 0
                       ? enableManageWorkshopProvisions && !isWorkshopStarted(workshop, workshopProvisions)
                         ? () => showModal({ action: 'startWorkshop', resourceClaims: [] })
                         : null
-                      : checkWorkshopCanStart(resourceClaims)
-                        ? () => showModal({ action: 'startServices', resourceClaims })
+                      : checkWorkshopCanStart(instanceResourceClaims)
+                        ? () => showModal({ action: 'startServices', resourceClaims: instanceResourceClaims })
                         : null,
-                  stop: checkWorkshopCanStop(resourceClaims)
-                    ? () => showModal({ action: 'stopServices', resourceClaims })
+                  stop: checkWorkshopCanStop(instanceResourceClaims)
+                    ? () => showModal({ action: 'stopServices', resourceClaims: instanceResourceClaims })
+                    : null,
+                  reorder: canReorderWorkshop(workshop, catalogItem, workshopProvision, groups, isAdmin)
+                    ? () => openModalReorder()
                     : null,
                 }}
                 canManageCollaborators={canManageCollaborators}
@@ -594,7 +667,8 @@ const WorkshopsItemComponent: React.FC<{
                 onWorkshopUpdate={(workshop: Workshop) => mutateWorkshop(workshop)}
                 workshop={workshop}
                 showModal={showModal}
-                resourceClaims={resourceClaims}
+                resourceClaims={instanceResourceClaims}
+                clusterResourceClaims={clusterResourceClaims}
                 workshopProvisions={workshopProvisions}
                 workshopUserAssignments={userAssigmentsList?.items || []}
                 usageCost={usageCost}
@@ -608,7 +682,8 @@ const WorkshopsItemComponent: React.FC<{
               {activeTab === 'info' ? (
                 <WorkshopInfoTab
                   workshop={workshop}
-                  resourceClaims={resourceClaims || []}
+                  resourceClaims={instanceResourceClaims}
+                  clusterResourceClaims={clusterResourceClaims}
                   workshopProvisions={workshopProvisions || []}
                   showModal={showModal}
                 />
@@ -622,13 +697,20 @@ const WorkshopsItemComponent: React.FC<{
               ) : null}
             </Tab>
           ) : null}
+          {clusterResourceClaims.length > 0 ? (
+            <Tab eventKey="clusters" title={<TabTitleText>Clusters</TabTitleText>}>
+              {activeTab === 'clusters' ? (
+                <WorkshopsItemClusters resourceClaims={clusterResourceClaims} />
+              ) : null}
+            </Tab>
+          ) : null}
           <Tab eventKey="instances" title={<TabTitleText>Instances</TabTitleText>}>
             {activeTab === 'instances' ? (
               <WorkshopsItemServices
                 modalState={modalState}
                 showModal={showModal}
                 setSelectedResourceClaims={setSelectedResourceClaims}
-                resourceClaims={resourceClaims || []}
+                resourceClaims={instanceResourceClaims}
                 workshopProvisions={workshopProvisions}
                 userAssignments={userAssigmentsList?.items || []}
               />

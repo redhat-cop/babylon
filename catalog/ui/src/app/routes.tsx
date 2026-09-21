@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { IAppRoute } from './types';
+import type { IAppRoute } from './types';
 import AppLayout from './AppLayout/AppLayout';
 import { ErrorBoundary } from 'react-error-boundary';
 import LoadingSection from './components/LoadingSection';
@@ -11,6 +11,7 @@ const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'))
 const Services = React.lazy(() => import('@app/Services/Services'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
+const SelfPacedLabsList = React.lazy(() => import('@app/Admin/SelfPacedLabs'));
 const MultiWorkshopsList = React.lazy(() => import('@app/Admin/MultiWorkshops'));
 const MultiWorkshopList = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopList'));
 
@@ -18,7 +19,9 @@ const MultiWorkshopCreate = React.lazy(() => import('@app/MultiWorkshops/MultiWo
 const MultiWorkshopDetail = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopDetail'));
 const MultiWorkshopLanding = React.lazy(() => import('@app/MultiWorkshops/MultiWorkshopLanding'));
 const WorkshopsItem = React.lazy(() => import('@app/Workshops/WorkshopsItem'));
+const SelfPacedLabItem = React.lazy(() => import('@app/SelfPacedLabs/SelfPacedLabItem'));
 const Workshop = React.lazy(() => import('@app/Workshop/Workshop'));
+const SelfPacedLab = React.lazy(() => import('@app/SelfPacedLab/SelfPacedLab'));
 const SupportPage = React.lazy(() => import('@app/Support/SupportPage'));
 const NotFound = React.lazy(() => import('@app/NotFound/NotFound'));
 const IncidentsPage = React.lazy(() => import('@app/Admin/IncidentsPage'));
@@ -39,8 +42,14 @@ const ResourceProviders = React.lazy(() => import('@app/Admin/ResourceProviders'
 const ResourceProviderInstance = React.lazy(() => import('@app/Admin/ResourceProviderInstance'));
 const CatalogItemAdmin = React.lazy(() => import('@app/Admin/CatalogItemAdmin'));
 const SystemStatus = React.lazy(() => import('@app/Admin/SystemStatus'));
+const TenantClusterPools = React.lazy(() => import('@app/Admin/TenantClusterPools'));
+const TenantClusterPoolInstance = React.lazy(() => import('@app/Admin/TenantClusterPoolInstance'));
 const Ops = React.lazy(() => import('@app/Admin/Ops'));
 const Activity = React.lazy(() => import('@app/Activity'));
+const WhiteGloveList = React.lazy(() => import('@app/WhiteGlove/WhiteGloveList'));
+const WhiteGloveCreate = React.lazy(() => import('@app/WhiteGlove/WhiteGloveCreate'));
+const WhiteGloveDetail = React.lazy(() => import('@app/WhiteGlove/WhiteGloveDetail'));
+const WhiteGloveAdminList = React.lazy(() => import('@app/Admin/WhiteGloveAdminList'));
 
 const appRoutes: IAppRoute[] = [
   {
@@ -99,6 +108,21 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | My Activity',
   },
   {
+    component: WhiteGloveCreate,
+    path: '/white-glove/create',
+    title: 'Babylon | New White Glove Request',
+  },
+  {
+    component: WhiteGloveDetail,
+    path: '/white-glove/:namespace/:name',
+    title: 'Babylon | White Glove Request',
+  },
+  {
+    component: WhiteGloveList,
+    path: '/white-glove',
+    title: 'Babylon | White Glove Requests',
+  },
+  {
     component: MultiWorkshopCreate,
     path: '/multi-workshop/create',
     title: 'Babylon | Create Multi Asset Workshop',
@@ -129,6 +153,16 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | Workshops',
   },
   {
+    component: SelfPacedLabItem,
+    path: '/selfpacedlabs/:namespace/:name/:tab',
+    title: 'Babylon | Self-Paced Labs',
+  },
+  {
+    component: SelfPacedLabItem,
+    path: '/selfpacedlabs/:namespace/:name',
+    title: 'Babylon | Self-Paced Labs',
+  },
+  {
     component: ResourceClaims,
     path: '/admin/resourceclaims/:namespace',
     title: 'Babylon | ResourceClaims',
@@ -150,6 +184,18 @@ const appRoutes: IAppRoute[] = [
   },
 
   {
+    component: SelfPacedLabsList,
+    path: '/admin/selfpacedlabs/:namespace',
+    title: 'Babylon | Self-Paced Labs',
+    accessControl: 'admin',
+  },
+  {
+    component: SelfPacedLabsList,
+    path: '/admin/selfpacedlabs',
+    title: 'Babylon | Self-Paced Labs',
+    accessControl: 'admin',
+  },
+  {
     component: MultiWorkshopsList,
     path: '/admin/multiworkshops/:namespace',
     title: 'Babylon | Multi Asset Workshop',
@@ -165,6 +211,18 @@ const appRoutes: IAppRoute[] = [
     component: Ops,
     path: '/admin/ops/:namespace',
     title: 'Babylon | Workshop Control',
+    accessControl: 'admin',
+  },
+  {
+    component: WhiteGloveDetail,
+    path: '/admin/white-glove-requests/:namespace/:name',
+    title: 'Babylon | White Glove Request',
+    accessControl: 'admin',
+  },
+  {
+    component: WhiteGloveAdminList,
+    path: '/admin/white-glove-requests',
+    title: 'Babylon | White Glove Requests',
     accessControl: 'admin',
   },
   {
@@ -331,6 +389,24 @@ const appRoutes: IAppRoute[] = [
     accessControl: 'admin',
   },
   {
+    component: TenantClusterPoolInstance,
+    path: '/admin/tenantclusterpools/:namespace/:name/:tab',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: TenantClusterPoolInstance,
+    path: '/admin/tenantclusterpools/:namespace/:name',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: TenantClusterPools,
+    path: '/admin/tenantclusterpools',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
     component: CatalogItemAdmin,
     path: '/admin/catalogitems/:namespace/:name',
     title: 'Babylon | Admin',
@@ -356,8 +432,13 @@ const publicRoutes: IAppRoute[] = [
     title: 'Workshop | Babylon',
   },
   {
+    component: SelfPacedLab,
+    path: '/selfpacedlab/:selfPacedLabId',
+    title: 'Self-Paced Lab | Babylon',
+  },
+  {
     component: MultiWorkshopLanding,
-    path: '/event/:namespace/:name',
+    path: '/event/:multiWorkshopId',
     title: 'Babylon | Multi-Workshop',
   },
   {

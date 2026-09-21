@@ -1,18 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import {
-  FormGroup,
-  Radio,
-  TextInput,
-  Tooltip,
-  Select,
-  SelectList,
-  SelectOption,
-  MenuToggle,
-  MenuToggleElement,
-} from '@patternfly/react-core';
+import { FormGroup, Radio, TextInput, Tooltip, Select, SelectList, SelectOption, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
-import { TPurposeOpts } from '@app/types';
+import type { TPurposeOpts } from '@app/types';
 
 const ActivityPurposeSelector: React.FC<{
   onChange: (activity: string, purpose: string, explanation: string) => void;
@@ -25,6 +16,12 @@ const ActivityPurposeSelector: React.FC<{
   const [activity, setActivity] = useState(value?.activity || '');
   const [purpose, setPurpose] = useState(value?.purpose || '');
   const [explanation, setExplanation] = useState(value?.explanation || '');
+
+  useEffect(() => {
+    if (value?.activity && value.activity !== activity) setActivity(value.activity);
+    if (value?.purpose && value.purpose !== purpose) setPurpose(value.purpose);
+    if (value?.explanation && value.explanation !== explanation) setExplanation(value.explanation);
+  }, [value?.activity, value?.purpose, value?.explanation]);
 
   const activityOpts = purposeOpts
     .filter((a) => !a.requiredRoles || a.requiredRoles.some((r) => groups.includes(r)))
@@ -124,7 +121,7 @@ const ActivityPurposeSelector: React.FC<{
           </Select>
 
           {purposeOpts.find((p) => p.name === purpose)?.requireUserInput && (
-            <div className="catalog-item-form__group-control--single">
+            <div className="catalog-item-form__group-control--single" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
               <TextInput
                 aria-label="Specify purpose"
                 placeholder="Specify purpose"

@@ -51,7 +51,7 @@ const EditableText: React.FC<{
           onChange={(_event, v) => setEditedValue(v)}
           onKeyUp={onKeyUp}
           value={editedValue}
-          isDisabled={isLocked}
+
         />
       );
     }

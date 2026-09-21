@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  Masthead,
-  MastheadLogo,
-  MastheadContent,
-  MastheadMain,
-  MastheadBrand,
-  MenuToggle,
-  MenuToggleElement,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownList, DropdownItem, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadBrand, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
 import { useInterface } from '@app/utils/useInterfaceConfig';
@@ -58,7 +48,7 @@ const PublicHeader: React.FC = () => {
     ...(feedback_link
       ? [
           <DropdownItem key="feedback" value={feedback_link}>
-            Provide Feedback
+            RHDP Support - Feedback/Feature Request
           </DropdownItem>,
         ]
       : []),

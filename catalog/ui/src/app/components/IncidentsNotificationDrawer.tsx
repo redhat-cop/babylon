@@ -13,14 +13,14 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
-import { Incident } from '@app/types';
+import type { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { useNotificationDrawer } from '@app/AppLayout/NotificationDrawerContext';
 import TimeInterval from './TimeInterval';
 import EditorViewer from './Editor/EditorViewer';
-import { SearchIcon } from '@patternfly/react-icons';
+import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
 
 const READ_INCIDENTS_STORAGE_KEY = 'incidents_notification_read_ids';
 

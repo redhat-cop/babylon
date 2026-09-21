@@ -1,6 +1,6 @@
 import React from 'react';
 import { checkSalesforceId } from '@app/api';
-import { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
+import type { CatalogItem, CatalogItemSpecParameter, ServiceNamespace, TPurposeOpts } from '@app/types';
 import parseDuration from 'parse-duration';
 import { isAutoStopDisabled } from './catalog-utils';
 
@@ -21,6 +21,13 @@ type WorkshopProps = {
   provisionConcurrency: number;
   provisionStartDelay: number;
 };
+type SelfPacedLabProps = {
+  poolSize: number;
+  assignedLifespan: string;
+  unassignedLifespan: string;
+  concurrency: number;
+  startDelay: number;
+};
 type FormState = {
   user: UserProps;
   conditionChecks: {
@@ -33,6 +40,7 @@ type FormState = {
   termsOfServiceRequired: boolean;
   whiteGloved: boolean;
   workshop?: WorkshopProps;
+  selfPacedLab?: SelfPacedLabProps;
   error: string;
   useAutoDetach: boolean;
   selectedResourcePool?: string;
@@ -67,6 +75,7 @@ export type FormStateAction = {
     | 'termsOfServiceAgreed'
     | 'dates'
     | 'workshop'
+    | 'selfPacedLab'
     | 'useAutoDetach'
     | 'selectedResourcePool'
     | 'purpose'
@@ -96,6 +105,7 @@ export type FormStateAction = {
   error?: string;
   parameters?: { [name: string]: FormStateParameter };
   workshop?: WorkshopProps;
+  selfPacedLab?: SelfPacedLabProps;
   useAutoDetach?: boolean;
   selectedResourcePool?: string;
   startDate?: Date;
@@ -260,11 +270,11 @@ function initDates(catalogItem: CatalogItem, currTime?: number) {
     _currTime = currTime;
   }
   return {
-    startDate: currTime ? new Date(currTime) : null, // Provisioning start date is the current time
+    startDate: currTime ? new Date(currTime) : null,
     stopDate: isAutoStopDisabled(catalogItem)
       ? null
-      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')), // Base on provisioning date
-    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')), // Base on provisioning date
+      : new Date(_currTime + parseDuration(catalogItem.spec.runtime?.default || '4h')),
+    endDate: new Date(_currTime + parseDuration(catalogItem.spec.lifespan?.default || '2d')),
   };
 }
 
@@ -274,6 +284,7 @@ function reduceFormStateInit(
   { isAdmin, groups, roles },
   purposeOpts: TPurposeOpts,
   sfdc_enabled: boolean,
+  workshopInitialProps?: WorkshopProps,
 ): FormState {
   const formGroups: FormStateParameterGroup[] = [];
   const parameters: { [name: string]: FormStateParameter } = {};
@@ -331,7 +342,8 @@ function reduceFormStateInit(
     serviceNamespace: serviceNamespace,
     termsOfServiceAgreed: false,
     termsOfServiceRequired: catalogItem.spec.termsOfService ? true : false,
-    workshop: null,
+    workshop: catalogItem.spec.workshopUiEnabledByDefault && workshopInitialProps ? workshopInitialProps : null,
+    selfPacedLab: null,
     error: '',
     useAutoDetach: true,
     selectedResourcePool: undefined,
@@ -411,6 +423,13 @@ function reduceFormStateWorkshop(initialState: FormState, workshop: WorkshopProp
     salesforceId,
     salesforceItems,
     workshop,
+  };
+}
+
+function reduceFormStateSelfPacedLab(initialState: FormState, selfPacedLab: SelfPacedLabProps = null): FormState {
+  return {
+    ...initialState,
+    selfPacedLab,
   };
 }
 
@@ -499,6 +518,7 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
         action.user,
         action.purposeOpts,
         action.sfdc_enabled,
+        action.workshop,
       );
     case 'initDates':
       return {
@@ -536,6 +556,8 @@ export function reduceFormState(state: FormState, action: FormStateAction): Form
       return reduceFormWhiteGloved(state, action.whiteGloved);
     case 'workshop':
       return reduceFormStateWorkshop(state, action.workshop);
+    case 'selfPacedLab':
+      return reduceFormStateSelfPacedLab(state, action.selfPacedLab);
     case 'useAutoDetach':
       return reduceFormStateUseAutoDetach(state, action.useAutoDetach);
     case 'selectedResourcePool':
@@ -591,6 +613,17 @@ export function checkEnableSubmit(state: FormState): boolean {
   }
   if (state.workshop) {
     if (!state.workshop.displayName) {
+      return false;
+    }
+  }
+  if (state.selfPacedLab) {
+    if (state.selfPacedLab.poolSize < 1) {
+      return false;
+    }
+    if (!state.selfPacedLab.assignedLifespan) {
+      return false;
+    }
+    if (!state.selfPacedLab.unassignedLifespan) {
       return false;
     }
   }

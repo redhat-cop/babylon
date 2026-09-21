@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
 import {
   Breadcrumb,
@@ -24,10 +24,11 @@ import {
   Tab,
   TabTitleText,
   Title,
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionToggle,
+  Card,
+  CardBody,
+  CardExpandableContent,
+  CardHeader,
+  CardTitle,
   ExpandableSection,
   List,
   ListItem,
@@ -61,7 +62,7 @@ import {
   patchServiceAccessConfig,
   deleteServiceAccessConfig,
 } from '@app/api';
-import {
+import type {
   AnarchySubject,
   CatalogItem,
   K8sObject,
@@ -70,6 +71,7 @@ import {
   ResourceClaim,
   ServiceAccessConfig,
   ServiceActionActions,
+  TenantClusterPool,
   Workshop,
   WorkshopUserAssignment,
   WorkshopUserAssignmentList,
@@ -80,19 +82,21 @@ import {
   displayName,
   renderContent,
   isResourceClaimPartOfWorkshop,
+  isResourceClaimPartOfSelfPacedLab,
   getStageFromK8sObject,
   compareK8sObjects,
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
   DEMO_DOMAIN,
+  extractErrorMessage,
   getWhiteGloved,
   parseSalesforceItems,
 } from '@app/util';
 import useSession from '@app/utils/useSession';
 import Modal, { useModal } from '@app/Modal/Modal';
 import CurrencyAmount from '@app/components/CurrencyAmount';
-import ConditionalWrapper from '@app/components/ConditionalWrapper';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
@@ -111,15 +115,24 @@ import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
+import SandboxApiActions from '@app/components/SandboxApiActions';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
+import useSandboxApi from '@app/utils/useSandboxApi';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
+import ReorderModal from '@app/components/ReorderModal';
+import {
+  canReorderResourceClaim,
+  getResourceClaimReorderSchedule,
+  reorderResourceClaim,
+} from '@app/reorder-utils';
 
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -131,6 +144,7 @@ const ComponentDetailsList: React.FC<{
   groups: string[];
   externalPlatformUrl: string;
   isPartOfWorkshop: boolean;
+  isInsideCard?: boolean;
   startDate: Date;
   startTimestamp: string;
   stopDate: Date;
@@ -143,6 +157,7 @@ const ComponentDetailsList: React.FC<{
   groups,
   externalPlatformUrl,
   isPartOfWorkshop,
+  isInsideCard,
   startDate,
   startTimestamp,
   stopDate,
@@ -178,7 +193,7 @@ const ComponentDetailsList: React.FC<{
   );
   const [now] = useState(() => Date.now());
   return (
-    <DescriptionList isHorizontal>
+    <DescriptionList isHorizontal={!isInsideCard}>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
           {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
@@ -221,6 +236,10 @@ const ComponentDetailsList: React.FC<{
                                   <a href={value} target="_blank" rel="noopener noreferrer">
                                     <code>{value}</code>
                                   </a>
+                                ) : value.length > 200 ? (
+                                  <div className="services-item__provision-data--long-value">
+                                    <code>{value}</code>
+                                  </div>
                                 ) : (
                                   <code>{value}</code>
                                 )
@@ -324,7 +343,7 @@ const ServicesItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { sfdc_enabled } = useInterfaceConfig();
-  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
   const {
@@ -335,8 +354,13 @@ const ServicesItemComponent: React.FC<{
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
+  const { showBoundary } = useErrorBoundary();
   // Show 404 when resourceClaim is not found or is being deleted
-  useErrorHandler(error?.status === 404 || resourceClaim?.metadata?.deletionTimestamp ? { status: 404 } : null);
+  useEffect(() => {
+    if (error?.status === 404 || resourceClaim?.metadata?.deletionTimestamp) {
+      showBoundary({ status: 404 });
+    }
+  }, [error, resourceClaim?.metadata?.deletionTimestamp, showBoundary]);
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/catalogItemName`]
       ? apiPaths.CATALOG_ITEM({
@@ -346,6 +370,56 @@ const ServicesItemComponent: React.FC<{
       : null,
     silentFetcher,
   );
+
+  const tenantClusterPoolAnnotation = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`];
+  const isTenantClusterItem = !!tenantClusterPoolAnnotation;
+  const pendingTenantAction = useMemo(() => {
+    const raw = resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/tenant-cluster-action`];
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw)?.action || null;
+    } catch {
+      return null;
+    }
+  }, [resourceClaim.metadata.annotations]);
+  const tenantClusterPoolOwnerRef = isTenantClusterItem
+    ? resourceClaim.metadata.ownerReferences?.find((ref) => ref.kind === 'TenantClusterPool')
+    : undefined;
+  const { data: tenantClusterPool } = useSWR<TenantClusterPool>(
+    tenantClusterPoolOwnerRef
+      ? apiPaths.TENANT_CLUSTER_POOL({
+          namespace: resourceClaim.metadata.namespace,
+          tenantClusterPoolName: tenantClusterPoolOwnerRef.name,
+        })
+      : null,
+    silentFetcher,
+    { shouldRetryOnError: false, refreshInterval: 8000 },
+  );
+  const clusterName = useMemo(() => {
+    if (!isTenantClusterItem) return resourceClaim.status?.resourceHandle?.name || '';
+    const clusterEntry = tenantClusterPool?.status?.clusters?.find(
+      (c) => c.resourceClaimName === resourceClaim.metadata.name,
+    );
+    return clusterEntry?.name || '';
+  }, [isTenantClusterItem, tenantClusterPool, resourceClaim.metadata.name, resourceClaim.status?.resourceHandle?.name]);
+  const {
+    status: sandboxApiStatus,
+    updating: tenantActionUpdating,
+    performAction: performSandboxAction,
+    placementCount: sandboxPlacementCount,
+  } = useSandboxApi(
+    isTenantClusterItem ? clusterName : '',
+    resourceClaim.metadata.namespace,
+    resourceClaim.metadata.name,
+  );
+  const isRunning = useMemo(() => {
+    const summaryState = resourceClaim.status?.summary?.state;
+    if (summaryState) {
+      return summaryState === 'started' || summaryState === 'running';
+    }
+    const resource = resourceClaim.status?.resources?.[0]?.state;
+    return resource?.kind === 'AnarchySubject' && resource.spec?.vars?.current_state === 'started';
+  }, [resourceClaim.status?.summary?.state, resourceClaim.status?.resources]);
 
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
@@ -361,6 +435,7 @@ const ServicesItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
+  const [modalReorder, openModalReorder] = useModal();
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
@@ -377,13 +452,15 @@ const ServicesItemComponent: React.FC<{
   }>({ action: null, submitDisabled: false });
 
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
+  const isPartOfSelfPacedLab = isResourceClaimPartOfSelfPacedLab(resourceClaim);
+  const isManagedInstance = isPartOfWorkshop || isPartOfSelfPacedLab;
 
   const {
     data: serviceAccessConfigResponse,
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isPartOfWorkshop && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
+    !isManagedInstance && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
@@ -545,6 +622,7 @@ const ServicesItemComponent: React.FC<{
   const isCollaborator = !isAdmin && !sessionServiceNamespaces.some((ns) => ns.name === serviceNamespaceName);
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
+  const supportLink = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/support-link`];
   const whiteGloved = getWhiteGloved(resourceClaim);
   const isLocked = isResourceClaimLocked(resourceClaim);
   const resourcesK8sObj = (resourceClaim.status?.resources || []).map((r: { state?: K8sObject }) => r.state);
@@ -569,22 +647,27 @@ const ServicesItemComponent: React.FC<{
     stop?: () => void;
     manageWorkshop?: () => void;
     rate?: () => void;
+    reorder?: () => void;
   } = {
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
   
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
+  if (!isTenantClusterItem && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
-  if (anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
+  if (!isTenantClusterItem && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'stop'))) {
     actionHandlers.stop = () => showModal({ action: 'stop', modal: 'action', resourceClaim });
     actionHandlers.runtime = () => showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
   }
   if (isPartOfWorkshop) {
     actionHandlers.manageWorkshop = () => navigate(`/workshops/${serviceNamespace.name}/${workshopName}`);
-  } else {
+  }
+  if (!isManagedInstance) {
     actionHandlers.rate = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
+  }
+  if (canReorderResourceClaim(resourceClaim, catalogItem, groups, isAdmin)) {
+    actionHandlers.reorder = () => openModalReorder();
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -789,6 +872,35 @@ const ServicesItemComponent: React.FC<{
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
       />
+      <Modal
+        ref={modalReorder}
+        onConfirm={() => undefined}
+        passModifiers={true}
+        confirmText="Reorder"
+        onError={(error: unknown) => {
+          if ((error as Response).status === 403) {
+            setIsUserDisabledModalOpen(true);
+          }
+        }}
+      >
+        <ReorderModal
+          catalogItem={catalogItem}
+          displayName={displayName(resourceClaim)}
+          isAdmin={isAdmin}
+          schedule={getResourceClaimReorderSchedule(resourceClaim)}
+          onReorder={async (schedule) => {
+            const newResourceClaim = await reorderResourceClaim({
+              resourceClaim,
+              catalogItem,
+              groups,
+              isAdmin,
+              email,
+              schedule,
+            });
+            navigate(`/services/${newResourceClaim.metadata.namespace}/${newResourceClaim.metadata.name}`);
+          }}
+        />
+      </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
           action={
@@ -819,7 +931,30 @@ const ServicesItemComponent: React.FC<{
       <PageSection hasBodyWrapper={false} key="head" className="services-item__head">
         <Split hasGutter>
           <SplitItem isFilled>
-            {isAdmin || serviceNamespaces.length > 1 ? (
+            {isAdmin && isTenantClusterItem ? (
+              <Breadcrumb>
+                <BreadcrumbItem
+                  render={({ className }) => (
+                    <Link to="/admin/tenantclusterpools" className={className}>
+                      Tenant Cluster Pools
+                    </Link>
+                  )}
+                />
+                {tenantClusterPoolOwnerRef ? (
+                  <BreadcrumbItem
+                    render={({ className }) => (
+                      <Link
+                        to={`/admin/tenantclusterpools/${resourceClaim.metadata.namespace}/${tenantClusterPoolOwnerRef.name}/clusters`}
+                        className={className}
+                      >
+                        {tenantClusterPoolOwnerRef.name}
+                      </Link>
+                    )}
+                  />
+                ) : null}
+                <BreadcrumbItem>{resourceClaimName}</BreadcrumbItem>
+              </Breadcrumb>
+            ) : isAdmin || serviceNamespaces.length > 1 ? (
               <Breadcrumb>
                 <BreadcrumbItem
                   render={({ className }) => (
@@ -865,7 +1000,23 @@ const ServicesItemComponent: React.FC<{
                   Workshop UI
                 </Label>
               ) : null}
-              {serviceAlias ? (
+              {isPartOfSelfPacedLab ? (
+                <Label
+                  key="service-item__selfpacedlab"
+                  tooltipDescription={<div>This service is part of a self-paced lab</div>}
+                >
+                  Self-Paced Lab
+                </Label>
+              ) : null}
+              {isTenantClusterItem ? (
+                <Label
+                  key="service-item__tenant-cluster"
+                  tooltipDescription={<div>This service is a tenant cluster</div>}
+                >
+                  Cluster
+                </Label>
+              ) : null}
+              {serviceAlias && !isTenantClusterItem ? (
                 <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
                   {serviceAlias}
                 </Label>
@@ -906,6 +1057,7 @@ const ServicesItemComponent: React.FC<{
             ) : null}
             <Tab eventKey="details" key="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
+                <>
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Name</DescriptionListTerm>
@@ -920,31 +1072,33 @@ const ServicesItemComponent: React.FC<{
                       {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Alias</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <div
-                        className="service-item__group-control--single"
-                        style={{ maxWidth: 300, paddingBottom: '16px' }}
-                      >
-                        <TextInput
-                          type="text"
-                          key="service-alias"
-                          id="service-alias"
-                          onChange={async (_event: unknown, value: string) => {
-                            setServiceAlias(value);
-                          }}
-                          value={serviceAlias}
-                        />
-                        <Tooltip position="right" content={<div>Alias name for the service.</div>}>
-                          <OutlinedQuestionCircleIcon
-                            aria-label="Alias name for the service."
-                            className="tooltip-icon-only"
+                  {!isTenantClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Alias</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <div
+                          className="service-item__group-control--single"
+                          style={{ maxWidth: 300, paddingBottom: '16px' }}
+                        >
+                          <TextInput
+                            type="text"
+                            key="service-alias"
+                            id="service-alias"
+                            onChange={async (_event: unknown, value: string) => {
+                              setServiceAlias(value);
+                            }}
+                            value={serviceAlias}
                           />
-                        </Tooltip>
-                      </div>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                          <Tooltip position="right" content={<div>Alias name for the service.</div>}>
+                            <OutlinedQuestionCircleIcon
+                              aria-label="Alias name for the service."
+                              className="tooltip-icon-only"
+                            />
+                          </Tooltip>
+                        </div>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
                   {labUserInterfaceUrl ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
@@ -978,6 +1132,25 @@ const ServicesItemComponent: React.FC<{
                       <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  {supportLink ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Support</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Button
+                          component="a"
+                          href={supportLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="link"
+                          isInline
+                          icon={<ExternalLinkAltIcon />}
+                          iconPosition="end"
+                        >
+                          {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink) ? 'Slack Channel' : 'Get Support'}
+                        </Button>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
                   {startTime && startTime > Date.now() ? (
                     <DescriptionListGroup>
@@ -1000,26 +1173,28 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Auto-stop</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <AutoStopDestroy
-                        type="auto-stop"
-                        onClick={() => {
-                          if (!isLocked) {
-                            showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                          }
-                        }}
-                        isDisabled={isLocked}
-                        resourceClaim={resourceClaim}
-                        className="services-item__schedule-btn"
-                        time={autoStopTime}
-                        variant="extended"
-                      ></AutoStopDestroy>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                  {!isTenantClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Auto-stop</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <AutoStopDestroy
+                          type="auto-stop"
+                          onClick={() => {
+                            if (!isLocked && !isManagedInstance) {
+                              showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                            }
+                          }}
+                          isDisabled={isLocked || isManagedInstance}
+                          resourceClaim={resourceClaim}
+                          className="services-item__schedule-btn"
+                          time={autoStopTime}
+                          variant="extended"
+                        ></AutoStopDestroy>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
 
-                  {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+                  {!isTenantClusterItem && !externalPlatformUrl && !isManagedInstance && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1116,7 +1291,69 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
-                  {!isPartOfWorkshop && sfdc_enabled ? (
+                  {isTenantClusterItem ? (
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Sandbox API</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {sandboxApiStatus === 'loading' ? (
+                          <Spinner size="md" />
+                        ) : pendingTenantAction ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <Spinner size="md" />
+                            {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
+                          </span>
+                        ) : sandboxApiStatus === 'not onboarded' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <Alert
+                              variant="warning"
+                              isInline
+                              isPlain
+                              title="This cluster is not registered with the Sandbox API"
+                            >
+                              <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
+                            </Alert>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                              isDisabled={!isRunning}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
+                            />
+                          </div>
+                        ) : sandboxApiStatus === 'available' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                              Onboarded — Enabled
+                            </span>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
+                            />
+                          </div>
+                        ) : sandboxApiStatus === 'disabled' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              Onboarded — Disabled
+                            </span>
+                            <SandboxApiActions
+                              status={sandboxApiStatus}
+                              updating={tenantActionUpdating}
+                              performAction={performSandboxAction}
+                              placementCount={sandboxPlacementCount}
+                              clusterName={clusterName}
+                            />
+                          </div>
+                        ) : null}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  ) : null}
+
+                  {!isManagedInstance && sfdc_enabled ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1133,7 +1370,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isPartOfWorkshop && canManageCollaborators ? (
+                  {!isManagedInstance && !isTenantClusterItem && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Share service{' '}
@@ -1178,7 +1415,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
-                  {!isPartOfWorkshop && isAdmin ? (
+                  {!isManagedInstance && !isTenantClusterItem && isAdmin ? (
                     <>
                       <DescriptionListGroup className="services-item__admin-section">
                         <DescriptionListTerm>Admin Settings</DescriptionListTerm>
@@ -1285,117 +1522,105 @@ const ServicesItemComponent: React.FC<{
                       </DescriptionListGroup>
                     </>
                   ) : null}
-                  <ConditionalWrapper
-                    condition={resourceClaim.spec.resources && resourceClaim.spec.resources.length > 1}
-                    wrapper={(children) => (
-                      <section>
-                        <header>
-                          <h3
-                            style={{
-                              fontSize: 'var(--pf-t--global--font--size--sm)',
-                              fontWeight: 'var(--pf-t--global--font--weight--heading--bold)',
-                              lineHeight: 'var(--pf-t--global--font--line-height--heading)',
-                              marginBottom: 'var(--pf-t--global--spacer--sm)',
-                            }}
-                          >
-                            Components
-                          </h3>
-                        </header>
-                        <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
-                          {children}
-                        </Accordion>
-                      </section>
-                    )}
-                  >
-                    <div>
-                      {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
-                        const resourceState = resourceStatus?.state;
-                        const componentDisplayName =
-                          catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
-                          resourceStatus?.name;
-                        const currentState =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState.spec.vars?.current_state ?? ''
-                            : '';
-                        const stopTimestamp =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState?.spec.vars.action_schedule?.stop
-                            : null;
-                        const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-                        const stopDate = stopTime ? new Date(stopTime) : null;
-                        const provisionData =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState.spec.vars?.provision_data
-                            : JSON.parse(resourceState?.data?.userData || '{}');
-                        const provisionMessages =
-                          resourceState?.kind === 'AnarchySubject'
-                            ? resourceState?.spec?.vars?.provision_messages
-                            : provisionData?.msg;
-                        const provisionDataEntries = provisionData
-                          ? Object.entries(provisionData).filter(([key]) => {
-                              if (
-                                key === 'bookbag_url' ||
-                                key === 'lab_ui_url' ||
-                                key === 'labUserInterfaceUrl' ||
-                                key === 'showroom_primary_view_url' ||
-                                key === 'msg' ||
-                                key === 'users'
-                              ) {
-                                return false;
-                              }
-                              if (userData) {
-                                if (userData[key]) {
-                                  return true;
-                                } else {
-                                  return false;
-                                }
-                              } else {
-                                return true;
-                              }
-                            })
-                          : null;
-
-                        const startTimestamp =
-                          resourceState?.kind == 'AnarchySubject'
-                            ? resourceState?.spec.vars.action_schedule?.start
-                            : null;
-                        const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-                        const startDate = startTime ? new Date(startTime) : null;
-
-                        return (
-                          <ConditionalWrapper
-                            key={idx}
-                            condition={resourceClaim.status?.resources && resourceClaim.status.resources.length > 1}
-                            wrapper={(children) => (
-                              <Accordion asDefinitionList={false} style={{ maxWidth: '600px' }}>
-                                <AccordionItem isExpanded={expanded.includes(`item-${idx}`)}>
-                                  <AccordionToggle id={`item-${idx}`} onClick={() => toggle(`item-${idx}`)}>
-                                    {componentDisplayName}
-                                  </AccordionToggle>
-                                  <AccordionContent id={`item-${idx}`}>{children}</AccordionContent>
-                                </AccordionItem>
-                              </Accordion>
-                            )}
-                          >
-                            <ComponentDetailsList
-                              resourceState={resourceState}
-                              isAdmin={isAdmin}
-                              groups={groups}
-                              externalPlatformUrl={externalPlatformUrl}
-                              isPartOfWorkshop={isPartOfWorkshop}
-                              startDate={startDate}
-                              startTimestamp={startTimestamp}
-                              stopDate={stopDate}
-                              currentState={currentState}
-                              provisionDataEntries={provisionDataEntries}
-                              provisionMessages={provisionMessages}
-                            />
-                          </ConditionalWrapper>
-                        );
-                      })}
-                    </div>
-                  </ConditionalWrapper>
                 </DescriptionList>
+                {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
+                  const resourceState = resourceStatus?.state;
+                  const componentDisplayName =
+                    catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
+                    resourceStatus?.name;
+                  const currentState =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.current_state ?? ''
+                      : '';
+                  const stopTimestamp =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.stop
+                      : null;
+                  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+                  const stopDate = stopTime ? new Date(stopTime) : null;
+                  const provisionData =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState.spec.vars?.provision_data
+                      : JSON.parse(resourceState?.data?.userData || '{}');
+                  const provisionMessages =
+                    resourceState?.kind === 'AnarchySubject'
+                      ? resourceState?.spec?.vars?.provision_messages
+                      : provisionData?.msg;
+                  const provisionDataEntries = provisionData
+                    ? Object.entries(provisionData).filter(([key]) => {
+                        if (
+                          key === 'bookbag_url' ||
+                          key === 'lab_ui_url' ||
+                          key === 'labUserInterfaceUrl' ||
+                          key === 'showroom_primary_view_url' ||
+                          key === 'msg' ||
+                          key === 'users'
+                        ) {
+                          return false;
+                        }
+                        if (userData) {
+                          if (userData[key]) {
+                            return true;
+                          } else {
+                            return false;
+                          }
+                        } else {
+                          return true;
+                        }
+                      })
+                    : null;
+
+                  const startTimestamp =
+                    resourceState?.kind == 'AnarchySubject'
+                      ? resourceState?.spec.vars.action_schedule?.start
+                      : null;
+                  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+                  const startDate = startTime ? new Date(startTime) : null;
+
+                  const detailsProps = {
+                    resourceState,
+                    isAdmin,
+                    groups,
+                    externalPlatformUrl,
+                    isPartOfWorkshop: isManagedInstance,
+                    startDate,
+                    startTimestamp,
+                    stopDate,
+                    currentState,
+                    provisionDataEntries,
+                    provisionMessages,
+                  };
+
+                  if (resourceClaim.status?.resources?.length > 1) {
+                    return (
+                      <Card
+                        key={idx}
+                        id={`component-card-${idx}`}
+                        isExpanded={expanded.includes(`item-${idx}`)}
+                        isCompact
+                        className="services-item__component-card"
+                      >
+                        <CardHeader
+                          onExpand={() => toggle(`item-${idx}`)}
+                          toggleButtonProps={{
+                            id: `component-toggle-${idx}`,
+                            'aria-label': `Toggle ${componentDisplayName}`,
+                          }}
+                        >
+                          <CardTitle>{componentDisplayName}</CardTitle>
+                        </CardHeader>
+                        <CardExpandableContent>
+                          <CardBody>
+                            <ComponentDetailsList {...detailsProps} isInsideCard />
+                          </CardBody>
+                        </CardExpandableContent>
+                      </Card>
+                    );
+                  }
+
+                  return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
+                })}
+                </>
               ) : null}
             </Tab>
 
@@ -1413,7 +1638,7 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
 
-            {workshopName && !isPartOfWorkshop ? (
+            {workshopName && !isPartOfWorkshop && !isTenantClusterItem ? (
               <Tab eventKey="workshop" key="workshop" title={<TabTitleText>Workshop</TabTitleText>}>
                 {activeTab === 'workshop' ? (
                   <WorkshopsItemDetails
@@ -1424,7 +1649,7 @@ const ServicesItemComponent: React.FC<{
                 ) : null}
               </Tab>
             ) : null}
-            {workshopName && !isPartOfWorkshop ? (
+            {workshopName && !isPartOfWorkshop && !isTenantClusterItem ? (
               <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <WorkshopsItemUserAssignments
@@ -1433,7 +1658,7 @@ const ServicesItemComponent: React.FC<{
                   />
                 ) : null}
               </Tab>
-            ) : serviceHasUsers ? (
+            ) : serviceHasUsers && !isTenantClusterItem ? (
               <Tab eventKey="users" key="enable-users" title={<TabTitleText>Users</TabTitleText>}>
                 {activeTab === 'users' ? (
                   <>

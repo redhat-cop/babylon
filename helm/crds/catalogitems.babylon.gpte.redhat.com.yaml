@@ -518,6 +518,65 @@ spec:
                     type: string
                   maximum:
                     type: string
+              sandboxes:
+                description: >-
+                  Sandboxes this CI requests from the sandbox API.
+                  Used to:
+                  - Check sandbox availability
+                  - Determine tenant cluster catalog item for workshop provisioning.
+                type: array
+                items:
+                  description: >-
+                    Sandbox request definition.
+                  type: object
+                  properties:
+                    annotations:
+                      type: object
+                      description: >-
+                        A dictionary of strings to add to the sandbox accounts as annotations.
+                      additionalProperties:
+                        type: string
+                    cloudSelector:
+                      type: object
+                      description: >-
+                        A dictionary of strings to select the cloud provider using annotations
+                      additionalProperties:
+                        type: string
+                    kind:
+                      type: string
+                      enum:
+                        - AwsSandbox
+                        - AzureSandbox
+                        - DNSSandbox
+                        - IBMResourceGroupSandbox
+                        - MaaSSandbox
+                        - OcpSandbox
+                        - RosaSandbox
+                        - SSLSandbox
+                    tenantCluster:
+                      type: object
+                      description: >-
+                        Component name which provides tenant cluster capacity.
+                      properties:
+                        componentName:
+                          type: string
+                      required:
+                      - componentName
+              supportedActions:
+                description: >-
+                  Lifecycle actions supported when ordering this catalog item.
+                  For items with linked components, an action is present only if every component supports it.
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    timeEstimate:
+                      description: Estimated time to complete the action.
+                      type: string
+              supportLink:
+                description: >-
+                  URL link to a support page or resource for this catalog item.
+                type: string
               termsOfService:
                 description:
                   HTML content for terms of service to appear on the service request form.
@@ -529,6 +588,10 @@ spec:
               workshopUiDisabled:
                 description: >-
                   Boolean flag to indicate if the catalog item shoud not support the ability to enable the Workshop User Interface.
+                type: boolean
+              workshopUiEnabledByDefault:
+                description: >-
+                  Boolean flag to indicate if the Workshop User Interface toggle should be enabled by default in the order form.
                 type: boolean
               workshopUiMaxInstances:
                 description: >-

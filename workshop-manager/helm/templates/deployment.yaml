@@ -25,6 +25,10 @@ spec:
           value: "--log-format=json"
         - name: KOPF_PEERING
           value: {{ include "babylon-workshop-manager.name" . }}
+        {{- if .Values.workshopBaseUrl }}
+        - name: WORKSHOP_BASE_URL
+          value: {{ .Values.workshopBaseUrl | quote }}
+        {{- end }}
         image: {{ include "babylon-workshop-manager.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

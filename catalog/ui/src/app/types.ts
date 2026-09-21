@@ -100,6 +100,9 @@ export interface AnarchySubjectStatus {
 
 export interface AnarchySubjectStatusTowerJob {
   towerJobURL?: string;
+  towerHost?: string;
+  deployerJob?: number;
+  jobStatus?: string;
   completeTimestamp?: string;
   startTimestamp?: string;
 }
@@ -182,16 +185,19 @@ export interface CatalogItemSpec {
     stopComplete?: MessageTemplate;
   };
   workshopUiDisabled?: boolean;
+  workshopUiEnabledByDefault?: boolean;
   workshopUiMaxInstances?: number;
   workshopUserMode?: string;
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
   resources?: any[];
+  supportLink?: string;
   termsOfService?: string;
   userData?: any;
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
+  supportedActions?: CatalogItemSpecSupportedActions;
   workshopLabUiRedirect?: boolean;
   externalUrl?: string;
   category?: string;
@@ -483,6 +489,52 @@ export interface ResourcePoolScalingStatus {
   state?: string;
 }
 
+export interface TenantClusterPool extends K8sObject {
+  spec: TenantClusterPoolSpec;
+  status?: TenantClusterPoolStatus;
+}
+
+export interface TenantClusterPoolSpec {
+  clusterProvisioning: {
+    provider: { name: string; parameterValues?: Record<string, unknown> };
+  };
+  enabled?: boolean;
+  maxClusters?: number;
+  minClusters?: number;
+  minAvailableSandboxPlacements?: number;
+  sandboxHost?: {
+    annotations: Record<string, string>;
+    max_placements: number;
+    max_cpu_usage_percentage?: number;
+    max_memory_usage_percentage?: number;
+    quota_required?: boolean;
+    deployer_admin_sa_token_refresh_interval?: string;
+    deployer_admin_sa_token_target_var?: string;
+    deployer_admin_sa_token_ttl?: string;
+  };
+  tenantPools?: Array<{
+    minAvailable?: number;
+    provider: { name: string; parameterValues?: Record<string, unknown> };
+  }>;
+}
+
+export interface TenantClusterPoolStatus {
+  clusters?: TenantClusterPoolStatusCluster[];
+  diffBase?: string;
+  kopf?: Record<string, unknown>;
+}
+
+export interface TenantClusterPoolStatusCluster {
+  name?: string;
+  resourceClaimName: string;
+  sandboxApiState: 'pending' | 'available' | 'disabled' | 'removed';
+}
+
+export interface TenantClusterPoolList {
+  items: TenantClusterPool[];
+  metadata: K8sObjectListMeta;
+}
+
 export interface ResourceProvider extends K8sObject {
   spec: ResourceProviderSpec;
 }
@@ -524,6 +576,14 @@ export type CatalogItemSpecLastUpdate = {
     when_author: string;
     when_committer: string;
   };
+};
+
+export type CatalogItemSpecSupportedActions = {
+  start?: { timeEstimate?: string };
+  stop?: { timeEstimate?: string };
+  status?: { timeEstimate?: string };
+  destroy?: { timeEstimate?: string };
+  provision?: { timeEstimate?: string };
 };
 
 export type CatalogItemSpecRuntime = {
@@ -618,6 +678,85 @@ export interface WorkshopSpec {
   };
 }
 
+export interface SelfPacedLab extends K8sObject {
+  spec: SelfPacedLabSpec;
+  status?: {
+    poolCount?: {
+      ready?: number;
+      provisioning?: number;
+      assigned?: number;
+    };
+    selfPacedLabURL?: string;
+  };
+}
+
+export interface SelfPacedLabList {
+  items: SelfPacedLab[];
+  metadata: K8sObjectListMeta;
+}
+
+export interface SelfPacedLabSpec {
+  accessPassword?: string;
+  description?: string;
+  displayName?: string;
+  lifespan?: {
+    start?: string;
+    end?: string;
+  };
+  openRegistration?: boolean;
+}
+
+export interface SelfPacedLabProvisionItem extends K8sObject {
+  spec: SelfPacedLabProvisionItemSpec;
+  status?: {
+    readyCount?: number;
+    provisioningCount?: number;
+    assignedCount?: number;
+    failedCount?: number;
+  };
+}
+
+export interface SelfPacedLabProvisionItemSpec {
+  assignedLifespan: string;
+  catalogItem: {
+    name: string;
+    namespace: string;
+  };
+  concurrency?: number;
+  parameters?: any;
+  poolSize: number;
+  selfPacedLabName: string;
+  startDelay?: number;
+  unassignedLifespan: string;
+}
+
+export interface SelfPacedLabUserAssignmentSpec {
+  data?: any;
+  messages?: string;
+  resourceClaimName?: string;
+  userName?: string;
+  selfPacedLabName: string;
+  labUserInterface?: {
+    data?: object;
+    method?: string;
+    url: string;
+    redirect?: boolean;
+  };
+  assignment?: {
+    email: string;
+  };
+}
+
+export interface SelfPacedLabUserAssignment extends K8sObject {
+  spec: SelfPacedLabUserAssignmentSpec;
+  status?: any;
+}
+
+export interface SelfPacedLabUserAssignmentList {
+  metadata: K8sObjectListMeta;
+  items: SelfPacedLabUserAssignment[];
+}
+
 export interface WorkshopUserAssignmentList {
   metadata: K8sObjectListMeta;
   items: WorkshopUserAssignment[];
@@ -629,7 +768,7 @@ export interface ServiceAccessConfig extends K8sObject {
 }
 
 export interface ServiceAccessConfigSpec {
-  kind: 'ResourceClaim' | 'Workshop';
+  kind: 'ResourceClaim' | 'SelfPacedLab' | 'Workshop';
   name: string;
   users?: Array<{ name: string }>;
 }
@@ -651,7 +790,7 @@ export interface ServiceAccess extends K8sObject {
 }
 
 export interface ServiceAccessSpec {
-  kind: 'ResourceClaim' | 'Workshop';
+  kind: 'ResourceClaim' | 'SelfPacedLab' | 'Workshop';
   name: string;
   namespace: string;
 }
@@ -716,7 +855,9 @@ export interface MultiWorkshopAsset {
   description?: string;
   workshopId?: string;
   url?: string; // For external workshops
-  type?: 'Workshop' | 'external'; // Asset type
+  type?: 'Workshop' | 'external' | 'SelfPacedLab'; // Asset type
+  productFamily?: string;
+  product?: string;
 }
 
 export type Session = {
@@ -729,6 +870,7 @@ export type Session = {
   roles: string[];
   interface: string;
   user: string;
+  fullName: string;
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
@@ -806,7 +948,38 @@ export type WorkshopWithResourceClaims = Workshop & {
   resourceClaims?: ResourceClaim[];
   isCollaborator?: boolean;
 };
-export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims;
+export type SelfPacedLabWithResourceClaims = SelfPacedLab & {
+  resourceClaims?: ResourceClaim[];
+  isCollaborator?: boolean;
+};
+export type Service = ResourceClaimWithCollaborator | WorkshopWithResourceClaims | SelfPacedLabWithResourceClaims;
+
+export interface WhiteGloveRequest extends K8sObject {
+  spec: WhiteGloveRequestSpec;
+}
+
+export interface WhiteGloveRequestSpec {
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
+  displayName?: string;
+  purpose?: string;
+  activity?: string;
+  explanation?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  slackChannel?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  shareWith?: string[];
+  deliveryMode?: 'virtual' | 'on-site' | 'hybrid';
+  audienceType?: 'external-customers' | 'internal-redhat' | 'partners';
+}
+
+export interface WhiteGloveRequestList {
+  items: WhiteGloveRequest[];
+  metadata: K8sObjectListMeta;
+}
 
 export type Incident = {
   id: number;

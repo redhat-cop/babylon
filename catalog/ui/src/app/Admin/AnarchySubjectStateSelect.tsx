@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Select, SelectOption, MenuToggle, SelectList, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, MenuToggle, SelectList } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 
 const AnarchySubjectStateSelect: React.FC<{
   state: string;

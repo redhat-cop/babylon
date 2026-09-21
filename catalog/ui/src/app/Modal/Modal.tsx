@@ -2,12 +2,11 @@ import React, {
   useEffect,
   useImperativeHandle,
   useState,
-  forwardRef,
   useCallback,
-  ForwardRefRenderFunction,
   ReactPortal,
   useLayoutEffect,
   Suspense,
+  Ref,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from '@patternfly/react-core';
@@ -20,43 +19,36 @@ const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.sp
 
 export type ModalVariantType = 'small' | 'medium' | 'large' | 'default';
 
-const ModalComponent: ForwardRefRenderFunction<
-  {
-    open: () => void;
-    close: () => void;
-  },
-  {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onConfirm: (_: any) => Promise<void> | void;
-    onClose?: () => void;
-    onError?: (error: unknown) => void;
-    defaultOpened?: boolean;
-    title?: string;
-    children: React.ReactNode;
-    isDisabled?: boolean;
-    passModifiers?: boolean;
-    type?: 'action' | 'ack';
-    confirmText?: string;
-    className?: string;
-    variant?: ModalVariantType;
-  }
-> = (
-  {
-    children,
-    onConfirm,
-    onClose,
-    onError,
-    title = '',
-    defaultOpened = false,
-    isDisabled = false,
-    passModifiers = false,
-    type = 'action',
-    confirmText = 'Confirm',
-    variant = 'small',
-    className,
-  },
+const ModalComponent = ({
+  children,
+  onConfirm,
+  onClose,
+  onError,
+  title = '',
+  defaultOpened = false,
+  isDisabled = false,
+  passModifiers = false,
+  type = 'action',
+  confirmText = 'Confirm',
+  variant = 'small',
+  className,
   ref,
-): ReactPortal => {
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onConfirm: (_: any) => Promise<void> | void;
+  onClose?: () => void;
+  onError?: (error: unknown) => void;
+  defaultOpened?: boolean;
+  title?: string;
+  children: React.ReactNode;
+  isDisabled?: boolean;
+  passModifiers?: boolean;
+  type?: 'action' | 'ack';
+  confirmText?: string;
+  className?: string;
+  variant?: ModalVariantType;
+  ref?: Ref<{ open: () => void; close: () => void }>;
+}): ReactPortal => {
   const [isOpen, setIsOpen] = useState(defaultOpened);
   const [state, setState] = useState(null);
   const [onConfirmCb, setOnConfirmCb] = useState<() => Promise<void>>(null);
@@ -233,4 +225,4 @@ const ModalComponent: ForwardRefRenderFunction<
 };
 
 export { useModal };
-export default forwardRef(ModalComponent);
+export default ModalComponent;

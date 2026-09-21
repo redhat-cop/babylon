@@ -23,6 +23,7 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - catalogitems
+  - tenantclusterpools
   verbs:
   - create
   - delete

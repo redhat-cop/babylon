@@ -1,4 +1,4 @@
-import React, { useMemo, useReducer } from 'react';
+import React, { useEffect, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -20,7 +20,7 @@ import {
   } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   apiPaths,
   deleteAnarchyAction,
@@ -29,14 +29,14 @@ import {
   fetcher,
 } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';
+import type { AnarchyAction, AnarchyActionList, AnarchyRun, AnarchyRunList, AnarchySubject } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchyActionsTable from './AnarchyActionsTable';
 import AnarchyRunsTable from './AnarchyRunsTable';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import useSession from '@app/utils/useSession';
 import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -68,7 +68,12 @@ const AnarchySubjectInstanceComponent: React.FC<{
       compare: compareK8sObjects,
     },
   );
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: anarchyActionsList, mutate: mutateAnarchyActions } = useSWR<AnarchyActionList>(
     apiPaths.ANARCHY_ACTIONS({ labelSelector: `anarchy.gpte.redhat.com/subject=${anarchySubjectName}`, namespace }),

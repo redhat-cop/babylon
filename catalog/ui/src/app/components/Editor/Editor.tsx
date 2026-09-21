@@ -1,11 +1,13 @@
 import React from 'react';
-import { $getRoot, $insertNodes, EditorState, LexicalEditor, TextNode } from 'lexical';
-import { InitialEditorStateType, LexicalComposer } from '@lexical/react/LexicalComposer';
+import { $getRoot, $insertNodes, TextNode } from 'lexical';
+import type { EditorState, LexicalEditor } from 'lexical';
+import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import type { InitialEditorStateType } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import parseDuration from 'parse-duration';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -26,7 +26,7 @@ import {
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, silentFetcher } from '@app/api';
-import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident } from '@app/types';
+import type { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';
@@ -54,16 +54,17 @@ import {
   getRating,
   CUSTOM_LABELS,
   sortLabels,
-  formatCurrency,
   getLastSuccessfulProvisionTime,
   convertToGitHubUrl,
   getStatus,
+  isAutoStopDisabled,
 } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
 import CatalogItemHealthDisplay from './CatalogItemHealthDisplay';
 import useHelpLink from '@app/utils/useHelpLink';
 import useSWRImmutable from 'swr/immutable';
 import UptimeDisplay from '@app/components/UptimeDisplay';
+import CostTierDisplay from '@app/components/CostTierDisplay';
 import { StarIcon } from '@patternfly/react-icons/dist/js/icons/star-icon';
 import { OutlinedStarIcon } from '@patternfly/react-icons/dist/js/icons/outlined-star-icon';
 
@@ -76,6 +77,16 @@ enum CatalogItemAccess {
 }
 
 const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem: catalogItemProp, onClose }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const navigate = useNavigate();
   const { userNamespace, isAdmin, groups } = useSession().getSession();
   const { data: catalogItemFromApi } = useSWR<CatalogItem>(
@@ -151,7 +162,7 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
   const incident = getStatus(catalogItemIncident);
   const rating = getRating(catalogItem);
   const accessCheckResult = checkAccessControl(accessControl, groups, isAdmin);
-  let autoStopTime = catalogItem.spec.runtime?.default;
+  let autoStopTime = isAutoStopDisabled(catalogItem) ? null : catalogItem.spec.runtime?.default;
   const autoDestroyTime = catalogItem.spec.lifespan?.default;
   if (autoStopTime && autoDestroyTime) {
     const autoStopTimeValue = parseDuration(autoStopTime);
@@ -372,12 +383,6 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
                     <DescriptionListDescription>
                       {attr === CUSTOM_LABELS.RATING.key ? (
                         <StarRating count={5} rating={rating?.ratingScore} total={rating?.totalRatings} readOnly />
-                      ) : attr === CUSTOM_LABELS.SLA.key ? (
-                        value.includes('External') ? (
-                          formatString(value)
-                        ) : (
-                          <Link to="/support">{formatString(value)}</Link>
-                        )
                       ) : attr === CUSTOM_LABELS.ESTIMATED_COST.key ? null : (
                         formatString(value)
                       )}
@@ -387,20 +392,9 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
               {metrics?.medianRuntimeCostByHour ? (
                 <DescriptionListGroup className="catalog-item-details__estimated-cost">
-                  <DescriptionListTerm>
-                    Estimated Hourly Cost
-                    <Tooltip content="Estimated hourly cost if not stopped.">
-                      <InfoAltIcon
-                        style={{
-                          paddingTop: 'var(--pf-t--global--spacer--xs)',
-                          marginLeft: 'var(--pf-t--global--spacer--xs)',
-                          width: 'var(--pf-t--global--icon--size--font--xs)',
-                        }}
-                      />
-                    </Tooltip>
-                  </DescriptionListTerm>
+                  <DescriptionListTerm>Cost</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {formatCurrency(metrics?.medianLifetimeCostByHour * 1.1)}
+                    <CostTierDisplay hourlyCost={metrics.medianLifetimeCostByHour * 1.1} />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               ) : null}

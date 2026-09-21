@@ -227,3 +227,17 @@ Sandbox API secret name
 {{- define "babylonCatalog.sandboxApiSecretName" -}}
   {{- .Values.sandboxApi.secretName }}
 {{- end -}}
+
+{{/*
+Shared Cluster Manager secret name
+*/}}
+{{- define "babylonCatalog.sharedClusterManagerSecretName" -}}
+  {{- .Values.sharedClusterManager.secretName }}
+{{- end -}}
+
+{{/*
+Jira secret name
+*/}}
+{{- define "babylonCatalog.jiraSecretName" -}}
+  {{- .Values.jira.secretName | default "babylon-catalog-jira" }}
+{{- end -}}

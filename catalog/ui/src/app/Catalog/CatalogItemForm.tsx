@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
-import { EditorState } from 'lexical/LexicalEditorState';
-import { LexicalEditor } from 'lexical/LexicalEditor';
+import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
@@ -22,9 +21,9 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import BetaBadge from '@app/components/BetaBadge';
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
 import {
@@ -32,22 +31,27 @@ import {
   apiPaths,
   checkCatalogItemAvailability,
   createServiceRequest,
-  CreateServiceRequestParameterValues,
+  createSelfPacedLab,
+  createSelfPacedLabProvisionItem,
   createWorkshop,
   createWorkshopProvision,
   fetcher,
+  patchWhiteGloveRequest,
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
-import {
+import type { CreateServiceRequestParameterValues } from '@app/api';
+import type {
   AvailabilityCheckResponse,
   CatalogItem,
   CatalogItemIncident,
   SandboxCloudSelector,
   TPurposeOpts,
+  WhiteGloveRequest,
 } from '@app/types';
 import {
   checkAccessControl,
+  DEMO_DOMAIN,
   displayName,
   getStageFromK8sObject,
   isLabDeveloper,
@@ -66,13 +70,14 @@ import TermsOfService from '@app/components/TermsOfService';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import CatalogItemFormAutoStopDestroyModal from './CatalogItemFormAutoStopDestroyModal';
+import type { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import CatalogItemFormStartModal from './CatalogItemFormStartModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import SearchSalesforceIdModal from '@app/components/SearchSalesforceIdModal';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
-import DateTimePicker from '@app/components/DateTimePicker';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -83,8 +88,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   catalogNamespaceName,
 }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wgrParam = searchParams.get('wgr');
+  const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
   const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
+  const [isStartModalOpen, setIsStartModalOpen] = useState(false);
   const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
@@ -110,6 +119,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     },
   );
 
+  const { data: whiteGloveRequest, error: wgrError } = useSWR<WhiteGloveRequest>(
+    wgrNamespace && wgrName
+      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
+      : null,
+    fetcher,
+  );
+
   // Service quota check
   const { standaloneServicesCount, workshopsCount, isQuotaExceeded } = useServiceQuota({
     namespace: userNamespace?.name,
@@ -132,6 +148,17 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     [_displayName, catalogItem.spec.workshopUserMode],
   );
 
+  const selfPacedLabInitialProps = useMemo(
+    () => ({
+      poolSize: 5,
+      assignedLifespan: '4h',
+      unassignedLifespan: '24h',
+      concurrency: 5,
+      startDelay: 10,
+    }),
+    [],
+  );
+
   const onToggleClick = () => {
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);
   };
@@ -146,17 +173,73 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? catalogItem.spec.parameters.find((p) => p.name === 'purpose')?.openAPIV3Schema['x-form-options'] || []
     : [];
   const workshopUiDisabled = catalogItem.spec.workshopUiDisabled || false;
+  const initialServiceNamespace = userNamespace;
   const [formState, dispatchFormState] = useReducer(
     reduceFormState,
     reduceFormState(null, {
       type: 'init',
       catalogItem,
-      serviceNamespace: userNamespace,
+      serviceNamespace: initialServiceNamespace,
       user: { groups, roles, isAdmin },
       purposeOpts,
       sfdc_enabled,
+      workshop: workshopInitialProps,
     }),
   );
+
+  const [wgrApplied, setWgrApplied] = useState(false);
+  useEffect(() => {
+    if (!whiteGloveRequest || wgrApplied) return;
+
+    if (whiteGloveRequest.spec.purpose || whiteGloveRequest.spec.activity) {
+      dispatchFormState({
+        type: 'purpose',
+        activity: whiteGloveRequest.spec.activity || '',
+        purpose: whiteGloveRequest.spec.purpose || '',
+        explanation: whiteGloveRequest.spec.explanation || '',
+      });
+    }
+
+    if (whiteGloveRequest.spec.salesforceItems?.length > 0) {
+      dispatchFormState({
+        type: 'salesforceItems',
+        salesforceItems: whiteGloveRequest.spec.salesforceItems,
+      });
+    }
+
+    const startDate = whiteGloveRequest.spec.eventDate
+      ? new Date(whiteGloveRequest.spec.eventDate)
+      : undefined;
+    const endDate = whiteGloveRequest.spec.eventEndDate
+      ? new Date(whiteGloveRequest.spec.eventEndDate)
+      : undefined;
+    if (startDate || endDate) {
+      dispatchFormState({ type: 'dates', startDate, stopDate: endDate, endDate });
+    }
+
+    if (!workshopUiDisabled) {
+      dispatchFormState({
+        type: 'workshop',
+        workshop: {
+          ...workshopInitialProps,
+          provisionCount: whiteGloveRequest.spec.numberOfUsers || workshopInitialProps.provisionCount,
+          displayName: whiteGloveRequest.spec.displayName || workshopInitialProps.displayName,
+        },
+      });
+    }
+
+    const wgrServiceNamespace = serviceNamespaces.find(
+      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
+    );
+    if (wgrServiceNamespace) {
+      dispatchFormState({ type: 'serviceNamespace', serviceNamespace: wgrServiceNamespace });
+    }
+
+    dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
+
+    setWgrApplied(true);
+  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState, serviceNamespaces]);
+
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
     parseDuration(catalogItem.spec.lifespan?.relativeMaximum),
@@ -288,6 +371,29 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     return undefined;
   }, [formState.parameters, getParametersWithSandboxSelectors, checkAvailability]);
 
+  async function approveWhiteGloveRequest(service: { name: string; namespace: string; type: 'services' | 'workshops' | 'selfpacedlabs' }) {
+    if (!whiteGloveRequest || !wgrNamespace || !wgrName) return;
+    try {
+      await patchWhiteGloveRequest({
+        namespace: wgrNamespace,
+        name: wgrName,
+        patch: {
+          metadata: {
+            annotations: {
+              [`${DEMO_DOMAIN}/state`]: 'approved',
+              [`${DEMO_DOMAIN}/approved-at`]: new Date().toISOString(),
+              [`${DEMO_DOMAIN}/service-name`]: service.name,
+              [`${DEMO_DOMAIN}/service-namespace`]: service.namespace,
+              [`${DEMO_DOMAIN}/service-type`]: service.type,
+            },
+          },
+        },
+      });
+    } catch {
+      console.error('Failed to update white glove request state');
+    }
+  }
+
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
@@ -328,7 +434,39 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         return null;
       }
 
-      if (formState.workshop) {
+      if (formState.workshop && formState.selfPacedLab) {
+        const { accessPassword, description, displayName, userRegistration } = formState.workshop;
+        const selfPacedLab = await createSelfPacedLab({
+          accessPassword,
+          description,
+          displayName,
+          catalogItem: catalogItem,
+          openRegistration: userRegistration === 'open',
+          serviceNamespace: formState.serviceNamespace,
+          endDate: formState.endDate,
+          startDate: formState.startDate,
+          email,
+          parameterValues,
+          skippedSfdc: formState.salesforceId.skip,
+          whiteGloved: formState.whiteGloved,
+          salesforceItems: formState.salesforceItems,
+        });
+        await createSelfPacedLabProvisionItem({
+          catalogItem: catalogItem,
+          poolSize: formState.selfPacedLab.poolSize,
+          assignedLifespan: formState.selfPacedLab.assignedLifespan,
+          unassignedLifespan: formState.selfPacedLab.unassignedLifespan,
+          concurrency: formState.selfPacedLab.concurrency,
+          startDelay: formState.selfPacedLab.startDelay,
+          parameters: {
+            ...parameterValues,
+            salesforce_items: JSON.stringify(formState.salesforceItems),
+          },
+          selfPacedLab: selfPacedLab,
+        });
+        await approveWhiteGloveRequest({ name: selfPacedLab.metadata.name, namespace: selfPacedLab.metadata.namespace, type: 'selfpacedlabs' });
+        navigate(`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`);
+      } else if (formState.workshop) {
         const {
           accessPassword,
           description,
@@ -348,8 +486,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           stopDate: formState.stopDate,
           endDate: formState.endDate,
           startDate: formState.startDate,
-          readyByDate: useDirectProvisioningDate && formState.startDate 
-            ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS) 
+          readyByDate: useDirectProvisioningDate && formState.startDate
+            ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS)
             : undefined,
           email,
           parameterValues,
@@ -371,6 +509,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           useAutoDetach: formState.useAutoDetach,
           selectedResourcePool: formState.selectedResourcePool,
         });
+        await approveWhiteGloveRequest({ name: workshop.metadata.name, namespace: workshop.metadata.namespace, type: 'workshops' });
         navigate(redirectUrl);
       } else {
         const resourceClaim = await createServiceRequest({
@@ -391,6 +530,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           salesforceItems: formState.salesforceItems,
         });
 
+        await approveWhiteGloveRequest({ name: resourceClaim.metadata.name, namespace: resourceClaim.metadata.namespace, type: 'services' });
         navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
       }
     } catch (error: unknown) {
@@ -425,7 +565,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           isAdmin
             ? null
             : formState.workshop
-              ? formState.startDate.getTime() - Date.now() + parseDuration('5d')
+              ? (formState.startDate ? formState.startDate.getTime() : Date.now()) - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
         onConfirm={(dates: TDates) =>
@@ -436,6 +576,42 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               : null
         }
         onClose={() => openAutoStopDestroyModal(null)}
+        title={_displayName}
+      />
+      <CatalogItemFormStartModal
+        isOpen={isStartModalOpen}
+        isWorkshop={!!formState.workshop}
+        isAdmin={isAdmin}
+        startDate={formState.startDate || new Date()}
+        onConfirm={(startDate: Date, readyByMode: boolean) => {
+          setUseDirectProvisioningDate(readyByMode);
+          if (formState.workshop) {
+            const readyByTime = startDate.getTime() + READY_BY_LEAD_TIME_MS;
+            dispatchFormState({
+              type: 'dates',
+              startDate,
+              stopDate: new Date(
+                readyByTime +
+                  parseDuration(
+                    formState.activity?.startsWith('Customer Facing')
+                      ? '365d'
+                      : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
+                  ),
+              ),
+              endDate: new Date(
+                readyByTime +
+                  parseDuration(catalogItem.spec.lifespan?.default || '30h'),
+              ),
+            });
+          } else {
+            dispatchFormState({
+              type: 'initDates',
+              catalogItem,
+              startDate,
+            });
+          }
+        }}
+        onClose={() => setIsStartModalOpen(false)}
         title={_displayName}
       />
       <SearchSalesforceIdModal
@@ -476,6 +652,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         Order {_displayName}
       </Title>
       <p>Order by completing the form. Default values may be provided.</p>
+      {wgrParam && wgrError && (
+        <Alert variant="danger" isInline title="Failed to load white glove request" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Could not load white glove request data. The form will use default values.
+        </Alert>
+      )}
+      {whiteGloveRequest && (
+        <Alert
+          variant="info"
+          isInline
+          title={`White Glove Request from ${whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`] || 'unknown'}`}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          {whiteGloveRequest.spec.notes && <p>{whiteGloveRequest.spec.notes}</p>}
+        </Alert>
+      )}
       {formState.error ? <p className="error">{formState.error}</p> : null}
       <Form className="catalog-item-form__form">
         {(isAdmin || serviceNamespaces.length > 1) && !catalogItem.spec.externalUrl ? (
@@ -504,7 +695,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {purposeOpts.length > 0 ? (
           <>
             <ActivityPurposeSelector
-              value={{ purpose: formState.purpose, activity: formState.activity }}
+              value={{ purpose: formState.purpose, activity: formState.activity, explanation: formState.explanation }}
               purposeOpts={purposeOpts}
               onChange={(activity: string, purpose: string, explanation: string) => {
                 dispatchFormState({
@@ -672,6 +863,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     type: 'workshop',
                     workshop: isChecked ? workshopInitialProps : null,
                   });
+                  if (!isChecked) {
+                    dispatchFormState({
+                      type: 'selfPacedLab',
+                      selfPacedLab: null,
+                    });
+                  }
                   if (isChecked) {
                     dispatchFormState({
                       type: 'selectedResourcePool',
@@ -681,7 +878,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   if (!formState.startDate) {
                     dispatchFormState({
                       type: 'dates',
-                      startDate: new Date(Date.now()), // Provisioning start date is current time
+                      startDate: new Date(Date.now()),
                     });
                   }
                 }}
@@ -709,23 +906,32 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {!formState.workshop && !catalogItem.spec.externalUrl ? (
-          <FormGroup fieldId="serviceStartDate" isRequired label="Start Provisioning Date">
+        {formState.workshop && isAdmin ? (
+          <FormGroup key="self-paced-lab-switch" fieldId="self-paced-lab-switch">
             <div className="catalog-item-form__group-control--single">
-              <DateTimePicker
-                defaultTimestamp={Date.now()}
-                onSelect={(d: Date) =>
+              <Switch
+                id="self-paced-lab-switch"
+                aria-label="Enable self-paced lab"
+                label="Enable self-paced lab (admins only)"
+                isChecked={!!formState.selfPacedLab}
+                hasCheckIcon
+                onChange={(_event, isChecked) => {
                   dispatchFormState({
-                    type: 'initDates',
-                    catalogItem,
-                    startDate: d,
-                  })
-                }
-                minDate={Date.now()}
+                    type: 'selfPacedLab',
+                    selfPacedLab: isChecked ? selfPacedLabInitialProps : null,
+                  });
+                }}
               />
-              <Tooltip position="right" content={<p>Select the date you&apos;d like the service to start provisioning.</p>}>
+              <Tooltip
+                position="right"
+                content={
+                  <p>
+                    Create a self-paced lab with a warm pool of pre-provisioned instances that users claim on demand.
+                  </p>
+                }
+              >
                 <OutlinedQuestionCircleIcon
-                  aria-label="Select the date you'd like the service to start provisioning."
+                  aria-label="Create a self-paced lab with a warm pool"
                   className="tooltip-icon-only"
                 />
               </Tooltip>
@@ -733,7 +939,22 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {!isAutoStopDisabled(catalogItem) && !formState.workshop && !catalogItem.spec.externalUrl ? (
+        {!formState.workshop && !catalogItem.spec.externalUrl ? (
+          <FormGroup fieldId="serviceStartDate" isRequired label="Start Provisioning Date">
+            <div className="catalog-item-form__group-control--single">
+              <AutoStopDestroy
+                type="auto-start"
+                onClick={() => setIsStartModalOpen(true)}
+                className="catalog-item-form__auto-stop-btn"
+                time={formState.startDate ? formState.startDate.getTime() : Date.now()}
+                variant="extended"
+                destroyTimestamp={formState.endDate?.getTime()}
+              />
+            </div>
+          </FormGroup>
+        ) : null}
+
+        {!isAutoStopDisabled(catalogItem) && !formState.workshop && !formState.selfPacedLab && !catalogItem.spec.externalUrl ? (
           <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
@@ -764,180 +985,20 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         ) : null}
 
         {formState.workshop ? (
-          <div className="catalog-item-form__workshop-form">
-            {/* Workshop Dates FormGroup - Start Date and Provisioning Date side by side */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--pf-t--global--spacer--md)',
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* Provisioning Date first, then Ready by */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-                {/* Provisioning Date */}
-                <FormGroup 
-                  fieldId="provisioningDate" 
-                  isRequired 
-                  label="Provisioning Date"
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 'var(--pf-t--global--spacer--md)',
-                    }}
-                  >
-                    <DateTimePicker
-                      key={`provisioning-${useDirectProvisioningDate}`}
-                      defaultTimestamp={formState.startDate?.getTime() || Date.now()}
-                      forceUpdateTimestamp={formState.startDate?.getTime()}
-                      isDisabled={useDirectProvisioningDate}
-                      onSelect={(d: Date) => {
-                        dispatchFormState({
-                          type: 'dates',
-                          startDate: d,
-                          stopDate: new Date(
-                            d.getTime() +
-                              parseDuration(
-                                formState.activity?.startsWith('Customer Facing')
-                                  ? '365d'
-                                  : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
-                              ),
-                          ),
-                          endDate: new Date(
-                            d.getTime() +
-                              parseDuration(
-                                catalogItem.spec.lifespan?.default || '30h'
-                              )
-                          ),
-                        });
-                      }}
-                      minDate={Date.now()}
-                    />
-                    <Tooltip
-                      position="right"
-                      content={
-                        <p>
-                          Select when you want the workshop provisioning to start.
-                        </p>
-                      }
-                    >
-                      <OutlinedQuestionCircleIcon
-                        aria-label="Select when you want the workshop provisioning to start."
-                        className="tooltip-icon-only"
-                      />
-                    </Tooltip>
-                  </div>
-                  {/* Provisioning Mode Toggle */}
-                  {isAdmin && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--sm)',
-                        marginTop: 'var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <Switch
-                        id="provisioning-mode-switch"
-                        aria-label="Set ready by date"
-                        label={
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            Set ready by date
-                            <BetaBadge />
-                          </div>
-                        }
-                        isChecked={useDirectProvisioningDate}
-                        hasCheckIcon
-                        onChange={(_event, isChecked) => {
-                          setUseDirectProvisioningDate(isChecked);
-                        }}
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            When enabled, allows you to specify when the workshop should be ready by (8 hours after provisioning starts).
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="When enabled, allows you to specify when the workshop should be ready by."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  )}
-                </FormGroup>
-
-                {/* Ready by Date - Only show when switch is enabled and user is admin */}
-                {isAdmin && useDirectProvisioningDate && (
-                  <FormGroup 
-                    fieldId="readyByDate" 
-                    label="Ready by"
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 'var(--pf-t--global--spacer--md)',
-                      }}
-                    >
-                      <DateTimePicker
-                        key={`ready-by-${useDirectProvisioningDate}`}
-                        defaultTimestamp={
-                          formState.startDate
-                            ? formState.startDate.getTime() + READY_BY_LEAD_TIME_MS // Show actual start date (8 hours after provisioning)
-                            : Date.now() + READY_BY_LEAD_TIME_MS
-                        }
-                        forceUpdateTimestamp={formState.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
-                        onSelect={(d: Date) => {
-                          // Calculate provisioning date as 8 hours BEFORE ready by date
-                          const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
-                          dispatchFormState({
-                            type: 'dates',
-                            startDate: provisioningDate, // Internal API still uses provisioning date as startDate
-                            stopDate: new Date(
-                              d.getTime() +
-                                parseDuration(
-                                  formState.activity?.startsWith('Customer Facing')
-                                    ? '365d'
-                                    : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
-                                ),
-                            ),
-                            endDate: new Date(
-                              d.getTime() +
-                                parseDuration(
-                                  catalogItem.spec.lifespan?.default || '30h'
-                                )
-                            ),
-                          });
-                        }}
-                        minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
-                      />
-                      <Tooltip
-                        position="right"
-                        content={
-                          <p>
-                            Select when you&apos;d like the workshop to be ready. Provisioning will automatically begin 8 hours before this time.
-                          </p>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Select when you'd like the workshop to be ready. Provisioning will automatically begin 8 hours before this time."
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  </FormGroup>
-                )}
+          <>
+            <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Date">
+              <div className="catalog-item-form__group-control--single">
+                <AutoStopDestroy
+                  type="auto-start"
+                  onClick={() => setIsStartModalOpen(true)}
+                  className="catalog-item-form__auto-stop-btn"
+                  time={formState.startDate ? formState.startDate.getTime() : Date.now()}
+                  variant="extended"
+                  destroyTimestamp={formState.endDate?.getTime()}
+                />
               </div>
-            </div>
-            {!isAutoStopDisabled(catalogItem) ? (
+            </FormGroup>
+            {!isAutoStopDisabled(catalogItem) && !formState.selfPacedLab ? (
               <FormGroup key="auto-stop" fieldId="auto-stop" isRequired label="Auto-stop">
                 <div className="catalog-item-form__group-control--single">
                   <AutoStopDestroy
@@ -963,6 +1024,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 />
               </div>
             </FormGroup>
+          <div className="catalog-item-form__workshop-section">
+            <div className="catalog-item-form__workshop-section-title">Workshop Settings</div>
+            <div className="catalog-item-form__workshop-form">
             <FormGroup fieldId="workshopDisplayName" isRequired label="Display Name">
               <div className="catalog-item-form__group-control--single">
                 <TextInput
@@ -1064,13 +1128,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            {catalogItem.spec.workshopUserMode === 'multi' ? null : (
+            {!formState.selfPacedLab && catalogItem.spec.workshopUserMode !== 'multi' ? (
               <>
                 <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
                   <div className="catalog-item-form__group-control--single">
                     <PatientNumberInput
                       min={0}
-                      max={catalogItem.spec.workshopUiMaxInstances || 30}
+                      max={catalogItem.spec.workshopUiMaxInstances || 40}
                       adminModifier={true}
                       onChange={(v) =>
                         dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })
@@ -1142,15 +1206,128 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   </>
                 ) : null}
               </>
-            )}
+            ) : null}
+          </div>
+          </div>
+          </>
+        ) : null}
+
+        {formState.selfPacedLab ? (
+          <div className="catalog-item-form__selfpacedlab-section">
+            <div className="catalog-item-form__selfpacedlab-section-title">Self-Paced Lab Settings</div>
+            <FormGroup key="poolSize" fieldId="selfPacedLabPoolSize" isRequired label="Pool Size">
+              <div className="catalog-item-form__group-control--single">
+                <PatientNumberInput
+                  min={1}
+                  max={100}
+                  onChange={(v) =>
+                    dispatchFormState({
+                      type: 'selfPacedLab',
+                      selfPacedLab: { ...formState.selfPacedLab, poolSize: v },
+                    })
+                  }
+                  value={formState.selfPacedLab.poolSize}
+                />
+                <Tooltip position="right" content={<p>Number of pre-provisioned instances to keep ready in the warm pool.</p>}>
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Number of pre-provisioned instances"
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </FormGroup>
+            <FormGroup key="assignedLifespan" fieldId="selfPacedLabAssignedLifespan" isRequired label="Assigned Lifespan">
+              <div className="catalog-item-form__group-control--single">
+                <TextInput
+                  id="selfPacedLabAssignedLifespan"
+                  type="text"
+                  value={formState.selfPacedLab.assignedLifespan}
+                  onChange={(_event, value) =>
+                    dispatchFormState({
+                      type: 'selfPacedLab',
+                      selfPacedLab: { ...formState.selfPacedLab, assignedLifespan: value },
+                    })
+                  }
+                  placeholder="e.g. 4h, 1d, 8h"
+                />
+                <Tooltip position="right" content={<p>How long a user keeps their assigned instance (e.g. 4h, 1d).</p>}>
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Assigned lifespan duration"
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </FormGroup>
+            <FormGroup key="unassignedLifespan" fieldId="selfPacedLabUnassignedLifespan" isRequired label="Unassigned Lifespan">
+              <div className="catalog-item-form__group-control--single">
+                <TextInput
+                  id="selfPacedLabUnassignedLifespan"
+                  type="text"
+                  value={formState.selfPacedLab.unassignedLifespan}
+                  onChange={(_event, value) =>
+                    dispatchFormState({
+                      type: 'selfPacedLab',
+                      selfPacedLab: { ...formState.selfPacedLab, unassignedLifespan: value },
+                    })
+                  }
+                  placeholder="e.g. 24h, 2d"
+                />
+                <Tooltip position="right" content={<p>How long an unassigned instance lives before being replaced (e.g. 24h).</p>}>
+                  <OutlinedQuestionCircleIcon
+                    aria-label="Unassigned lifespan duration"
+                    className="tooltip-icon-only"
+                  />
+                </Tooltip>
+              </div>
+            </FormGroup>
+            {isAdmin ? (
+              <>
+                <FormGroup
+                  key="selfPacedLabConcurrency"
+                  fieldId="selfPacedLabConcurrency"
+                  label="Provision Concurrency (only visible to admins)"
+                >
+                  <div className="catalog-item-form__group-control--single">
+                    <PatientNumberInput
+                      min={1}
+                      max={30}
+                      onChange={(v) =>
+                        dispatchFormState({
+                          type: 'selfPacedLab',
+                          selfPacedLab: { ...formState.selfPacedLab, concurrency: v },
+                        })
+                      }
+                      value={formState.selfPacedLab.concurrency}
+                    />
+                  </div>
+                </FormGroup>
+                <FormGroup
+                  key="selfPacedLabStartDelay"
+                  fieldId="selfPacedLabStartDelay"
+                  label="Provision Start Interval (only visible to admins)"
+                >
+                  <div className="catalog-item-form__group-control--single">
+                    <PatientNumberInput
+                      min={1}
+                      max={600}
+                      onChange={(v) =>
+                        dispatchFormState({
+                          type: 'selfPacedLab',
+                          selfPacedLab: { ...formState.selfPacedLab, startDelay: v },
+                        })
+                      }
+                      value={formState.selfPacedLab.startDelay}
+                    />
+                  </div>
+                </FormGroup>
+              </>
+            ) : null}
           </div>
         ) : null}
 
         {(isAdmin || isLabDeveloper(groups)) && !catalogItem.spec.externalUrl ? (
           <div className="catalog-item-form__admin-section">
             <div className="catalog-item-form__admin-section-title">Admin Settings</div>
-            <div className="catalog-item-form__admin-section-content">
-              <div className="catalog-item-form__admin-fields">
                 {isAdmin && (
                   <div className="catalog-item-form__group-control--single">
                     <Switch
@@ -1211,8 +1388,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     }}
                   />
                 </div>
-              </div>
-            </div>
           </div>
         ) : null}
 

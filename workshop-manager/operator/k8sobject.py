@@ -2,13 +2,13 @@ from datetime import datetime, timezone
 
 from kubernetes_asyncio.client.rest import ApiException as k8sApiException
 
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 
 class K8sObject:
     @classmethod
     async def create(cls, definition):
         return cls(
-            await Babylon.custom_objects_api.create_namespaced_custom_object(
+            await OperatorRuntime.custom_objects_api.create_namespaced_custom_object(
                 group = cls.api_group,
                 namespace = definition['metadata']['namespace'],
                 plural = cls.plural,
@@ -23,7 +23,7 @@ class K8sObject:
 
     @classmethod
     async def fetch_definition(cls, name, namespace):
-        return await Babylon.custom_objects_api.get_namespaced_custom_object(
+        return await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
             group = cls.api_group,
             name = name,
             namespace = namespace,
@@ -35,7 +35,7 @@ class K8sObject:
     async def list(cls, namespace, label_selector=None):
         _continue = None
         while True:
-            obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+            obj_list = await OperatorRuntime.custom_objects_api.list_namespaced_custom_object(
                 group = cls.api_group,
                 label_selector = label_selector,
                 namespace = namespace,
@@ -113,7 +113,7 @@ class K8sObject:
 
     async def delete(self):
         try:
-            definition = await Babylon.custom_objects_api.delete_namespaced_custom_object(
+            definition = await OperatorRuntime.custom_objects_api.delete_namespaced_custom_object(
                 group = self.api_group,
                 name = self.name,
                 namespace = self.namespace,
@@ -126,7 +126,7 @@ class K8sObject:
                 raise
 
     async def merge_patch(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,
@@ -138,7 +138,7 @@ class K8sObject:
         self.definition = definition
 
     async def merge_patch_status(self, patch):
-        definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+        definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object_status(
             group = self.api_group,
             name = self.name,
             namespace = self.namespace,

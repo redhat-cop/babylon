@@ -8,6 +8,7 @@ from babylon import Babylon
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from resourceclaim import ResourceClaim
+from selfpacedlab import SelfPacedLab
 from serviceaccessconfig import ServiceAccessConfig
 from workshop import Workshop
 
@@ -101,6 +102,16 @@ async def service_access_config_update(logger, **kwargs):
 async def service_access_config_timer(logger, **kwargs):
     service_access_config = ServiceAccessConfig(**kwargs)
     await service_access_config.handle_timer(logger=logger)
+
+
+@kopf.on.event(
+    SelfPacedLab.api_group, SelfPacedLab.api_version, SelfPacedLab.plural,
+    labels={
+        Babylon.babylon_ignore_label: kopf.ABSENT,
+    },
+)
+async def self_paced_lab_event(event, logger, **_):
+    await SelfPacedLab.handle_event(event, logger=logger)
 
 
 @kopf.on.event(

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { act } from 'react';
 import App from '@app/index';
 import { render, waitFor } from '@testing-library/react';
 import { fireEvent, generateSession } from './utils/test-utils';
@@ -23,7 +23,10 @@ const wrapper = (children: React.ReactNode) => (
 
 describe('App tests', () => {
   it.only('should render a nav-toggle button', async () => {
-    const { container } = render(wrapper(<App />));
+    let container;
+    await act(async () => {
+      ({ container } = render(wrapper(<App />)));
+    });
     await waitFor(() => {
       const button = container.querySelector('#nav-toggle');
       expect(button).toBeInTheDocument();

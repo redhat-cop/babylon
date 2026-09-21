@@ -13,10 +13,10 @@
 }
 
 .admin-body.pf-v6-c-page__main-section .pf-v6-c-tabs {
-  margin-left: -100px;
-  padding-left: 100px;
-  margin-right: -100px;
-  padding-right: 100px;
+  margin-left: calc(-1 * var(--pf-v6-c-page__main-section--PaddingLeft, var(--pf-t--global--spacer--lg)));
+  padding-left: var(--pf-v6-c-page__main-section--PaddingLeft, var(--pf-t--global--spacer--lg));
+  margin-right: calc(-1 * var(--pf-v6-c-page__main-section--PaddingRight, var(--pf-t--global--spacer--lg)));
+  padding-right: var(--pf-v6-c-page__main-section--PaddingRight, var(--pf-t--global--spacer--lg));
   margin-bottom: 10pt;
 }
 
@@ -45,4 +45,184 @@
   overflow: auto;
   flex-grow: 1;
   background-color: #fff;
+}
+
+/* ========================================
+   Shared Clusters table
+   ======================================== */
+
+.shared-clusters-table-wrap {
+  overflow-x: auto;
+}
+
+.shared-clusters-table-wrap table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.shared-clusters-table-wrap thead th {
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--pf-t--global--border--color--default);
+  white-space: nowrap;
+}
+
+.shared-clusters-table-wrap td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+.shared-clusters-table-wrap tbody tr {
+  border-bottom: 1px solid color-mix(in srgb, var(--pf-t--global--border--color--default) 40%, transparent);
+}
+
+.shared-clusters-group-header {
+  background: var(--pf-t--global--background--color--secondary--default);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.shared-clusters-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 88%, var(--pf-t--global--text--color--regular));
+}
+
+.shared-clusters-expand-cell {
+  text-align: center;
+  width: 28px;
+}
+
+.shared-clusters-expand-icon {
+  color: var(--pf-t--global--text--color--subtle);
+  transition: transform 0.15s ease;
+}
+
+.shared-clusters-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 97%, var(--pf-t--global--text--color--subtle));
+  border-left: 2px solid var(--pf-t--global--color--status--info--default);
+}
+
+.shared-clusters-status-cell {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.shared-clusters-status-cell > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--pf-t--global--border--radius--small);
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, transparent);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.shared-clusters-muted {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.shared-clusters-name-link {
+  color: var(--pf-t--global--color--brand--default);
+  text-decoration: none;
+}
+
+.shared-clusters-name-link:hover {
+  text-decoration: underline;
+}
+
+.shared-clusters-onboarded {
+  color: var(--pf-t--global--color--status--success--default);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.shared-clusters-not-onboarded {
+  color: var(--pf-t--global--color--status--warning--default);
+  white-space: nowrap;
+}
+
+/* Dark mode */
+:root.pf-v6-theme-dark .shared-clusters-table-wrap thead th {
+  border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 70%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-table-wrap tbody tr {
+  border-bottom-color: color-mix(in srgb, var(--pf-t--global--border--color--default) 50%, transparent);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-group-header {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 60%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-group-header:hover {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-child-row {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--primary--default) 92%, white);
+}
+
+:root.pf-v6-theme-dark .shared-clusters-status-cell > div {
+  background: color-mix(in srgb, var(--pf-t--global--background--color--secondary--default) 50%, transparent);
+}
+
+/* ========================================
+   Compact Operation Cards
+   ======================================== */
+
+.ops-operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--pf-t--global--spacer--md);
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
+/* Reduce padding on all operation cards */
+.ops-operations-grid .pf-v6-c-card {
+  --pf-v6-c-card--c-card__body--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__body--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-card--c-card__title--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-card--c-card__title--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+}
+
+/* Tighter form groups within operation cards */
+.ops-operations-grid .pf-v6-c-form-group {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+/* Smaller card titles */
+.ops-operations-grid .pf-v6-c-card__title {
+  font-size: var(--pf-t--global--font--size--body--default);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+}
+
+/* Compact buttons */
+.ops-operations-grid .pf-v6-c-button {
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--xs);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+}
+
+/* Compact number inputs */
+.ops-operations-grid .pf-v6-c-number-input {
+  max-width: 120px;
+}
+
+/* Reduce icon size in card titles */
+.ops-card-icon {
+  font-size: var(--pf-t--global--font--size--body--default);
+  margin-right: var(--pf-t--global--spacer--xs);
 }

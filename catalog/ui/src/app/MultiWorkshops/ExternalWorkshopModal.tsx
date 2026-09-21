@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from 'react';
+import React, { useState, Ref } from 'react';
 import {
   FormGroup,
   TextInput,
@@ -14,11 +14,10 @@ interface ExternalWorkshopFormData {
 
 interface ExternalWorkshopModalProps {
   onConfirm: (data: ExternalWorkshopFormData) => void;
+  ref?: Ref<{ open: () => void; close: () => void }>;
 }
 
-// Fix: Add displayName to the component to resolve missing display name lint error
-const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }, ExternalWorkshopModalProps>(
-  ({ onConfirm }, ref) => {
+const ExternalWorkshopModal = ({ onConfirm, ref }: ExternalWorkshopModalProps) => {
     const [formData, setFormData] = useState<ExternalWorkshopFormData>({
       url: '',
       displayName: '',
@@ -153,9 +152,6 @@ const ExternalWorkshopModal = forwardRef<{ open: () => void; close: () => void }
       </div>
       </Modal>
     );
-  }
-);
-
-ExternalWorkshopModal.displayName = 'ExternalWorkshopModal';
+};
 
 export default ExternalWorkshopModal;

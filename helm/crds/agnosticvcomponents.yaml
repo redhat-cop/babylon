@@ -70,5 +70,63 @@ spec:
             - definition
             - path
           status:
+            description: Status of AgnosticVComponent
             type: object
             x-kubernetes-preserve-unknown-fields: true
+            properties:
+              anarchyGovernor:
+                description: >-
+                  AnarchyGovernor managed by this AgnosticVComponent
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string
+              catalogItem:
+                description: >-
+                  CatalogItem managed by this AgnosticVComponent.
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string
+              deprecatedAnarchyGovernors:
+                description: >-
+                  AnarchyGovernors managed by this AgnosticVComponent
+                  from prior configuration using a different Anarchy namespace.
+                  These should be cleaned when no more AnarchySubjects
+                  reference them.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    uid:
+                      type: string
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              kopf:
+                description: Kopf status storage
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              resourceProvider:
+                description: >-
+                  ResourceProvider managed by this AgnosticVComponent.
+                type: object
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string

@@ -1,5 +1,5 @@
 import parseDuration from 'parse-duration';
-import {
+import type {
   AnarchyAction,
   AnarchyGovernor,
   AnarchySubject,
@@ -15,15 +15,20 @@ import {
   ResourcePool,
   ResourcePoolScaling,
   ResourceProvider,
+  TenantClusterPool,
   ServiceAccessConfig,
   ServiceNamespace,
+  SelfPacedLab,
+  SelfPacedLabProvisionItem,
   Workshop,
   WorkshopProvision,
   MultiWorkshop,
+  WhiteGloveRequest,
   UserList,
   Session,
   Nullable,
   WorkshopUserAssignment,
+  SelfPacedLabUserAssignment,
 } from '@app/types';
 import { store, selectImpersonationUser } from '@app/store';
 import {
@@ -222,13 +227,13 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-function addPurposeAndSfdc(
-  _definition: K8sObject,
+function addPurposeAndSfdc<T extends K8sObject>(
+  _definition: T,
   parameterValues: Record<string, unknown>,
   skippedSfdc: boolean,
   salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>,
-) {
-  const d = Object.assign({}, _definition) as ResourceClaim | Workshop;
+): T {
+  const d = Object.assign({}, _definition) as T;
   // Purpose & SFDC
   if (parameterValues.purpose) {
     d.metadata.annotations[`${DEMO_DOMAIN}/purpose`] = parameterValues.purpose as string;
@@ -320,6 +325,103 @@ export async function assignWorkshopUser({
   });
   workshopUserAssignments[userAssignmentIdx] = updatedWorkshopUserAssignment;
   return workshopUserAssignments;
+}
+
+export async function assignSelfPacedLabUser({
+  resourceClaimName,
+  userName,
+  email,
+  selfPacedLabUserAssignments,
+}: {
+  resourceClaimName: string;
+  userName: string;
+  email: string;
+  selfPacedLabUserAssignments: SelfPacedLabUserAssignment[];
+}) {
+  const userAssignmentIdx: number = selfPacedLabUserAssignments.findIndex(
+    (item) => resourceClaimName === item.spec.resourceClaimName && userName === item.spec.userName,
+  );
+  const userAssignment = selfPacedLabUserAssignments[userAssignmentIdx];
+  if (!userAssignment) {
+    console.error(`Unable to assign, ${resourceClaimName} ${userName} not found.`);
+    return selfPacedLabUserAssignments;
+  } else if (userAssignment.spec.assignment?.email === email || (!userAssignment.spec.assignment?.email && !email)) {
+    return selfPacedLabUserAssignments;
+  }
+
+  const jsonPatch: JSONPatch = [];
+  if (resourceClaimName) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/resourceClaimName`,
+      value: resourceClaimName,
+    });
+  }
+  if (userName) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/userName`,
+      value: userName,
+    });
+  }
+  if (userAssignment.spec.assignment) {
+    jsonPatch.push({
+      op: 'test',
+      path: `/spec/assignment/email`,
+      value: userAssignment.spec.assignment.email,
+    });
+    if (email) {
+      jsonPatch.push({
+        op: 'replace',
+        path: `/spec/assignment/email`,
+        value: email,
+      });
+    } else {
+      jsonPatch.push({
+        op: 'remove',
+        path: `/spec/assignment`,
+      });
+    }
+  } else if (email) {
+    jsonPatch.push({
+      op: 'add',
+      path: `/spec/assignment`,
+      value: { email: email },
+    });
+  } else {
+    return selfPacedLabUserAssignments;
+  }
+
+  const updatedSelfPacedLabUserAssignment = await patchK8sObject<SelfPacedLabUserAssignment>({
+    name: userAssignment.metadata.name,
+    namespace: userAssignment.metadata.namespace,
+    jsonPatch: jsonPatch,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    plural: 'selfpacedlabuserassignments',
+  });
+  selfPacedLabUserAssignments[userAssignmentIdx] = updatedSelfPacedLabUserAssignment;
+  return selfPacedLabUserAssignments;
+}
+
+export async function patchSelfPacedLabUserAssignment({
+  name,
+  namespace,
+  jsonPatch,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  jsonPatch?: JSONPatch;
+  patch?: Record<string, unknown>;
+}) {
+  return await patchK8sObject<SelfPacedLabUserAssignment>({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    jsonPatch,
+    name,
+    namespace,
+    plural: 'selfpacedlabuserassignments',
+    patch,
+  });
 }
 
 export function dateToApiString(date: Date) {
@@ -531,6 +633,7 @@ export async function createServiceRequest({
         [`${DEMO_DOMAIN}/scheduled`]:
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         ...(catalogItem.spec.workshopUiDisabled ? { [`${DEMO_DOMAIN}/workshopUiDisabled`]: 'true' } : {}),
+        ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
       },
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
@@ -690,6 +793,7 @@ export async function createWorkshop({
           startDate && startDate.getTime() > Date.now() + parseDuration('15min') ? 'true' : 'false',
         [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
         [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
         ...(customAnnotations || {}),
       },
       ...(customOwnerReferences && customOwnerReferences.length > 0
@@ -863,6 +967,7 @@ export async function createWorkshopProvision({
       labels: {
         [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
         [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        [`${BABYLON_DOMAIN}/workshop`]: workshop.metadata.name,
         ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
           ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
           : {}),
@@ -1086,8 +1191,235 @@ export async function deleteResourceProvider(resourceProvider: ResourceProvider)
   );
 }
 
+export async function patchTenantClusterPool(
+  namespace: string,
+  name: string,
+  patch: Record<string, unknown>,
+): Promise<TenantClusterPool> {
+  return (await patchNamespacedCustomObject(
+    BABYLON_DOMAIN,
+    'v1',
+    namespace,
+    'tenantclusterpools',
+    name,
+    patch,
+  )) as TenantClusterPool;
+}
+
+export async function setTenantClusterAction(
+  namespace: string,
+  resourceClaimName: string,
+  action: string | null,
+): Promise<ResourceClaim> {
+  const annotationKey = `${BABYLON_DOMAIN}/tenant-cluster-action`;
+  const patch = action
+    ? { metadata: { annotations: { [annotationKey]: JSON.stringify({ action }) } } }
+    : { metadata: { annotations: { [annotationKey]: null } } };
+  return await patchResourceClaim(namespace, resourceClaimName, patch);
+}
+
 export async function deleteWorkshop(workshop: Workshop) {
   return await deleteK8sObject(workshop);
+}
+
+export async function createSelfPacedLab({
+  accessPassword,
+  catalogItem,
+  description,
+  displayName,
+  openRegistration,
+  serviceNamespace,
+  endDate,
+  startDate,
+  email,
+  parameterValues,
+  skippedSfdc,
+  whiteGloved,
+  salesforceItems,
+}: {
+  accessPassword?: string;
+  catalogItem: CatalogItem;
+  description?: string;
+  displayName?: string;
+  openRegistration: boolean;
+  serviceNamespace: ServiceNamespace;
+  endDate?: Date;
+  startDate?: Date;
+  email: string;
+  parameterValues: Record<string, unknown>;
+  skippedSfdc: boolean;
+  whiteGloved: boolean;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+}): Promise<SelfPacedLab> {
+  const session = await getApiSession();
+  const selfPacedLabName = generateK8sNameWithSuffix(catalogItem.metadata.name);
+  const _definition: SelfPacedLab = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'SelfPacedLab',
+    metadata: {
+      name: selfPacedLabName,
+      namespace: serviceNamespace.name,
+      labels: {
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
+          : {}),
+        [`${DEMO_DOMAIN}/white-glove`]: String(whiteGloved),
+      },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
+        [`${DEMO_DOMAIN}/requester`]: serviceNamespace.requester || email,
+        [`${DEMO_DOMAIN}/orderedBy`]: session.user,
+        ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
+      },
+    },
+    spec: {
+      openRegistration: openRegistration,
+      lifespan: {
+        ...(startDate ? { start: dateToApiString(startDate) } : {}),
+        ...(endDate ? { end: dateToApiString(endDate) } : {}),
+      },
+    },
+  };
+  if (accessPassword) {
+    _definition.spec.accessPassword = accessPassword;
+  }
+  if (description) {
+    _definition.spec.description = description;
+  }
+  if (displayName) {
+    _definition.spec.displayName = displayName;
+  }
+
+  const definition = addPurposeAndSfdc(_definition, parameterValues, skippedSfdc, salesforceItems);
+
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  while (retryCount <= maxRetries) {
+    try {
+      return await createK8sObject(definition);
+    } catch (error: unknown) {
+      if ((error as Response).status === 409 && retryCount < maxRetries) {
+        retryCount++;
+        definition.metadata.name = generateK8sNameWithSuffix(catalogItem.metadata.name);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error('Failed to create self-paced lab after maximum retries');
+}
+
+export async function createSelfPacedLabProvisionItem({
+  catalogItem,
+  poolSize,
+  assignedLifespan,
+  unassignedLifespan,
+  concurrency,
+  startDelay,
+  parameters,
+  selfPacedLab,
+}: {
+  catalogItem: CatalogItem;
+  poolSize: number;
+  assignedLifespan: string;
+  unassignedLifespan: string;
+  concurrency?: number;
+  startDelay?: number;
+  parameters: Record<string, unknown>;
+  selfPacedLab: SelfPacedLab;
+}) {
+  const definition: SelfPacedLabProvisionItem = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'SelfPacedLabProvisionItem',
+    metadata: {
+      name: selfPacedLab.metadata.name,
+      namespace: selfPacedLab.metadata.namespace,
+      labels: {
+        [`${BABYLON_DOMAIN}/catalogItemName`]: catalogItem.metadata.name,
+        [`${BABYLON_DOMAIN}/catalogItemNamespace`]: catalogItem.metadata.namespace,
+        ...(catalogItem.metadata.labels?.['gpte.redhat.com/asset-uuid']
+          ? { 'gpte.redhat.com/asset-uuid': catalogItem.metadata.labels['gpte.redhat.com/asset-uuid'] }
+          : {}),
+      },
+      annotations: {
+        [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
+      },
+      ownerReferences: [
+        {
+          apiVersion: `${BABYLON_DOMAIN}/v1`,
+          controller: true,
+          kind: 'SelfPacedLab',
+          name: selfPacedLab.metadata.name,
+          uid: selfPacedLab.metadata.uid,
+        },
+      ],
+    },
+    spec: {
+      assignedLifespan,
+      catalogItem: {
+        name: catalogItem.metadata.name,
+        namespace: catalogItem.metadata.namespace,
+      },
+      poolSize,
+      selfPacedLabName: selfPacedLab.metadata.name,
+      unassignedLifespan,
+      ...(concurrency ? { concurrency } : {}),
+      ...(startDelay ? { startDelay } : {}),
+      parameters,
+    },
+  };
+
+  return await createK8sObject(definition);
+}
+
+export async function deleteSelfPacedLab(selfPacedLab: SelfPacedLab) {
+  return await deleteK8sObject(selfPacedLab);
+}
+
+export async function patchSelfPacedLab({
+  name,
+  namespace,
+  jsonPatch,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  jsonPatch?: JSONPatch;
+  patch?: Record<string, unknown>;
+}): Promise<SelfPacedLab> {
+  return await patchK8sObject({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    jsonPatch,
+    name,
+    namespace,
+    plural: 'selfpacedlabs',
+    patch,
+  });
+}
+
+export async function patchSelfPacedLabProvisionItem({
+  name,
+  namespace,
+  jsonPatch,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  jsonPatch?: JSONPatch;
+  patch?: Record<string, unknown>;
+}): Promise<SelfPacedLabProvisionItem> {
+  return await patchK8sObject({
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    jsonPatch,
+    name,
+    namespace,
+    plural: 'selfpacedlabprovisionitems',
+    patch,
+  });
 }
 
 export async function deleteAssetFromMultiWorkshop({
@@ -1160,7 +1492,7 @@ export async function createMultiWorkshop(multiworkshopData: {
     namespace: string;
     displayName?: string;
     description?: string;
-    type?: 'Workshop' | 'external';
+    type?: 'Workshop' | 'external' | 'SelfPacedLab';
   }>;
   namespace: string;
   readyByDate?: string;
@@ -1239,6 +1571,124 @@ export async function patchMultiWorkshop({
     plural: 'multiworkshops',
     patch,
     apiVersion: 'babylon.gpte.redhat.com/v1',
+  });
+}
+
+export async function createWhiteGloveRequest(data: {
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
+  displayName: string;
+  purpose?: string;
+  activity?: string;
+  explanation?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  salesforceItems?: Array<{ id: string; type: 'campaign' | 'project' | 'opportunity' }>;
+  shareWith?: string[];
+  deliveryMode?: string;
+  audienceType?: string;
+  namespace: string;
+}): Promise<WhiteGloveRequest> {
+  const session = await getApiSession();
+  const name = generateK8sNameWithSuffix(data.displayName || 'wgr');
+  const labels: Record<string, string> = {};
+  if (data.catalogItemNames?.length > 0) {
+    labels[`${BABYLON_DOMAIN}/catalogItemName`] = data.catalogItemNames[0];
+    labels[`${BABYLON_DOMAIN}/catalogItemNamespace`] = data.catalogItemNamespace;
+  }
+  const definition: WhiteGloveRequest = {
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+    kind: 'WhiteGloveRequest',
+    metadata: {
+      name,
+      namespace: data.namespace,
+      annotations: {
+        [`${BABYLON_DOMAIN}/created-by`]: session.user,
+        [`${DEMO_DOMAIN}/requester`]: session.user,
+      },
+      labels,
+    },
+    spec: {
+      catalogItemNames: data.catalogItemNames,
+      catalogItemNamespace: data.catalogItemNamespace,
+      displayName: data.displayName,
+      purpose: data.purpose,
+      activity: data.activity,
+      explanation: data.explanation,
+      numberOfUsers: data.numberOfUsers,
+      eventDate: data.eventDate,
+      eventEndDate: data.eventEndDate,
+      notes: data.notes,
+      salesforceItems: data.salesforceItems,
+      shareWith: data.shareWith,
+      deliveryMode: data.deliveryMode as WhiteGloveRequest['spec']['deliveryMode'],
+      audienceType: data.audienceType as WhiteGloveRequest['spec']['audienceType'],
+    },
+  };
+  return await createK8sObject(definition);
+}
+
+export async function patchWhiteGloveRequest({
+  name,
+  namespace,
+  patch,
+}: {
+  name: string;
+  namespace: string;
+  patch: Record<string, unknown>;
+}): Promise<WhiteGloveRequest> {
+  return await patchK8sObject({
+    name,
+    namespace,
+    plural: 'whitegloverequests',
+    patch,
+    apiVersion: `${BABYLON_DOMAIN}/v1`,
+  });
+}
+
+export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
+  return await deleteK8sObject(wgr);
+}
+
+export async function createJiraTicketForWgr(data: {
+  displayName: string;
+  catalogItemNames?: string[];
+  catalogItemNamespace?: string;
+  activity?: string;
+  purpose?: string;
+  explanation?: string;
+  numberOfUsers?: number;
+  eventDate?: string;
+  eventEndDate?: string;
+  notes?: string;
+  salesforceItems?: Array<{ id: string; type: string }>;
+  shareWith?: string[];
+  deliveryMode?: string;
+  audienceType?: string;
+}): Promise<{ key: string; url: string }> {
+  const response = await apiFetch('/api/jira/wgr', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function addJiraComment(issueKey: string, comment: string): Promise<void> {
+  await apiFetch(`/api/jira/issue/${issueKey}/comment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comment }),
+  });
+}
+
+export async function updateJiraLabels(issueKey: string, add: string[], remove: string[]): Promise<void> {
+  await apiFetch(`/api/jira/issue/${issueKey}/labels`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ add, remove }),
   });
 }
 
@@ -1715,6 +2165,57 @@ export async function addOwnerReferenceToWorkshopAndLock({
   });
 }
 
+export async function lockSelfPacedLab(selfPacedLab: SelfPacedLab): Promise<SelfPacedLab> {
+  return await patchSelfPacedLab({
+    name: selfPacedLab.metadata.name,
+    namespace: selfPacedLab.metadata.namespace,
+    patch: {
+      metadata: {
+        labels: {
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
+        },
+      },
+    },
+  });
+}
+
+export async function addOwnerReferenceToSelfPacedLabAndLock({
+  selfPacedLab,
+  ownerReference,
+}: {
+  selfPacedLab: SelfPacedLab;
+  ownerReference: K8sOwnerReference;
+}): Promise<SelfPacedLab> {
+  const existingOwnerReferences = selfPacedLab.metadata.ownerReferences || [];
+  const alreadyHasOwner = existingOwnerReferences.some(
+    (ref) => ref.uid === ownerReference.uid && ref.kind === ownerReference.kind,
+  );
+
+  if (alreadyHasOwner) {
+    return selfPacedLab;
+  }
+
+  return await patchSelfPacedLab({
+    name: selfPacedLab.metadata.name,
+    namespace: selfPacedLab.metadata.namespace,
+    patch: {
+      metadata: {
+        ownerReferences: [...existingOwnerReferences, ownerReference],
+        labels: {
+          ...selfPacedLab.metadata.labels,
+          [`${BABYLON_DOMAIN}/multiworkshop`]: ownerReference.name,
+          [`${DEMO_DOMAIN}/lock-enabled`]: 'true',
+        },
+        annotations: {
+          ...selfPacedLab.metadata.annotations,
+          [`${BABYLON_DOMAIN}/multiworkshop-source`]: ownerReference.name,
+          [`${BABYLON_DOMAIN}/multiworkshop-uid`]: ownerReference.uid,
+        },
+      },
+    },
+  });
+}
+
 export async function patchWorkshopProvision({
   name,
   namespace,
@@ -2165,10 +2666,10 @@ export async function createServiceAccessConfig({
   namespace: string;
   serviceName: string;
   serviceNamespace: string;
-  serviceKind?: 'Workshop' | 'ResourceClaim';
+  serviceKind?: 'Workshop' | 'ResourceClaim' | 'SelfPacedLab';
   users: string[];
 }): Promise<ServiceAccessConfig> {
-  const labelKey = serviceKind === 'Workshop' ? 'workshop' : 'resourceclaim';
+  const labelKey = serviceKind === 'Workshop' ? 'workshop' : serviceKind === 'SelfPacedLab' ? 'selfpacedlab' : 'resourceclaim';
   const definition: ServiceAccessConfig = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'ServiceAccessConfig',
@@ -2253,6 +2754,10 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/catalogitems/${name}`,
   ASSET_METRICS: ({ asset_uuid, environment }: { asset_uuid: string; environment?: string }) =>
     `/api/catalog_item/metrics/${asset_uuid}${environment ? `?environment=${environment}` : ''}`,
+  SANDBOX_CLUSTER_PLACEMENTS: ({ clusterName }: { clusterName: string }) =>
+    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}/placements`,
+  SANDBOX_CLUSTER_CONFIG: ({ clusterName }: { clusterName: string }) =>
+    `/api/sandbox/ocp-shared-cluster-configurations/${clusterName}`,
   CATALOG_ITEMS: ({
     namespace,
     limit,
@@ -2301,16 +2806,55 @@ export const apiPaths = {
     `/api/v1/namespaces?${labelSelector ? `labelSelector=${labelSelector}` : ''}${limit ? `&limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
+  SELF_PACED_LAB: ({ namespace, selfPacedLabName }: { namespace: string; selfPacedLabName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabs/${selfPacedLabName}`,
+  SELF_PACED_LABS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number | string; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/selfpacedlabs?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
+  SELF_PACED_LAB_PROVISION_ITEMS: ({
+    namespace,
+    selfPacedLabName,
+    limit,
+    continueId,
+  }: {
+    namespace: string;
+    selfPacedLabName: string;
+    limit?: number | string;
+    continueId?: string;
+  }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabprovisionitems?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}${
+      limit ? `&limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
+  SELF_PACED_LAB_USER_ASSIGNMENTS: ({ namespace, selfPacedLabName }: { namespace: string; selfPacedLabName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabuserassignments?labelSelector=${encodeURIComponent(`${BABYLON_DOMAIN}/selfpacedlab=${selfPacedLabName}`)}`,
   WORKSHOP: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshops/${workshopName}`,
   WORKSHOPS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number | string; continueId?: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshops?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  JIRA_ISSUE: ({ issueKey }: { issueKey: string }) => `/api/jira/issue/${issueKey}`,
+  WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
+  WHITE_GLOVE_REQUESTS: ({
+    namespace,
+    limit,
+    continueId,
+    labelSelector,
+  }: {
+    namespace?: string;
+    limit?: number | string;
+    continueId?: string;
+    labelSelector?: string;
+  }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/whitegloverequests?${
+      limit ? `limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
-  PUBLIC_MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
-    `/api/event/${namespace}/${multiworkshopName}`,
+  PUBLIC_MULTIWORKSHOP: ({ multiWorkshopId }: { multiWorkshopId: string }) =>
+    `/api/event/${multiWorkshopId}`,
   MULTIWORKSHOPS: ({
     namespace,
     limit,
@@ -2492,6 +3036,18 @@ export const apiPaths = {
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   },
   SYSTEM_STATUS: () => `/api/system/status`,
+  TENANT_CLUSTER_POOL: ({ namespace, tenantClusterPoolName }: { namespace: string; tenantClusterPoolName: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/tenantclusterpools/${tenantClusterPoolName}`,
+  TENANT_CLUSTER_POOLS: ({ limit, continueId }: { limit: number | string; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/tenantclusterpools?${limit ? `limit=${limit}` : ''}${
+      continueId ? `&continue=${continueId}` : ''
+    }`,
+};
+
+export type BlockedDateRange = {
+  startDate: string;
+  endDate: string;
+  message: string;
 };
 
 export type SystemStatus = {
@@ -2499,6 +3055,7 @@ export type SystemStatus = {
   workshops_ordering_blocked_message: string;
   services_ordering_blocked: boolean;
   services_ordering_blocked_message: string;
+  wg_blocked_dates: BlockedDateRange[];
   last_updated_by: string;
   last_updated_at: string;
 };

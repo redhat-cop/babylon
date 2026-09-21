@@ -1,27 +1,12 @@
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
-import { EditorState, LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
-import {
-  DescriptionList,
-  DescriptionListTerm,
-  DescriptionListGroup,
-  DescriptionListDescription,
-  Tooltip,
-  Switch,
-  MenuToggle,
-  MenuToggleElement,
-  FormGroup,
-  Button,
-  NumberInput,
-  Popover,
-  Label,
-  LabelGroup,
-  Alert,
-  TextInput,
-} from '@patternfly/react-core';
+import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, FormGroup, Button, NumberInput, Popover, Label, LabelGroup, Alert, TextInput } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
   apiPaths,
@@ -34,7 +19,7 @@ import {
   optionalFetcher,
   FORBIDDEN_RESPONSE,
 } from '@app/api';
-import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import type { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
@@ -52,12 +37,12 @@ import {
   isWorkshopLocked,
   isWorkshopStarted,
 } from './workshops-utils';
-import { ModalState } from './WorkshopsItem';
+import type { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
-import { PlusCircleIcon } from '@patternfly/react-icons';
+import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 
@@ -69,6 +54,7 @@ const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate: (workshop: Workshop) => void;
   workshop: Workshop;
   resourceClaims?: ResourceClaim[];
+  clusterResourceClaims?: ResourceClaim[];
   workshopProvisions?: WorkshopProvision[];
   workshopUserAssignments?: WorkshopUserAssignment[];
   showModal?: ({ action, resourceClaims }: ModalState) => void;
@@ -79,6 +65,7 @@ const WorkshopsItemDetails: React.FC<{
   onWorkshopUpdate,
   workshopProvisions = [],
   resourceClaims,
+  clusterResourceClaims = [],
   workshop,
   showModal,
   workshopUserAssignments,
@@ -101,6 +88,7 @@ const WorkshopsItemDetails: React.FC<{
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [newServiceAccessEmail, setNewServiceAccessEmail] = useState('');
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
+  const supportLink = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/support-link`];
   const multiworkshopSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
   
   const {
@@ -379,6 +367,25 @@ const WorkshopsItemDetails: React.FC<{
           )}
         </DescriptionListDescription>
       </DescriptionListGroup>
+      {supportLink ? (
+        <DescriptionListGroup>
+          <DescriptionListTerm>Support</DescriptionListTerm>
+          <DescriptionListDescription>
+            <Button
+              component="a"
+              href={supportLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="link"
+              isInline
+              icon={<ExternalLinkAltIcon />}
+              iconPosition="end"
+            >
+              {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink) ? 'Slack Channel' : 'Get Support'}
+            </Button>
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      ) : null}
       {multiworkshopSource ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Multi Asset Workshop</DescriptionListTerm>
@@ -410,10 +417,14 @@ const WorkshopsItemDetails: React.FC<{
                 <span className="services-item__status--scheduled" key="scheduled">
                   <CheckCircleIcon key="scheduled-icon" /> Scheduled
                 </span>
-                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} /> : null}
+                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
               </>
-            ) : resourceClaims.length > 0 ? (
-              <WorkshopStatus resourceClaims={resourceClaims} />
+            ) : resourceClaims.length > 0 || clusterResourceClaims.length > 0 ? (
+              <>
+                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
+                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
+              </>
             ) : (
               <p>...</p>
             )}

@@ -2,10 +2,10 @@ import React, { CSSProperties, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import { Checkbox, Form, FormGroup, NumberInput, TextArea, TextInput, Tooltip } from '@patternfly/react-core';
-import { ResourceClaim, ResourceHandle } from '@app/types';
+import type { ResourceClaim, ResourceHandle } from '@app/types';
 import { createResourcePool, getResourcePool } from '@app/api';
 import { BABYLON_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import useMatchMutate from '@app/utils/useMatchMutate';
 
 const formFieldStyle: CSSProperties = {

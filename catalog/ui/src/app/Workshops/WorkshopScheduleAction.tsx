@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Form, FormGroup, Switch } from '@patternfly/react-core';
-import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import { Alert, Form, FormGroup, Switch } from '@patternfly/react-core';
+import type { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import DateTimePicker from '@app/components/DateTimePicker';
+import TimezoneSelector from '@app/components/TimezoneSelector';
+import { getBrowserTimezone } from '@app/components/timezones';
 import useSession from '@app/utils/useSession';
 import {
   getMaxAutoDestroy,
@@ -49,6 +51,7 @@ const WorkshopScheduleAction: React.FC<{
 
   const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
   
   // Convert selected date for setState based on action type
   useEffect(() => {
@@ -91,6 +94,8 @@ const WorkshopScheduleAction: React.FC<{
     action === 'stop' && autoDestroyTime && (minMaxProps.maxDate === null || minMaxProps.maxDate >= autoDestroyTime);
 
   return (
+    <>
+    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
     <Form isHorizontal>
       <FormGroup fieldId="workshop-schedule-action" label={actionLabel}>
         <DateTimePicker
@@ -99,8 +104,16 @@ const WorkshopScheduleAction: React.FC<{
           {...minMaxProps}
           isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
           forceUpdateTimestamp={forceUpdateTimestamp}
+          timezone={timezone}
         />
       </FormGroup>
+      {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
+        <Alert
+          variant="warning"
+          isInline
+          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
+        />
+      ) : null}
       {noAutoStopSwitchIsVisible ? (
         <Switch
           id="services-schedule-action__no-auto-stop"
@@ -121,6 +134,7 @@ const WorkshopScheduleAction: React.FC<{
         />
       ) : null}
     </Form>
+    </>
   );
 };
 

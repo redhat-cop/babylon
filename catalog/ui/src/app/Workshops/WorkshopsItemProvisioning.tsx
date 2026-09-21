@@ -1,7 +1,7 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody,  } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { Workshop, WorkshopProvision } from '@app/types';
+import type { Workshop, WorkshopProvision } from '@app/types';
 import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 
 const WorkshopsItemProvisioning: React.FC<{

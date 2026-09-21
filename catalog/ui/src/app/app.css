@@ -1,6 +1,10 @@
 :root {
   --babylon-form-width: 360px;
   --babylon-form-width--wider: 560px;
+  --pf-t--global--text-decoration--link--line--default: none;
+  --pf-t--global--text-decoration--link--style--default: solid;
+  --pf-t--global--text-decoration--link--line--hover: underline;
+  --pf-t--global--text-decoration--link--style--hover: solid;
 }
 
 html,
@@ -65,7 +69,7 @@ body,
   }
 }
 
-.pf-v6-c-menu-toggle {
+.pf-v6-c-menu-toggle.pf-v6-c-menu-toggle {
   max-width: 250px;
   width: 100%;
 }
@@ -85,4 +89,9 @@ body,
   display: flex;
   flex-direction: row;
   gap: var(--pf-t--global--spacer--xs);
+}
+
+.hide-form-group-labels .pf-v6-c-form__group-label,
+.hide-form-group-labels > label {
+  display: none;
 }

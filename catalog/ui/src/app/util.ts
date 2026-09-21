@@ -1,6 +1,6 @@
 import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
-import {
+import type {
   AccessControl,
   AnarchySubject,
   CatalogItem,
@@ -10,8 +10,10 @@ import {
   Nullable,
   ResourceClaim,
   SalesforceItem,
+  SelfPacedLab,
   Service,
   ServiceNamespace,
+  TPurposeOpts,
   Workshop,
 } from '@app/types';
 
@@ -83,6 +85,9 @@ export function displayName(item: K8sObject | CatalogNamespace | ServiceNamespac
   } else if (k8sObject.kind === 'CatalogItem') {
     const _item = k8sObject as CatalogItem;
     return _item.spec.displayName;
+  } else if (k8sObject.kind === 'SelfPacedLab') {
+    const _item = k8sObject as SelfPacedLab;
+    return _item.spec?.displayName || _item.metadata.name;
   } else {
     return (
       k8sObject.metadata?.annotations?.[`${BABYLON_DOMAIN}/displayName`] ||
@@ -107,7 +112,16 @@ export function randomString(length: number): string {
 
 export function recursiveAssign(target: object, source: object): void {
   for (const [k, v] of Object.entries(source)) {
-    if (v !== null && typeof v === 'object' && k in target && target[k] !== null && typeof target[k] === 'object') {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') {
+      continue;
+    }
+    if (
+      v !== null &&
+      typeof v === 'object' &&
+      Object.prototype.hasOwnProperty.call(target, k) &&
+      target[k] !== null &&
+      typeof target[k] === 'object'
+    ) {
       recursiveAssign(target[k], v);
     } else {
       target[k] = v;
@@ -238,6 +252,11 @@ export function isResourceClaimPartOfWorkshop(resourceClaim: ResourceClaim) {
   if (!resourceClaim || !resourceClaim.metadata?.ownerReferences) return false;
   return resourceClaim.metadata.ownerReferences.filter((x) => x.kind === 'WorkshopProvision' || x.kind === 'Workshop')
     .length > 0;
+}
+
+export function isResourceClaimPartOfSelfPacedLab(resourceClaim: ResourceClaim) {
+  if (!resourceClaim || !resourceClaim.metadata?.labels) return false;
+  return !!resourceClaim.metadata.labels[`${BABYLON_DOMAIN}/selfpacedlab`];
 }
 
 export function isWorkshopPartOfResourceClaim(workshop: Workshop) {
@@ -419,8 +438,16 @@ export function escapeRegex(string: string) {
 
 export function stripTags(unStrippedHtml: string) {
   if (!unStrippedHtml) return '';
+
+  let sanitizedInput = unStrippedHtml;
+  let previousValue: string;
+  do {
+    previousValue = sanitizedInput;
+    sanitizedInput = sanitizedInput.replace(/<!--[\s\S]*?-->/g, '');
+  } while (sanitizedInput !== previousValue);
+
   const parseHTML = new DOMParser().parseFromString(
-    dompurify.sanitize(unStrippedHtml.replace(/<!--.*?-->/g, '').replace(/(\r\n|\n|\r)/gm, '')),
+    dompurify.sanitize(sanitizedInput.replace(/(\r\n|\n|\r)/gm, '')),
     'text/html',
   );
   return parseHTML.body.textContent || '';
@@ -519,12 +546,27 @@ export function getFirstSalesforceItem(annotations: Record<string, string>): Sal
 export function upsertSalesforceItem(annotations: Record<string, string>, newItem: SalesforceItem): void {
   const items = parseSalesforceItems(annotations);
   const existingIndex = items.findIndex(item => item.type === newItem.type);
-  
+
   if (existingIndex >= 0) {
     items[existingIndex] = newItem;
   } else {
     items.push(newItem);
   }
-  
+
   setSalesforceItems(annotations, items);
+}
+
+export function getPurposeOptsFromCatalogItem(catalogItem: CatalogItem): TPurposeOpts {
+  return catalogItem?.spec?.parameters
+    ?.find((p) => p.name === 'purpose')
+    ?.openAPIV3Schema?.['x-form-options'] || [];
+}
+
+export async function extractErrorMessage(err: unknown, fallback: string): Promise<string> {
+  try {
+    const body = await (err as Response).json();
+    return body?.message || fallback;
+  } catch {
+    return fallback;
+  }
 }

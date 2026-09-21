@@ -57,3 +57,9 @@ spec:
   runtime:
     default: 4h
     maximum: 8h
+  supportedActions:
+    destroy: {}
+    provision: {}
+    start: {}
+    status: {}
+    stop: {}

@@ -1,5 +1,7 @@
-import { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
+import type { AgnosticVRepo, CatalogItem, CatalogItemIncident } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/util';
+
+export const ALL_CATALOGS_NS = 'all';
 
 export function getProvider(catalogItem: CatalogItem) {
   const { domain, key } = CUSTOM_LABELS.PROVIDER;
@@ -25,17 +27,26 @@ export function getStage(catalogItem: CatalogItem) {
 
 export const SLAs = {
   Featured: 'Featured',
-  Enterprise_Premium: 'Enterprise_Premium',
-  Enterprise_Standard: 'Enterprise_Standard',
-  Community: 'Community',
-  External_Support: 'External_Support',
+  Unsupported: 'Unsupported',
 } as const;
 export type SLA = (typeof SLAs)[keyof typeof SLAs];
-export function getSLA(catalogItem: CatalogItem): SLA | null {
+export function getSLA(catalogItem: CatalogItem): string | null {
   const { domain, key } = CUSTOM_LABELS.SLA;
-  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`];
-  if (!Object.values(SLAs).includes(sla as SLA)) return null;
-  return sla as SLA;
+  const sla = catalogItem.metadata.labels?.[`${domain}/${key}`] || null;
+  if (sla === SLAs.Featured || sla === SLAs.Unsupported) {
+    return sla;
+  }
+  return null;
+}
+export function getSLABadgeClass(sla: string): string {
+  switch (sla) {
+    case SLAs.Featured:
+      return 'catalog-badge--sla-featured';
+    case SLAs.Unsupported:
+      return 'catalog-badge--sla-unsupported';
+    default:
+      return '';
+  }
 }
 
 export function getRating(catalogItem: CatalogItem): { ratingScore: number; totalRatings: number } | null {
@@ -49,6 +60,14 @@ export function getRating(catalogItem: CatalogItem): { ratingScore: number; tota
   }
   return null;
 }
+export type CostTier = 1 | 2 | 3;
+
+export function getCostTier(hourlyCost: number): CostTier {
+  if (hourlyCost <= 0.5) return 1;
+  if (hourlyCost <= 1.5) return 2;
+  return 3;
+}
+
 export function formatCurrency(value: number) {
   if (isNaN(value)) return null;
   const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -104,7 +123,12 @@ export function getStatusFromCatalogItem(
   return { name: 'Operational', disabled: false, incidentUrl: null };
 }
 
+
 export function isAutoStopDisabled(catalogItem: CatalogItem) {
+  const sa = catalogItem.spec.supportedActions;
+  if (sa !== undefined && !('stop' in sa)) {
+    return true;
+  }
   if (catalogItem.spec.runtime?.default) {
     return catalogItem.spec.runtime.default.includes('999h');
   }

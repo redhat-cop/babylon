@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import { useRect } from '@app/utils/useRect';
 import CatalogGridList from './CatalogGridList';
@@ -15,13 +15,15 @@ const CatalogContent: React.FC<{
   const { groups, userInterface } = useSession().getSession();
   const [wrapperRect, catalogWrapperRef] = useRect();
   return (
-    <div ref={catalogWrapperRef}>
+    <div>
       {catalogItemsResult.length > 0 ? (
         <PageSection hasBodyWrapper={false}
           variant={PageSectionVariants.default}
           className={`catalog__content-box catalog__content-box--${view}`}
         >
-          <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
+          <div ref={catalogWrapperRef}>
+            <CatalogGridList view={view} catalogItems={catalogItemsResult} wrapperRect={wrapperRect} />
+          </div>
         </PageSection>
       ) : (
         <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} className="catalog__content-box--empty">

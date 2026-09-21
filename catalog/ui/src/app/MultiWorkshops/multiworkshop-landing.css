@@ -112,6 +112,83 @@
   width: 100%;
 }
 
+/* ── Cards Layout ── */
+.mwl-cards-layout {
+  max-width: 920px;
+  width: 100%;
+}
+
+/* ── Filter Bar (horizontal, above cards) ── */
+.mwl-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 2px rgba(0, 0, 0, 0.06);
+  padding: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.mwl-filter-bar__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #151515;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.mwl-filter-bar__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mwl-filter-bar__item {
+  margin: 0;
+}
+
+.mwl-filter-bar__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #151515;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.mwl-filter-bar__label:hover {
+  color: #0066cc;
+}
+
+.mwl-filter-bar__checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #0066cc;
+  cursor: pointer;
+}
+
+.mwl-filter-bar__text {
+  /* no special styles needed for inline */
+}
+
+.mwl-filter-bar__count {
+  font-size: 12px;
+  color: #6a6e73;
+  background: #e8e8e8;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 500;
+}
+
 /* ── Card Grid ── */
 .multi-workshop-landing .demo-card-grid {
   display: grid;
@@ -122,6 +199,7 @@
   justify-content: center;
   align-content: start;
 }
+
 
 /* ── Demo Cards ── */
 .multi-workshop-landing .demo-card {
@@ -169,6 +247,7 @@
 .multi-workshop-landing .demo-card__badges {
   margin-left: auto;
 }
+
 
 .multi-workshop-landing .demo-card__body {
   margin-top: 8px;

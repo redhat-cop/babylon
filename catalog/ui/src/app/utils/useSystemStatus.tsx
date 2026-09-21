@@ -1,5 +1,6 @@
 import useSWR from 'swr';
-import { apiPaths, fetcher, SystemStatus } from '@app/api';
+import { apiPaths, fetcher } from '@app/api';
+import type { SystemStatus } from '@app/api';
 
 /**
  * Hook to get the current system status including ordering blocks.
@@ -25,6 +26,7 @@ export default function useSystemStatus() {
         workshops_ordering_blocked_message: '',
         services_ordering_blocked: false,
         services_ordering_blocked_message: '',
+        wg_blocked_dates: [],
         last_updated_by: '',
         last_updated_at: '',
       },
@@ -41,6 +43,7 @@ export default function useSystemStatus() {
     workshopOrderingBlockedMessage: data?.workshops_ordering_blocked_message ?? '',
     isServiceOrderingBlocked: data?.services_ordering_blocked ?? false,
     serviceOrderingBlockedMessage: data?.services_ordering_blocked_message ?? '',
+    wgBlockedDates: data?.wg_blocked_dates ?? [],
   };
 }
 

@@ -38,10 +38,10 @@ spec:
               kind:
                 description:
                   Kind of object for which the user has access.
-                  Either "ResourceClaim" or "Workshop".
                 type: string
                 enum:
                 - ResourceClaim
+                - SelfPacedLab
                 - Workshop
               name:
                 description: >-

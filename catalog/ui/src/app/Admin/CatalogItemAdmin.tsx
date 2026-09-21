@@ -17,11 +17,12 @@ import {
   Title,
   Tooltip,
   } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { apiPaths, fetcher } from '@app/api';
-import { CatalogItem, CatalogItemIncident, CatalogItemIncidentStatus } from '@app/types';
+import type { CatalogItem, CatalogItemIncident, CatalogItemIncidentStatus } from '@app/types';
 import { displayName, getStageFromK8sObject } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import { formatString, getProvider } from '@app/Catalog/catalog-utils';
@@ -126,10 +127,14 @@ const CatalogItemAdmin: React.FC = () => {
       });
     }
 
+    const statusChanged =
+      status !== (catalogItemIncident?.status || 'Operational') ||
+      isDisabled !== (catalogItemIncident?.disabled ?? false);
+
     await fetcher(apiPaths.CATALOG_ITEM_INCIDENTS({ asset_uuid, stage }), {
       method: 'POST',
       body: JSON.stringify({
-        created_by: userEmail,
+        created_by: statusChanged ? userEmail : catalogItemIncident?.created_by || userEmail,
         disabled: isDisabled,
         status,
         incident_url: incidentUrl,

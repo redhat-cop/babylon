@@ -1,0 +1,33 @@
+.cost-tier-display {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  cursor: default;
+}
+
+.cost-tier-display__amount {
+  font-size: var(--pf-t--global--font--size--xs);
+  font-weight: var(--pf-t--global--font--weight--100);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.cost-tier-display__tier {
+  display: inline-flex;
+  gap: 1px;
+  cursor: default;
+}
+
+.cost-tier-display__sign {
+  font-size: var(--pf-t--global--font--size--xs);
+  line-height: 1;
+}
+
+.cost-tier-display__sign--active {
+  color: #0066cc;
+  font-weight: var(--pf-t--global--font--weight--400);
+}
+
+.cost-tier-display__sign--inactive {
+  color: var(--pf-t--color--gray--60);
+  opacity: 0.4;
+}

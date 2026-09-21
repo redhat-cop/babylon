@@ -1,5 +1,6 @@
 import React from 'react';
-import { LinkProps, NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
+import { NavLink, useLocation, useMatch, useResolvedPath } from 'react-router-dom';
+import type { LinkProps } from 'react-router-dom';
 import { Nav, NavList, NavItem, NavExpandable } from '@patternfly/react-core';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
@@ -20,7 +21,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 };
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { incidents_enabled, ratings_enabled, multiworkshops_enabled, partner_connect_header_enabled } = useInterfaceConfig();
+  const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled, white_glove_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace } = useSession().getSession();
 
   function locationStartsWith(str: string): boolean {
@@ -60,12 +61,24 @@ const Navigation: React.FC = () => {
       {!partner_connect_header_enabled ? (
         <NavItem>
           <a
-            href="https://litellm-prod-frontend.apps.maas.redhatworkshops.io/"
+            href="https://maas-rhdp-frontend.apps.maas.redhatworkshops.io/models"
             target="_blank"
             rel="noreferrer noopener"
             className="pf-v6-c-nav__link"
           >
             Model-as-a-Service (MaaS)
+          </a>
+        </NavItem>
+      ) : null}
+      {rcars_enabled ? (
+        <NavItem>
+          <a
+            href="https://rcars.apps.ocpv-infra01.dal12.infra.demo.redhat.com/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="pf-v6-c-nav__link"
+          >
+            Content Advisor (RCARS)
           </a>
         </NavItem>
       ) : null}
@@ -78,12 +91,24 @@ const Navigation: React.FC = () => {
         to={`/services/${userNamespace.name}`}
         className={
           location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
             ? 'pf-m-current'
             : ''
         }
       >
         My Services
+      </NavLink>
+    </NavItem>
+  ) : null;
+
+  const whiteGloveNavigation = userNamespace && white_glove_enabled ? (
+    <NavItem>
+      <NavLink
+        to="/white-glove"
+        className={locationStartsWith('/white-glove') ? 'pf-m-current' : ''}
+      >
+        White Glove Requests
       </NavLink>
     </NavItem>
   ) : null;
@@ -99,7 +124,7 @@ const Navigation: React.FC = () => {
     </NavItem>
   );
 
-  const multiWorkshopNavigation = userNamespace && multiworkshops_enabled ? (
+  const multiWorkshopNavigation = userNamespace ? (
     <NavItem>
       <NavLink
         to={`/multi-workshop/${userNamespace.name}`}
@@ -177,14 +202,34 @@ const Navigation: React.FC = () => {
           ResourceProviders
         </NavLink>
       </NavItem>
+      {white_glove_enabled ? (
+        <NavItem>
+          <NavLink className={locationStartsWith('/admin/white-glove-requests') ? 'pf-m-current' : ''} to="/admin/white-glove-requests">
+            White Glove Requests
+          </NavLink>
+        </NavItem>
+      ) : null}
       <NavItem>
         <NavLink className={locationStartsWith('/admin/ops') ? 'pf-m-current' : ''} to="/admin/ops">
           Ops Workshop Control
         </NavLink>
       </NavItem>
       <NavItem>
+        <NavLink
+          className={locationStartsWith('/admin/tenantclusterpools') ? 'pf-m-current' : ''}
+          to="/admin/tenantclusterpools"
+        >
+          Tenant Cluster Pools
+        </NavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink className={locationStartsWith('/admin/workshops') ? 'pf-m-current' : ''} to="/admin/workshops">
           Workshops
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/selfpacedlabs') ? 'pf-m-current' : ''} to="/admin/selfpacedlabs">
+          Self-Paced Labs
         </ExactNavLink>
       </NavItem>
       <NavItem>
@@ -217,6 +262,7 @@ const Navigation: React.FC = () => {
         {serviceNavigation}
         {activityNavigation}
         {multiWorkshopNavigation}
+        {whiteGloveNavigation}
         {adminNavigation}
       </NavList>
     </Nav>

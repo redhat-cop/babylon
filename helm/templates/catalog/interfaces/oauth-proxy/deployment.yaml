@@ -42,6 +42,7 @@ spec:
         - --openshift-service-account=babylon-catalog-oauth-proxy
         - --provider=openshift
         - --skip-auth-regex=^/(api/)?workshop($|/.*)
+        - --skip-auth-regex=^/(api/)?selfpacedlab($|/.*)
         - --skip-auth-regex=^/(api/)?event($|/.*)
         - --skip-auth-regex=^/support($|/)
         - --skip-auth-regex=^/fonts/.*
@@ -71,6 +72,12 @@ spec:
               key: clientSecret
         image: {{ $oauthProxy.image.repository }}:{{ $oauthProxy.image.tag }}
         imagePullPolicy: {{ $oauthProxy.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         ports:
         - containerPort: 8443
           name: public

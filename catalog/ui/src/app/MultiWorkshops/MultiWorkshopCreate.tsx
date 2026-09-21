@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import useServiceQuota from '@app/utils/useServiceQuota';
+import useHelpLink from '@app/utils/useHelpLink';
 import {
   PageSection,
   Title,
@@ -28,29 +30,34 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
+import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import BetaBadge from '@app/components/BetaBadge';
+import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import {
   createMultiWorkshop,
   dateToApiString,
   fetcher,
   apiPaths,
   silentFetcher,
+  patchWhiteGloveRequest,
 } from '@app/api';
-import { CatalogItem, TPurposeOpts, ServiceNamespace, Nullable, SalesforceItem } from '@app/types';
+import type { CatalogItem, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
 import {
   displayName,
   getStageFromK8sObject,
+  getPurposeOptsFromCatalogItem,
+  DEMO_DOMAIN,
   READY_BY_LEAD_TIME_MS,
 } from '@app/util';
-import { formatCurrency, formatTime } from '@app/Catalog/catalog-utils';
-import CatalogItemSelectorModal from './CatalogItemSelectorModal';
+import { formatCurrency, formatTime, CUSTOM_LABELS, getSLA, SLAs } from '@app/Catalog/catalog-utils';
+import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import ProjectSelector from '@app/components/ProjectSelector';
-import DateTimePicker from '@app/components/DateTimePicker';
-import purposeOptions from './purposeOptions.json';
+import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
+import { getBrowserTimezone } from '@app/components/timezones';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 
@@ -67,9 +74,14 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
+
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
-  const { userNamespace, isAdmin, serviceNamespaces } = useSession().getSession();
+  const [searchParams] = useSearchParams();
+  const wgrParam = searchParams.get('wgr');
+  const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
+  const { userNamespace, isAdmin, serviceNamespaces, catalogNamespaces } = useSession().getSession();
+  const helpLink = useHelpLink();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage } = useSystemStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCatalogSelectorOpen, setIsCatalogSelectorOpen] = useState(false);
@@ -77,6 +89,10 @@ const MultiWorkshopCreate: React.FC = () => {
   const [currentAssetIndex, setCurrentAssetIndex] = useState<number | null>(null);
   const [selectedNamespace, setSelectedNamespace] = useState<ServiceNamespace>(userNamespace);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
+  const [timezone] = useState(getBrowserTimezone);
+  const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
+  const [isReadyByDateModalOpen, setIsReadyByDateModalOpen] = useState(false);
+  const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
   const [createFormData, setCreateFormData] = useState(() => {
     const now = new Date();
     const defaultProvisioningDate = now;
@@ -101,11 +117,69 @@ const MultiWorkshopCreate: React.FC = () => {
           namespace: '',
           displayName: '',
           description: '',
-          type: 'Workshop' as 'Workshop' | 'external',
+          type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
         },
       ],
     };
   });
+
+  const catalogItemsFilter = useCallback(
+    (items: CatalogItem[]) => {
+      const filtered = isAdmin
+        ? items
+        : items.filter(
+            (item) =>
+              item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`] === 'true',
+          );
+      return filtered.filter((item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported);
+    },
+    [isAdmin],
+  );
+
+  const { data: whiteGloveRequest } = useSWR<WhiteGloveRequest>(
+    wgrNamespace && wgrName
+      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
+      : null,
+    fetcher,
+  );
+
+  const [wgrApplied, setWgrApplied] = useState(false);
+  useEffect(() => {
+    if (!whiteGloveRequest || wgrApplied) return;
+
+    setCreateFormData((prev) => ({
+      ...prev,
+      name: whiteGloveRequest.spec.displayName || prev.name,
+      startDate: whiteGloveRequest.spec.eventDate ? new Date(whiteGloveRequest.spec.eventDate) : prev.startDate,
+      endDate: whiteGloveRequest.spec.eventEndDate ? new Date(whiteGloveRequest.spec.eventEndDate) : prev.endDate,
+      numberSeats: whiteGloveRequest.spec.numberOfUsers || prev.numberSeats,
+      activity: whiteGloveRequest.spec.activity || prev.activity,
+      purpose: whiteGloveRequest.spec.purpose || prev.purpose,
+      explanation: whiteGloveRequest.spec.explanation || prev.explanation,
+      salesforceItems: whiteGloveRequest.spec.salesforceItems?.length > 0
+        ? whiteGloveRequest.spec.salesforceItems
+        : prev.salesforceItems,
+      assets: whiteGloveRequest.spec.catalogItemNames?.length > 0
+        ? whiteGloveRequest.spec.catalogItemNames.map((itemName) => ({
+            key: itemName,
+            name: itemName,
+            namespace: whiteGloveRequest.spec.catalogItemNamespace,
+            displayName: '',
+            description: '',
+            type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
+          }))
+        : prev.assets,
+    }));
+
+    const wgrServiceNamespace = serviceNamespaces.find(
+      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
+    );
+    if (wgrServiceNamespace) {
+      setSelectedNamespace(wgrServiceNamespace);
+    }
+
+    setWgrApplied(true);
+  }, [whiteGloveRequest, wgrApplied, serviceNamespaces]);
 
   // Service quota check
   const { standaloneServicesCount, workshopsCount, currentServicesCount, quotaLimit } = useServiceQuota({
@@ -266,6 +340,26 @@ const MultiWorkshopCreate: React.FC = () => {
     validAssets.length,
   ]);
 
+  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const { data: defaultCatalogItems } = useSWRImmutable(
+    defaultCatalogNamespace ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 }) : null,
+    silentFetcher,
+  );
+
+  const purposeOpts = useMemo(() => {
+    if (catalogItemsData.data) {
+      for (const { catalogItem } of catalogItemsData.data) {
+        if (!catalogItem) continue;
+        const opts = getPurposeOptsFromCatalogItem(catalogItem);
+        if (opts.length > 0) return opts;
+      }
+    }
+    if (defaultCatalogItems?.items?.[0]) {
+      return getPurposeOptsFromCatalogItem(defaultCatalogItems.items[0]);
+    }
+    return [];
+  }, [catalogItemsData.data, defaultCatalogItems]);
+
   const hasAtLeastOneSalesforce = (createFormData.salesforceItems || []).some(
     (i) => (i?.id || '').trim() && (i?.type || null),
   );
@@ -273,7 +367,7 @@ const MultiWorkshopCreate: React.FC = () => {
   const isOrderingBlocked = isWorkshopOrderingBlocked && !isAdmin;
   const isSalesforceRequired =
     !isAdmin &&
-    purposeOptions.find((p) => p.name === createFormData.purpose && p.activity === createFormData.activity)
+    purposeOpts.find((p) => p.name === createFormData.purpose && p.activity === createFormData.activity)
       ?.sfdcRequired !== false;
   const isFormValid =
     !isOrderingBlocked &&
@@ -323,8 +417,30 @@ const MultiWorkshopCreate: React.FC = () => {
         requester: selectedNamespace?.requester || undefined,
       };
 
-      // Create the MultiWorkshop — the operator handles Workshop/WorkshopProvision creation
       const createdMultiWorkshop = await createMultiWorkshop(payload);
+
+      if (whiteGloveRequest && wgrNamespace && wgrName) {
+        try {
+          await patchWhiteGloveRequest({
+            namespace: wgrNamespace,
+            name: wgrName,
+            patch: {
+              metadata: {
+                annotations: {
+                  [`${DEMO_DOMAIN}/state`]: 'approved',
+                  [`${DEMO_DOMAIN}/approved-at`]: new Date().toISOString(),
+                  [`${DEMO_DOMAIN}/service-name`]: createdMultiWorkshop.metadata.name,
+                  [`${DEMO_DOMAIN}/service-namespace`]: createdMultiWorkshop.metadata.namespace,
+                  [`${DEMO_DOMAIN}/service-type`]: 'multi-workshop',
+                },
+              },
+            },
+          });
+        } catch {
+          console.warn('Failed to update white glove request state');
+        }
+      }
+
       navigate(`/multi-workshop/${createdMultiWorkshop.metadata.namespace}/${createdMultiWorkshop.metadata.name}`);
     } catch (error: unknown) {
       if ((error as Response).status === 403) {
@@ -355,7 +471,7 @@ const MultiWorkshopCreate: React.FC = () => {
           namespace: '',
           displayName: '',
           description: '',
-          type: 'Workshop' as 'Workshop' | 'external',
+          type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
         },
       ],
     }));
@@ -381,7 +497,7 @@ const MultiWorkshopCreate: React.FC = () => {
         namespace: catalogItem.metadata.namespace,
         displayName: displayName(catalogItem),
         description: '',
-        type: 'Workshop' as 'Workshop' | 'external',
+        type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
       }));
 
       setCreateFormData((prev) => {
@@ -412,7 +528,7 @@ const MultiWorkshopCreate: React.FC = () => {
                 name: key,
                 namespace,
                 displayName: workshopDisplayName,
-                type: 'Workshop' as 'Workshop' | 'external',
+                type: asset.type === 'SelfPacedLab' ? 'SelfPacedLab' : 'Workshop',
               }
             : asset,
         ),
@@ -426,6 +542,17 @@ const MultiWorkshopCreate: React.FC = () => {
   function closeCatalogSelector() {
     setIsCatalogSelectorOpen(false);
     setCurrentAssetIndex(null);
+  }
+
+  function toggleAssetSelfPacedLab(index: number, enabled: boolean) {
+    setCreateFormData((prev) => ({
+      ...prev,
+      assets: prev.assets.map((asset, i) =>
+        i === index
+          ? { ...asset, type: enabled ? 'SelfPacedLab' : 'Workshop' }
+          : asset,
+      ),
+    }));
   }
 
   return (
@@ -498,7 +625,7 @@ const MultiWorkshopCreate: React.FC = () => {
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
             <a
-              href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
+              href={helpLink}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -599,29 +726,12 @@ const MultiWorkshopCreate: React.FC = () => {
             </Split>
           </FormGroup>
 
-          {/* Workshop Dates - Provisioning Date first, then Ready by */}
+          {/* Workshop Dates */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
-            {/* Provisioning Date */}
             <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Start Date">
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                <DateTimePicker
-                  key={`provisioning-${useDirectProvisioningDate}`}
-                  defaultTimestamp={createFormData.startDate?.getTime() || Date.now()}
-                  forceUpdateTimestamp={createFormData.startDate?.getTime()}
-                  isDisabled={useDirectProvisioningDate}
-                  onSelect={(d: Date) => {
-                    setCreateFormData((prev) => {
-                      const actualStartDate = new Date(d.getTime() + READY_BY_LEAD_TIME_MS); // Actual start is 8 hours after provisioning
-                      const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
-                      return {
-                        ...prev,
-                        startDate: d, // Direct provisioning date control
-                        endDate: endDateTime,
-                      };
-                    });
-                  }}
-                  minDate={Date.now()}
-                />
+                <DateTimePickerButton date={createFormData.startDate} timezone={timezone}
+                  isDisabled={useDirectProvisioningDate} onClick={() => setIsStartDateModalOpen(true)} />
                 <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
                   <OutlinedQuestionCircleIcon
                     aria-label="Select when you want the workshop provisioning to start."
@@ -630,7 +740,6 @@ const MultiWorkshopCreate: React.FC = () => {
                 </Tooltip>
               </div>
 
-              {/* Provisioning Mode Switch - Admin Only */}
               {isAdmin && (
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
                   <Switch
@@ -666,32 +775,11 @@ const MultiWorkshopCreate: React.FC = () => {
               )}
             </FormGroup>
 
-            {/* Ready by Date - Only show when switch is enabled and user is admin */}
             {isAdmin && useDirectProvisioningDate && (
               <FormGroup fieldId="readyByDate" label="Ready by">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                  <DateTimePicker
-                    key={`ready-by-${useDirectProvisioningDate}`}
-                    defaultTimestamp={
-                      createFormData.startDate
-                        ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Show actual start date (8 hours after provisioning)
-                        : Date.now() + READY_BY_LEAD_TIME_MS
-                    }
-                    forceUpdateTimestamp={createFormData.startDate?.getTime() + READY_BY_LEAD_TIME_MS}
-                    onSelect={(d: Date) => {
-                      // Calculate provisioning date as 8 hours BEFORE ready by date
-                      const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
-                      setCreateFormData((prev) => {
-                        const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000); // End date based on ready by date
-                        return {
-                          ...prev,
-                          startDate: provisioningDate, // Internal API uses provisioning date as startDate
-                          endDate: endDateTime,
-                        };
-                      });
-                    }}
-                    minDate={Date.now() + READY_BY_LEAD_TIME_MS} // Minimum must account for 8-hour provisioning lead time
-                  />
+                  <DateTimePickerButton date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+                    timezone={timezone} onClick={() => setIsReadyByDateModalOpen(true)} />
                   <Tooltip
                     position="right"
                     content={
@@ -711,28 +799,9 @@ const MultiWorkshopCreate: React.FC = () => {
             )}
           </div>
 
-          <Split hasGutter>
-            <SplitItem isFilled>
-              <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
-                <DateTimePicker
-                  key="end-date"
-                  defaultTimestamp={createFormData.endDate.getTime()}
-                  minDate={
-                    useDirectProvisioningDate
-                      ? createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is ready by date
-                      : createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS // Min date is 8 hours after provisioning
-                  }
-                  onSelect={(date: Date) => {
-                    setCreateFormData((prev) => ({ ...prev, endDate: date }));
-                  }}
-                  forceUpdateTimestamp={createFormData.endDate?.getTime()}
-                />
-                <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  Date and time are based on your device&apos;s timezone
-                </div>
-              </FormGroup>
-            </SplitItem>
-          </Split>
+          <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
+            <DateTimePickerButton date={createFormData.endDate} timezone={timezone} onClick={() => setIsEndDateModalOpen(true)} />
+          </FormGroup>
 
           <FormGroup label="Number of Seats" fieldId="numberSeats">
             <NumberInput
@@ -755,7 +824,7 @@ const MultiWorkshopCreate: React.FC = () => {
               <div style={{ marginTop: '4px', fontSize: '14px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                 Maximum 30 seats allowed.{' '}
                 <a
-                  href="https://issues.redhat.com/servicedesk/customer/portal/36/create/96"
+                  href={helpLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: 'var(--pf-t--global--color--brand--default)' }}
@@ -773,7 +842,7 @@ const MultiWorkshopCreate: React.FC = () => {
               activity: createFormData.activity,
               explanation: createFormData.explanation,
             }}
-            purposeOpts={purposeOptions as TPurposeOpts}
+            purposeOpts={purposeOpts}
             onChange={(activity: string, purpose: string, explanation: string) => {
               setCreateFormData((prev) => ({
                 ...prev,
@@ -833,46 +902,74 @@ const MultiWorkshopCreate: React.FC = () => {
                     </Button>
                   </div>
                   <FormGroup label="Catalog Item" fieldId={`asset-key-${index}`} style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1 }}>
-                        <TextInput
-                          id={`asset-key-${index}`}
-                          placeholder="Select a catalog item..."
-                          value={asset.key && asset.namespace ? `${asset.namespace}.${asset.key}` : ''}
-                          readOnly
-                          style={{
-                            backgroundColor: 'var(--pf-t--color--background--disabled)',
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => openCatalogSelector(index)}
-                        />
-                      </div>
+                    <div>
+                      {asset.key && (
+                        <div className="multiworkshop-create__catalog-chip">
+                          <div className="multiworkshop-create__catalog-chip-icon">
+                            {(() => {
+                              const entry = catalogItemsData.data?.find(
+                                (e) => e.asset.key === asset.key && e.asset.namespace === asset.namespace,
+                              );
+                              return entry?.catalogItem ? (
+                                <CatalogItemIcon catalogItem={entry.catalogItem} />
+                              ) : null;
+                            })()}
+                          </div>
+                          <span className="multiworkshop-create__catalog-chip-name">
+                            {asset.displayName || asset.key}
+                          </span>
+                          <Button
+                            variant="plain"
+                            aria-label="Remove catalog item"
+                            onClick={() => {
+                              setCreateFormData((prev) => ({
+                                ...prev,
+                                assets: prev.assets.map((a, i) =>
+                                  i === index
+                                    ? { ...a, key: '', name: '', namespace: '', displayName: '', type: 'Workshop' as const }
+                                    : a,
+                                ),
+                              }));
+                            }}
+                            className="multiworkshop-create__catalog-chip-remove"
+                          >
+                            <TimesIcon />
+                          </Button>
+                        </div>
+                      )}
                       <Button variant="secondary" onClick={() => openCatalogSelector(index)}>
-                        {asset.key ? 'Change' : 'Select'}
+                        {asset.key ? 'Change' : 'Select catalog item'}
                       </Button>
                     </div>
                   </FormGroup>
-                  <FormGroup
-                    label="Workshop Display Name"
-                    fieldId={`asset-display-name-${index}`}
-                    style={{ marginBottom: '12px' }}
-                  >
-                    <TextInput
-                      id={`workshop-display-name-${index}`}
-                      placeholder="Optional display name for this workshop (e.g., 'Container Basics')"
-                      value={asset.displayName}
-                      onChange={(_, value) => updateAsset(index, 'displayName', value)}
-                    />
-                  </FormGroup>
-                  <FormGroup label="Workshop Description" fieldId={`asset-description-${index}`}>
-                    <TextArea
-                      id={`asset-description-${index}`}
-                      placeholder="Optional description for this workshop"
-                      value={asset.description}
-                      onChange={(_, value) => updateAsset(index, 'description', value)}
-                      rows={3}
-                    />
-                  </FormGroup>
+                  {asset.key && isAdmin && (
+                    <FormGroup fieldId={`asset-selfpacedlab-switch-${index}`} style={{ marginTop: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Switch
+                          id={`asset-selfpacedlab-switch-${index}`}
+                          aria-label="Order as self-paced lab"
+                          label="Order as self-paced lab (admins only)"
+                          isChecked={asset.type === 'SelfPacedLab'}
+                          hasCheckIcon
+                          onChange={(_event, isChecked) => toggleAssetSelfPacedLab(index, isChecked)}
+                        />
+                        <Tooltip
+                          position="right"
+                          content={
+                            <p>
+                              Create a self-paced lab with a warm pool of pre-provisioned instances that users claim on
+                              demand, instead of a workshop.
+                            </p>
+                          }
+                        >
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Self-paced lab information"
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
+                      </div>
+                    </FormGroup>
+                  )}
                 </CardBody>
               </Card>
             ))}
@@ -991,10 +1088,52 @@ const MultiWorkshopCreate: React.FC = () => {
         onClose={closeCatalogSelector}
         onSelect={handleCatalogItemSelect}
         title="Select Catalog Item for Workshop"
+        catalogItemsFilter={catalogItemsFilter}
       />
       <UserDisabledModal
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isStartDateModalOpen}
+        date={createFormData.startDate}
+        minDate={Date.now()}
+        title="Provisioning Start Date"
+        onConfirm={(d) => {
+          setCreateFormData((prev) => {
+            const actualStartDate = new Date(d.getTime() + READY_BY_LEAD_TIME_MS);
+            const endDateTime = new Date(actualStartDate.getTime() + 24 * 60 * 60 * 1000);
+            return { ...prev, startDate: d, endDate: endDateTime };
+          });
+          setIsStartDateModalOpen(false);
+        }}
+        onClose={() => setIsStartDateModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isReadyByDateModalOpen}
+        date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+        minDate={Date.now() + READY_BY_LEAD_TIME_MS}
+        title="Ready by"
+        onConfirm={(d) => {
+          const provisioningDate = new Date(d.getTime() - READY_BY_LEAD_TIME_MS);
+          setCreateFormData((prev) => {
+            const endDateTime = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+            return { ...prev, startDate: provisioningDate, endDate: endDateTime };
+          });
+          setIsReadyByDateModalOpen(false);
+        }}
+        onClose={() => setIsReadyByDateModalOpen(false)}
+      />
+      <DateTimePickerModalDialog
+        isOpen={isEndDateModalOpen}
+        date={createFormData.endDate}
+        minDate={createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS}
+        title="Auto-destroy workshops"
+        onConfirm={(d) => {
+          setCreateFormData((prev) => ({ ...prev, endDate: d }));
+          setIsEndDateModalOpen(false);
+        }}
+        onClose={() => setIsEndDateModalOpen(false)}
       />
     </div>
   );

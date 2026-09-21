@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
-import { WorkshopDetails } from './workshopApi';
+import type { WorkshopDetails } from './workshopApi';
 import { createAsciiDocAttributes } from '@app/Services/service-utils';
-import { MessageTemplate } from '@app/types';
+import type { MessageTemplate } from '@app/types';
 import AdocWrapper from '@app/components/AdocWrapper';
 
 import './workshop-content.css';

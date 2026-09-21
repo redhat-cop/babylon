@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   ActionGroup,
   Button,
@@ -15,7 +15,7 @@ import {
   } from '@patternfly/react-core';
 import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
-import { WorkshopUserAssignment } from '@app/types';
+import type { WorkshopUserAssignment } from '@app/types';
 import { renderContent } from '@app/util';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';

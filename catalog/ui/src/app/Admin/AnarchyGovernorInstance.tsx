@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import {
@@ -20,16 +20,16 @@ import {
   } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import Editor from '@monaco-editor/react';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyGovernor, fetcher } from '@app/api';
-import { AnarchyGovernor, AnarchySubjectList } from '@app/types';
+import type { AnarchyGovernor, AnarchySubjectList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import AnarchySubjectsTable from './AnarchySubjectsTable';
 import useSession from '@app/utils/useSession';
-import { useErrorHandler } from 'react-error-boundary';
+import { useErrorBoundary } from 'react-error-boundary';
 import { compareK8sObjects, compareK8sObjectsArr } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 
@@ -50,7 +50,12 @@ const AnarchyGovernorInstanceComponent: React.FC<{
     refreshInterval: 8000,
     compare: compareK8sObjects,
   });
-  useErrorHandler(error?.status === 404 ? error : null);
+  const { showBoundary } = useErrorBoundary();
+  useEffect(() => {
+    if (error?.status === 404) {
+      showBoundary(error);
+    }
+  }, [error, showBoundary]);
 
   const { data: anarchySubjectsList } = useSWR<AnarchySubjectList>(
     apiPaths.ANARCHY_SUBJECTS({ labelSelector: `anarchy.gpte.redhat.com/governor=${anarchyGovernorName}`, namespace }),

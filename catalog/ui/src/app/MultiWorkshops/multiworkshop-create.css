@@ -11,3 +11,46 @@
   color: var(--pf-t--global--text--color--subtle);
   margin-left: var(--pf-t--global--spacer--xs);
 }
+
+.multiworkshop-create__catalog-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  border-radius: var(--pf-t--global--border--radius--sm);
+  background: #fff;
+  width: fit-content;
+  margin-bottom: 12px;
+}
+
+.multiworkshop-create__catalog-chip-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.multiworkshop-create__catalog-chip-icon .catalog-item-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.multiworkshop-create__catalog-chip-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.multiworkshop-create__catalog-chip-remove {
+  flex-shrink: 0;
+  padding: 4px;
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.multiworkshop-create__catalog-chip-remove:hover {
+  color: var(--pf-t--global--text--color--regular);
+}

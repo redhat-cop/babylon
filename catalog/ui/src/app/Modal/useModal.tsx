@@ -1,5 +1,4 @@
-import React from 'react';
-import { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 
 export default function useModal(): [
   modalInstance: React.Ref<{
@@ -11,13 +10,13 @@ export default function useModal(): [
 ] {
   const modalInstance = useRef(null);
 
-  const openModalFn = () => {
-    modalInstance.current.open();
-  };
+  const openModalFn = useCallback(() => {
+    modalInstance.current?.open();
+  }, []);
 
-  const closeModalFn = () => {
-    modalInstance.current.close();
-  };
+  const closeModalFn = useCallback(() => {
+    modalInstance.current?.close();
+  }, []);
 
   return [modalInstance, openModalFn, closeModalFn];
 }

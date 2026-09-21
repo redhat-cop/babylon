@@ -92,6 +92,10 @@ j2env = jinja2.Environment(
         )
     ]),
     trim_blocks = True,
+    autoescape = jinja2.select_autoescape(
+        ['html', 'htm', 'xml'],
+        default_for_string = True,
+    ),
 )
 
 # Add to_yaml filter
@@ -306,7 +310,7 @@ async def cancel_workshop_tasks(workshop, logger):
         except asyncio.CancelledError:
             pass
 
-def create_retirement_task(logger, catalog_item, resource_claim, **kwargs):
+def create_retirement_task(logger, catalog_item, resource_claim, email_addresses, **_):
     retirement_timestamp = resource_claim.retirement_timestamp
     if not retirement_timestamp:
         return
@@ -318,17 +322,19 @@ def create_retirement_task(logger, catalog_item, resource_claim, **kwargs):
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled retirement notification in " + naturaldelta(notification_timedelta))
-        retirement_tasks[resource_claim.uid] = asyncio.create_task(
+        uid = resource_claim.uid
+        task = asyncio.create_task(
             notify_retirement_scheduled_after(
                 interval = notification_interval,
-                logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
-                catalog_item = catalog_item,
-                resource_claim = resource_claim,
-                **kwargs,
+                resource_claim_name = resource_claim.name,
+                resource_claim_namespace = resource_claim.namespace,
+                email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: retirement_tasks.pop(uid, None))
+        retirement_tasks[uid] = task
 
-def create_stop_task(logger, resource_claim, **kwargs):
+def create_stop_task(logger, resource_claim, email_addresses, **_):
     stop_timestamp = resource_claim.stop_timestamp
     if not stop_timestamp:
         return
@@ -337,16 +343,19 @@ def create_stop_task(logger, resource_claim, **kwargs):
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled stop notification in " + naturaldelta(notification_timedelta))
-        stop_tasks[resource_claim.uid] = asyncio.create_task(
+        uid = resource_claim.uid
+        task = asyncio.create_task(
             notify_stop_scheduled_after(
                 interval = notification_interval,
-                logger = kopf.LocalObjectLogger(body=resource_claim.definition, settings=kopf.OperatorSettings()),
-                resource_claim = resource_claim,
-                **kwargs,
+                resource_claim_name = resource_claim.name,
+                resource_claim_namespace = resource_claim.namespace,
+                email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: stop_tasks.pop(uid, None))
+        stop_tasks[uid] = task
 
-def create_workshop_retirement_task(logger, workshop, **kwargs):
+def create_workshop_retirement_task(logger, workshop, email_addresses, **_):
     retirement_timestamp = workshop.lifespan_end
     if not retirement_timestamp:
         return
@@ -358,14 +367,17 @@ def create_workshop_retirement_task(logger, workshop, **kwargs):
     notification_interval = notification_timedelta.total_seconds()
     if notification_interval > 0:
         logger.info("scheduled workshop retirement notification in " + naturaldelta(notification_timedelta))
-        workshop_retirement_tasks[workshop.uid] = asyncio.create_task(
+        uid = workshop.uid
+        task = asyncio.create_task(
             notify_workshop_retirement_scheduled_after(
                 interval = notification_interval,
-                logger = kopf.LocalObjectLogger(body=workshop.definition, settings=kopf.OperatorSettings()),
-                workshop = workshop,
-                **kwargs,
+                workshop_name = workshop.name,
+                workshop_namespace = workshop.namespace,
+                email_addresses = email_addresses,
             )
         )
+        task.add_done_callback(lambda _: workshop_retirement_tasks.pop(uid, None))
+        workshop_retirement_tasks[uid] = task
 
 async def get_deployer_log(deployer_job, logger):
     secret_list = await Babylon.core_v1_api.list_namespaced_secret(
@@ -386,7 +398,6 @@ async def get_deployer_log(deployer_job, logger):
                 f"https://{hostname}/api/v2/jobs/{deployer_job.job_id}/stdout/?format=txt",
                 auth = aiohttp.BasicAuth(user, password),
                 raise_for_status = True,
-                verify_ssl = False,
             ) as response:
                 return await response.text()
     except Exception as err:
@@ -749,12 +760,31 @@ async def notify_ready(catalog_item, catalog_namespace, email_addresses, logger,
         to = email_addresses,
     )
 
-async def notify_retirement_scheduled_after(interval, resource_claim, **kwargs):
+async def notify_retirement_scheduled_after(interval, resource_claim_name, resource_claim_namespace, email_addresses):
+    logger = logging.getLogger(f"notify.retirement.{resource_claim_namespace}.{resource_claim_name}")
     try:
         await asyncio.sleep(interval)
-        await resource_claim.refetch()
-        if not resource_claim.ignore:
-            await notify_retirement_scheduled(resource_claim=resource_claim, **kwargs)
+
+        resource_claim = await ResourceClaim.get(resource_claim_name, resource_claim_namespace)
+        if not resource_claim or resource_claim.ignore:
+            return
+
+        catalog_item = await CatalogItem.get(
+            name=resource_claim.catalog_item_name,
+            namespace=resource_claim.catalog_item_namespace,
+        )
+        if not catalog_item:
+            return
+
+        catalog_namespace = await CatalogNamespace.get(resource_claim.catalog_item_namespace)
+
+        await notify_retirement_scheduled(
+            resource_claim=resource_claim,
+            catalog_item=catalog_item,
+            catalog_namespace=catalog_namespace,
+            email_addresses=email_addresses,
+            logger=logger,
+        )
     except asyncio.CancelledError:
         pass
 
@@ -771,12 +801,31 @@ async def notify_retirement_scheduled(catalog_item, catalog_namespace, email_add
         template = "retirement-scheduled",
     )
 
-async def notify_stop_scheduled_after(interval, resource_claim, **kwargs):
+async def notify_stop_scheduled_after(interval, resource_claim_name, resource_claim_namespace, email_addresses):
+    logger = logging.getLogger(f"notify.stop.{resource_claim_namespace}.{resource_claim_name}")
     try:
         await asyncio.sleep(interval)
-        await resource_claim.refetch()
-        if not resource_claim.ignore:
-            await notify_stop_scheduled(resource_claim=resource_claim, **kwargs)
+
+        resource_claim = await ResourceClaim.get(resource_claim_name, resource_claim_namespace)
+        if not resource_claim or resource_claim.ignore:
+            return
+
+        catalog_item = await CatalogItem.get(
+            name=resource_claim.catalog_item_name,
+            namespace=resource_claim.catalog_item_namespace,
+        )
+        if not catalog_item:
+            return
+
+        catalog_namespace = await CatalogNamespace.get(resource_claim.catalog_item_namespace)
+
+        await notify_stop_scheduled(
+            resource_claim=resource_claim,
+            catalog_item=catalog_item,
+            catalog_namespace=catalog_namespace,
+            email_addresses=email_addresses,
+            logger=logger,
+        )
     except asyncio.CancelledError:
         pass
 
@@ -883,12 +932,20 @@ async def notify_workshop_ready(email_addresses, logger, workshop):
         workshop = workshop,
     )
 
-async def notify_workshop_retirement_scheduled_after(interval, workshop, **kwargs):
+async def notify_workshop_retirement_scheduled_after(interval, workshop_name, workshop_namespace, email_addresses):
+    logger = logging.getLogger(f"notify.workshop.retirement.{workshop_namespace}.{workshop_name}")
     try:
         await asyncio.sleep(interval)
-        await workshop.refetch()
-        if not workshop.ignore:
-            await notify_workshop_retirement_scheduled(workshop=workshop, **kwargs)
+
+        workshop = await Workshop.get(workshop_name, workshop_namespace)
+        if not workshop or workshop.ignore:
+            return
+
+        await notify_workshop_retirement_scheduled(
+            workshop=workshop,
+            email_addresses=email_addresses,
+            logger=logger,
+        )
     except asyncio.CancelledError:
         pass
 

@@ -1,0 +1,39 @@
+{
+  "name": "babylon-patternfly-ai-helpers",
+  "owner": {
+    "name": "Babylon"
+  },
+  "plugins": [
+    {
+      "name": "react",
+      "source": "./vendor/patternfly-ai-helpers/plugins/react",
+      "description": "React component development — coding standards, testing, and structure"
+    },
+    {
+      "name": "migration",
+      "source": "./vendor/patternfly-ai-helpers/plugins/migration",
+      "description": "PF version migration — breaking change detection, class scanning, upgrade planning"
+    },
+    {
+      "name": "design-to-code",
+      "source": "./vendor/patternfly-ai-helpers/plugins/design-to-code",
+      "description": "Design-to-code translation — Figma review, token auditing, icon identification, design compliance"
+    },
+    {
+      "name": "a11y",
+      "source": "./vendor/patternfly-ai-helpers/plugins/a11y",
+      "description": "Accessibility auditing, reporting, and documentation"
+    },
+    {
+      "name": "code-review",
+      "source": "./vendor/patternfly-ai-helpers/plugins/code-review",
+      "description": "Code review and quality — PR summaries, adversarial review, security patterns"
+    },
+    {
+      "name": "pf-workshop",
+      "source": "./vendor/patternfly-ai-helpers/plugins/pf-workshop",
+      "description": "PatternFly team tools and skill incubation — issue triage, release management, codebase auditing, new skill development",
+      "category": "workshop"
+    }
+  ]
+}

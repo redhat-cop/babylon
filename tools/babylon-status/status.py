@@ -12,9 +12,6 @@ import time
 from base64 import b64decode
 from datetime import datetime
 from pprint import pprint
-import urllib3
-
-urllib3.disable_warnings()
 
 def get_tower_api_config():
     tower_secret = core_v1_api.read_namespaced_secret('babylon-tower', 'anarchy-operator')
@@ -27,8 +24,7 @@ def get_tower_job(tower_api, job_id):
     tower_job_url = "https://{0}/api/v2/jobs/{1}/".format(tower_api['hostname'], job_id)
     resp = requests.get(
        tower_job_url,
-       auth=requests.auth.HTTPBasicAuth(tower_api['user'], tower_api['password']),
-       verify=False
+       auth=requests.auth.HTTPBasicAuth(tower_api['user'], tower_api['password'])
     )
     return resp.json()
 

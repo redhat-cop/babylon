@@ -48,6 +48,7 @@ rules:
   - {{ .Values.catalog.api.group }}
   resources:
   - catalogitems
+  - catalogitems/status
   verbs:
   - get
   - list

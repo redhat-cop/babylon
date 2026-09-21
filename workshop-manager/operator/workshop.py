@@ -1,21 +1,19 @@
 import random
-
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
-from kubernetes_asyncio.client.models import RbacV1Subject, V1ObjectMeta, V1PolicyRule, V1Role, V1RoleBinding, V1RoleRef
 from pydantic.utils import deep_update
-
-from babylon import Babylon
-from cachedkopfobject import CachedKopfObject
 
 import resourceclaim
 import workshopprovision
-import workshopuserassignment
+from operatorruntime import OperatorRuntime
+from cachedkopfobject import CachedKopfObject
+
 
 class Workshop(CachedKopfObject):
-    api_group = Babylon.babylon_domain
-    api_version = Babylon.babylon_api_version
+    api_group = OperatorRuntime.babylon_domain
+    api_version = OperatorRuntime.babylon_api_version
     kind = 'Workshop'
     plural = 'workshops'
 
@@ -26,40 +24,44 @@ class Workshop(CachedKopfObject):
         start_timestamp = self.spec.get('actionSchedule', {}).get('start')
         if not start_timestamp:
             return None
-        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def action_schedule_stop(self):
         stop_timestamp = self.spec.get('actionSchedule', {}).get('stop')
         if not stop_timestamp:
             return None
-        return datetime.strptime(stop_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+        return datetime.strptime(stop_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def asset_uuid(self):
-        return self.labels.get(Babylon.asset_uuid_label)
+        return self.labels.get(OperatorRuntime.asset_uuid_label)
 
     @property
     def ignore(self):
-        return Babylon.babylon_ignore_label in self.labels
+        return OperatorRuntime.babylon_ignore_label in self.labels
 
     @property
     def lifespan_start(self):
         start_timestamp = self.spec.get('lifespan', {}).get('start')
         if not start_timestamp:
             return None
-        return datetime.strptime(
-            start_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
+        return datetime.strptime(start_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def lifespan_end(self):
         end_timestamp = self.spec.get('lifespan', {}).get('end')
         if not end_timestamp:
             return None
-        return datetime.strptime(
-            end_timestamp, '%Y-%m-%dT%H:%M:%SZ'
-        ).replace(tzinfo=timezone.utc)
+        return datetime.strptime(end_timestamp, '%Y-%m-%dT%H:%M:%SZ').replace(
+            tzinfo=timezone.utc
+        )
 
     @property
     def multiuser_services(self):
@@ -67,11 +69,11 @@ class Workshop(CachedKopfObject):
 
     @property
     def ordered_by(self):
-        return self.annotations.get(Babylon.ordered_by_annotation)
+        return self.annotations.get(OperatorRuntime.ordered_by_annotation)
 
     @property
     def requester(self):
-        return self.annotations.get(Babylon.requester_annotation)
+        return self.annotations.get(OperatorRuntime.requester_annotation)
 
     @property
     def resource_claim_names(self) -> list[str]:
@@ -80,11 +82,11 @@ class Workshop(CachedKopfObject):
 
     @property
     def service_url(self):
-        return self.annotations.get(Babylon.url_annotation)
+        return self.annotations.get(OperatorRuntime.url_annotation)
 
     @property
     def white_gloved(self):
-        return self.labels.get(Babylon.white_glove_label)
+        return self.labels.get(OperatorRuntime.white_glove_label)
 
     @property
     def workshop_provision_names(self) -> list[str]:
@@ -98,7 +100,21 @@ class Workshop(CachedKopfObject):
 
     @property
     def workshop_id(self):
-        return self.labels.get(Babylon.workshop_id_label)
+        return self.labels.get(OperatorRuntime.workshop_id_label)
+
+    @property
+    def workshop_url(self):
+        return self.status.get('workshopURL')
+
+    @property
+    def _effective_base_url(self):
+        if OperatorRuntime.workshop_base_url:
+            return OperatorRuntime.workshop_base_url
+        if self.service_url:
+            parsed = urlparse(self.service_url)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}"
+        return ''
 
     def get_workshop_provisions(self):
         return workshopprovision.WorkshopProvision.get_for_workshop(self)
@@ -143,8 +159,8 @@ class Workshop(CachedKopfObject):
 
     async def list_resource_claims(self):
         async for resource_claim in resourceclaim.ResourceClaim.list(
-            label_selector = f"{Babylon.workshop_label}={self.name}",
-            namespace = self.namespace,
+            label_selector=f"{OperatorRuntime.workshop_label}={self.name}",
+            namespace=self.namespace,
         ):
             yield resource_claim
 
@@ -160,7 +176,9 @@ class Workshop(CachedKopfObject):
     async def __delete_service_access_role(self, logger) -> None:
         """Delete service access role for this workshop."""
         try:
-            await Babylon.rbac_authorization_api.delete_namespaced_role(self.name, self.namespace)
+            await OperatorRuntime.rbac_authorization_api.delete_namespaced_role(
+                self.name, self.namespace
+            )
             logger.info("Deleted service access role for %s", self)
         except k8sApiException as exception:
             if exception.status != 404:
@@ -169,87 +187,142 @@ class Workshop(CachedKopfObject):
     async def __delete_service_access_role_binding(self, logger) -> None:
         """Delete service access role binding for this workshop."""
         try:
-            await Babylon.rbac_authorization_api.delete_namespaced_role_binding(self.name, self.namespace)
+            await OperatorRuntime.rbac_authorization_api.delete_namespaced_role_binding(
+                self.name, self.namespace
+            )
             logger.info("Deleted service access role binding for %s", self)
         except k8sApiException as exception:
             if exception.status != 404:
-                logger.exception("Failed to delete service access role binding for %s", self)
+                logger.exception(
+                    "Failed to delete service access role binding for %s", self
+                )
 
     async def __manage_workshop_id_label(self, logger):
         """
         Generate a unique workshop id label for workshop to provide a short URL for access.
         """
         if self.workshop_id:
+            if not self.workshop_url:
+                workshop_url = f"{self._effective_base_url}/workshop/{self.workshop_id}"
+                await self.merge_patch_status({"workshopURL": workshop_url})
+                logger.info(f"Set workshopURL {workshop_url} for {self}")
             return
 
         while True:
-            workshop_id = ''.join(random.choice('23456789abcdefghjkmnpqrstuvwxyz') for i in range(6))
+            workshop_id = ''.join(
+                random.choice('23456789abcdefghjkmnpqrstuvwxyz') for i in range(6)
+            )
             # Check if id is in use
-            workshop_list = [ workshop for workshop in self.cache.values() if workshop.workshop_id == workshop_id ]
+            workshop_list = [
+                workshop
+                for workshop in self.cache.values()
+                if workshop.workshop_id == workshop_id
+            ]
             if not workshop_list:
                 break
 
-        await self.merge_patch({
-            "metadata": {
-                "labels": {
-                    Babylon.workshop_id_label: workshop_id,
+        await self.merge_patch(
+            {
+                "metadata": {
+                    "labels": {
+                        OperatorRuntime.workshop_id_label: workshop_id,
+                    }
                 }
             }
-        })
+        )
         logger.info(f"Assigned workshop id {workshop_id} to {self}")
-        return
+
+        workshop_url = f"{self._effective_base_url}/workshop/{workshop_id}"
+        await self.merge_patch_status({"workshopURL": workshop_url})
+        logger.info(f"Set workshopURL {workshop_url} for {self}")
 
     async def add_resource_claim_to_status(self, resource_claim, logger):
         if resource_claim.name in self.status.get('resourceClaims', {}):
             return
-        await self.merge_patch_status({
-            "resourceClaims": {
-                resource_claim.name: {
-                    "uid": resource_claim.uid
-                }
-            }
-        })
+        await self.merge_patch_status(
+            {"resourceClaims": {resource_claim.name: {"uid": resource_claim.uid}}}
+        )
         logger.info("Added %s to %s status", resource_claim, self)
 
     async def add_workshop_provision_to_status(self, workshop_provision, logger):
         if workshop_provision.name in self.status.get('workshopProvisions', {}):
             return
-        await self.merge_patch_status({
-            "workshopProvisions": {
-                workshop_provision.name: {
-                    "uid": workshop_provision.uid
+        await self.merge_patch_status(
+            {
+                "workshopProvisions": {
+                    workshop_provision.name: {"uid": workshop_provision.uid}
                 }
             }
-        })
+        )
         logger.info("Added %s to %s status", workshop_provision, self)
 
     async def manage_workshop_provisions(self, logger):
         for workshop_provision in self.get_workshop_provisions():
             async with workshop_provision.lock:
                 patch = {}
-                if self.action_schedule_start \
-                and self.action_schedule_start != workshop_provision.action_schedule_start:
-                    patch = deep_update(patch, {
-                        "spec": {"actionSchedule": {"start": self.action_schedule_start.strftime('%FT%TZ')}}
-                    })
+                if (
+                    self.action_schedule_start
+                    and self.action_schedule_start
+                    != workshop_provision.action_schedule_start
+                ):
+                    patch = deep_update(
+                        patch,
+                        {
+                            "spec": {
+                                "actionSchedule": {
+                                    "start": self.action_schedule_start.strftime(
+                                        '%FT%TZ'
+                                    )
+                                }
+                            }
+                        },
+                    )
 
-                if self.action_schedule_stop \
-                and self.action_schedule_stop != workshop_provision.action_schedule_stop:
-                    patch = deep_update(patch, {
-                        "spec": {"actionSchedule": {"stop": self.action_schedule_stop.strftime('%FT%TZ')}}
-                    })
+                if (
+                    self.action_schedule_stop
+                    and self.action_schedule_stop
+                    != workshop_provision.action_schedule_stop
+                ):
+                    patch = deep_update(
+                        patch,
+                        {
+                            "spec": {
+                                "actionSchedule": {
+                                    "stop": self.action_schedule_stop.strftime('%FT%TZ')
+                                }
+                            }
+                        },
+                    )
 
-                if self.lifespan_end \
-                and self.lifespan_end != workshop_provision.lifespan_end:
-                    patch = deep_update(patch, {
-                        "spec": {"lifespan": {"end": self.lifespan_end.strftime('%FT%TZ')}}
-                    })
+                if (
+                    self.lifespan_end
+                    and self.lifespan_end != workshop_provision.lifespan_end
+                ):
+                    patch = deep_update(
+                        patch,
+                        {
+                            "spec": {
+                                "lifespan": {
+                                    "end": self.lifespan_end.strftime('%FT%TZ')
+                                }
+                            }
+                        },
+                    )
 
-                if self.lifespan_start \
-                and self.lifespan_start != workshop_provision.lifespan_start:
-                    patch = deep_update(patch, {
-                        "spec": {"lifespan": {"start": self.lifespan_start.strftime('%FT%TZ')}}
-                    })
+                if (
+                    self.lifespan_start
+                    and self.lifespan_start != workshop_provision.lifespan_start
+                ):
+                    patch = deep_update(
+                        patch,
+                        {
+                            "spec": {
+                                "lifespan": {
+                                    "start": self.lifespan_start.strftime('%FT%TZ')
+                                }
+                            }
+                        },
+                    )
 
                 if patch:
                     await workshop_provision.merge_patch(patch)
@@ -257,21 +330,15 @@ class Workshop(CachedKopfObject):
     async def remove_resource_claim_from_status(self, resource_claim, logger):
         if resource_claim.name not in self.status.get('resourceClaims', {}):
             return
-        await self.merge_patch_status({
-            "resourceClaims": {
-                resource_claim.name: None
-            }
-        })
+        await self.merge_patch_status({"resourceClaims": {resource_claim.name: None}})
         logger.info("Removed %s from %s status", resource_claim, self)
 
     async def remove_workshop_provision_from_status(self, workshop_provision, logger):
         if workshop_provision.name not in self.status.get('workshopProvisions', {}):
             return
-        await self.merge_patch_status({
-            "workshopProvisions": {
-                workshop_provision.name: None
-            }
-        })
+        await self.merge_patch_status(
+            {"workshopProvisions": {workshop_provision.name: None}}
+        )
         logger.info("Removed %s from %s status", workshop_provision, self)
 
     async def update_status(self):
@@ -288,27 +355,29 @@ class Workshop(CachedKopfObject):
 
         # Collect WorkshopProvision counts
         total_failed_count = 0
-        total_resource_claim_count = 0
+        total_active_count = 0
         total_retry_count = 0
         total_ordered_count = 0
 
         for workshop_provision in self.get_workshop_provisions():
             provision_status = workshop_provision.status or {}
             total_failed_count += provision_status.get('failedCount', 0)
-            total_resource_claim_count += provision_status.get('resourceClaimCount', 0)
+            total_active_count += provision_status.get('activeCount', 0)
             total_retry_count += provision_status.get('retryCount', 0)
             total_ordered_count += workshop_provision.count
 
-        await self.merge_patch_status({
-            "userCount": {
-                "assigned": assigned_user_count,
-                "available": available_user_count,
-                "total": total_user_count,
-            },
-            "provisionCount": {
-                "ordered": total_ordered_count,
-                "failed": total_failed_count,
-                "active": total_resource_claim_count,
-                "retries": total_retry_count,
+        await self.merge_patch_status(
+            {
+                "userCount": {
+                    "assigned": assigned_user_count,
+                    "available": available_user_count,
+                    "total": total_user_count,
+                },
+                "provisionCount": {
+                    "ordered": total_ordered_count,
+                    "failed": total_failed_count,
+                    "active": total_active_count,
+                    "retries": total_retry_count,
+                },
             }
-        })
+        )

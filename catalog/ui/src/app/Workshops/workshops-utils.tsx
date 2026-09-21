@@ -1,4 +1,4 @@
-import { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import type { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop, DEMO_DOMAIN } from '@app/util';
 import { getAutoStopTime, getMinDefaultRuntime } from '@app/Services/service-utils';
 import parseDuration from 'parse-duration';

@@ -4,10 +4,10 @@
 }
 
 .workshops-item__body.pf-v6-c-page__main-section .pf-v6-c-tabs {
-  margin-left: -100px;
-  padding-left: 100px;
-  margin-right: -100px;
-  padding-right: 100px;
+  margin-left: calc(-1 * var(--pf-v6-c-page__main-section--PaddingLeft, var(--pf-t--global--spacer--lg)));
+  padding-left: var(--pf-v6-c-page__main-section--PaddingLeft, var(--pf-t--global--spacer--lg));
+  margin-right: calc(-1 * var(--pf-v6-c-page__main-section--PaddingRight, var(--pf-t--global--spacer--lg)));
+  padding-right: var(--pf-v6-c-page__main-section--PaddingRight, var(--pf-t--global--spacer--lg));
   margin-bottom: var(--pf-t--global--spacer--sm);
 }
 

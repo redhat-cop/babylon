@@ -1,7 +1,7 @@
 notifier/values.yaml
 *.crt
 *.key
-*.swp
+*.sw*
 __pycache__
 .vscode
 .worktrees

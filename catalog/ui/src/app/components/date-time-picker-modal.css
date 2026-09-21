@@ -1,0 +1,17 @@
+.date-time-picker-modal__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--pf-t--global--text--color--regular);
+  background: var(--pf-t--global--background--color--200, #f0f0f0);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+.date-time-picker-modal__btn:hover {
+  background: var(--pf-t--global--background--color--300, #e0e0e0);
+  text-decoration: none;
+}

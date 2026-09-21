@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import kubernetes_asyncio
-from babylon import Babylon
+from operatorruntime import OperatorRuntime
 
 class K8sObject():
     @classmethod
@@ -9,7 +9,7 @@ class K8sObject():
         _continue = None
         while True:
             if namespace:
-                obj_list = await Babylon.custom_objects_api.list_namespaced_custom_object(
+                obj_list = await OperatorRuntime.custom_objects_api.list_namespaced_custom_object(
                     group = cls.api_group,
                     label_selector = label_selector,
                     namespace = namespace,
@@ -19,7 +19,7 @@ class K8sObject():
                     _continue = _continue
                 )
             else:
-                obj_list = await Babylon.custom_objects_api.list_cluster_custom_object(
+                obj_list = await OperatorRuntime.custom_objects_api.list_cluster_custom_object(
                     group = cls.api_group,
                     label_selector = label_selector,
                     plural = cls.plural,
@@ -95,7 +95,7 @@ class K8sObject():
     async def delete(self):
         try:
             if self.namespace:
-                definition = await Babylon.custom_objects_api.delete_namespaced_custom_object(
+                definition = await OperatorRuntime.custom_objects_api.delete_namespaced_custom_object(
                     group = self.api_group,
                     name = self.name,
                     namespace = self.namespace,
@@ -103,7 +103,7 @@ class K8sObject():
                     version = self.api_version,
                 )
             else:
-                definition = await Babylon.custom_objects_api.delete_cluster_custom_object(
+                definition = await OperatorRuntime.custom_objects_api.delete_cluster_custom_object(
                     group = self.api_group,
                     name = self.name,
                     plural = self.plural,
@@ -116,7 +116,7 @@ class K8sObject():
 
     async def json_patch(self, patch):
         if self.namespace:
-            definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+            definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
                 group = self.api_group,
                 name = self.name,
                 namespace = self.namespace,
@@ -126,7 +126,7 @@ class K8sObject():
                 _content_type = 'application/json-patch+json',
             )
         else:
-            definition = await Babylon.custom_objects_api.patch_cluster_custom_object(
+            definition = await OperatorRuntime.custom_objects_api.patch_cluster_custom_object(
                 group = self.api_group,
                 name = self.name,
                 plural = self.plural,
@@ -138,7 +138,7 @@ class K8sObject():
 
     async def merge_patch(self, patch):
         if self.namespace:
-            definition = await Babylon.custom_objects_api.patch_namespaced_custom_object(
+            definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
                 group = self.api_group,
                 name = self.name,
                 namespace = self.namespace,
@@ -148,7 +148,7 @@ class K8sObject():
                 _content_type = 'application/merge-patch+json',
             )
         else:
-            definition = await Babylon.custom_objects_api.patch_cluster_custom_object(
+            definition = await OperatorRuntime.custom_objects_api.patch_cluster_custom_object(
                 group = self.api_group,
                 name = self.name,
                 plural = self.plural,
@@ -160,7 +160,7 @@ class K8sObject():
 
     async def merge_patch_status(self, patch):
         if self.namespace:
-            definition = await Babylon.custom_objects_api.patch_namespaced_custom_object_status(
+            definition = await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object_status(
                 group = self.api_group,
                 name = self.name,
                 namespace = self.namespace,
@@ -170,7 +170,7 @@ class K8sObject():
                 _content_type = 'application/merge-patch+json',
             )
         else:
-            definition = await Babylon.custom_objects_api.patch_cluster_custom_object_status(
+            definition = await OperatorRuntime.custom_objects_api.patch_cluster_custom_object_status(
                 group = self.api_group,
                 name = self.name,
                 plural = self.plural,

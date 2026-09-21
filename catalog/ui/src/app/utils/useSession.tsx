@@ -8,17 +8,19 @@ import {
   selectInterface,
   selectServiceNamespaces,
   selectUser,
+  selectUserFullName,
   selectUserGroups,
   selectUserIsAdmin,
   selectUserNamespace,
   selectUserRoles,
+  useAppDispatch,
+  useAppSelector,
 } from '@app/store';
-import { useDispatch, useSelector } from 'react-redux';
-import { AnyAction, Dispatch } from 'redux';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { AppDispatch } from '@app/store';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import useImpersonateUser from './useImpersonateUser';
 
-async function getSessionFn(dispatch: Dispatch<AnyAction>) {
+async function getSessionFn(dispatch: AppDispatch) {
   const session = await getApiSession();
 
   dispatch(
@@ -29,6 +31,7 @@ async function getSessionFn(dispatch: Dispatch<AnyAction>) {
       roles: session.roles || [],
       interface: session.interface,
       user: session.user,
+      fullName: session.fullName || '',
       catalogNamespaces: session.catalogNamespaces,
       serviceNamespaces: session.serviceNamespaces,
       userNamespace: session.userNamespace,
@@ -40,6 +43,7 @@ export default function useSession(): {
   getSession: () => {
     authUser: string;
     email: string;
+    fullName: string;
     isAdmin: boolean;
     groups: string[];
     roles: string[];
@@ -50,17 +54,18 @@ export default function useSession(): {
     userNamespace: UserNamespace;
   };
 } {
-  const dispatch = useDispatch();
-  const authUser = useSelector(selectAuthUser);
-  const email = useSelector(selectUser);
-  const isAdmin = useSelector(selectUserIsAdmin);
-  const groups = useSelector(selectUserGroups);
-  const roles = useSelector(selectUserRoles);
-  const catalogNamespaces = useSelector(selectCatalogNamespaces);
-  const consoleUrl = useSelector(selectConsoleURL);
-  const userInterface = useSelector(selectInterface);
-  const serviceNamespaces = useSelector(selectServiceNamespaces);
-  const userNamespace = useSelector(selectUserNamespace);
+  const dispatch = useAppDispatch();
+  const authUser = useAppSelector(selectAuthUser);
+  const email = useAppSelector(selectUser);
+  const fullName = useAppSelector(selectUserFullName);
+  const isAdmin = useAppSelector(selectUserIsAdmin);
+  const groups = useAppSelector(selectUserGroups);
+  const roles = useAppSelector(selectUserRoles);
+  const catalogNamespaces = useAppSelector(selectCatalogNamespaces);
+  const consoleUrl = useAppSelector(selectConsoleURL);
+  const userInterface = useAppSelector(selectInterface);
+  const serviceNamespaces = useAppSelector(selectServiceNamespaces);
+  const userNamespace = useAppSelector(selectUserNamespace);
   const { userImpersonated, setImpersonation } = useImpersonateUser();
 
   const promise = useMemo(async () => {
@@ -82,6 +87,7 @@ export default function useSession(): {
     return {
       authUser,
       email: userImpersonated ? userImpersonated : email,
+      fullName,
       isAdmin,
       groups,
       roles,
@@ -94,6 +100,7 @@ export default function useSession(): {
   }, [
     authUser,
     email,
+    fullName,
     isAdmin,
     promise,
     groups,

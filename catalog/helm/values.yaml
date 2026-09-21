@@ -15,7 +15,7 @@ api:
     threads: 1
   image:
     #override:
-    tag: v1.2.2
+    tag: v1.3.4
     repository: quay.io/redhat-gpte/babylon-catalog-api
     pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -34,7 +34,7 @@ ui:
   name: # default use chart name + '-ui'
   image:
     #override:
-    tag: v0.34.2
+    tag: v0.35.13
     repository: quay.io/redhat-gpte/babylon-catalog-ui
     pullPolicy: IfNotPresent
   replicaCount: 1
@@ -98,7 +98,7 @@ oauthProxy:
 redis:
   name: # default use chart name + '-redis'
   deploy: true
-  password:
+  password: null
   generatePassword: true
   image:
     #override:
@@ -127,3 +127,11 @@ salesforceApi:
 sandboxApi:
   deploy: true
   secretName: sandbox-api
+
+sharedClusterManager:
+  deploy: true
+  secretName: sandbox-api-shared-cluster-manager
+
+jira:
+  deploy: true
+  secretName: babylon-catalog-jira

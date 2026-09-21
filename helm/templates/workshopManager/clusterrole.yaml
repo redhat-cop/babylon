@@ -63,6 +63,10 @@ rules:
   - workshopuserassignments/status
   - multiworkshops
   - multiworkshops/status
+  - selfpacedlabs
+  - selfpacedlabs/status
+  - selfpacedlabprovisionitems
+  - selfpacedlabprovisionitems/status
   verbs:
   - create
   - delete
@@ -105,6 +109,18 @@ rules:
   resources:
   - roles
   - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - tenantclusterpools
   verbs:
   - create
   - delete

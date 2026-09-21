@@ -1,23 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  Masthead,
-  MastheadLogo,
-  MastheadContent,
-  MastheadMain,
-  MastheadToggle,
-  MastheadBrand,
-  MenuToggle,
-  PageToggleButton,
-  MenuToggleElement,
-  Toolbar,
-  ToolbarContent,
-  ToolbarGroup,
-  ToolbarItem,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownList, DropdownItem, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadToggle, MastheadBrand, MenuToggle, PageToggleButton, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
@@ -76,6 +60,8 @@ const Header: React.FC<{
   };
 
   const userHelpDropdownItems = [];
+
+  // 1. Main help link (RHDP Support)
   if (helpLink) {
     userHelpDropdownItems.push(
       <DropdownItem key="open-support" value={helpLink}>
@@ -84,14 +70,24 @@ const Header: React.FC<{
     );
   }
 
-  if (status_page_url) {
+  if (feedback_link) {
     userHelpDropdownItems.push(
-        <DropdownItem key="status-page-link" value={status_page_url}>
-          Status Page
-        </DropdownItem>,
-      );
+      <DropdownItem key="feedback" value={feedback_link}>
+        Feedback/Feature Request
+      </DropdownItem>,
+    );
   }
 
+  // 3. Status Page
+  if (status_page_url) {
+    userHelpDropdownItems.push(
+      <DropdownItem key="status-page-link" value={status_page_url}>
+        Status Page
+      </DropdownItem>,
+    );
+  }
+
+  // 4. Solution Support: Service Level (RHPDS only)
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem key="support-sla" value="/support">
@@ -99,6 +95,8 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
+
+  // 5. About RHDP
   if (learn_more_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="learn-more" value={learn_more_link}>
@@ -106,6 +104,8 @@ const Header: React.FC<{
       </DropdownItem>,
     );
   }
+
+  // 6. How to videos (RHPDS only)
   if (userInterface === 'rhpds') {
     userHelpDropdownItems.push(
       <DropdownItem
@@ -113,13 +113,6 @@ const Header: React.FC<{
         value="https://videos.learning.redhat.com/channel/RHPDS%2B-%2BRed%2BHat%2BProduct%2Band%2BPortfolio%2BDemo%2BSystem/277722533"
       >
         How to videos
-      </DropdownItem>,
-    );
-  }
-  if (feedback_link) {
-    userHelpDropdownItems.push(
-      <DropdownItem key="feedback" value={feedback_link}>
-        Provide Feedback
       </DropdownItem>,
     );
   }

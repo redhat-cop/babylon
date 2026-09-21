@@ -1,0 +1,3 @@
+[submodule "vendor/patternfly-ai-helpers"]
+	path = vendor/patternfly-ai-helpers
+	url = https://github.com/patternfly/ai-helpers.git

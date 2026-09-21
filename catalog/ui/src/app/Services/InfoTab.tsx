@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ResourceClaim, ServiceActionActions } from '@app/types';
+import type { ResourceClaim, ServiceActionActions } from '@app/types';
 import { BABYLON_DOMAIN, isResourceClaimPartOfWorkshop, renderContent } from '@app/util';
 import {
   DescriptionList,
@@ -111,11 +111,11 @@ const InfoTab: React.FC<{
               <AutoStopDestroy
                 type="auto-stop"
                 onClick={() => {
-                  if (!isLocked) {
+                  if (!isLocked && !isPartOfWorkshop) {
                     showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
                   }
                 }}
-                isDisabled={isLocked}
+                isDisabled={isLocked || isPartOfWorkshop}
                 className="services-item__schedule-btn"
                 time={autoStopTime}
                 variant="extended"

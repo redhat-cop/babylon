@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { Tooltip } from '@patternfly/react-core';
 
-const Label: React.FC<{ tooltipDescription?: JSX.Element; children: React.ReactNode }> = ({
+const Label: React.FC<{ tooltipDescription?: ReactElement; children: React.ReactNode }> = ({
   children,
   tooltipDescription = null,
 }) =>

@@ -38,10 +38,11 @@ spec:
               kind:
                 description:
                   Kind of object for access configuration.
-                  Either "ResourceClaim" or "Workshop".
+                  Either "ResourceClaim", "SelfPacedLab", or "Workshop".
                 type: string
                 enum:
                 - ResourceClaim
+                - SelfPacedLab
                 - Workshop
               name:
                 description: >-

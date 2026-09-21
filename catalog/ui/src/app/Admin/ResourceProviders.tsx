@@ -5,7 +5,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import { apiPaths, deleteResourceProvider, fetcher } from '@app/api';
 import useSWRInfinite from 'swr/infinite';
 import { selectedUidsReducer } from '@app/reducers';
-import { ResourceProvider, ResourceProviderList } from '@app/types';
+import type { ResourceProvider, ResourceProviderList } from '@app/types';
 import Footer from '@app/components/Footer';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';

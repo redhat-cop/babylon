@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
-import { CatalogItem, ResourceClaim } from '@app/types';
+import type { CatalogItem, ResourceClaim } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
@@ -31,7 +31,7 @@ const catalogItem = catalogItemObj as CatalogItem;
 
 describe('CatalogItemDetails Component', () => {
   test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", async () => {
-    const { getByText } = render(
+    const { getByText } = await render(
       <Drawer isExpanded={true}>
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={jest.fn} />}>
           <DrawerContentBody></DrawerContentBody>
@@ -56,7 +56,7 @@ describe('CatalogItemDetails Component', () => {
 
   test('When onClose is clicked the onClose function is called', async () => {
     const handleClick = jest.fn();
-    const { container, getByText } = render(
+    const { container, getByText } = await render(
       <Drawer isExpanded={true}>
         <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={handleClick} />}>
           <DrawerContentBody></DrawerContentBody>
@@ -85,7 +85,7 @@ describe('CatalogItemDetails Component', () => {
         isLoading: false,
       });
 
-      const { getByRole } = render(
+      const { getByRole } = await render(
         <Drawer isExpanded={true}>
           <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={jest.fn} />}>
             <DrawerContentBody></DrawerContentBody>
@@ -109,7 +109,7 @@ describe('CatalogItemDetails Component', () => {
         isLoading: false,
       });
 
-      const { getByText } = render(
+      const { getByText } = await render(
         <Drawer isExpanded={true}>
           <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={jest.fn} />}>
             <DrawerContentBody></DrawerContentBody>
@@ -134,7 +134,7 @@ describe('CatalogItemDetails Component', () => {
         isLoading: false,
       });
 
-      const { getByRole, queryByText } = render(
+      const { getByRole, queryByText } = await render(
         <Drawer isExpanded={true}>
           <DrawerContent panelContent={<CatalogItemDetails catalogItem={catalogItem} onClose={jest.fn} />}>
             <DrawerContentBody></DrawerContentBody>

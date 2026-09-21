@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import {
   Alert,
   AlertGroup,
@@ -12,8 +12,13 @@ import {
   CardBody,
   CardTitle,
   Checkbox,
+  DatePicker,
+  Dropdown,
+  DropdownList,
+  DropdownItem,
   EmptyState,
   EmptyStateBody,
+  ExpandableSection,
   FormSelect,
   FormSelectOption,
   Icon,
@@ -62,8 +67,10 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import TableIcon from '@patternfly/react-icons/dist/js/icons/table-icon';
 import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
+import ChartLineIcon from '@patternfly/react-icons/dist/js/icons/chart-line-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
+import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';
 
 import CogIcon from '@patternfly/react-icons/dist/js/icons/cog-icon';
 import MoonIcon from '@patternfly/react-icons/dist/js/icons/moon-icon';
@@ -80,12 +87,14 @@ import {
   patchWorkshopProvision,
   scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
-import {
+import type {
   Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
   WorkshopUserAssignment, WorkshopUserAssignmentList,
   ResourceClaim, ResourceClaimList,
   MultiWorkshop, MultiWorkshopList,
+  TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
+  WorkshopWithResourceClaims,
 } from '@app/types';
 import {
   displayName,
@@ -96,6 +105,7 @@ import {
   namespaceToServiceNamespaceMapper,
 } from '@app/util';
 import { isWorkshopLocked } from '@app/Workshops/workshops-utils';
+import { COMMON_TIMEZONES, getBrowserTimezone } from '@app/components/timezones';
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
@@ -105,9 +115,14 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
+import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
+import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
+// Force webpack to include Timeline
+if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
 import './admin.css';
 import './ops.css';
+import './Ops/timeline.css';
 import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
 
 interface OpsAlert {
@@ -161,21 +176,6 @@ export function distributeProvisionCountsRespectingAssigned(
   return result;
 }
 
-const COMMON_TIMEZONES = [
-  { value: 'local', label: 'Local (browser)' },
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'US Eastern (ET)' },
-  { value: 'America/Chicago', label: 'US Central (CT)' },
-  { value: 'America/Denver', label: 'US Mountain (MT)' },
-  { value: 'America/Los_Angeles', label: 'US Pacific (PT)' },
-  { value: 'Europe/London', label: 'UK (GMT/BST)' },
-  { value: 'Europe/Berlin', label: 'Central Europe (CET)' },
-  { value: 'Europe/Madrid', label: 'Spain (CET)' },
-  { value: 'Asia/Kolkata', label: 'India (IST)' },
-  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Asia/Tokyo', label: 'Japan (JST)' },
-  { value: 'Australia/Sydney', label: 'Australia Eastern (AEST)' },
-];
 
 function seatColorClass(assigned: number, total: number): string {
   if (total <= 0 || assigned <= 0) return '';
@@ -192,6 +192,7 @@ const STAGE_FILTERS: { label: string; value: string; color: 'blue' | 'orange' | 
   { label: 'test', value: 'test', color: 'blue' },
 ];
 
+const TIMELINE_STORAGE_KEY = 'opsTimelineDateRange';
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -202,8 +203,7 @@ const SIX_MONTHS_MS = 15778800000;
 /** Paginate workshop *groups* (rows), not individual asset lines */
 const OPS_GROUP_PAGE_DEFAULT = 18;
 
-export type OpsScheduleFilterKey = 'all' | 'scheduled' | 'd1' | 'd2' | 'd3';
-export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'stop-asc' | 'destroy-asc';
+export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'name-desc' | 'stop-asc' | 'destroy-asc' | 'status-asc' | 'lock-asc' | 'instances-desc' | 'seats-desc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
 export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
@@ -230,36 +230,26 @@ export function getWorkshopDestroyMs(ws: Workshop): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
-export function matchesOpsScheduleFilter(
-  ws: Workshop,
-  filter: OpsScheduleFilterKey,
-  nowMs: number = Date.now(),
-): boolean {
-  if (filter === 'all') return true;
-  const t = getWorkshopScheduleStartMs(ws);
-  if (t === null) return false;
-  if (filter === 'scheduled') return t > nowMs;
-  if (t <= nowMs) return false;
-  if (filter === 'd1') return t <= nowMs + ONE_DAY_MS;
-  if (filter === 'd2') return t <= nowMs + 2 * ONE_DAY_MS;
-  if (filter === 'd3') return t <= nowMs + 3 * ONE_DAY_MS;
-  return true;
-}
+
 
 function compareWorkshopsForSort(
   a: Workshop,
   b: Workshop,
   mode: OpsSortMode,
   getSeats: (w: Workshop) => { assigned: number; total: number } | null,
+  getCurrentCount?: (w: Workshop) => number | null,
 ): number {
+  const nameCmp = () => displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
   switch (mode) {
     case 'name-asc':
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    case 'name-desc':
+      return -nameCmp();
     case 'users-desc': {
       const sa = getSeats(a)?.assigned ?? 0;
       const sb = getSeats(b)?.assigned ?? 0;
       if (sb !== sa) return sb - sa;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'start-desc': {
       const ta = getWorkshopScheduleStartMs(a);
@@ -267,7 +257,7 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.NEGATIVE_INFINITY;
       const vb = tb ?? Number.NEGATIVE_INFINITY;
       if (vb !== va) return vb - va;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'stop-asc': {
       const sa = getWorkshopStopMs(a);
@@ -275,7 +265,7 @@ function compareWorkshopsForSort(
       const va = sa ?? Number.POSITIVE_INFINITY;
       const vb = sb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
     case 'destroy-asc': {
       const da = getWorkshopDestroyMs(a);
@@ -283,7 +273,35 @@ function compareWorkshopsForSort(
       const va = da ?? Number.POSITIVE_INFINITY;
       const vb = db ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
+    }
+    case 'status-asc': {
+      const order: Record<string, number> = { 'Running': 0, 'Failed': 1, 'Scheduled': 2, 'Stopped': 3 };
+      const sa = order[getWorkshopStatus(a as WorkshopWithResourceClaims)] ?? 4;
+      const sb = order[getWorkshopStatus(b as WorkshopWithResourceClaims)] ?? 4;
+      if (sa !== sb) return sa - sb;
+      return nameCmp();
+    }
+    case 'lock-asc': {
+      const la = isWorkshopLocked(a) ? 0 : 1;
+      const lb = isWorkshopLocked(b) ? 0 : 1;
+      if (la !== lb) return la - lb;
+      return nameCmp();
+    }
+    case 'instances-desc': {
+      const ca = getCurrentCount?.(a) ?? 0;
+      const cb = getCurrentCount?.(b) ?? 0;
+      if (cb !== ca) return cb - ca;
+      return nameCmp();
+    }
+    case 'seats-desc': {
+      const sa = getSeats(a)?.assigned ?? 0;
+      const sb = getSeats(b)?.assigned ?? 0;
+      if (sb !== sa) return sb - sa;
+      const ta = getSeats(a)?.total ?? 0;
+      const tb = getSeats(b)?.total ?? 0;
+      if (tb !== ta) return tb - ta;
+      return nameCmp();
     }
     case 'start-asc':
     default: {
@@ -292,22 +310,14 @@ function compareWorkshopsForSort(
       const va = ta ?? Number.POSITIVE_INFINITY;
       const vb = tb ?? Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return displayName(a).localeCompare(displayName(b), undefined, { sensitivity: 'base' });
+      return nameCmp();
     }
   }
 }
 
-const SCHEDULE_FILTER_CHIPS: { label: string; value: OpsScheduleFilterKey }[] = [
-  { label: 'All dates', value: 'all' },
-  { label: 'Scheduled', value: 'scheduled' },
-  { label: '≤1 day', value: 'd1' },
-  { label: '≤2 days', value: 'd2' },
-  { label: '≤3 days', value: 'd3' },
-];
-
 let alertKeyCounter = 0;
 
-function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
+export function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   if (!iso) return null;
   const remaining = new Date(iso).getTime() - Date.now();
   if (remaining < 0) return 'critical';
@@ -316,7 +326,7 @@ function dateUrgency(iso?: string): 'critical' | 'warning' | 'ok' | null {
   return 'ok';
 }
 
-function relativeTime(iso: string): string {
+export function relativeTime(iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
   if (diff < 0) {
     const ago = Math.abs(diff);
@@ -343,10 +353,66 @@ function wsDetailPath(ws: Workshop): string {
   return `/workshops/${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
+/**
+ * Check if a ResourceClaim is in a failed provision state.
+ */
+function isResourceClaimFailed(rc: ResourceClaim): boolean {
+  // Check for provision failure states
+  const state = rc.status?.resources?.[0]?.state;
+  if (!state) return false;
+
+  // AnarchySubject with failed provision
+  if (state.kind === 'AnarchySubject') {
+    const provisionState = state.spec?.vars?.current_state;
+    return provisionState === 'provision-failed' ||
+           provisionState === 'provision-error';
+  }
+
+  return false;
+}
+
+/**
+ * Parse multi-term search input into individual search terms.
+ * Supports comma-separated, space-separated, or mixed formats.
+ * Examples:
+ *   "workshop1, workshop2" -> ["workshop1", "workshop2"]
+ *   "workshop1 workshop2" -> ["workshop1", "workshop2"]
+ *   "workshop1,workshop2 workshop3" -> ["workshop1", "workshop2", "workshop3"]
+ */
+function parseSearchTerms(input: string): string[] {
+  if (!input || !input.trim()) return [];
+
+  // Split by comma or whitespace, trim each term, filter empty strings
+  const terms = input
+    .split(/[,\s]+/)
+    .map(term => term.trim().toLowerCase())
+    .filter(term => term.length > 0);
+
+  // Deduplicate terms
+  return Array.from(new Set(terms));
+}
+
+function getProvisionJobUrl(rc: ResourceClaim): string | null {
+  const state = rc.status?.resources?.[0]?.state;
+  if (!state || state.kind !== 'AnarchySubject') return null;
+  const provJob = state.status?.towerJobs?.provision;
+  if (!provJob) return null;
+  if (provJob.towerJobURL) {
+    return provJob.towerJobURL.startsWith('https://')
+      ? provJob.towerJobURL
+      : `https://${provJob.towerJobURL}`;
+  }
+  if (provJob.towerHost && provJob.deployerJob) {
+    return `https://${provJob.towerHost}/#/jobs/${provJob.deployerJob}/`;
+  }
+  return null;
+}
+
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
+  const { mutate } = useSWRConfig();
 
   // ---------- Alerts ----------
 
@@ -457,16 +523,15 @@ const Ops: React.FC = () => {
 
   // ---------- Timezone ----------
 
-  const [timezone, setTimezone] = useState('local');
+  const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   const fmtDate = useCallback((iso?: string) => {
     if (!iso) return null;
     const d = new Date(iso);
-    const opts: Intl.DateTimeFormatOptions = {
+    return d.toLocaleString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-    };
-    if (timezone !== 'local') opts.timeZone = timezone;
-    return d.toLocaleString(undefined, opts);
+      timeZone: timezone,
+    });
   }, [timezone]);
 
   // ---------- Data fetching (multi-namespace aware) ----------
@@ -484,7 +549,9 @@ const Ops: React.FC = () => {
   );
   const workshops = useMemo(() => {
     if (!allWsData) return [];
-    return allWsData.flatMap(d => d?.items ?? []);
+    return allWsData
+      .flatMap(d => d?.items ?? [])
+      .filter(ws => !ws.metadata.deletionTimestamp); // Filter out ghost workshops being deleted
   }, [allWsData]);
 
   // Fetch MultiWorkshop resources for multi-asset parent info
@@ -504,12 +571,49 @@ const Ops: React.FC = () => {
     if (allMwData) {
       for (const list of allMwData) {
         for (const mw of list?.items ?? []) {
-          map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+          if (!mw.metadata.deletionTimestamp) { // Filter out deleted MultiWorkshops
+            map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
+          }
         }
       }
     }
     return map;
   }, [allMwData]);
+
+  // Fetch TenantClusterPools for cluster assignment tracking (cluster-wide query)
+  const { data: allTcpData } = useSWR<TenantClusterPoolList>(
+    apiPaths.TENANT_CLUSTER_POOLS({ limit: FETCH_LIMIT }),
+    fetcher,
+    { refreshInterval: 60000 }, // Refresh every 60s (less frequent than workshops)
+  );
+
+  // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
+  const tenantClusterLookup = useMemo(() => {
+    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; maxPlacements: number }>();
+    if (allTcpData?.items) {
+      for (const pool of allTcpData.items) {
+        if (pool.status?.clusters) {
+          const totalClusters = pool.status.clusters.length;
+          const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
+          const maxPlacements = pool.spec?.sandboxHost?.max_placements || 50;
+
+          for (const cluster of pool.status.clusters) {
+            if (cluster.resourceClaimName) {
+              map.set(cluster.resourceClaimName, {
+                poolName: pool.metadata.name,
+                poolNamespace: pool.metadata.namespace || 'default',
+                clusterName: cluster.name || 'unknown',
+                totalClusters,
+                availableClusters,
+                maxPlacements,
+              });
+            }
+          }
+        }
+      }
+    }
+    return map;
+  }, [allTcpData]);
 
   const provisionKeys = useMemo(
     () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
@@ -623,43 +727,176 @@ const Ops: React.FC = () => {
 
   // ---------- Workshop filter ----------
 
-  const workshopOptions = useMemo(() => {
-    const names = new Set(workshops.map(w => displayName(w)));
-    return Array.from(names).sort();
-  }, [workshops]);
-
-  const [workshopFilter, setWorkshopFilter] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [workshopSearchText, setWorkshopSearchText] = useState('');
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
   const whiteGloveMode = opsViewMode === 'white-glove';
-  const [scheduleFilter, setScheduleFilter] = useState<OpsScheduleFilterKey>('all');
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
-  const [tablePerPage, setTablePerPage] = useState(OPS_GROUP_PAGE_DEFAULT);
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar'>('table');
+  const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
+  const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
+  const [clusterFilter, setClusterFilter] = useState<string | 'all'>('all');
+  const [tenantAssignmentFilter, setTenantAssignmentFilter] = useState<'all' | 'with-tenant' | 'no-tenant'>('all');
+  const [attentionFilter, setAttentionFilter] = useState(false);
+
+  // Timeline date range — lifted up so controls can live in the global filter bar
+  const [timelineDateRange, setTimelineDateRange] = useState<{ start: Date; end: Date }>(() => {
+    try {
+      const stored = localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { start: new Date(parsed.start), end: new Date(parsed.end) };
+      }
+    } catch (e) { /* ignore */ }
+    const today = new Date();
+    return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify({
+        start: timelineDateRange.start.toISOString(),
+        end: timelineDateRange.end.toISOString(),
+      }));
+    } catch (e) { /* ignore */ }
+  }, [timelineDateRange]);
+
+  const handleTimelineDateChange = useCallback((start: Date, end: Date) => {
+    setTimelineDateRange({ start, end });
+  }, []);
+
+  // Attach resource claims to workshops for accurate status detection
+  const workshopsWithRc = useMemo((): WorkshopWithResourceClaims[] => {
+    return workshops.map(ws => ({
+      ...ws,
+      resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
+    } as WorkshopWithResourceClaims));
+  }, [workshops, resourceClaimsByWorkshop]);
+
+  // Helper to get full tenant cluster info for a workshop
+  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null => {
+    const rcs = ws.resourceClaims || [];
+    for (const rc of rcs) {
+      const handleName = rc.status?.resourceHandle?.name;
+      if (handleName) {
+        const cluster = tenantClusterLookup.get(handleName);
+        if (cluster) {
+          // Pool saturation (cluster allocation)
+          const poolSaturationPercent = cluster.totalClusters > 0
+            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
+            : 0;
+
+          // Placement capacity (workshop slots)
+          // Count workshops on this cluster by checking all workshops for matching cluster
+          const placementCount = workshopsWithRc.filter(w => {
+            const wRcs = w.resourceClaims || [];
+            return wRcs.some(wRc => wRc.status?.resourceHandle?.name === handleName);
+          }).length;
+
+          const maxTotalPlacements = cluster.totalClusters * cluster.maxPlacements;
+          const placementCapacityPercent = maxTotalPlacements > 0
+            ? Math.round((placementCount / maxTotalPlacements) * 100)
+            : 0;
+
+          return {
+            ...cluster,
+            poolSaturationPercent,
+            placementCount,
+            maxTotalPlacements,
+            placementCapacityPercent,
+          };
+        }
+      }
+    }
+    return null;
+  }, [tenantClusterLookup, workshopsWithRc]);
+
+  // Helper to get tenant cluster display name for a workshop
+  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
+    const info = getWorkshopClusterInfo(ws);
+    if (!info) return null;
+    // Return short cluster name (truncate prefix if too long)
+    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
+    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+  }, [getWorkshopClusterInfo]);
+
+  // Base-filtered list: applies white glove, search, and stage filters.
+  // Used by regionStats and status counts so chips reflect the visible scope.
+  const baseFilteredWorkshops = useMemo((): WorkshopWithResourceClaims[] => {
+    let list: Workshop[] = workshopsWithRc;
+    if (workshopSearchText) {
+      const searchTerms = parseSearchTerms(workshopSearchText);
+      if (searchTerms.length > 0) {
+        list = list.filter(w => {
+          const name = displayName(w).toLowerCase();
+          const wsName = w.metadata?.name?.toLowerCase() || '';
+          const ns = w.metadata?.namespace?.toLowerCase() || '';
+          return searchTerms.some(term =>
+            name.includes(term) ||
+            wsName.includes(term) ||
+            ns.includes(term)
+          );
+        });
+      }
+    }
+    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+    if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
+    return list as WorkshopWithResourceClaims[];
+  }, [workshopsWithRc, workshopSearchText, stageFilter, whiteGloveMode]);
 
   const targets = useMemo(() => {
-    let list = workshops;
-    if (workshopFilter) list = list.filter(w => displayName(w) === workshopFilter);
-    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
+    let list: Workshop[] = baseFilteredWorkshops;
+
+    // Search, stage, and white-glove already applied in baseFilteredWorkshops
     if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
-    if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
-    if (scheduleFilter !== 'all') list = list.filter(ws => matchesOpsScheduleFilter(ws, scheduleFilter));
+    if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
+    if (attentionFilter) list = list.filter(w => {
+      const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
+      const destroyUrg = dateUrgency(w.spec?.lifespan?.end);
+      return stopUrg === 'critical' || destroyUrg === 'critical';
+    });
+    if (tableRegionFilter !== 'all') {
+      list = list.filter(w => {
+        const wsWithRc = w as WorkshopWithResourceClaims;
+        const primary = getWorkshopPrimaryRegion(wsWithRc);
+        const active = getWorkshopActiveRegions(wsWithRc);
+        return primary === tableRegionFilter || active.includes(tableRegionFilter);
+      });
+    }
+    if (clusterFilter !== 'all') {
+      list = list.filter(w => {
+        const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
+        if (clusterFilter === 'none') return cluster === null;
+        return cluster === clusterFilter;
+      });
+    }
+    if (tenantAssignmentFilter !== 'all') {
+      list = list.filter(w => {
+        const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
+        if (tenantAssignmentFilter === 'with-tenant') return cluster !== null;
+        if (tenantAssignmentFilter === 'no-tenant') return cluster === null;
+        return true;
+      });
+    }
     const arr = [...list];
-    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats));
+    arr.sort((a, b) => compareWorkshopsForSort(a, b, sortMode, getSeats, getCurrentCount));
     return arr;
   }, [
-    workshops,
-    workshopFilter,
-    stageFilter,
+    baseFilteredWorkshops,
     failedFilter,
-    whiteGloveMode,
-    scheduleFilter,
+    statusFilter,
+    attentionFilter,
+    tableRegionFilter,
+    clusterFilter,
     sortMode,
     getFailedCount,
     getSeats,
+    getCurrentCount,
+    getWorkshopCluster,
   ]);
 
   const opsCalendarEvents = useMemo(
@@ -675,11 +912,11 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopFilter, stageFilter, namespace, opsViewMode, scheduleFilter, sortMode, failedFilter, platformMode]);
+  }, [workshopSearchText, stageFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
-  }, [workshopFilter, stageFilter, namespace]);
+  }, [stageFilter, namespace]);
 
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
@@ -764,7 +1001,10 @@ const Ops: React.FC = () => {
     if (tablePage > maxTablePage) setTablePage(maxTablePage);
   }, [tablePage, maxTablePage]);
 
-  const allSelected = workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k));
+  const allSelected = useMemo(
+    () => workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k)),
+    [workshopKeysOnPage, selectedWs]
+  );
 
   const toggleSelectAll = useCallback(() => {
     if (allSelected) {
@@ -794,16 +1034,20 @@ const Ops: React.FC = () => {
   }, []);
 
   const scopeLabel = useMemo(() => {
-    const nsLabel = platformMode ? 'all namespaces (platform)' : isMultiNs ? `${activeNamespaces.length} namespaces` : namespace;
-    if (hasSelection) {
-      return <>{selectedWs.size} of {targets.length} selected in {nsLabel}</>;
+    const nsLabel = platformMode ? 'all namespaces' :
+                    isMultiNs ? `${activeNamespaces.length} namespace(s)` :
+                    namespace || 'unknown namespace';
+    if (workshopSearchText) {
+      const searchTerms = parseSearchTerms(workshopSearchText);
+      const displayTerms = searchTerms.length > 3
+        ? `${searchTerms.slice(0, 3).join(', ')}... (${searchTerms.length} terms)`
+        : searchTerms.join(', ');
+      return <>Search &ldquo;{displayTerms}&rdquo; ({targets.length}) in {nsLabel}</>;
     }
-    if (workshopFilter) {
-      return <>&ldquo;{workshopFilter}&rdquo; ({targets.length}) in {nsLabel}</>;
-    }
-    const modePrefix = whiteGloveMode ? 'White glove' : 'All';
-    return <>{modePrefix} · {targets.length} workshop{targets.length !== 1 ? 's' : ''} in {nsLabel}</>;
-  }, [workshopFilter, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
+    if (hasSelection) return <>{selectedWs.size} selected</>;
+    if (whiteGloveMode) return <>White Glove ({targets.length}) in {nsLabel}</>;
+    return <>{targets.length} in {nsLabel}</>;
+  }, [workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -815,17 +1059,35 @@ const Ops: React.FC = () => {
     return counts;
   }, [operationTargets]);
 
-  const isUnfiltered = !workshopFilter && !stageFilter && !whiteGloveMode && scheduleFilter === 'all';
+  const emptyFilterMsg = useMemo(() => {
+    const filterText = workshopSearchText;
+    if (!filterText && !stageFilter && !whiteGloveMode) return null;
+
+    const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
+    const searchMsg = searchTerms.length > 1
+      ? `search terms "${searchTerms.join('", "')}"`
+      : filterText ? `"${filterText}"` : null;
+
+    return (
+      <>
+        No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
+        Try another workshop name, stage, or white glove mode.
+      </>
+    );
+  }, [workshopSearchText, stageFilter, whiteGloveMode]);
+
+  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode;
 
   const modalScopeDescription = useMemo(() => {
+    const filterText = workshopSearchText;
     if (!isMultiNs) {
-      return workshopFilter
-        ? <> matching &ldquo;{workshopFilter}&rdquo; in <code>{namespace}</code></>
+      return filterText
+        ? <> matching &ldquo;{filterText}&rdquo; in <code>{namespace}</code></>
         : <> in <code>{namespace}</code></>;
     }
     return (
       <>
-        {workshopFilter ? <> matching &ldquo;{workshopFilter}&rdquo;</> : null}
+        {filterText ? <> matching &ldquo;{filterText}&rdquo;</> : null}
         {' across '}
         <strong>{namespaceCounts.size} namespace{namespaceCounts.size !== 1 ? 's' : ''}</strong>
         :
@@ -836,7 +1098,7 @@ const Ops: React.FC = () => {
         </ul>
       </>
     );
-  }, [isMultiNs, workshopFilter, namespace, namespaceCounts]);
+  }, [isMultiNs, workshopSearchText, namespace, namespaceCounts]);
 
   // ---------- Summary stats ----------
 
@@ -887,6 +1149,190 @@ const Ops: React.FC = () => {
     return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
+  const DAILY_SUPPORT_LIMIT = 5;
+  const regionStats = useMemo(() => {
+    const emptyRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
+    const counts = emptyRecord();   // deploy region (primary)
+    const instances = emptyRecord();
+    const deploying = emptyRecord();
+    const running = emptyRecord();
+    counts.all = baseFilteredWorkshops.length;
+
+    for (const ws of baseFilteredWorkshops) {
+      const primary = getWorkshopPrimaryRegion(ws);
+      const count = getCurrentCount(ws) ?? 1;
+      const status = getWorkshopStatus(ws);
+      instances.all += count;
+      if (primary) {
+        counts[primary]++;
+        instances[primary] += count;
+        if (status === 'Scheduled') deploying[primary]++;
+        if (status === 'Running') running[primary]++;
+      }
+    }
+
+    // Daily peak per region (over next 7 days from today)
+    const dailyPeak: Record<string, { count: number; day: string }> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+
+    for (const r of REGIONS) {
+      let peak = 0;
+      let peakDay = '';
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount = 0;
+        for (const ws of baseFilteredWorkshops) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs && wsEnd > bizStartMs) dayCount++;
+        }
+        if (dayCount > peak) {
+          peak = dayCount;
+          peakDay = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+      }
+      dailyPeak[r.key] = { count: peak, day: peakDay };
+    }
+
+    // Busiest days across all regions (for warning banner)
+    const busyDays: { date: Date; label: string; region: string; count: number }[] = [];
+    for (const r of REGIONS) {
+      for (const day of days) {
+        const dayStart = new Date(day);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const bizStartMs2 = dayStart.getTime() + r.startUtcH * 3600000;
+        const bizEndMs2 = r.endUtcH > 24
+          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : dayStart.getTime() + r.endUtcH * 3600000;
+        let dayCount2 = 0;
+        for (const ws of baseFilteredWorkshops) {
+          const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
+          const stopIso = ws.spec?.actionSchedule?.stop || ws.spec?.lifespan?.end;
+          if (!startIso) continue;
+          const wsStart = new Date(startIso).getTime();
+          const wsEnd = stopIso ? new Date(stopIso).getTime() : wsStart + 8 * 3600000;
+          if (wsStart < bizEndMs2 && wsEnd > bizStartMs2) dayCount2++;
+        }
+        if (dayCount2 >= DAILY_SUPPORT_LIMIT) {
+          busyDays.push({
+            date: new Date(day),
+            label: day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            region: r.label,
+            count: dayCount2,
+          });
+        }
+      }
+    }
+    // Deduplicate — keep highest count per date+region, then sort by date
+    const busyDayMap = new Map<string, typeof busyDays[0]>();
+    for (const bd of busyDays) {
+      const key = `${bd.date.toISOString().split('T')[0]}:${bd.region}`;
+      const existing = busyDayMap.get(key);
+      if (!existing || bd.count > existing.count) {
+        busyDayMap.set(key, bd);
+      }
+    }
+    const topBusyDays = Array.from(busyDayMap.values())
+      .sort((a, b) => a.date.getTime() - b.date.getTime() || b.count - a.count)
+      .slice(0, 5);
+
+    // Cross-region overlap
+    const spanning: Record<string, number> = {};
+    for (const r of REGIONS) {
+      spanning[r.key] = baseFilteredWorkshops.filter(ws => {
+        const active = getWorkshopActiveRegions(ws);
+        return active.includes(r.key) && active.length > 1;
+      }).length;
+    }
+
+    return { counts, instances, deploying, running, dailyPeak, spanning, topBusyDays };
+  }, [baseFilteredWorkshops, getCurrentCount]);
+
+  const clusterStats = useMemo(() => {
+    const clusterCounts: Record<string, number> = {};
+    let noneCount = 0;
+    for (const ws of baseFilteredWorkshops) {
+      const cluster = getWorkshopCluster(ws);
+      if (cluster === null) {
+        noneCount++;
+      } else {
+        clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
+      }
+    }
+    const sortedClusters = Object.keys(clusterCounts).sort((a, b) => clusterCounts[b] - clusterCounts[a]);
+    return { clusterCounts, noneCount, sortedClusters, totalCount: baseFilteredWorkshops.length };
+  }, [baseFilteredWorkshops, getWorkshopCluster]);
+
+  const tenantAssignmentStats = useMemo(() => {
+    let withTenantCount = 0;
+    let noTenantCount = 0;
+    for (const ws of baseFilteredWorkshops) {
+      const cluster = getWorkshopCluster(ws);
+      if (cluster === null) {
+        noTenantCount++;
+      } else {
+        withTenantCount++;
+      }
+    }
+    return { withTenantCount, noTenantCount, totalCount: baseFilteredWorkshops.length };
+  }, [baseFilteredWorkshops, getWorkshopCluster]);
+
+  const failedInstancesAnalysis = useMemo(() => {
+    const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
+    const allJobUrls: string[] = [];
+
+    for (const ws of operationTargets) {
+      const claims = resourceClaimsByWorkshop.get(wsKey(ws)) || [];
+      const failedClaims = claims.filter((rc) => {
+        const summary = rc.status?.summary;
+        if (summary) {
+          return summary.state.toLowerCase().endsWith('-failed') || summary.state.toLowerCase() === 'failed';
+        }
+        const state = rc.status?.resources?.[0]?.state;
+        if (state?.kind === 'AnarchySubject') {
+          const currentState = state.spec?.vars?.current_state ?? '';
+          return currentState.endsWith('-failed') || currentState === 'failed';
+        }
+        return false;
+      });
+
+      if (failedClaims.length > 0) {
+        const jobUrls = failedClaims.map(getProvisionJobUrl).filter((url): url is string => url !== null);
+        allJobUrls.push(...jobUrls);
+        failedWorkshops.push({ workshop: ws, failedClaims, failedCount: failedClaims.length, jobUrls });
+      }
+    }
+
+    return {
+      totalFailed: failedWorkshops.reduce((sum, fw) => sum + fw.failedCount, 0),
+      failedWorkshops,
+      allJobUrls,
+    };
+  }, [operationTargets, resourceClaimsByWorkshop]);
+
+  const failedJobsTooltip = useMemo(() => {
+    if (failedInstancesAnalysis.totalFailed === 0) return '';
+    const breakdown = failedInstancesAnalysis.failedWorkshops
+      .map(fw => `${displayName(fw.workshop)} (${fw.jobUrls.length})`)
+      .join(', ');
+    return `Opens AAP2 jobs for ${failedInstancesAnalysis.totalFailed} failed instances across: ${breakdown}`;
+  }, [failedInstancesAnalysis]);
+
   // ---------- Operation parameters ----------
 
   const [extStopDays, setExtStopDays] = useState(0);
@@ -902,6 +1348,12 @@ const Ops: React.FC = () => {
   const [extDestroyLoading, setExtDestroyLoading] = useState(false);
   const [noAutostopLoading, setNoAutostopLoading] = useState(false);
   const [scaleLoading, setScaleLoading] = useState(false);
+  const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
+
+  // ---------- Redeploy Failed Services state ----------
+
+  const [redeployLoading, setRedeployLoading] = useState(false);
+  const [showRedeployConfirm, setShowRedeployConfirm] = useState(false);
 
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [showUnlockConfirm, setShowUnlockConfirm] = useState(false);
@@ -913,7 +1365,7 @@ const Ops: React.FC = () => {
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading;
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || redeployLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -943,12 +1395,11 @@ const Ops: React.FC = () => {
     const fmtDateCSV = (iso?: string) => {
       if (!iso) return '';
       const d = new Date(iso);
-      const opts: Intl.DateTimeFormatOptions = {
+      return d.toLocaleString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-      };
-      if (timezone !== 'local') opts.timeZone = timezone;
-      return d.toLocaleString(undefined, opts);
+        timeZone: timezone,
+      });
     };
 
     const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
@@ -1221,6 +1672,56 @@ const Ops: React.FC = () => {
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
 
+  const handleRedeployFailed = async () => {
+    setShowRedeployConfirm(false);
+    setRedeployLoading(true);
+
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const { failedClaims, workshop } of failedInstancesAnalysis.failedWorkshops) {
+      try {
+        // Delete failed ResourceClaims (DO NOT reduce count - Babylon recreates automatically)
+        for (const claim of failedClaims) {
+          await deleteResourceClaim(claim);
+        }
+        succeeded += failedClaims.length;
+      } catch (err) {
+        console.error('Redeploy failed for workshop:', displayName(workshop), err);
+        failed += failedClaims.length;
+      }
+    }
+
+    // Refresh provisions and resource claims
+    await mutateProvisions();
+    await mutate(resourceClaimKeys);
+
+    setRedeployLoading(false);
+
+    if (failed === 0) {
+      addAlert(
+        AlertVariant.success,
+        `Redeployed ${succeeded} failed instance(s) across ${failedInstancesAnalysis.failedWorkshops.length} workshop(s)`,
+      );
+    } else {
+      addAlert(
+        AlertVariant.danger,
+        `Redeploy: ${succeeded} succeeded, ${failed} failed`,
+      );
+    }
+  };
+
+  const handleOpenFailedJobs = (urls: string[], batchSize = 10) => {
+    const toOpen = urls.slice(0, batchSize);
+    toOpen.forEach((url) => window.open(url, '_blank'));
+
+    if (urls.length > batchSize) {
+      addAlert(AlertVariant.info, `Opened ${batchSize} jobs. ${urls.length - batchSize} remaining.`);
+    } else {
+      addAlert(AlertVariant.success, `Opened ${urls.length} AAP2 job(s) in new tabs`);
+    }
+  };
+
   // ---------- No namespace selected ----------
 
   if (!namespace) {
@@ -1334,7 +1835,7 @@ const Ops: React.FC = () => {
 
   const multiNsBanner = isMultiNs ? (
     <Alert variant="warning" isInline title="Multi-namespace mode active" className="ops-multi-ns-banner">
-      Operations will affect workshops across <strong>{activeNamespaces.length}</strong> namespaces.
+      Operations will affect workshops across <strong>{platformMode ? 'all' : activeNamespaces.length}</strong> namespaces.
       Double-check the scope before executing any operation.
     </Alert>
   ) : null;
@@ -1359,7 +1860,7 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => { setWorkshopFilter(''); navigate(`/admin/ops/${n.name}`); }}
+              onSelect={(n) => { setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -1389,7 +1890,7 @@ const Ops: React.FC = () => {
             {workshops.length > 0 && (
               <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {platformMode ? ' (platform-wide)' : isMultiNs ? ` across ${activeNamespaces.length} namespaces` : ''}
+                {platformMode ? ' (platform-wide)' : isMultiNs && activeNamespaces.length > 1 ? ` across ${activeNamespaces.length} namespaces` : ''}
               </Label>
             )}
           </SplitItem>
@@ -1405,7 +1906,7 @@ const Ops: React.FC = () => {
                 <Tooltip content={
                   platformMode
                     ? 'Filtering all workshops on the platform'
-                    : isMultiNs
+                    : isMultiNs && activeNamespaces.length > 1
                       ? `Filtering workshops across ${activeNamespaces.length} namespaces`
                       : `Filtering workshops in ${namespace}`
                 }>
@@ -1553,24 +2054,14 @@ const Ops: React.FC = () => {
                 <label htmlFor="ops-scope" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   Workshop
                 </label>
-                <Select
-                  id="ops-scope"
-                  isOpen={filterOpen}
-                  selected={workshopFilter}
-                  onSelect={(_e, val) => { setWorkshopFilter(val as string); setFilterOpen(false); }}
-                  onOpenChange={setFilterOpen}
-                  toggle={(toggleRef) => (
-                    <MenuToggle ref={toggleRef} onClick={() => setFilterOpen(p => !p)} isExpanded={filterOpen} style={{ minWidth: 280 }}>
-                      {workshopFilter || 'All Workshops'}
-                    </MenuToggle>
-                  )}
-                  shouldFocusToggleOnSelect
-                >
-                  <SelectList>
-                    <SelectOption value="">All Workshops</SelectOption>
-                    {workshopOptions.map(ci => <SelectOption key={ci} value={ci}>{ci}</SelectOption>)}
-                  </SelectList>
-                </Select>
+                <SearchInput
+                  placeholder="Search by name or namespace (comma/space separated for multiple)"
+                  value={workshopSearchText}
+                  onChange={(_e, val) => setWorkshopSearchText(val)}
+                  onClear={() => setWorkshopSearchText('')}
+                  style={{ minWidth: 280 }}
+                  aria-label="Search workshops"
+                />
                 <div className="ops-stage-filters">
                   {STAGE_FILTERS.map(f => (
                     <Label
@@ -1607,37 +2098,6 @@ const Ops: React.FC = () => {
                   ))}
                 </FormSelect>
               </div>
-              <div className="ops-scope-bar-extra">
-                <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
-                <FormSelect
-                  id="ops-sort"
-                  aria-label="Sort workshops"
-                  value={sortMode}
-                  onChange={(_e, val) => setSortMode(val as OpsSortMode)}
-                  className="ops-sort-select"
-                >
-                  <FormSelectOption value="start-asc" label="Start (oldest first)" />
-                  <FormSelectOption value="start-desc" label="Start (newest first)" />
-                  <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
-                  <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
-                  <FormSelectOption value="users-desc" label="Most seats assigned" />
-                  <FormSelectOption value="name-asc" label="Name (A–Z)" />
-                </FormSelect>
-                <span className="ops-filter-inline-label">Start window</span>
-                <div className="ops-schedule-filters">
-                  {SCHEDULE_FILTER_CHIPS.map(c => (
-                    <Label
-                      key={c.value}
-                      color={scheduleFilter === c.value ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setScheduleFilter(scheduleFilter === c.value && c.value !== 'all' ? 'all' : c.value)}
-                      className="ops-schedule-chip"
-                    >
-                      {c.label}
-                    </Label>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Summary stats */}
@@ -1645,7 +2105,7 @@ const Ops: React.FC = () => {
               {isMultiNs && (
                 <>
                   <div className="ops-stat">
-                    <span className="ops-stat-value">{activeNamespaces.length}</span>
+                    <span className="ops-stat-value">{platformMode ? 'All' : activeNamespaces.length}</span>
                     <span className="ops-stat-label">Namespaces</span>
                   </div>
                   <div className="ops-stat-divider" />
@@ -1679,11 +2139,6 @@ const Ops: React.FC = () => {
                 </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
-              <div className="ops-stat-divider" />
-              <div className="ops-stat">
-                <span className="ops-stat-value">{summary.activeCount}</span>
-                <span className="ops-stat-label">Active</span>
-              </div>
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
@@ -1695,7 +2150,7 @@ const Ops: React.FC = () => {
                     </div>
                   }>
                     <div
-                      className={`ops-stat ops-stat-attention ${failedFilter ? 'ops-stat-active-filter' : ''}`}
+                      className={`ops-stat ops-stat-failed ${failedFilter ? 'ops-stat-active-filter' : ''}`}
                       style={{ cursor: 'pointer' }}
                       onClick={() => setFailedFilter(f => !f)}
                       role="button"
@@ -1708,166 +2163,141 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </>
               )}
+              {summary.attentionCount > 0 && (
+                <>
+                  <div className="ops-stat-divider" />
+                  <div
+                    className={`ops-stat ops-stat-attention ${attentionFilter ? 'ops-stat-active-filter' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setAttentionFilter(f => !f)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setAttentionFilter(f => !f); }}
+                  >
+                    <span className="ops-stat-value">{summary.attentionCount}</span>
+                    <span className="ops-stat-label">Need attention{attentionFilter ? ' (filtered)' : ''}</span>
+                  </div>
+                </>
+              )}
+              <div className="ops-stat-divider" />
+              <div className="ops-stat">
+                <span className="ops-stat-value">{summary.activeCount}</span>
+                <span className="ops-stat-label">Active</span>
+              </div>
               <div className="ops-stat-divider" />
               <div className="ops-stat">
                 <span className="ops-stat-value">{summary.lockedCount}</span>
                 <span className="ops-stat-label">Locked</span>
               </div>
-              {summary.attentionCount > 0 && (
-                <>
-                  <div className="ops-stat-divider" />
-                  <div className="ops-stat ops-stat-attention">
-                    <span className="ops-stat-value">{summary.attentionCount}</span>
-                    <span className="ops-stat-label">Need attention</span>
-                  </div>
-                </>
-              )}
             </div>
 
-            {targets.length === 0 && workshops.length > 0 && (
-              <Alert variant="warning" isInline title="No workshops match the current filters" style={{ marginBottom: 16 }}>
-                Try another workshop name, stage, white glove mode, start window, or failed filter.
-              </Alert>
-            )}
-
-            <div className="ops-grid">
-              {/* Resource Lock */}
-              <Card isFullHeight>
-                <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Toggle <code>lock-enabled</code> on workshops.
-                    Locked resources cannot be modified by non-admin users.
-                  </p>
-                  <div className="ops-button-row">
-                    <Button variant="warning" onClick={() => setShowLockConfirm(true)}
-                      isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                    <Button variant="warning" onClick={() => setShowUnlockConfirm(true)}
-                      isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Extend Stop */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-stop time. Workshops can be restarted after stop.">
-                    <span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop Time</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div className="ops-number-row">
-                    <NumberInput value={extStopDays} min={0}
-                      onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
-                      onPlus={() => setExtStopDays(extStopDays + 1)}
-                      onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span>days</span>
-                    <NumberInput value={extStopHours} min={0}
-                      onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
-                      onPlus={() => setExtStopHours(extStopHours + 1)}
-                      onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span>hours</span>
-                  </div>
-                  <Button variant="primary" onClick={handleExtendStop}
-                    isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>
-                    Extend Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Extend Destroy */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Push back the auto-destroy deadline. Cannot be reversed after the deadline passes.">
-                    <span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy Time</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <div className="ops-number-row">
-                    <NumberInput value={extDestroyDays} min={0}
-                      onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
-                      onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
-                      onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Days" />
-                    <span>days</span>
-                    <NumberInput value={extDestroyHours} min={0}
-                      onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
-                      onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
-                      onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={3} aria-label="Hours" />
-                    <span>hours</span>
-                  </div>
-                  <Button variant="primary" onClick={handleExtendDestroy}
-                    isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>
-                    Extend Destroy
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Disable Auto-Stop */}
-              <Card isFullHeight>
-                <CardTitle>
-                  <Tooltip content="Remove the auto-stop schedule so workshops keep running until destroy or manual intervention.">
-                    <span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span>
-                  </Tooltip>
-                </CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Removes <code>actionSchedule.stop</code> so workshops remain running
-                    until their destroy deadline or manual stop.
-                  </p>
-                  <Button variant="warning" onClick={handleDisableAutostop}
-                    isLoading={noAutostopLoading} isDisabled={anyLoading}>
-                    Disable Auto-Stop
-                  </Button>
-                </CardBody>
-              </Card>
-
-              {/* Scale */}
-              <Card isFullHeight className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
-                <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale Workshops</CardTitle>
-                <CardBody>
-                  <p className="ops-desc">
-                    Sets <code>spec.count</code> to the value below.
-                    This <strong>replaces</strong> the current instance count.
-                  </p>
-                  <div className="ops-number-row">
-                    <NumberInput value={scaleCount} min={0}
-                      onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
-                      onPlus={() => setScaleCount(scaleCount + 1)}
-                      onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
-                      widthChars={4} aria-label="New instance count" />
-                    <span>new instance count</span>
-                  </div>
-                  {scaleAnalysis.up > 0 && <Label color="blue" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.up} scale up</Label>}
-                  {scaleAnalysis.down > 0 && <Label color="orange" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.down} scale down</Label>}
-                  {scaleAnalysis.same > 0 && <Label color="grey" isCompact style={{ marginRight: 4 }}>{scaleAnalysis.same} no change</Label>}
-                  {(isScaleDown || isScaleZero) && (
-                    <div style={{ marginTop: 12 }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>Remove preference</label>
-                      <FormSelect
-                        aria-label="Scale down preference"
-                        value={scaleDownPreference}
-                        onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')}
-                        className="ops-scale-pref-select"
-                      >
-                        <FormSelectOption value="unused" label="Unused instances first (safest)" />
-                        <FormSelectOption value="used" label="Used instances first (DANGEROUS)" />
-                      </FormSelect>
+            {/* Bulk actions — collapsed by default, below summary */}
+            <ExpandableSection
+              toggleText={`Actions${hasSelection ? ` (${selectedWs.size} selected)` : ''}`}
+              isExpanded={actionsExpanded}
+              onToggle={(_e, expanded) => setActionsExpanded(expanded)}
+              isIndented
+            >
+              <div className="ops-grid ops-operations-grid">
+                <Card>
+                  <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Toggle <code>lock-enabled</code> on workshops.</p>
+                    <div className="ops-button-row">
+                      <Button variant="warning" onClick={() => setShowLockConfirm(true)} isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
+                      <Button variant="warning" onClick={() => setShowUnlockConfirm(true)} isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
                     </div>
-                  )}
-                  <div style={{ marginTop: 12 }}>
-                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
-                      onClick={openScaleConfirm}
-                      isLoading={scaleLoading} isDisabled={anyLoading}>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-stop time."><span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extStopDays} min={0} onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))} onPlus={() => setExtStopDays(extStopDays + 1)} onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extStopHours} min={0} onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))} onPlus={() => setExtStopHours(extStopHours + 1)} onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendStop} isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>Extend Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Push back the auto-destroy deadline."><span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <div className="ops-extend-row">
+                      <NumberInput value={extDestroyDays} min={0} onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))} onPlus={() => setExtDestroyDays(extDestroyDays + 1)} onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
+                      <NumberInput value={extDestroyHours} min={0} onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))} onPlus={() => setExtDestroyHours(extDestroyHours + 1)} onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                    </div>
+                    <Button variant="warning" onClick={handleExtendDestroy} isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>Extend Destroy</Button>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardTitle><Tooltip content="Remove auto-stop schedule."><span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span></Tooltip></CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">Removes <code>actionSchedule.stop</code> so workshops remain running.</p>
+                    <Button variant="warning" onClick={handleDisableAutostop} isLoading={noAutostopLoading} isDisabled={anyLoading}>Disable Auto-Stop</Button>
+                  </CardBody>
+                </Card>
+                <Card className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
+                  <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale</CardTitle>
+                  <CardBody>
+                    <div style={{ marginBottom: 6 }}>
+                      <NumberInput value={scaleCount} min={0} onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))} onPlus={() => setScaleCount(scaleCount + 1)} onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={4} aria-label="New instance count" />
+                      <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>New instance count</div>
+                    </div>
+                    {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
+                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap', marginBottom: 6 }}>
+                        {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} up</Label>}
+                        {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} down</Label>}
+                        {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} same</Label>}
+                      </div>
+                    )}
+                    {(isScaleDown || isScaleZero) && (
+                      <div style={{ marginBottom: 6 }}>
+                        <FormSelect aria-label="Scale down preference" value={scaleDownPreference} onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')} className="ops-scale-pref-select">
+                          <FormSelectOption value="unused" label="Unused first (safest)" />
+                          <FormSelectOption value="used" label="Used first (DANGEROUS)" />
+                        </FormSelect>
+                      </div>
+                    )}
+                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'} onClick={openScaleConfirm} isLoading={scaleLoading} isDisabled={anyLoading}>
                       {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
                     </Button>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
+                  </CardBody>
+                </Card>
+                <Card className="ops-redeploy-failed">
+                  <CardTitle><RedoIcon className="ops-card-icon" /> Redeploy Failed</CardTitle>
+                  <CardBody>
+                    {failedInstancesAnalysis.totalFailed > 0 ? (
+                      <>
+                        <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                          <strong>{failedInstancesAnalysis.totalFailed}</strong> failed across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                        </p>
+                        <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
+                          <Button variant="warning" onClick={() => setShowRedeployConfirm(true)} isLoading={redeployLoading} isDisabled={anyLoading}>Redeploy</Button>
+                          <Tooltip content={failedJobsTooltip}>
+                            <Dropdown isOpen={isBatchMenuOpen} onSelect={() => setIsBatchMenuOpen(false)} onOpenChange={setIsBatchMenuOpen}
+                              toggle={(toggleRef) => (<MenuToggle ref={toggleRef} onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)} isDisabled={failedInstancesAnalysis.allJobUrls.length === 0} variant="secondary" icon={<ExternalLinkAltIcon />}>Jobs ({failedInstancesAnalysis.allJobUrls.length})</MenuToggle>)}>
+                              <DropdownList>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>Open 10</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>Open 20</DropdownItem>
+                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>Open All ({failedInstancesAnalysis.allJobUrls.length})</DropdownItem>
+                              </DropdownList>
+                            </Dropdown>
+                          </Tooltip>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="ops-muted">No failed instances</p>
+                    )}
+                  </CardBody>
+                </Card>
+              </div>
+            </ExpandableSection>
+
+            {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
+              <Alert variant="warning" isInline title="No matches" style={{ marginBottom: 16 }}>
+                {emptyFilterMsg}
+              </Alert>
+            )}
 
             {/* Workshop detail table */}
             <div className="ops-workshops-section">
@@ -1911,6 +2341,14 @@ const Ops: React.FC = () => {
                         if (selected) setWorkshopView('calendar');
                       }}
                     />
+                    <ToggleGroupItem
+                      icon={<ChartLineIcon />}
+                      text="Timeline"
+                      isSelected={workshopView === 'timeline'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('timeline');
+                      }}
+                    />
                   </ToggleGroup>
                 </SplitItem>
                 {workshopView === 'table' && (
@@ -1922,6 +2360,29 @@ const Ops: React.FC = () => {
                     </Button>
                   </SplitItem>
                 )}
+                {workshopView === 'timeline' && (
+                  <>
+                    <SplitItem>
+                      <Button
+                        variant="link"
+                        onClick={() => setSelectedWs(new Set(targets.map(wsKey)))}
+                        isDisabled={selectedWs.size === targets.length}
+                      >
+                        Select all
+                      </Button>
+                    </SplitItem>
+                    {hasSelection && (
+                      <SplitItem>
+                        <Button
+                          variant="link"
+                          onClick={() => setSelectedWs(new Set())}
+                        >
+                          Clear selection
+                        </Button>
+                      </SplitItem>
+                    )}
+                  </>
+                )}
                 <SplitItem>
                   <Tooltip content="Export to CSV">
                     <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
@@ -1929,6 +2390,359 @@ const Ops: React.FC = () => {
                   </Tooltip>
                 </SplitItem>
               </Split>
+
+              {/* Filters: sort, status, region, range — shared across all views */}
+              <div className="ops-scope-bar-extra">
+                <div className="ops-filter-row">
+                  <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                  <FormSelect
+                    id="ops-sort"
+                    aria-label="Sort workshops"
+                    value={sortMode}
+                    onChange={(_e, val) => setSortMode(val as OpsSortMode)}
+                    className="ops-sort-select"
+                  >
+                    <FormSelectOption value="start-asc" label="Start (oldest first)" />
+                    <FormSelectOption value="start-desc" label="Start (newest first)" />
+                    <FormSelectOption value="stop-asc" label="Auto-Stop (soonest first)" />
+                    <FormSelectOption value="destroy-asc" label="Auto-Destroy (soonest first)" />
+                    <FormSelectOption value="users-desc" label="Most seats assigned" />
+                    <FormSelectOption value="name-asc" label="Name (A–Z)" />
+                    <FormSelectOption value="name-desc" label="Name (Z–A)" />
+                    <FormSelectOption value="status-asc" label="Status" />
+                    <FormSelectOption value="lock-asc" label="Locked first" />
+                    <FormSelectOption value="instances-desc" label="Most instances" />
+                    <FormSelectOption value="seats-desc" label="Most seats (total)" />
+                  </FormSelect>
+                  <span className="ops-filter-inline-label">Status</span>
+                  <div className="ops-schedule-filters">
+                  {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
+                    const matching = key === 'all' ? baseFilteredWorkshops : baseFilteredWorkshops.filter(w => getWorkshopStatus(w) === key);
+                    const count = matching.length;
+                    const tooltipContent = key === 'all' ? `${count} total workshops` : (
+                      <div style={{ maxHeight: 200, overflow: 'auto' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}: {count}</div>
+                        {matching.slice(0, 15).map(w => {
+                          const seats = getSeats(w);
+                          const inst = getCurrentCount(w) ?? 1;
+                          return (
+                            <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 1 }}>
+                              {displayName(w)} — {inst} inst{seats ? `, ${seats.assigned}/${seats.total} seats` : ''}
+                            </div>
+                          );
+                        })}
+                        {matching.length > 15 && <div style={{ fontSize: 11, opacity: 0.6 }}>…and {matching.length - 15} more</div>}
+                      </div>
+                    );
+                    return (
+                      <Tooltip key={key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={statusFilter === key ? 'blue' : color as any}
+                          isCompact
+                          onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
+                          className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
+                        >
+                          {label} ({count})
+                        </Label>
+                      </Tooltip>
+                    );
+                  })}
+                  </div>
+                  {(statusFilter !== 'all' || tableRegionFilter !== 'all' || clusterFilter !== 'all' || tenantAssignmentFilter !== 'all') && (
+                    <Label
+                      color="grey"
+                      isCompact
+                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setClusterFilter('all'); setTenantAssignmentFilter('all'); }}
+                      className="ops-schedule-chip"
+                      style={{ fontStyle: 'italic' }}
+                    >
+                      Clear filters
+                    </Label>
+                  )}
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Region</span>
+                  <div className="ops-schedule-filters">
+                    <Tooltip content={
+                    <div style={{ lineHeight: 1.5, minWidth: 200 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
+                      <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.counts.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>workshops</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.instances.all}</div>
+                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                        </div>
+                      </div>
+                      {REGIONS.map(r => {
+                        const c = regionStats.counts[r.key];
+                        const run = regionStats.running[r.key];
+                        const dep = regionStats.deploying[r.key];
+                        if (c === 0 && run === 0 && dep === 0) return null;
+                        return (
+                          <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
+                            <strong>{r.label}:</strong> {c} total{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  } maxWidth="320px">
+                    <Label
+                      color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setTableRegionFilter('all')}
+                      className="ops-schedule-chip"
+                    >
+                      All ({regionStats.counts.all})
+                    </Label>
+                  </Tooltip>
+                  {REGIONS.map(r => {
+                    const count = regionStats.counts[r.key];
+                    const inst = regionStats.instances[r.key];
+                    const deploy = regionStats.deploying[r.key];
+                    const run = regionStats.running[r.key];
+                    const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
+                    const spanning = regionStats.spanning[r.key];
+                    const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+                    const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
+
+                    let labelText: string;
+                    const parts: string[] = [];
+                    if (run > 0) parts.push(`${run} running`);
+                    if (deploy > 0) parts.push(`${deploy} scheduled`);
+                    if (parts.length > 0) {
+                      labelText = parts.join(' · ');
+                    } else if (count > 0) {
+                      labelText = `${count} total`;
+                    } else {
+                      labelText = 'none';
+                    }
+
+                    // Workshops in this region
+                    const regionWorkshops = baseFilteredWorkshops.filter(w => {
+                      const primary = getWorkshopPrimaryRegion(w);
+                      const active = getWorkshopActiveRegions(w);
+                      return primary === r.key || active.includes(r.key);
+                    });
+
+                    const tooltipContent = (
+                      <div style={{ lineHeight: 1.5, minWidth: 250, maxHeight: 350, overflow: 'auto' }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
+                        <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>Biz hours: 9am – 5pm {tzCity}</div>
+                        <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
+                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
+                          </div>
+                        </div>
+                        {(deploy > 0 || run > 0) && (
+                          <div style={{ fontSize: 11, marginBottom: 6 }}>
+                            {deploy > 0 && <span>{deploy} scheduled</span>}
+                            {deploy > 0 && run > 0 && <span> · </span>}
+                            {run > 0 && <span>{run} running</span>}
+                          </div>
+                        )}
+                        {peak.count > 0 && peak.day && (
+                          <div style={{ fontSize: 11, padding: '4px 6px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }}>
+                            <strong>Busiest:</strong> {peak.day} — {peak.count} active
+                            {peak.count >= DAILY_SUPPORT_LIMIT && <span style={{ color: '#e53e3e', fontWeight: 600 }}> (soft limit: {DAILY_SUPPORT_LIMIT}/day)</span>}
+                          </div>
+                        )}
+                        {spanning > 0 && (
+                          <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>↔ {spanning} cross-region</div>
+                        )}
+                        {regionWorkshops.length > 0 && (
+                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Workshops</div>
+                            {regionWorkshops.slice(0, 12).map(w => {
+                              const seats = getSeats(w);
+                              const wInst = getCurrentCount(w) ?? 1;
+                              const status = getWorkshopStatus(w as WorkshopWithResourceClaims);
+                              const statusIcon = status === 'Running' ? '●' : status === 'Failed' ? '✗' : status === 'Scheduled' ? '◔' : '■';
+                              const statusColor = status === 'Running' ? '#48bb78' : status === 'Failed' ? '#fc8181' : status === 'Scheduled' ? '#63b3ed' : '#ecc94b';
+                              return (
+                                <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 2, display: 'flex', gap: 6 }}>
+                                  <span style={{ color: statusColor, flexShrink: 0 }}>{statusIcon}</span>
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(w)}</span>
+                                  <span style={{ opacity: 0.6, flexShrink: 0 }}>{wInst} inst{seats ? ` · ${seats.assigned}/${seats.total}` : ''}</span>
+                                </div>
+                              );
+                            })}
+                            {regionWorkshops.length > 12 && <div style={{ fontSize: 11, opacity: 0.5 }}>…and {regionWorkshops.length - 12} more</div>}
+                          </div>
+                        )}
+                      </div>
+                    );
+
+                    return (
+                      <Tooltip key={r.key} content={tooltipContent} maxWidth="360px">
+                        <Label
+                          color={tableRegionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
+                          isCompact
+                          onClick={() => setTableRegionFilter(tableRegionFilter === r.key ? 'all' : r.key)}
+                          className="ops-schedule-chip"
+                        >
+                          {r.label} — {labelText}
+                        </Label>
+                      </Tooltip>
+                    );
+                  })}
+                    <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                      <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
+                    </Tooltip>
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Cluster</span>
+                  <div className="ops-schedule-filters">
+                  <Label
+                    color={clusterFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setClusterFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({clusterStats.totalCount})
+                  </Label>
+                  {clusterStats.sortedClusters.map(cluster => (
+                    <Label
+                      key={cluster}
+                      color={clusterFilter === cluster ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === cluster ? 'all' : cluster)}
+                      className="ops-schedule-chip"
+                    >
+                      {cluster} ({clusterStats.clusterCounts[cluster]})
+                    </Label>
+                  ))}
+                  {clusterStats.noneCount > 0 && (
+                    <Label
+                      color={clusterFilter === 'none' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
+                      className="ops-schedule-chip"
+                    >
+                      No Cluster ({clusterStats.noneCount})
+                    </Label>
+                  )}
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Tenant</span>
+                  <div className="ops-schedule-filters">
+                  <Label
+                    color={tenantAssignmentFilter === 'all' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter('all')}
+                    className="ops-schedule-chip"
+                  >
+                    All ({tenantAssignmentStats.totalCount})
+                  </Label>
+                  <Label
+                    color={tenantAssignmentFilter === 'with-tenant' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'with-tenant' ? 'all' : 'with-tenant')}
+                    className="ops-schedule-chip"
+                  >
+                    With Tenant Cluster ({tenantAssignmentStats.withTenantCount})
+                  </Label>
+                  <Label
+                    color={tenantAssignmentFilter === 'no-tenant' ? 'blue' : 'grey'}
+                    isCompact
+                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'no-tenant' ? 'all' : 'no-tenant')}
+                    className="ops-schedule-chip"
+                  >
+                    No Tenant Cluster ({tenantAssignmentStats.noTenantCount})
+                  </Label>
+                  </div>
+                </div>
+                <div className="ops-filter-row">
+                  <span className="ops-filter-inline-label">Range</span>
+                  <div className="ops-schedule-filters ops-date-range-controls">
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
+                  }}>Today</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
+                  }}>This Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    const nextMon = new Date(today);
+                    nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
+                    const nextSun = new Date(nextMon);
+                    nextSun.setDate(nextMon.getDate() + 6);
+                    handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
+                  }}>Next Week</Label>
+                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
+                    const today = new Date();
+                    handleTimelineDateChange(
+                      getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
+                      getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+                    );
+                  }}>This Month</Label>
+                  <DatePicker
+                    value={timelineDateRange.start.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
+                      }
+                    }}
+                    aria-label="Timeline start date"
+                    placeholder="Start"
+                    className="ops-date-picker-compact"
+                  />
+                  <DatePicker
+                    value={timelineDateRange.end.toISOString().split('T')[0]}
+                    onChange={(_e, val) => {
+                      if (val) {
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
+                      }
+                    }}
+                    aria-label="Timeline end date"
+                    placeholder="End"
+                    className="ops-date-picker-compact"
+                  />
+                  </div>
+                </div>
+                {regionStats.topBusyDays.length > 0 && (
+                  <div className="ops-busy-days-banner">
+                    <ExclamationTriangleIcon className="ops-busy-days-icon" />
+                    <span className="ops-busy-days-text">
+                      Busy days ahead:{' '}
+                      {regionStats.topBusyDays.map((bd, i) => (
+                        <React.Fragment key={`${bd.label}-${bd.region}`}>
+                          {i > 0 && ', '}
+                          <Label
+                            color="orange"
+                            isCompact
+                            className="ops-schedule-chip"
+                            onClick={() => {
+                              handleTimelineDateChange(getStartOfDay(bd.date), getEndOfDay(bd.date));
+                              setWorkshopView('timeline');
+                            }}
+                          >
+                            {bd.label} — {bd.count} workshops ({bd.region})
+                          </Label>
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {workshopView === 'table' && workshopGroups.length > 0 && (
                 <Pagination
                   className="ops-table-pagination"
@@ -1936,12 +2750,12 @@ const Ops: React.FC = () => {
                   page={safeTablePage}
                   perPage={tablePerPage}
                   onSetPage={(_e, p) => setTablePage(p)}
-                  onPerPageSelect={(_e, _pp, p) => { setTablePerPage(p); setTablePage(1); }}
+                  onPerPageSelect={(_e, pp) => { setTablePerPage(pp); setTablePage(1); }}
                   perPageOptions={[
-                    { title: '15', value: 15 },
-                    { title: '18', value: 18 },
+                    { title: '10', value: 10 },
                     { title: '20', value: 20 },
                     { title: '50', value: 50 },
+                    { title: '100', value: 100 },
                   ]}
                   variant="top"
                   isCompact
@@ -1978,6 +2792,39 @@ const Ops: React.FC = () => {
                   )}
                 </div>
               )}
+              {workshopView === 'timeline' && (
+                <WorkshopTimeline
+                  workshops={targets.map(ws => ({
+                    ...ws,
+                    resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || []
+                  } as WorkshopWithResourceClaims))}
+                  selectedWorkshops={selectedWs}
+                  onSelectWorkshop={(id, selected) => {
+                    setSelectedWs(prev => {
+                      const next = new Set(prev);
+                      if (selected) next.add(id);
+                      else next.delete(id);
+                      return next;
+                    });
+                  }}
+                  onClickWorkshop={(id) => {
+                    const workshop = targets.find(ws => wsKey(ws) === id);
+                    if (workshop) {
+                      navigate(wsDetailPath(workshop));
+                    }
+                  }}
+                  getSeats={getSeats}
+                  getProvisionProgress={getProvisionProgress}
+                  getCurrentCount={getCurrentCount}
+                  getCluster={getWorkshopCluster}
+                  getClusterInfo={getWorkshopClusterInfo}
+                  multiWorkshopsByName={multiWorkshopsByName}
+                  isMultiNs={isMultiNs}
+                  timezone={timezone}
+                  dateRange={timelineDateRange}
+                  onDateChange={handleTimelineDateChange}
+                />
+              )}
               {workshopView === 'table' && (
               <div className="ops-table-wrap">
                 <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
@@ -1988,14 +2835,40 @@ const Ops: React.FC = () => {
                           aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'} />
                       </th>
                       <th></th>
-                      <th>Name</th>
-                      <th>Status</th>
-                      <th>Lock</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode(sortMode === 'name-asc' ? 'name-desc' : 'name-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by name">
+                          Name {sortMode === 'name-asc' ? <SortAmountDownIcon className="ops-col-sort-icon" /> : sortMode === 'name-desc' ? <SortAmountDownIcon className="ops-col-sort-icon" style={{ transform: 'scaleY(-1)' }} /> : null}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('status-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by status">
+                          Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('lock-asc')}
+                          className="ops-col-sort-btn" aria-label="Sort by lock status">
+                          Lock {sortMode === 'lock-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Assets</th>
-                      <th>Instances</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('instances-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by instance count">
+                          Instances {sortMode === 'instances-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
                       <th>Concurrency</th>
-                      <th>Seats</th>
-                      <th>Registration</th>
+                      <th>
+                        <Button variant="plain" isInline onClick={() => setSortMode('seats-desc')}
+                          className="ops-col-sort-btn" aria-label="Sort by seats">
+                          Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                        </Button>
+                      </th>
+                      <th>Tenant Cluster</th>
+                      <th className="ops-col-reg">Reg</th>
                       <th>Password</th>
                       <th>
                         <Button variant="plain" isInline onClick={() => setSortMode('stop-asc')}
@@ -2041,6 +2914,8 @@ const Ops: React.FC = () => {
                       const grpNamespaces = new Set<string>();
                       const grpUrls: { id: string; url: string }[] = [];
                       let grpWhiteGlove = 0;
+                      const grpClusters = new Set<string>();
+                      let grpClusterInfo: { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null = null;
 
                       for (const ws of group.items) {
                         const c = getCurrentCount(ws);
@@ -2067,6 +2942,12 @@ const Ops: React.FC = () => {
                         const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                         if (getWhiteGloved(ws)) grpWhiteGlove++;
+
+                        const clusterName = getWorkshopCluster(ws);
+                        if (clusterName) grpClusters.add(clusterName);
+                        if (!grpClusterInfo) {
+                          grpClusterInfo = getWorkshopClusterInfo(ws);
+                        }
                       }
 
                       const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
@@ -2122,11 +3003,33 @@ const Ops: React.FC = () => {
                               <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
                             ) : (() => {
                               const grpClaims = group.items.flatMap(ws => resourceClaimsByWorkshop.get(wsKey(ws)) ?? []);
-                              return grpClaims.length > 0
-                                ? <WorkshopStatus resourceClaims={grpClaims} />
-                                : grpDesired > 0
-                                  ? <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {grpClaimed}/{grpDesired}</span></>
-                                  : <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
+                              if (grpClaims.length > 0) {
+                                return <WorkshopStatus resourceClaims={grpClaims} />;
+                              }
+                              if (grpDesired > 0) {
+                                const startMs = getWorkshopScheduleStartMs(firstWs);
+                                const isScheduled = startMs && startMs > Date.now();
+                                return (
+                                  <>
+                                    <Icon status="info"><InProgressIcon /></Icon>
+                                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                      {grpClaimed > 0 ? 'Provisioning' : 'Scheduled'} {grpClaimed}/{grpDesired}
+                                      {isScheduled && grpClaimed === 0 && (
+                                        <>
+                                          {' · '}
+                                          <Tooltip content={`Start: ${fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}`}>
+                                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                              <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                              {fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}
+                                            </span>
+                                          </Tooltip>
+                                        </>
+                                      )}
+                                    </span>
+                                  </>
+                                );
+                              }
+                              return <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
                             })()}
                           </td>
                           <td>
@@ -2162,10 +3065,37 @@ const Ops: React.FC = () => {
                             ) : <span className="ops-muted">&mdash;</span>}
                           </td>
                           <td>
+                            {grpClusters.size === 1 && grpClusterInfo ? (
+                              (() => {
+                                const capacityState = grpClusterInfo.placementCapacityPercent >= 85 ? 'critical' : grpClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy';
+                                const clusterName = Array.from(grpClusters)[0];
+                                return (
+                                  <Label
+                                    isCompact
+                                    color={capacityState === 'critical' ? 'red' : capacityState === 'warning' ? 'orange' : 'blue'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`);
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    🖥️ {clusterName}
+                                  </Label>
+                                );
+                              })()
+                            ) : grpClusters.size > 1 ? (
+                              <Tooltip content={`Multiple clusters: ${Array.from(grpClusters).join(', ')}`}>
+                                <Label isCompact color="purple">{grpClusters.size} clusters</Label>
+                              </Tooltip>
+                            ) : (
+                              <span className="ops-muted">&mdash;</span>
+                            )}
+                          </td>
+                          <td>
                             {firstWs.spec?.openRegistration !== false ? (
                               <Label color="green" isCompact>Open</Label>
                             ) : (
-                              <Label color="blue" isCompact>Pre-registration</Label>
+                              <Label color="blue" isCompact>Pre-reg</Label>
                             )}
                           </td>
                           <td>
@@ -2184,8 +3114,8 @@ const Ops: React.FC = () => {
                           <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
                           <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
                           <td>
-                            {isMultiAsset && mw ? (
-                              <a href={`${window.location.origin}/event/${mw.metadata.namespace}/${mw.metadata.name}`}
+                            {isMultiAsset && mw?.metadata?.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
+                              <a href={`${window.location.origin}/event/${mw.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
                                 target="_blank" rel="noopener noreferrer" className="ops-ws-link"
                                 onClick={e => e.stopPropagation()}>
                                 <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page
@@ -2224,6 +3154,9 @@ const Ops: React.FC = () => {
                         const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
                         const progress = getProvisionProgress(ws);
                         const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
+                        const wsClusterName = getWorkshopCluster(ws);
+                        const wsClusterInfo = getWorkshopClusterInfo(ws);
+                        const wsCapacityState = wsClusterInfo ? (wsClusterInfo.placementCapacityPercent >= 85 ? 'critical' : wsClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy') : null;
 
                         return (
                           <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
@@ -2261,7 +3194,29 @@ const Ops: React.FC = () => {
                               ) : wsClaims.length > 0 ? (
                                 <WorkshopStatus resourceClaims={wsClaims} />
                               ) : progress && progress.desired > 0 ? (
-                                <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Provisioning {progress.claimed}/{progress.desired}</span></>
+                                (() => {
+                                  const startMs = getWorkshopScheduleStartMs(ws);
+                                  const isScheduled = startMs && startMs > Date.now();
+                                  return (
+                                    <>
+                                      <Icon status="info"><InProgressIcon /></Icon>
+                                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                        {progress.claimed > 0 ? 'Provisioning' : 'Scheduled'} {progress.claimed}/{progress.desired}
+                                        {isScheduled && progress.claimed === 0 && (
+                                          <>
+                                            {' · '}
+                                            <Tooltip content={`Start: ${fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}`}>
+                                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                                {fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}
+                                              </span>
+                                            </Tooltip>
+                                          </>
+                                        )}
+                                      </span>
+                                    </>
+                                  );
+                                })()
                               ) : (
                                 <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
                               )}
@@ -2288,7 +3243,30 @@ const Ops: React.FC = () => {
                                 </span>
                               ) : <span className="ops-muted">&mdash;</span>}
                             </td>
-                            <td></td>
+                            <td>
+                              {wsClusterName && wsClusterInfo ? (
+                                <Label
+                                  isCompact
+                                  color={wsCapacityState === 'critical' ? 'red' : wsCapacityState === 'warning' ? 'orange' : 'blue'}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  🖥️ {wsClusterName}
+                                </Label>
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
+                            </td>
+                            <td>
+                              {ws.spec?.openRegistration !== false ? (
+                                <Label color="green" isCompact>Open</Label>
+                              ) : (
+                                <Label color="blue" isCompact>Pre-reg</Label>
+                              )}
+                            </td>
                             <td>
                               {password ? (
                                 showPasswords
@@ -2447,7 +3425,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendStop}>Extend Stop</Button>
+          <Button variant="warning" onClick={handleExtendStop}>Extend Stop</Button>
           <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2477,7 +3455,7 @@ const Ops: React.FC = () => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleExtendDestroy}>Extend Destroy</Button>
+          <Button variant="warning" onClick={handleExtendDestroy}>Extend Destroy</Button>
           <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
         </ModalFooter>
       </Modal>
@@ -2594,6 +3572,49 @@ const Ops: React.FC = () => {
         <ModalFooter>
           <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
           <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Redeploy Failed Services Confirmation */}
+      <Modal
+        variant="small"
+        isOpen={showRedeployConfirm}
+        onClose={() => setShowRedeployConfirm(false)}
+        aria-labelledby="redeploy-confirm"
+      >
+        <ModalHeader title="Confirm Redeploy Failed Services" labelId="redeploy-confirm" />
+        <ModalBody>
+          <Alert
+            variant="warning"
+            isInline
+            title="Warning"
+          >
+            <p>
+              This will delete and recreate failed instances. Cloud resources will be deleted. Babylon will automatically recreate them.
+            </p>
+          </Alert>
+
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            <p>The following workshops have failed instances:</p>
+            <ul style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+              {failedInstancesAnalysis.failedWorkshops.map(fw => (
+                <li key={wsKey(fw.workshop)}>
+                  <strong>{displayName(fw.workshop)}</strong> ({fw.workshop.metadata.namespace}): {fw.failedCount} failed
+                </li>
+              ))}
+            </ul>
+            <p>
+              Total: <strong>{failedInstancesAnalysis.totalFailed}</strong> instance(s) will be redeployed
+            </p>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="warning" onClick={handleRedeployFailed}>
+            Redeploy Failed Services
+          </Button>
+          <Button variant="link" onClick={() => setShowRedeployConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

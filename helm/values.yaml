@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v2.6.0
+      tag: v2.8.3
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -65,7 +65,7 @@ anarchy:
     sources:
       babylon_anarchy_governor:
         src: https://github.com/rhpds/babylon_anarchy_governor.git
-        version: v0.32.1
+        version: v0.32.6
   api:
     group: anarchy.gpte.redhat.com
     version: v1
@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.2.2
+        tag: v1.3.4
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -145,7 +145,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.34.2
+        tag: v0.35.13
       replicaCount: 1
       resources:
         requests:
@@ -174,6 +174,7 @@ catalog:
 configNamespace:
   name: babylon-config
 
+#environmentLevel: <required>
 #ingressDomain: <required>
 
 notifier:
@@ -181,7 +182,7 @@ notifier:
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent
-    tag: v0.9.4
+    tag: v0.9.6
   namespace:
     create: true
     name: babylon-notifier
@@ -207,10 +208,10 @@ notifier:
   resources:
     limits:
       cpu: "1"
-      memory: 640Mi
+      memory: 1Gi
     requests:
       cpu: 100m
-      memory: 640Mi
+      memory: 1Gi
 
 resourceBroker:
   api:
@@ -224,7 +225,7 @@ serviceAccessManager:
   image:
     repository: quay.io/rhpds/babylon-service-access-manager
     pullPolicy: IfNotPresent
-    tag: v0.1.1
+    tag: v0.1.2
   namespace:
     create: true
     name: babylon-service-access-manager
@@ -236,6 +237,29 @@ serviceAccessManager:
       cpu: 200m
       memory: 1Gi
 
+tenantClusterPoolManager:
+  deploy: true
+  image:
+    repository: quay.io/rhpds/babylon-tenant-cluster-pool-manager
+    pullPolicy: IfNotPresent
+    tag: v0.1.2
+  namespace:
+    create: true
+    name: babylon-tenant-cluster-pool-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  sandboxApi:
+    bitwardenSyncSecret:
+      name: sandbox_api_shared-cluster-manager_login_token
+  sharedClusterNamespace:
+    create: true
+    name: shared-clusters
+
 workshopManager:
   api:
     group: babylon.gpte.redhat.com
@@ -244,7 +268,7 @@ workshopManager:
   image:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
-    tag: v0.10.4
+    tag: v0.11.2
   namespace:
     create: true
     name: babylon-workshop-manager
@@ -255,6 +279,28 @@ workshopManager:
     requests:
       cpu: 200m
       memory: 1Gi
+  workshopBaseUrl: ""
+
+selfpacedlabManager:
+  api:
+    group: babylon.gpte.redhat.com
+    version: v1
+  deploy: true
+  image:
+    repository: quay.io/rhpds/babylon-selfpacedlab-manager
+    pullPolicy: IfNotPresent
+    tag: v0.0.2
+  namespace:
+    create: true
+    name: babylon-selfpacedlab-manager
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 1Gi
+  selfpacedlabBaseUrl: ""
 
 admin:
   deploy: true
@@ -281,29 +327,6 @@ admin:
     workshopFormId: b48fe3cc870b2d508a51bbbf8bbb3576
     secretName: servicenow
 
-ratings:
-  deploy: true
-  replicaCount: 2
-  namespace:
-    create: true
-    name: babylon-ratings
-  db:
-    secretName: ratings-db
-    bitwardenSecret: reporting_database
-  image:
-    repository: quay.io/redhat-gpte/babylon-ratings
-    pullPolicy: Always
-    tag: v1.0.11
-  resources:
-    limits:
-      cpu: "1"
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-  babylon:
-    domain: babylon.gpte.redhat.com
-
 catalogManager:
   deploy: true
   replicaCount: 1
@@ -313,7 +336,7 @@ catalogManager:
   image:
     repository: quay.io/redhat-gpte/babylon-catalog-manager
     pullPolicy: Always
-    tag: v1.0.18
+    tag: v1.2.2
   resources:
     limits:
       cpu: "1"

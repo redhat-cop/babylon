@@ -1,5 +1,5 @@
 import { reduceFormState, checkCondition, checkEnableSubmit } from './CatalogItemFormReducer';
-import { CatalogItem, ServiceNamespace, TPurposeOpts } from '@app/types';
+import type { CatalogItem, ServiceNamespace, TPurposeOpts } from '@app/types';
 
 const mockCatalogItem: CatalogItem = {
   apiVersion: 'babylon.gpte.redhat.com/v1',
@@ -76,6 +76,48 @@ describe('CatalogItemFormReducer', () => {
         });
 
         expect(initialState.selectedResourcePool).toBeUndefined();
+      });
+
+      it('should set stopDate to null when stop action is not supported', () => {
+        const catalogItemNoStop: CatalogItem = {
+          ...mockCatalogItem,
+          spec: {
+            ...mockCatalogItem.spec,
+            runtime: { default: '4h', maximum: '8h' },
+            supportedActions: { start: {}, provision: {}, destroy: {} },
+          },
+        };
+        const initialState = reduceFormState(undefined as any, {
+          type: 'init',
+          catalogItem: catalogItemNoStop,
+          serviceNamespace: mockServiceNamespace,
+          user: mockUserProps,
+          purposeOpts: mockPurposeOpts,
+          sfdc_enabled: false,
+        });
+
+        expect(initialState.stopDate).toBeNull();
+      });
+
+      it('should set stopDate when stop action is supported', () => {
+        const catalogItemWithStop: CatalogItem = {
+          ...mockCatalogItem,
+          spec: {
+            ...mockCatalogItem.spec,
+            runtime: { default: '4h', maximum: '8h' },
+            supportedActions: { start: {}, stop: {}, provision: {}, destroy: {} },
+          },
+        };
+        const initialState = reduceFormState(undefined as any, {
+          type: 'init',
+          catalogItem: catalogItemWithStop,
+          serviceNamespace: mockServiceNamespace,
+          user: mockUserProps,
+          purposeOpts: mockPurposeOpts,
+          sfdc_enabled: false,
+        });
+
+        expect(initialState.stopDate).toBeTruthy();
       });
     });
 

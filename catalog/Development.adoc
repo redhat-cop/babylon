@@ -42,15 +42,15 @@ python3 app.py
 
 In a separate terminal, within the `ui` subdirectory, setup Node.js dependencies:
 
------------
-npm install
------------
+------------
+pnpm install
+------------
 
 and start the React UI:
 
------------------
-npm run start:dev
------------------
+------------------
+pnpm run start:dev
+------------------
 
 == Build and Deploy
 

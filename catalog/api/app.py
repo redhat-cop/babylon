@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import asyncio
+import base64
 import copy
 import gzip
 import json
@@ -9,7 +10,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import aiohttp
 from aiohttp import web
@@ -18,6 +19,7 @@ import kubernetes_asyncio
 import redis.asyncio as redis
 from hotfix import HotfixKubeApiClient
 from randomstring import random_string
+from audit import audit_log, audit_log_api_action
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -28,11 +30,15 @@ system_status_configmap_name = os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylo
 groups = []
 groups_last_update = 0
 admin_api = os.environ.get('ADMIN_API', 'http://babylon-admin.babylon-admin.svc.cluster.local:8080')
-ratings_api = os.environ.get('RATINGS_API', 'http://babylon-ratings.babylon-ratings.svc.cluster.local:8080')
 reporting_api = os.environ.get('SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080')
 sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-api.svc.cluster.local:8080')
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
+shared_cluster_manager_token = os.environ.get('SHARED_CLUSTER_MANAGER_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+jira_base_url = os.environ.get('JIRA_BASE_URL', 'https://redhat.atlassian.net')
+jira_api_token = os.environ.get('JIRA_API_TOKEN')
+jira_user_email = os.environ.get('JIRA_USER_EMAIL')
+jira_project_key = os.environ.get('JIRA_PROJECT_KEY', 'RHDPSPPT')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
 response_cache_clean_task = None
@@ -394,6 +400,7 @@ async def get_auth_session(request):
             "consoleURL": console_url,
             "groups": user_groups,
             "user": user['metadata']['name'],
+            "fullName": user.get('fullName', ''),
             "token": token,
             "catalogNamespaces": session['catalogNamespaces'],
             "lifetime": session_lifetime,
@@ -408,6 +415,7 @@ async def get_auth_session(request):
         if interface_name:
             ret['interface'] = interface_name
 
+        audit_log('session_created', user=user['metadata']['name'], details={'admin': user_is_admin})
         return web.json_response(ret)
     finally:
         await api_client.close()
@@ -422,7 +430,9 @@ async def get_auth_cli_redirect(request):
     cookie so the CLI can use both for subsequent API calls.
     """
     callback = request.query.get('callback', '')
-    if not callback or not callback.startswith('http://localhost'):
+
+    parsed_callback = urlparse(callback) if callback else None
+    if not parsed_callback or parsed_callback.scheme != 'http' or parsed_callback.hostname not in ('localhost', '127.0.0.1'):
         raise web.HTTPBadRequest(reason="Missing or invalid 'callback' parameter (must be http://localhost)")
 
     user = await get_proxy_user(request)
@@ -517,10 +527,13 @@ async def provision_rating_get(request):
     request_uid = request.match_info.get('request_uid')
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}/email/{email}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}/email/{quote(email, safe='')}",
     )
 
 @routes.post("/api/ratings/request/{request_uid}")
@@ -529,22 +542,29 @@ async def provision_rating_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/ratings/v1/request/{request_uid}",
+        url=f"{reporting_api}/rating/v1/request/{quote(request_uid, safe='')}",
     )
 
 
 @routes.get("/api/user-manager/bookmarks")
-async def provision_rating_get(request):
+async def bookmark_get(request):
     user = await get_proxy_user(request)
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}",
     )
 
 @routes.post("/api/user-manager/bookmarks")
@@ -552,11 +572,15 @@ async def bookmark_post(request):
     user = await get_proxy_user(request)
     data = await request.json()
     data["email"] = user['metadata']['name']
+    headers = {
+        'Authorization': f"Bearer {reporting_api_authorization_token}",
+        'Content-Type': 'application/json'
+    }
     return await api_proxy(
         data=json.dumps(data),
-        headers=request.headers,
+        headers=headers,
         method="POST",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks",
+        url=f"{reporting_api}/bookmark/v1/",
     )
 
 @routes.delete("/api/user-manager/bookmarks")
@@ -564,10 +588,26 @@ async def bookmark_delete(request):
     user = await get_proxy_user(request)
     asset_uuid = request.query.get("asset_uuid")
     email = user['metadata']['name']
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="DELETE",
-        url=f"{ratings_api}/api/user-manager/v1/bookmarks/{email}/{asset_uuid}",
+        url=f"{reporting_api}/bookmark/v1/{quote(email, safe='')}/{quote(asset_uuid, safe='')}",
+    )
+
+@routes.get("/api/ratings/catalogitem/{asset_uuid}")
+async def catalog_item_rating_average(request):
+    await get_proxy_user(request)
+    asset_uuid = request.match_info.get('asset_uuid')
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}",
     )
 
 @routes.get("/api/ratings/catalogitem/{asset_uuid}/history")
@@ -577,14 +617,32 @@ async def provision_rating_get_history(request):
     session = await get_user_session(request, user)
     if not session.get('admin'):
         raise web.HTTPForbidden()
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
     return await api_proxy(
-        headers=request.headers,
+        headers=headers,
         method="GET",
-        url=f"{ratings_api}/api/ratings/v1/catalogitem/{asset_uuid}/history",
+        url=f"{reporting_api}/rating/v1/catalog/{quote(asset_uuid, safe='')}/history",
+    )
+
+@routes.get("/api/ratings/list")
+async def ratings_list(request):
+    await get_proxy_user(request)
+    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
+    headers = {
+        "Authorization": f"Bearer {reporting_api_authorization_token}"
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{reporting_api}/rating/v1/list{queryString}",
     )
 
 @routes.get("/api/admin/incidents")
 async def incidents_get(request):
+    await get_proxy_user(request)
     return await api_proxy(
         headers=request.headers,
         method="GET",
@@ -618,7 +676,7 @@ async def update_incident(request):
         data=json.dumps(data),
         headers=request.headers,
         method="POST",
-        url=f"{admin_api}/api/admin/v1/incidents/{incident_id}",
+        url=f"{admin_api}/api/admin/v1/incidents/{quote(incident_id, safe='')}",
     )
 
 @routes.post("/api/admin/workshop/support")
@@ -644,53 +702,53 @@ async def create_support(request):
 
 @routes.get("/api/salesforce/accounts")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = ""
+    params = {}
     salesType = request.query.get("sales_type")
     accountValue = request.query.get("value")
     if salesType:
-        queryString = f"sales_type={salesType}"
-    if accountValue:
-        queryString = f"{queryString}&value={accountValue}"
-    else:
-        queryString = f"{queryString}&value=''"
+        params["sales_type"] = salesType
+    params["value"] = accountValue if accountValue else "''"
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts?{queryString}",
+        url=f"{reporting_api}/search/accounts?{urlencode(params)}",
     )
 @routes.get("/api/salesforce/accounts/{account_id}")
 async def list_sfdc_accounts(request):
+    await get_proxy_user(request)
     account_id = request.match_info.get('account_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"account_id={account_id}"
+    params = {"account_id": account_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/search/accounts/sfdc?{queryString}",
+        url=f"{reporting_api}/search/accounts/sfdc?{urlencode(params)}",
     )
 
 @routes.get("/api/salesforce/{salesforce_id}")
 async def salesforce_id_validation(request):
+    await get_proxy_user(request)
     salesforce_id = request.match_info.get('salesforce_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    queryString = f"salesforce_id={salesforce_id}"
+    params = {"salesforce_id": salesforce_id}
     salesType = request.query.get("sales_type")
     if salesType:
-        queryString = f"{queryString}&sales_type={salesType}"
+        params["sales_type"] = salesType
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/sales_validation/check?{queryString}",
+        url=f"{reporting_api}/sales_validation/check?{urlencode(params)}",
     )
 
 # Expects a request body with the following structure:
@@ -776,8 +834,69 @@ async def catalog_item_check_availability(request):
         url=f"{sandbox_api}/api/v1/placements/dry-run",
     )
 
+@routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}/placements")
+async def sandbox_cluster_placements(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as http_session:
+        login_headers = {
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
+        }
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}/placements",
+    )
+
+@routes.get("/api/sandbox/ocp-shared-cluster-configurations/{name}")
+async def sandbox_cluster_config(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
+
+    cluster_name = request.match_info.get('name')
+
+    async with aiohttp.ClientSession() as http_session:
+        login_headers = {
+            "Authorization": f"Bearer {shared_cluster_manager_token}"
+        }
+        async with http_session.get(f"{sandbox_api}/api/v1/login", headers=login_headers) as login_resp:
+            if login_resp.status != 200:
+                raise web.HTTPInternalServerError(reason=f"Failed to login to sandbox API: {login_resp.status}")
+            login_data = await login_resp.json()
+            access_token = login_data.get("access_token")
+            if not access_token:
+                raise web.HTTPInternalServerError(reason="Failed to get access token from sandbox API")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return await api_proxy(
+        headers=headers,
+        method="GET",
+        url=f"{sandbox_api}/api/v1/ocp-shared-cluster-configurations/{quote(cluster_name, safe='')}",
+    )
+
 @routes.get("/api/catalog_item/metrics/{asset_uuid}")
 async def catalog_item_metrics(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -785,15 +904,16 @@ async def catalog_item_metrics(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_item/metrics/{asset_uuid}?use_cache=true",
+        url=f"{reporting_api}/catalog_item/metrics/{quote(asset_uuid, safe='')}?use_cache=true",
     )
 
 @routes.get("/api/catalog_incident/active-incidents")
 async def catalog_item_active_incidents(request):
+    await get_proxy_user(request)
     stage = request.query.get("stage")
     queryString = ""
     if stage:
-        queryString = f"?stage={stage}"
+        queryString = f"?{urlencode({'stage': stage})}"
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
@@ -805,6 +925,7 @@ async def catalog_item_active_incidents(request):
 
 @routes.get("/api/catalog_incident/last-incident/{asset_uuid}/{stage}")
 async def catalog_item_last_incident(request):
+    await get_proxy_user(request)
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     headers = {
@@ -813,11 +934,15 @@ async def catalog_item_last_incident(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/catalog_incident/last-incident/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/last-incident/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
 @routes.post("/api/catalog_incident/incidents/{asset_uuid}/{stage}")
 async def catalog_item_incidents(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden()
     asset_uuid = request.match_info.get('asset_uuid')
     stage = request.match_info.get('stage')
     data = await request.json()
@@ -829,10 +954,10 @@ async def catalog_item_incidents(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/catalog_incident/incidents/{asset_uuid}/{stage}",
+        url=f"{reporting_api}/catalog_incident/incidents/{quote(asset_uuid, safe='')}/{quote(stage, safe='')}",
     )
 
-@routes.post("/api/external_item/{asset_uuid}")
+@routes.post("/api/external_item/{asset_uuid}/request")
 async def external_item_request(request):
     asset_uuid = request.match_info.get('asset_uuid')
     data = await request.json()
@@ -846,11 +971,287 @@ async def external_item_request(request):
         headers=headers,
         method="POST",
         data=json.dumps(data),
-        url=f"{reporting_api}/external_item/{asset_uuid}/request",
+        url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
+
+@routes.post("/api/jira/wgr")
+async def create_jira_wgr_ticket(request):
+    user = await get_proxy_user(request)
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    data = await request.json()
+    display_name = data.get('displayName', 'White Glove Request')
+    requester = user['metadata']['name']
+
+    catalog_item_names_list = data.get('catalogItemNames') or []
+    catalog_namespace = data.get('catalogItemNamespace', '')
+    if catalog_item_names_list:
+        catalog_items_str = ', '.join(f"{catalog_namespace}/{name}" for name in catalog_item_names_list)
+    else:
+        catalog_items_str = 'N/A (consultation)'
+
+    description_lines = [
+        f"Requester: {requester}",
+        f"Catalog Item: {catalog_items_str}",
+        f"Activity: {data.get('activity', 'N/A')}",
+        f"Purpose: {data.get('purpose', 'N/A')}",
+    ]
+    if data.get('explanation'):
+        description_lines.append(f"Explanation: {data['explanation']}")
+    description_lines.append(f"Number of Users: {data.get('numberOfUsers', 'N/A')}")
+    if data.get('deliveryMode'):
+        description_lines.append(f"Delivery Mode: {data['deliveryMode']}")
+    if data.get('audienceType'):
+        description_lines.append(f"Audience Type: {data['audienceType']}")
+    if data.get('eventDate'):
+        description_lines.append(f"Event Start: {data['eventDate']}")
+    if data.get('eventEndDate'):
+        description_lines.append(f"Event End: {data['eventEndDate']}")
+    if data.get('salesforceItems'):
+        sf_ids = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
+        description_lines.append(f"Salesforce IDs: {sf_ids}")
+    if data.get('shareWith'):
+        description_lines.append(f"Shared With: {', '.join(data['shareWith'])}")
+    if data.get('notes'):
+        description_lines.append(f"\nNotes:\n{data['notes']}")
+
+    description_text = '\n'.join(description_lines)
+
+    labels = ['whiteglove', 'whiteglove-pending']
+    if len(catalog_item_names_list) > 1:
+        labels.append('whiteglove-multi-asset')
+    if not catalog_item_names_list:
+        labels.append('whiteglove-consultation')
+    event_date_str = data.get('eventDate')
+    if event_date_str:
+        event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
+        if (event_date - datetime.now(timezone.utc)).days < 14:
+            labels.append('whiteglove-short-notice')
+
+    jira_payload = {
+        "fields": {
+            "project": {"key": jira_project_key},
+            "summary": f"[WGR] {display_name}",
+            "description": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": description_text}]
+                    }
+                ]
+            },
+            "issuetype": {"name": "Task"},
+            "reporter": {"emailAddress": requester},
+            "labels": labels,
+        }
+    }
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{jira_base_url}/rest/api/3/issue",
+            headers=headers,
+            data=json.dumps(jira_payload),
+        ) as resp:
+            if resp.status not in (200, 201):
+                error_body = await resp.text()
+                logging.error(f"Jira API error ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to create Jira ticket: {resp.status}")
+            result = await resp.json()
+
+    ticket_key = result['key']
+    ticket_url = f"{jira_base_url}/browse/{ticket_key}"
+
+    audit_log('jira_ticket_created', user=requester, details={'ticket': ticket_key, 'display_name': display_name})
+
+    return web.json_response({"key": ticket_key, "url": ticket_url})
+
+@routes.get("/api/jira/issue/{issue_key}")
+async def get_jira_issue_details(request):
+    await get_proxy_user(request)
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.get(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}?fields=assignee,status",
+            headers=headers,
+        ) as issue_resp:
+            if issue_resp.status == 404:
+                raise web.HTTPNotFound(reason=f"Jira issue {issue_key} not found")
+            if issue_resp.status != 200:
+                error_body = await issue_resp.text()
+                logging.error(f"Jira API error fetching issue ({issue_resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to fetch Jira issue: {issue_resp.status}")
+            issue_data = await issue_resp.json()
+
+        async with http_session.get(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment?orderBy=-created",
+            headers=headers,
+        ) as comments_resp:
+            if comments_resp.status != 200:
+                error_body = await comments_resp.text()
+                logging.error(f"Jira API error fetching comments ({comments_resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to fetch Jira comments: {comments_resp.status}")
+            comments_data = await comments_resp.json()
+
+    assignee_field = issue_data.get('fields', {}).get('assignee')
+    status_field = issue_data.get('fields', {}).get('status')
+    assignee = None
+    if assignee_field:
+        assignee = {
+            "displayName": assignee_field.get('displayName'),
+            "emailAddress": assignee_field.get('emailAddress'),
+        }
+
+    comments = []
+    for comment in comments_data.get('comments', []):
+        body_content = comment.get('body', {}).get('content', [])
+        body_text = ''
+        for block in body_content:
+            for inline in block.get('content', []):
+                if inline.get('type') == 'text':
+                    body_text += inline.get('text', '')
+        comments.append({
+            "author": comment.get('author', {}).get('displayName'),
+            "body": body_text,
+            "created": comment.get('created'),
+            "updated": comment.get('updated'),
+        })
+
+    return web.json_response({
+        "key": issue_key,
+        "assignee": assignee,
+        "status": status_field.get('name') if status_field else None,
+        "comments": comments,
+    })
+
+@routes.post("/api/jira/issue/{issue_key}/comment")
+async def add_jira_issue_comment(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required")
+    user_email = request.headers.get('X-Forwarded-Email', user.get('metadata', {}).get('name', 'unknown'))
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    body = await request.json()
+    comment_text = body.get('comment', '').strip()
+    if not comment_text:
+        raise web.HTTPBadRequest(reason="Comment text is required")
+
+    jira_body = {
+        "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+                {
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": f"[{user_email}] {comment_text}"}],
+                }
+            ],
+        }
+    }
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.post(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment",
+            headers=headers,
+            data=json.dumps(jira_body),
+        ) as resp:
+            if resp.status not in (200, 201):
+                error_body = await resp.text()
+                logging.error(f"Jira API error posting comment ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to post Jira comment: {resp.status}")
+            result = await resp.json()
+
+    audit_log('jira_comment_added', user=user_email, details={'ticket': issue_key})
+    return web.json_response({"ok": True, "id": result.get('id')})
+
+@routes.put("/api/jira/issue/{issue_key}/labels")
+async def update_jira_issue_labels(request):
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if not session.get('admin'):
+        raise web.HTTPForbidden(reason="Admin access required")
+
+    if not jira_api_token or not jira_user_email:
+        raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
+
+    issue_key = request.match_info.get('issue_key')
+    if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
+        raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+
+    body = await request.json()
+    add_labels = body.get('add', [])
+    remove_labels = body.get('remove', [])
+    if not isinstance(add_labels, list) or not isinstance(remove_labels, list):
+        raise web.HTTPBadRequest(reason="add and remove must be lists of strings")
+
+    update_ops = []
+    for label in add_labels:
+        update_ops.append({"add": label})
+    for label in remove_labels:
+        update_ops.append({"remove": label})
+
+    if not update_ops:
+        return web.json_response({"ok": True})
+
+    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+
+    async with aiohttp.ClientSession() as http_session:
+        async with http_session.put(
+            f"{jira_base_url}/rest/api/3/issue/{issue_key}",
+            headers=headers,
+            data=json.dumps({"update": {"labels": update_ops}}),
+        ) as resp:
+            if resp.status not in (200, 204):
+                error_body = await resp.text()
+                logging.error(f"Jira API error updating labels ({resp.status}): {error_body}")
+                raise web.HTTPBadGateway(reason=f"Failed to update Jira labels: {resp.status}")
+
+    audit_log('jira_labels_updated', user=user['metadata']['name'], details={'ticket': issue_key, 'add': add_labels, 'remove': remove_labels})
+    return web.json_response({"ok": True})
+
 
 @routes.get("/api/usage-cost/request/{request_id}")
 async def usage_cost_request(request):
+    await get_proxy_user(request)
     request_id = request.match_info.get('request_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -858,11 +1259,12 @@ async def usage_cost_request(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/request/{request_id}",
+        url=f"{reporting_api}/usage-cost/request/{quote(request_id, safe='')}",
     )
 
 @routes.get("/api/usage-cost/workshop/{workshop_id}")
 async def usage_cost_workshop(request):
+    await get_proxy_user(request)
     workshop_id = request.match_info.get('workshop_id')
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -870,7 +1272,7 @@ async def usage_cost_workshop(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/usage-cost/workshop/{workshop_id}",
+        url=f"{reporting_api}/usage-cost/workshop/{quote(workshop_id, safe='')}",
     )
 
 @routes.get("/api/users/activity")
@@ -882,9 +1284,7 @@ async def user_activity(request):
     if impersonate_user and session.get('admin'):
         email = impersonate_user
 
-    # Forward all query parameters
-    query_params = "&".join(f"{key}={value}" for key, value in request.query.items())
-    queryString = f"?{query_params}" if query_params else ""
+    queryString = f"?{urlencode(dict(request.query))}" if request.query else ""
 
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
@@ -892,30 +1292,28 @@ async def user_activity(request):
     return await api_proxy(
         headers=headers,
         method="GET",
-        url=f"{reporting_api}/users/activity/{email}{queryString}",
+        url=f"{reporting_api}/users/activity/{quote(email, safe='')}{queryString}",
     )
 
-@routes.get("/api/event/{namespace}/{name}")
+@routes.get("/api/event/{multi_workshop_id}")
 async def public_multiworkshop_get(request):
     """
     Publicly accessible endpoint to get basic multiworkshop information.
-    This endpoint doesn't require authentication and is used by the event landing page.
-
-    Returns basic multiworkshop details needed for the public event page without
-    exposing sensitive data or requiring user authentication.
+    Looks up the MultiWorkshop by its multi-workshop-id label, mirroring
+    how workshops are found by workshop-id.
     """
-    namespace = request.match_info.get('namespace')
-    name = request.match_info.get('name')
+    multi_workshop_id = request.match_info.get('multi_workshop_id')
 
     try:
-        # Get multiworkshop directly from kubernetes API without user authentication
-        multiworkshop = await custom_objects_api.get_namespaced_custom_object(
+        multiworkshop_list = await custom_objects_api.list_cluster_custom_object(
             group='babylon.gpte.redhat.com',
             version='v1',
-            namespace=namespace,
             plural='multiworkshops',
-            name=name
+            label_selector=f"babylon.gpte.redhat.com/multi-workshop-id={multi_workshop_id}",
         )
+        if not multiworkshop_list.get('items'):
+            return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
+        multiworkshop = multiworkshop_list['items'][0]
 
         # Enrich each catalog asset with availableSeats from its Workshop status
         assets = multiworkshop.get('spec', {}).get('assets', [])
@@ -927,15 +1325,15 @@ async def public_multiworkshop_get(request):
             if asset_type == 'external':
                 asset_url = asset.get('url', '')
                 parsed = urlparse(asset_url)
-                if parsed.hostname == 'zero.rhdp.net' and parsed.path:
-                    pool_name = parsed.path.rstrip('/').split('/')[-1]
+                if parsed.path and parsed.path.strip('/').split('/')[0] == 'lab-event':
+                    catalog_item_name = parsed.path.rstrip('/').split('/')[-1]
                     try:
                         handles_resp = await custom_objects_api.list_namespaced_custom_object(
                             group='poolboy.gpte.redhat.com',
                             version='v1',
                             namespace='poolboy',
                             plural='resourcehandles',
-                            label_selector=f"poolboy.gpte.redhat.com/resource-pool-name={pool_name}",
+                            label_selector=f"poolboy.gpte.redhat.com/resource-pool-name={catalog_item_name}",
                         )
                         available = sum(
                             1 for h in handles_resp.get('items', [])
@@ -946,7 +1344,25 @@ async def public_multiworkshop_get(request):
                         asset['availableSeats'] = available
                     except Exception as e:
                         logging.error(f"Error getting available seats: {e}")
-                        pass
+                    
+                    catalog_item_namespace = "babylon-catalog-prod"
+                    try:
+                        catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                            group='babylon.gpte.redhat.com',
+                            version='v1',
+                            namespace=catalog_item_namespace,
+                            plural='catalogitems',
+                            name=catalog_item_name
+                        )
+                        catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
+                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
+                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
+                        if product_family:
+                            asset['productFamily'] = product_family
+                        if product:
+                            asset['product'] = product
+                    except Exception as e:
+                        logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
                 continue
 
             elif not workshop_name or not workshop_namespace:
@@ -962,18 +1378,34 @@ async def public_multiworkshop_get(request):
                 available = workshop.get('status', {}).get('userCount', {}).get('available')
                 if available is not None:
                     asset['availableSeats'] = available
+
+                catalog_item_name = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/catalogItemName')
+                catalog_item_namespace = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/catalogItemNamespace')
+                if catalog_item_name and catalog_item_namespace:
+                    try:
+                        catalog_item = await custom_objects_api.get_namespaced_custom_object(
+                            group='babylon.gpte.redhat.com',
+                            version='v1',
+                            namespace=catalog_item_namespace,
+                            plural='catalogitems',
+                            name=catalog_item_name
+                        )
+                        catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
+                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
+                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
+                        if product_family:
+                            asset['productFamily'] = product_family
+                        if product:
+                            asset['product'] = product
+                    except Exception as e:
+                        logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
             except Exception as e:
                 logging.error(f"Error getting available seats: {e}")
                 pass
         return web.json_response(multiworkshop)
 
-    except kubernetes_asyncio.client.exceptions.ApiException as e:
-        if e.status == 404:
-            return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
-        logging.error(f"Error fetching multiworkshop {namespace}/{name}: {e}")
-        return web.json_response({'error': 'Internal server error'}, status=500)
     except Exception as e:
-        logging.error(f"Error fetching multiworkshop {namespace}/{name}: {str(e)}")
+        logging.error(f"Error fetching multiworkshop {multi_workshop_id}: {str(e)}")
         return web.json_response({'error': 'Internal server error'}, status=500)
 
 @routes.get("/api/workshop/{workshop_id}")
@@ -1091,6 +1523,120 @@ async def workshop_post(request):
     raise web.HTTPConflict()
 
 
+@routes.get("/api/selfpacedlab/{selfpacedlab_id}")
+async def selfpacedlab_get(request):
+    """
+    Fetch self-paced lab for an attendee in order to present overview.
+    """
+    selfpacedlab_id = request.match_info.get('selfpacedlab_id')
+    selfpacedlab_list = await custom_objects_api.list_cluster_custom_object(
+        group='babylon.gpte.redhat.com',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab-id={selfpacedlab_id}",
+        plural='selfpacedlabs',
+        version='v1',
+    )
+    if not selfpacedlab_list.get('items'):
+        raise web.HTTPNotFound()
+    selfpacedlab = selfpacedlab_list['items'][0]
+    ret = {
+        "accessPasswordRequired": True if selfpacedlab['spec'].get('accessPassword') else False,
+        "description": selfpacedlab['spec'].get('description'),
+        "displayName": selfpacedlab['spec'].get('displayName'),
+        "name": selfpacedlab['metadata']['name'],
+        "namespace": selfpacedlab['metadata']['namespace'],
+        "template": selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
+            or selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+    }
+    return web.json_response(ret)
+
+
+@routes.post("/api/selfpacedlab/{selfpacedlab_id}")
+@routes.put("/api/selfpacedlab/{selfpacedlab_id}")
+async def selfpacedlab_post(request):
+    """
+    Access self-paced lab as an attendee with login information.
+    """
+    selfpacedlab_id = request.match_info.get('selfpacedlab_id')
+    if not request.can_read_body:
+        raise web.HTTPBadRequest()
+
+    data = await request.json()
+    if not data:
+        raise web.HTTPBadRequest()
+
+    access_password = data.get('accessPassword')
+    email = data.get('email')
+    if not email:
+        raise web.HTTPBadRequest()
+
+    selfpacedlab_list = await custom_objects_api.list_cluster_custom_object(
+        'babylon.gpte.redhat.com', 'v1', 'selfpacedlabs',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab-id={selfpacedlab_id}"
+    )
+    if not selfpacedlab_list.get('items'):
+        raise web.HTTPConflict()
+
+    selfpacedlab = selfpacedlab_list['items'][0]
+    selfpacedlab_access_password = selfpacedlab['spec'].get('accessPassword')
+    selfpacedlab_name = selfpacedlab['metadata']['name']
+    selfpacedlab_namespace = selfpacedlab['metadata']['namespace']
+    selfpacedlab_open_registration = selfpacedlab['spec'].get('openRegistration', True)
+
+    if access_password:
+        if access_password != selfpacedlab_access_password:
+            raise web.HTTPForbidden()
+    elif selfpacedlab_access_password:
+        raise web.HTTPBadRequest()
+
+    selfpacedlab_user_assignments = await custom_objects_api.list_namespaced_custom_object(
+        group='babylon.gpte.redhat.com',
+        label_selector=f"babylon.gpte.redhat.com/selfpacedlab={selfpacedlab_name}",
+        namespace=selfpacedlab_namespace,
+        plural='selfpacedlabuserassignments',
+        version='v1',
+    )
+
+    if not selfpacedlab_user_assignments.get('items'):
+        raise web.HTTPNotFound()
+
+    ret = {
+        "accessPasswordRequired": True if selfpacedlab_access_password else False,
+        "labUserInterfaceRedirect": selfpacedlab['spec'].get('labUserInterface', {}).get('redirect', True),
+        "description": selfpacedlab['spec'].get('description'),
+        "displayName": selfpacedlab['spec'].get('displayName'),
+        "name": selfpacedlab_name,
+        "namespace": selfpacedlab_namespace,
+        "template": selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/user-message-template')
+            or selfpacedlab['metadata'].get('annotations', {}).get('demo.redhat.com/info-message-template')
+    }
+
+    for user_assignment in selfpacedlab_user_assignments.get('items', []):
+        if email == user_assignment['spec'].get('assignment', {}).get('email'):
+            ret['assignment'] = user_assignment['spec']
+            return web.json_response(ret)
+
+    if not selfpacedlab_open_registration:
+        raise web.HTTPConflict()
+
+    for user_assignment in selfpacedlab_user_assignments.get('items', []):
+        if not 'assignment' in user_assignment['spec']:
+            try:
+                user_assignment['spec']['assignment'] = {"email": email}
+                await custom_objects_api.replace_namespaced_custom_object(
+                    body=user_assignment,
+                    group='babylon.gpte.redhat.com',
+                    name=user_assignment['metadata']['name'],
+                    namespace=user_assignment['metadata']['namespace'],
+                    plural='selfpacedlabuserassignments',
+                    version='v1',
+                )
+                ret['assignment'] = user_assignment['spec']
+                return web.json_response(ret)
+            except kubernetes_asyncio.client.exceptions.ApiException as exception:
+                if exception.status != 409:
+                    raise
+
+    raise web.HTTPConflict()
 
 
 
@@ -1104,6 +1650,7 @@ async def get_system_status_from_configmap():
         'workshops_ordering_blocked_message': '',
         'services_ordering_blocked': False,
         'services_ordering_blocked_message': '',
+        'wg_blocked_dates': [],
         'last_updated_by': '',
         'last_updated_at': '',
     }
@@ -1113,11 +1660,16 @@ async def get_system_status_from_configmap():
             namespace=babylon_namespace
         )
         data = configmap.data or {}
+        try:
+            wg_blocked_dates = json.loads(data.get('wg_blocked_dates', '[]'))
+        except (json.JSONDecodeError, TypeError):
+            wg_blocked_dates = []
         return {
             'workshops_ordering_blocked': data.get('workshops_ordering_blocked', 'false').lower() == 'true',
             'workshops_ordering_blocked_message': data.get('workshops_ordering_blocked_message', ''),
             'services_ordering_blocked': data.get('services_ordering_blocked', 'false').lower() == 'true',
             'services_ordering_blocked_message': data.get('services_ordering_blocked_message', ''),
+            'wg_blocked_dates': wg_blocked_dates,
             'last_updated_by': data.get('last_updated_by', ''),
             'last_updated_at': data.get('last_updated_at', ''),
         }
@@ -1175,7 +1727,8 @@ async def update_system_status(request):
         'workshops_ordering_blocked',
         'workshops_ordering_blocked_message',
         'services_ordering_blocked',
-        'services_ordering_blocked_message'
+        'services_ordering_blocked_message',
+        'wg_blocked_dates',
     }
 
     for key in data.keys():
@@ -1206,7 +1759,16 @@ async def update_system_status(request):
 
         # Update with new values
         for key, value in data.items():
-            if key.endswith('_blocked'):
+            if key == 'wg_blocked_dates':
+                if not isinstance(value, list):
+                    raise web.HTTPBadRequest(reason="wg_blocked_dates must be a list")
+                for entry in value:
+                    if not isinstance(entry, dict) or 'startDate' not in entry or 'endDate' not in entry:
+                        raise web.HTTPBadRequest(reason="Each blocked date entry must have startDate and endDate")
+                    if entry['endDate'] < entry['startDate']:
+                        raise web.HTTPBadRequest(reason="endDate must be on or after startDate")
+                current_data[key] = json.dumps(value)
+            elif key.endswith('_blocked'):
                 current_data[key] = 'true' if value else 'false'
             else:
                 current_data[key] = str(value) if value is not None else ''
@@ -1233,8 +1795,7 @@ async def update_system_status(request):
             else:
                 raise
 
-        # Log the change
-        logging.info(f"System status updated by {user['metadata']['name']}: {data}")
+        audit_log('system_status_updated', user=user['metadata']['name'], details=data)
 
         # Return updated status
         return web.json_response(await get_system_status_from_configmap())
@@ -1246,7 +1807,7 @@ async def update_system_status(request):
         logging.error(f"Unexpected error updating system status: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
-@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments}")
+@routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabprovisionitems|selfpacedlabuserassignments}")
 @routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
 async def openshift_api_list_by_get_rbac(request):
     """List items with special handling so that users can list items in a
@@ -1370,11 +1931,13 @@ async def openshift_api_proxy(request, api_client=None):
         if request.content_type and request.can_read_body:
             header_params['Content-Type'] = request.content_type
 
+        request_body = await request.json() if request.can_read_body else None
+
         response = await api_client.call_api(
             request.path,
             request.method,
             auth_settings = ['BearerToken'],
-            body = await request.json() if request.can_read_body else None,
+            body = request_body,
             header_params = header_params,
             query_params = [(k, v) for k, v in request.query.items()] if request.query else None,
             _preload_content = False,
@@ -1395,12 +1958,31 @@ async def openshift_api_proxy(request, api_client=None):
         headers['Content-Encoding'] = 'gzip'
         headers['Content-Type'] = 'application/json'
 
+        if request.method != 'GET':
+            audit_log_api_action(
+                user=session['user'],
+                effective_user=api_client.default_headers.get('Impersonate-User'),
+                method=request.method,
+                path=request.path,
+                status=response.status,
+                body=request_body,
+            )
+
         return web.Response(
             body=data,
             headers=headers,
             status=response.status,
         )
     except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if request.method != 'GET':
+            audit_log_api_action(
+                user=session['user'],
+                effective_user=api_client.default_headers.get('Impersonate-User'),
+                method=request.method,
+                path=request.path,
+                status=exception.status,
+                body=request_body,
+            )
         if exception.body:
             return web.Response(
                 body=exception.body,

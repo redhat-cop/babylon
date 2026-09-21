@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Badge, Card, CardBody, CardHeader, Stack, StackItem, Title, Tooltip } from '@patternfly/react-core';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import { displayName, renderContent, stripHtml } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import CatalogItemIcon from './CatalogItemIcon';
-import { formatString, getDescription, getProvider, getRating, getSLA, getStage, getStatusFromCatalogItem } from './catalog-utils';
+import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getSLA, getSLABadgeClass, getStage, getStatusFromCatalogItem } from './catalog-utils';
 
 import './catalog-item-list-item.css';
 
@@ -22,7 +22,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
   const sla = getSLA(catalogItem);
 
   if (!searchParams.has('item')) {
-    if (namespace) {
+    if (namespace && namespace !== ALL_CATALOGS_NS) {
       searchParams.set('item', catalogItem.metadata.name);
     } else {
       searchParams.set('item', `${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`);
@@ -44,13 +44,14 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
               {status && status.name !== 'Operational' ? (
                 <StatusPageIcons status={status.name} className="catalog-item-list-item__statusPageIcon" />
               ) : null}
-              {sla && stage === 'prod' ? (
+              {sla ? (
                 <Tooltip content={<p>Service Level</p>}>
                   <a href="/support" target="_blank" rel="nofollow noreferrer">
-                    <Badge className="catalog-item-list-item__badge--sla">{sla.replace(/_+/g, ' | ')}</Badge>
+                    <Badge className={getSLABadgeClass(sla)}>{formatString(sla)}</Badge>
                   </a>
                 </Tooltip>
-              ) : stage === 'dev' ? (
+              ) : null}
+              {stage === 'dev' ? (
                 <Badge className="catalog-item-list-item__badge--dev">development</Badge>
               ) : stage === 'test' ? (
                 <Badge className="catalog-item-list-item__badge--test">test</Badge>

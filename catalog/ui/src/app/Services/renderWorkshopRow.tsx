@@ -1,5 +1,6 @@
 import React from 'react';
-import { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import { Spinner } from '@patternfly/react-core';
+import type { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
@@ -91,14 +92,18 @@ const renderWorkshopRow = ({
     </>
   );
   const guidCell = <span key="workshop-guid">-</span>;
+  const resourceClaimsLoaded = workshop.resourceClaims !== undefined;
+  const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
   const statusCell = (
     <>
-      {workshop.resourceClaims && workshop.resourceClaims.length > 0 ? (
-        <ServiceStatus resourceClaim={workshop.resourceClaims.filter((r) => !r.metadata.deletionTimestamp)[0]} />
-      ) : autoStartTime && autoStartTime > Date.now() ? (
+      {autoStartTime && autoStartTime > Date.now() ? (
         <span className="services-item__status--scheduled" key="scheduled">
           <CheckCircleIcon key="scheduled-icon" /> Scheduled
         </span>
+      ) : !resourceClaimsLoaded ? (
+        <Spinner size="md" />
+      ) : activeResourceClaim ? (
+        <ServiceStatus resourceClaim={activeResourceClaim} />
       ) : (
         <p>...</p>
       )}

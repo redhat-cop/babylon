@@ -1,19 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  Select,
-  SelectOption,
-  SelectList,
-  MenuToggle,
-  MenuToggleElement,
-  TextInputGroup,
-  TextInputGroupMain,
-  TextInputGroupUtilities,
-  Button,
-} from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle, TextInputGroup, TextInputGroupMain, TextInputGroupUtilities, Button } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { ResourcePool } from '@app/types';
+import type { ResourcePool } from '@app/types';
 import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
 
 const ResourcePoolSelector: React.FC<{

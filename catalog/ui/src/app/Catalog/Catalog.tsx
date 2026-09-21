@@ -1,32 +1,8 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import { Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import {
-  Backdrop,
-  Button,
-  Card,
-  CardBody,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerPanelContent,
-  EmptyState,
-  PageSection,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
-  Split,
-  SplitItem,
-  Stack,
-  StackItem,
-  Title,
-  Tooltip,
-  Select,
-  SelectOption,
-  SelectList,
-  MenuToggleElement,
-  MenuToggle,
-} from '@patternfly/react-core';
+import { Backdrop, Button, Card, CardBody, Drawer, DrawerContent, DrawerContentBody, DrawerPanelContent, EmptyState, PageSection, Sidebar, SidebarContent, SidebarPanel, Split, SplitItem, Stack, StackItem, Title, Tooltip, Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
 import ThIcon from '@patternfly/react-icons/dist/js/icons/th-icon';
@@ -34,7 +10,7 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import useSWRImmutable from 'swr/immutable';
 import { AsyncParser } from 'json2csv';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { Bookmark, BookmarkList, CatalogItem, CatalogItemIncidents } from '@app/types';
+import type { Bookmark, BookmarkList, CatalogItem, CatalogItemIncidents } from '@app/types';
 import useSession from '@app/utils/useSession';
 import SearchInputString from '@app/components/SearchInputString';
 import {
@@ -59,6 +35,7 @@ import {
   getRating,
   getSLA,
   SLAs,
+  ALL_CATALOGS_NS,
 } from './catalog-utils';
 import CatalogCategorySelector from './CatalogCategorySelector';
 import CatalogInterfaceDescription from './CatalogInterfaceDescription';
@@ -390,8 +367,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     [sortBy.selected],
   );
 
+  const isAllCatalogs = catalogNamespaceName === ALL_CATALOGS_NS;
+  const allVisibleNsNames = useMemo(
+    () => visibleCatalogNamespaces.map((ns) => ns.name),
+    [visibleCatalogNamespaces],
+  );
+
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
-    catalogNamespaceName
+    catalogNamespaceName && !isAllCatalogs
       ? apiPaths.CATALOG_ITEMS_ACTIVE_INCIDENTS({
           stage: catalogNamespaceName.split('-').slice(-1)[0],
         })
@@ -403,8 +386,14 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     },
   );
   const { data: catalogItemsArr } = useSWRImmutable<CatalogItem[]>(
-    catalogNamespaceName ? apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName }) : null,
-    () => fetchCatalog([catalogNamespaceName]),
+    isAllCatalogs
+      ? allVisibleNsNames.length > 0
+        ? `catalog-items-all`
+        : null
+      : catalogNamespaceName
+        ? apiPaths.CATALOG_ITEMS({ namespace: catalogNamespaceName })
+        : null,
+    () => fetchCatalog(isAllCatalogs ? allVisibleNsNames : [catalogNamespaceName]),
   );
   const { data: assetsFavList } = useSWRImmutable<BookmarkList>(apiPaths.FAVORITES(), fetcher, {
     suspense: false,
@@ -475,27 +464,25 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
         },
       ],
     };
-    const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
-    // Apply category and favorites filter with OR logic
+    let filteredItems = catalogItemsCpy;
     if ((selectedCategories && selectedCategories.length > 0) || showFavorites) {
-      catalogItemsFuse.remove((ci) => {
-        // Check if item matches any selected category OR is a favorite (OR logic)
+      filteredItems = filteredItems.filter((ci) => {
         const matchesCategory =
           selectedCategories && selectedCategories.length > 0
             ? selectedCategories.some((category) => filterCatalogItemByCategory(ci, category))
             : false;
         const isFav = showFavorites ? filterFavorites(ci, assetsFavList?.bookmarks || []) : false;
-
-        return !matchesCategory && !isFav;
+        return matchesCategory || isFav;
       });
     }
     if (selectedLabels) {
-      catalogItemsFuse.remove((ci) => !filterCatalogItemByLabels(ci, selectedLabels));
+      filteredItems = filteredItems.filter((ci) => filterCatalogItemByLabels(ci, selectedLabels));
     }
     if (isAdmin && selectedAdminFilter) {
-      catalogItemsFuse.remove((ci) => !filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
+      filteredItems = filteredItems.filter((ci) => filterCatalogItemByAdminFilter(ci, selectedAdminFilter));
     }
-    return [catalogItemsFuse, catalogItemsCpy];
+    const catalogItemsFuse = new Fuse(filteredItems, options);
+    return [catalogItemsFuse, filteredItems];
   }, [
     catalogItems,
     compareCatalogItems,
@@ -613,12 +600,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
     return hasSearch || hasLabels || hasAdminFilter || hasCategories || showFavorites;
   }, [searchString, selectedLabels, selectedAdminFilter, selectedCategories, showFavorites, isAdmin]);
 
-  const DEFAULT_CATALOG_NAMESPACE = 'babylon-catalog-prod';
   if (!catalogNamespaceName && catalogNamespaces.length > 0) {
-    const defaultNs = catalogNamespaces.some((ns) => ns.name === DEFAULT_CATALOG_NAMESPACE)
-      ? DEFAULT_CATALOG_NAMESPACE
-      : catalogNamespaces[0].name;
-    return <Navigate to={`/catalog/${defaultNs}${location.search}`} replace />;
+    return <Navigate to={`/catalog/${ALL_CATALOGS_NS}${location.search}`} replace />;
   }
 
   if (isLoading) {

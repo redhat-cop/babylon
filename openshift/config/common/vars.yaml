@@ -222,18 +222,5 @@ babylon_resources:
           password: "{{ babylon_reporting_db.password | default('') }}"
           hostname: "{{ babylon_reporting_db.hostname | default('') }}"
 
-  - name: Babylon ratings Helm Template
-    when: >-
-      babylon_reporting_db is defined and
-      babylon_ratings_deploy | default(true) | bool
-    helm_template:
-      dir: babylon-ratings
-      values:
-        db:
-          name: "{{ babylon_reporting_db.dbname | default('') }}"
-          username: "{{ babylon_reporting_db.username | default('') }}"
-          password: "{{ babylon_reporting_db.password | default('') }}"
-          hostname: "{{ babylon_reporting_db.hostname | default('') }}"
-
 # Cluster level resources
 k8s_resources: "{{ babylon_resources }}"

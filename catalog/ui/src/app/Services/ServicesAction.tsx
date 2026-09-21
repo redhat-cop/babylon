@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import parseDuration from 'parse-duration';
-import { ResourceClaim, ServiceActionActions, WorkshopWithResourceClaims } from '@app/types';
+import type { ResourceClaim, ServiceActionActions, WorkshopWithResourceClaims } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import { checkResourceClaimCanRate, displayName } from '@app/util';
 import ServicesActionRating from './ServicesActionRating';

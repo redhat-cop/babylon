@@ -46,5 +46,5 @@ oc start-build babylon-workshop-manager --from-dir=.. --follow
 . Update deployment `babylon-workshop-manager` to use new image:
 +
 ----
-oc patch deployment babylon-workshop-manager --type=json -p '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'$(oc get imagestream babylon-workshop-manager -o jsonpath={.status.tags[0].items[0].dockerImageReference})'"}]'
+oc patch deployment babylon-workshop-manager --type=json -p '[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"'$(oc get imagestream babylon-workshop-manager -o jsonpath='{.status.tags[?(@.tag=="latest")].items[0].dockerImageReference}')'"}]'
 ----

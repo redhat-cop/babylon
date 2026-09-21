@@ -1,0 +1,11 @@
+{{- $selfpacedlabManager := .Values.selfpacedlabManager }}
+{{- if and $selfpacedlabManager.deploy $selfpacedlabManager.namespace.create }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    {{- include "babylon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: selfpacedlab-manager
+  name: {{ $selfpacedlabManager.namespace.name }}
+{{- end }}
