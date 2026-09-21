@@ -112,6 +112,9 @@ func (c *Client) CreateWorkshop(
 		types.DemoDomain + "/orderedBy":   c.Session.User,
 		types.DemoDomain + "/scheduled":   "false",
 	}
+	if catalogItem.Spec.SupportLink != "" {
+		annotations[types.BabylonDomain+"/support-link"] = catalogItem.Spec.SupportLink
+	}
 
 	if catalogItem.Spec.MessageTemplates != nil {
 		if catalogItem.Spec.MessageTemplates.Info != nil {

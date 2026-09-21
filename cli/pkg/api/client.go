@@ -244,14 +244,6 @@ func (c *Client) doRequest(method, path string, body interface{}, contentType st
 		}
 	}
 
-	if c.Debug && !strings.HasPrefix(path, "/auth/session") {
-		preview := string(respBody)
-		if len(preview) > 500 {
-			preview = preview[:500] + "...[truncated]"
-		}
-		c.debugf("Body (%d bytes): %s", len(respBody), preview)
-	}
-
 	// Detect HTML responses (OAuth proxy redirect to login page)
 	ct := resp.Header.Get("Content-Type")
 	if strings.Contains(ct, "text/html") || (len(respBody) > 0 && respBody[0] == '<') {

@@ -4,9 +4,40 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/redhat-gpte/babylon/cli/pkg/types"
 )
+
+func TestParseEndDateUsesLifespanDefaultWhenOmitted(t *testing.T) {
+	before := time.Now().UTC()
+	got, err := parseEndDate("", &types.LifespanSpec{Default: "3d"})
+	if err != nil {
+		t.Fatalf("parseEndDate() error = %v", err)
+	}
+
+	want := before.Add(72 * time.Hour)
+	if got.Before(want) || got.After(want.Add(time.Second)) {
+		t.Errorf("parseEndDate() = %s, want approximately %s", got, want)
+	}
+}
+
+func TestParseEndDateFallsBackTo24HoursWithoutUsableLifespanDefault(t *testing.T) {
+	for _, lifespan := range []*types.LifespanSpec{nil, {Default: "not-a-duration"}} {
+		t.Run("fallback", func(t *testing.T) {
+			before := time.Now().UTC()
+			got, err := parseEndDate("", lifespan)
+			if err != nil {
+				t.Fatalf("parseEndDate() error = %v", err)
+			}
+
+			want := before.Add(24 * time.Hour)
+			if got.Before(want) || got.After(want.Add(time.Second)) {
+				t.Errorf("parseEndDate() = %s, want approximately %s", got, want)
+			}
+		})
+	}
+}
 
 func TestParseParameters(t *testing.T) {
 	parameters := []types.CatalogItemParameter{

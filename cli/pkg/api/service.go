@@ -128,7 +128,7 @@ func (c *Client) StartResourceClaim(namespace, name string) (*types.ResourceClai
 	stopTimestamp := formatTime(now.Add(runtimeDefault))
 
 	var patch map[string]interface{}
-	if claim.Status != nil && claim.Status.Summary != nil {
+	if claim.Spec.Provider != nil {
 		patch = map[string]interface{}{
 			"spec": map[string]interface{}{
 				"provider": map[string]interface{}{
@@ -156,7 +156,7 @@ func (c *Client) StopResourceClaim(namespace, name string) (*types.ResourceClaim
 	stopTimestamp := formatTime(time.Now().UTC())
 
 	var patch map[string]interface{}
-	if claim.Status != nil && claim.Status.Summary != nil {
+	if claim.Spec.Provider != nil {
 		patch = map[string]interface{}{
 			"spec": map[string]interface{}{
 				"provider": map[string]interface{}{
@@ -297,6 +297,9 @@ func (c *Client) OrderService(catalogItem *types.CatalogItem, serviceNamespace s
 		types.BabylonDomain + "/url":                      fmt.Sprintf("%s/services/%s/%s", c.BaseURL, serviceNamespace, name),
 		types.DemoDomain + "/scheduled":                   "false",
 		types.DemoDomain + "/provide_salesforce-id_later": "true",
+	}
+	if catalogItem.Spec.SupportLink != "" {
+		annotations[types.BabylonDomain+"/support-link"] = catalogItem.Spec.SupportLink
 	}
 
 	// Copy userData from catalog item if present

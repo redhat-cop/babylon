@@ -13,6 +13,11 @@ import (
 
 func parseEndDate(input string, lifespan interface{}) (time.Time, error) {
 	if input == "" {
+		if lifespan, ok := lifespan.(*types.LifespanSpec); ok && lifespan != nil {
+			if d, err := parseDurationString(lifespan.Default); err == nil {
+				return time.Now().UTC().Add(d), nil
+			}
+		}
 		return time.Now().UTC().Add(24 * time.Hour), nil
 	}
 

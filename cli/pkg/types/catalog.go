@@ -17,6 +17,7 @@ type CatalogItemSpec struct {
 	Lifespan              *LifespanSpec           `json:"lifespan,omitempty" yaml:"lifespan,omitempty"`
 	Runtime               *RuntimeSpec            `json:"runtime,omitempty" yaml:"runtime,omitempty"`
 	ExternalURL           string                  `json:"externalUrl,omitempty" yaml:"externalUrl,omitempty"`
+	SupportLink           string                  `json:"supportLink,omitempty" yaml:"supportLink,omitempty"`
 	TermsOfService        string                  `json:"termsOfService,omitempty" yaml:"termsOfService,omitempty"`
 	ProvisionTimeEstimate string                  `json:"provisionTimeEstimate,omitempty" yaml:"provisionTimeEstimate,omitempty"`
 	Resources             []interface{}           `json:"resources,omitempty" yaml:"resources,omitempty"`

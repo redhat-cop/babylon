@@ -274,3 +274,44 @@ func TestDebugDoesNotExposeRedirectLocationOrRedirectedSession(t *testing.T) {
 		}
 	}
 }
+
+func TestDebugDoesNotExposeResponseBodies(t *testing.T) {
+	const provisionSecret = "dummy-provision-secret"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"provision_data":{"password":"` + provisionSecret + `"}}`))
+	}))
+	defer server.Close()
+
+	stderr, err := os.CreateTemp(t.TempDir(), "stderr")
+	if err != nil {
+		t.Fatalf("creating stderr capture: %v", err)
+	}
+	originalStderr := os.Stderr
+	os.Stderr = stderr
+	t.Cleanup(func() {
+		os.Stderr = originalStderr
+		_ = stderr.Close()
+	})
+
+	client := NewClient(server.URL)
+	client.Debug = true
+	if _, err := client.get("/resourceclaims/example"); err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if err := stderr.Close(); err != nil {
+		t.Fatalf("closing stderr capture: %v", err)
+	}
+
+	output, err := os.ReadFile(stderr.Name())
+	if err != nil {
+		t.Fatalf("reading stderr capture: %v", err)
+	}
+	if strings.Contains(string(output), provisionSecret) {
+		t.Errorf("debug output exposed response body: %s", output)
+	}
+	if !strings.Contains(string(output), "Response: 200") {
+		t.Errorf("debug output omitted response diagnostics: %s", output)
+	}
+}

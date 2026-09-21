@@ -34,6 +34,9 @@ Examples:
 		name := args[0]
 
 		if workshopStatusWatch {
+			if workshopStatusInterval < 1 {
+				return fmt.Errorf("--interval must be at least 1 second with --watch")
+			}
 			return watchWorkshopStatus(name)
 		}
 
@@ -122,11 +125,12 @@ func watchWorkshopStatus(name string) error {
 		if total > 0 && readyCount == total {
 			fmt.Fprintf(os.Stderr, "\n")
 
-			provisionTimes := fetchProvisionTimes(services)
-
-			printWorkshopStatus(os.Stdout, ws, services, provisionTimes)
-			fmt.Fprintf(os.Stdout, "\nAll %d seats ready in %s\n", total, elapsed)
-			return nil
+			data := workshopStatusData{Workshop: ws, Services: services}
+			return output.Print(getOutputFormat(), data, func(w io.Writer) {
+				provisionTimes := fetchProvisionTimes(services)
+				printWorkshopStatus(w, ws, services, provisionTimes)
+				fmt.Fprintf(w, "\nAll %d seats ready in %s\n", total, elapsed)
+			})
 		}
 
 		time.Sleep(interval)
