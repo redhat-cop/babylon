@@ -1,13 +1,5 @@
-import React, {
-  useEffect,
-  useImperativeHandle,
-  useState,
-  useCallback,
-  ReactPortal,
-  useLayoutEffect,
-  Suspense,
-  Ref,
-} from 'react';
+import type { ReactPortal, Ref } from 'react';
+import React, { useEffect, useImperativeHandle, useState, useCallback, useLayoutEffect, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';

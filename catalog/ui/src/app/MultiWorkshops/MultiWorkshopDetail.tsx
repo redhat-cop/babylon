@@ -4,7 +4,8 @@ import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import useSWR, { mutate } from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import { DragDropSort, DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
+import type { DragDropSortDragEndEvent } from '@patternfly/react-drag-drop';
+import { DragDropSort } from '@patternfly/react-drag-drop';
 import {
   PageSection,
   Title,
@@ -43,7 +44,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import { apiPaths, fetcher, silentFetcher, patchMultiWorkshop, lockWorkshop, lockSelfPacedLab, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock, addOwnerReferenceToSelfPacedLabAndLock } from '@app/api';
-import { CatalogItem, MultiWorkshop, ResourceClaim, SelfPacedLab, ServiceAccess, Workshop } from '@app/types';
+import type { CatalogItem, MultiWorkshop, ResourceClaim, SelfPacedLab, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
 import Label from '@app/components/Label';

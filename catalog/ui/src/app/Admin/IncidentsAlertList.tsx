@@ -1,10 +1,11 @@
 import React, { useReducer, useState } from 'react';
 import { Button, Form, FormGroup, Panel, PanelMain, Switch, Title } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import useSWR from 'swr';
 import { apiPaths, fetcher } from '@app/api';
-import { Incident } from '@app/types';
+import type { Incident } from '@app/types';
 import { Table /* data-codemods */, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import EditIcon from '@patternfly/react-icons/dist/js/icons/edit-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
@@ -14,7 +15,7 @@ import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-ic
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import Editor from '@app/components/Editor/Editor';
-import { EditorState, LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor } from 'lexical';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import useSession from '@app/utils/useSession';
 

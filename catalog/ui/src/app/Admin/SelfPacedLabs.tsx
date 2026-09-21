@@ -14,7 +14,7 @@ import {
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, deleteSelfPacedLab, fetcher } from '@app/api';
-import { SelfPacedLab, SelfPacedLabList } from '@app/types';
+import type { SelfPacedLab, SelfPacedLabList } from '@app/types';
 import { compareK8sObjectsArr, displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';

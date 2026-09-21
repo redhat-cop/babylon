@@ -4,7 +4,7 @@ import { generateSession, render, waitFor, screen } from '../utils/test-utils';
 import { within } from '@testing-library/react';
 import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs } from './Ops';
 import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
-import { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
+import type { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
 
 async function renderOps(ui: React.ReactElement = <Ops />) {

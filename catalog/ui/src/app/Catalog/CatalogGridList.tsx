@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { Grid, List, CellComponentProps, RowComponentProps } from 'react-window';
-import { CatalogItem } from '@app/types';
+import type { CellComponentProps, RowComponentProps } from 'react-window';
+import { Grid, List } from 'react-window';
+import type { CatalogItem } from '@app/types';
 import CatalogItemCard from './CatalogItemCard';
 import CatalogItemListItem from './CatalogItemListItem';
 

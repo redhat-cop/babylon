@@ -1,4 +1,4 @@
-import {
+import type {
   AnarchySubject,
   MessageTemplate,
   ResourceClaim,
@@ -8,7 +8,8 @@ import {
 import parseDuration from 'parse-duration';
 import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
 
-import { phaseProps, getStatus } from './ServiceStatus';
+import type { phaseProps } from './ServiceStatus';
+import { getStatus } from './ServiceStatus';
 
 export function isResourceClaimLocked(resourceClaim: ResourceClaim): boolean {
   return resourceClaim.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';

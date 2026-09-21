@@ -20,7 +20,7 @@ import Editor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import { apiPaths, deleteAnarchyAction, fetcher } from '@app/api';
 import { selectedUidsReducer } from '@app/reducers';
-import { AnarchyAction, AnarchyRunList } from '@app/types';
+import type { AnarchyAction, AnarchyRunList } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';

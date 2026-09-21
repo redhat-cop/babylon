@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Checkbox,
   MenuToggle,
-  MenuToggleElement,
   NumberInput,
   Radio,
   Select,

@@ -25,7 +25,8 @@ import {
 } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import useSWR from 'swr';
-import { apiPaths, fetcher, updateSystemStatus, SystemStatus as SystemStatusType } from '@app/api';
+import type { SystemStatus as SystemStatusType } from '@app/api';
+import { apiPaths, fetcher, updateSystemStatus } from '@app/api';
 
 import './admin.css';
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWRImmutable from 'swr/immutable';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Alert,
   Breadcrumb,
@@ -12,7 +13,6 @@ import {
   Label,
   LabelGroup,
   MenuToggle,
-  MenuToggleElement,
   PageSection,
   Select,
   SelectList,
@@ -24,9 +24,16 @@ import {
 } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiPaths, BlockedDateRange, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest, silentFetcher } from '@app/api';
+import type { BlockedDateRange } from '@app/api';
+import {
+  apiPaths,
+  createWhiteGloveRequest,
+  createJiraTicketForWgr,
+  patchWhiteGloveRequest,
+  silentFetcher,
+} from '@app/api';
 import useSystemStatus from '@app/utils/useSystemStatus';
-import { CatalogItem, SalesforceItem } from '@app/types';
+import type { CatalogItem, SalesforceItem } from '@app/types';
 import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
 import { getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';

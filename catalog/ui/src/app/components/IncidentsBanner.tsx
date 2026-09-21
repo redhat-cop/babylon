@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Banner, BannerColor, Button } from '@patternfly/react-core';
+import type { BannerColor } from '@patternfly/react-core';
+import { Banner, Button } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
-import { Incident } from '@app/types';
+import type { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 import InfoCircleIcon from '@patternfly/react-icons/dist/js/icons/info-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';

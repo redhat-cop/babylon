@@ -1,7 +1,7 @@
 import React from 'react';
 import resourceClaimObj from '../__mocks__/resourceClaim.json';
 import { render, waitFor, screen, fireEvent } from '@testing-library/react';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import ServiceActions from './ServiceActions';
 
 jest.mock('@app/utils/useInterfaceConfig', () => {

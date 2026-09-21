@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { getUserInfo } from '@app/api';
+import type { AppDispatch } from '@app/store';
 import {
   actionClearImpersonation,
   actionSetImpersonation,
   selectImpersonationUser,
   useAppDispatch,
   useAppSelector,
-  AppDispatch,
 } from '@app/store';
 
 const KEY = 'impersonateUser';

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
-import { EditorState, LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import {
   ActionList,
@@ -21,16 +21,17 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { Select, SelectOption, SelectList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import { Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
+import type { CreateServiceRequestParameterValues } from '@app/api';
 import {
   apiFetch,
   apiPaths,
   checkCatalogItemAvailability,
   createServiceRequest,
-  CreateServiceRequestParameterValues,
   createSelfPacedLab,
   createSelfPacedLabProvisionItem,
   createWorkshop,
@@ -40,7 +41,7 @@ import {
   saveExternalItemRequest,
   silentFetcher,
 } from '@app/api';
-import {
+import type {
   AvailabilityCheckResponse,
   CatalogItem,
   CatalogItemIncident,
@@ -69,7 +70,8 @@ import TermsOfService from '@app/components/TermsOfService';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import { reduceFormState, checkEnableSubmit, checkConditionsInFormState } from './CatalogItemFormReducer';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import CatalogItemFormAutoStopDestroyModal, { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import type { TDates, TDatesTypes } from './CatalogItemFormAutoStopDestroyModal';
+import CatalogItemFormAutoStopDestroyModal from './CatalogItemFormAutoStopDestroyModal';
 import CatalogItemFormStartModal from './CatalogItemFormStartModal';
 import { formatCurrency, getEstimatedCost, getStatus, isAutoStopDisabled } from './catalog-utils';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';

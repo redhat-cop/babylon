@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, EmptyState, PageSection, PageSectionVariants } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import useSession from '@app/utils/useSession';
 import { useRect } from '@app/utils/useRect';
 import CatalogGridList from './CatalogGridList';

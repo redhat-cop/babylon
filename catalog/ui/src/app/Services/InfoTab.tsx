@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ResourceClaim, ServiceActionActions } from '@app/types';
+import type { ResourceClaim, ServiceActionActions } from '@app/types';
 import { BABYLON_DOMAIN, isResourceClaimPartOfWorkshop, renderContent } from '@app/util';
 import {
   DescriptionList,

@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import CatalogItemDetails from './CatalogItemDetails';
 import catalogItemObj from '../__mocks__/catalogItem.json';
-import { CatalogItem, ResourceClaim } from '@app/types';
+import type { CatalogItem, ResourceClaim } from '@app/types';
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),

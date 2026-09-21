@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { getApiSession } from '@app/api';
+import type { AppDispatch } from '@app/store';
 import {
   actionStartSession,
   selectAuthUser,
@@ -15,9 +16,8 @@ import {
   selectUserRoles,
   useAppDispatch,
   useAppSelector,
-  AppDispatch,
 } from '@app/store';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import useImpersonateUser from './useImpersonateUser';
 
 async function getSessionFn(dispatch: AppDispatch) {

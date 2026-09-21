@@ -1,4 +1,4 @@
-import { SelfPacedLabUserAssignmentSpec } from '@app/types';
+import type { SelfPacedLabUserAssignmentSpec } from '@app/types';
 
 class SelfPacedLabLoginFailedError extends Error {}
 

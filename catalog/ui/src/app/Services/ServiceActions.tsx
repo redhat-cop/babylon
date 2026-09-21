@@ -1,7 +1,7 @@
 import React from 'react';
 import EllipsisVIcon from '@patternfly/react-icons/dist/js/icons/ellipsis-v-icon';
 import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
 import {
   checkResourceClaimCanRate,

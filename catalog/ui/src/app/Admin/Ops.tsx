@@ -87,12 +87,18 @@ import {
   patchWorkshopProvision,
   scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
-import {
-  Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
-  WorkshopUserAssignment, WorkshopUserAssignmentList,
-  ResourceClaim, ResourceClaimList,
-  MultiWorkshop, MultiWorkshopList,
-  TenantClusterPool, TenantClusterPoolList,
+import type {
+  Workshop,
+  WorkshopList,
+  WorkshopProvision,
+  WorkshopProvisionList,
+  WorkshopUserAssignment,
+  WorkshopUserAssignmentList,
+  ResourceClaim,
+  ResourceClaimList,
+  MultiWorkshop,
+  MultiWorkshopList,
+  TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
 } from '@app/types';

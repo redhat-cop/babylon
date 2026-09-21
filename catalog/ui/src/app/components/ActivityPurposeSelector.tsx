@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   FormGroup,
   Radio,
@@ -8,11 +9,10 @@ import {
   SelectList,
   SelectOption,
   MenuToggle,
-  MenuToggleElement,
 } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
-import { TPurposeOpts } from '@app/types';
+import type { TPurposeOpts } from '@app/types';
 
 const ActivityPurposeSelector: React.FC<{
   onChange: (activity: string, purpose: string, explanation: string) => void;

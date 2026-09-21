@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MenuToggle, MenuToggleElement, Select, SelectList, SelectOption } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import { MenuToggle, Select, SelectList, SelectOption } from '@patternfly/react-core';
 
 const AnarchyRunnerStateSelect: React.FC<{
   runnerState?: string;

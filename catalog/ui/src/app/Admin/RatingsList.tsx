@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { PageSection, Split, SplitItem, Title, Button } from '@patternfly/react-core';
 import { apiPaths, fetcher, fetcherItemsInAllPages } from '@app/api';
-import { CatalogItem } from '@app/types';
+import type { CatalogItem } from '@app/types';
 import useSWRImmutable from 'swr/immutable';
 import useSession from '@app/utils/useSession';
 import Fuse from 'fuse.js';

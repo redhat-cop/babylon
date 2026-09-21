@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Dropdown,
   DropdownList,
@@ -10,7 +11,6 @@ import {
   MastheadMain,
   MastheadBrand,
   MenuToggle,
-  MenuToggleElement,
 } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';

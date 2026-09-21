@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, DropdownList, Spinner } from '@patternfly/react-core';
-import { Dropdown, MenuToggle, MenuToggleElement, DropdownItem } from '@patternfly/react-core';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import { Dropdown, MenuToggle, DropdownItem } from '@patternfly/react-core';
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 import {
   getOpenStackServersForResourceClaim,
@@ -11,7 +12,7 @@ import {
   stopOpenStackServer,
 } from '@app/api';
 
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 
 async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSelectedServer) {
   try {

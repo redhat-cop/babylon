@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, Tooltip, ButtonProps } from '@patternfly/react-core';
-import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
+import type { ButtonProps } from '@patternfly/react-core';
+import { Button, Tooltip } from '@patternfly/react-core';
+import type { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
 import './button-circle-icon.css';
 

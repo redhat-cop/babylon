@@ -1,5 +1,5 @@
 import { reduceFormState, checkCondition, checkEnableSubmit } from './CatalogItemFormReducer';
-import { CatalogItem, ServiceNamespace, TPurposeOpts } from '@app/types';
+import type { CatalogItem, ServiceNamespace, TPurposeOpts } from '@app/types';
 
 const mockCatalogItem: CatalogItem = {
   apiVersion: 'babylon.gpte.redhat.com/v1',

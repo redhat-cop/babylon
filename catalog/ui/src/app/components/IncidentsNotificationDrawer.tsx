@@ -13,7 +13,7 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
-import { Incident } from '@app/types';
+import type { Incident } from '@app/types';
 import { apiPaths, fetcher } from '@app/api';
 import useSession from '@app/utils/useSession';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';

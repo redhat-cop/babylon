@@ -17,7 +17,7 @@ import {
 
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
-import { K8sObjectReference, ResourceClaim, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import type { K8sObjectReference, ResourceClaim, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
 import { displayName, BABYLON_DOMAIN } from '@app/util';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
@@ -27,7 +27,7 @@ import ServiceStatus from '@app/Services/ServiceStatus';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import useSession from '@app/utils/useSession';
-import { ModalState } from './WorkshopsItem';
+import type { ModalState } from './WorkshopsItem';
 import { apiPaths, deleteResourceClaim, patchWorkshopProvision } from '@app/api';
 import { useSWRConfig } from 'swr';
 import RedoIcon from '@patternfly/react-icons/dist/js/icons/redo-icon';

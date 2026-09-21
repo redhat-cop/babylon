@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ResourceClaim } from '@app/types';
+import type { ResourceClaim } from '@app/types';
 import { displayName } from '@app/util';
 import parseDuration from 'parse-duration';
 import TimeInterval from '@app/components/TimeInterval';

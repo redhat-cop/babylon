@@ -1,5 +1,5 @@
 import React from 'react';
-import { K8sObject, K8sObjectReference } from '@app/types';
+import type { K8sObject, K8sObjectReference } from '@app/types';
 import openshiftIconSVG from '@app/bgimages/openshift-icon.svg';
 
 import './openshift-console-link.css';

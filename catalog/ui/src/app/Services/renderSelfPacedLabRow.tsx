@@ -1,5 +1,5 @@
 import React from 'react';
-import { SelfPacedLabWithResourceClaims, ServiceActionActions } from '@app/types';
+import type { SelfPacedLabWithResourceClaims, ServiceActionActions } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import { displayName, getStageFromK8sObject } from '@app/util';

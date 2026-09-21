@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Dropdown,
   DropdownList,
@@ -12,7 +13,6 @@ import {
   MastheadBrand,
   MenuToggle,
   PageToggleButton,
-  MenuToggleElement,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spinner } from '@patternfly/react-core';
-import { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import type { ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import { BABYLON_DOMAIN, displayName, getStageFromK8sObject } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';

@@ -1,7 +1,8 @@
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
-import { EditorState, LexicalEditor } from 'lexical';
+import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   DescriptionList,
   DescriptionListTerm,
@@ -10,7 +11,6 @@ import {
   Tooltip,
   Switch,
   MenuToggle,
-  MenuToggleElement,
   FormGroup,
   Button,
   NumberInput,
@@ -35,7 +35,14 @@ import {
   optionalFetcher,
   FORBIDDEN_RESPONSE,
 } from '@app/api';
-import { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import type {
+  RequestUsageCost,
+  ResourceClaim,
+  ServiceAccessConfig,
+  Workshop,
+  WorkshopProvision,
+  WorkshopUserAssignment,
+} from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
@@ -53,7 +60,7 @@ import {
   isWorkshopLocked,
   isWorkshopStarted,
 } from './workshops-utils';
-import { ModalState } from './WorkshopsItem';
+import type { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';

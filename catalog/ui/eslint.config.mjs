@@ -49,6 +49,7 @@ export default [
       
       // Custom rules (migrated from .eslintrc)
       '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/consistent-type-imports': 'error',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/interface-name-prefix': 'off',

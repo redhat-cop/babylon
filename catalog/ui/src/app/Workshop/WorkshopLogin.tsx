@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActionGroup,
   Button,
+  Content,
   Form,
   FormGroup,
   HelperText,
@@ -16,7 +17,7 @@ import ArrowRightIcon from '@patternfly/react-icons/dist/js/icons/arrow-right-ic
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
-import { WorkshopDetails } from './workshopApi';
+import type { WorkshopDetails } from './workshopApi';
 import { renderContent } from '@app/util';
 
 import './workshop-login.css';
@@ -112,6 +113,17 @@ const WorkshopLogin: React.FC<{
                   </InputGroup>
                 </FormGroup>
               ) : null}
+              <Content component="p">
+                Please review Red Hat&apos;s{' '}
+                <a
+                  href="https://cloud.redhat.com/legal/acceptable-use"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Acceptable Use Policy (AUP) (opens in a new tab)
+                </a>{' '}
+                before accessing this workshop.
+              </Content>
               <ActionGroup>
                 <Button
                   icon={<ArrowRightIcon />}

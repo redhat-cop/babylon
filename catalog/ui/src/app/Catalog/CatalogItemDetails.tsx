@@ -26,7 +26,7 @@ import {
 import InfoAltIcon from '@patternfly/react-icons/dist/js/icons/info-alt-icon';
 import useSWR from 'swr';
 import { apiPaths, fetcher, silentFetcher } from '@app/api';
-import { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident } from '@app/types';
+import type { AssetMetrics, BookmarkList, CatalogItem, CatalogItemIncident } from '@app/types';
 import LoadingIcon from '@app/components/LoadingIcon';
 import StatusPageIcons from '@app/components/StatusPageIcons';
 import useSession from '@app/utils/useSession';

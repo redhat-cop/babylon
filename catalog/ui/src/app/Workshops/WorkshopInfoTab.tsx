@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
-import { MessageTemplate, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import type { MessageTemplate, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { DEMO_DOMAIN, renderContent } from '@app/util';
+import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Content,
   ContentVariants,
@@ -11,7 +12,6 @@ import {
   DescriptionListTerm,
   Divider,
   MenuToggle,
-  MenuToggleElement,
   Select,
   SelectList,
   SelectOption,
@@ -28,7 +28,7 @@ import {
   isWorkshopLocked,
 } from './workshops-utils';
 import AdocWrapper from '@app/components/AdocWrapper';
-import { ModalState } from './WorkshopsItem';
+import type { ModalState } from './WorkshopsItem';
 
 import './WorkshopInfoTab.css';
 

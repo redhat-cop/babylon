@@ -1,6 +1,7 @@
 import React from 'react';
-import { Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from '@patternfly/react-core';
-import { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
+import type { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 
 import './action-dropdown.css';
 

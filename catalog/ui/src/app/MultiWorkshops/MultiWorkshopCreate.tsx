@@ -43,7 +43,7 @@ import {
   silentFetcher,
   patchWhiteGloveRequest,
 } from '@app/api';
-import { CatalogItem, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
+import type { CatalogItem, ServiceNamespace, Nullable, SalesforceItem, WhiteGloveRequest } from '@app/types';
 import {
   displayName,
   getStageFromK8sObject,

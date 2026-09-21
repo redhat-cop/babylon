@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { EmptyState, EmptyStateBody, Label } from '@patternfly/react-core';
-import { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
+import type { Workshop, WorkshopWithResourceClaims, MultiWorkshop } from '@app/types';
 import TimelineSwimlane from './TimelineSwimlane';
 
 interface ProvisionProgress {

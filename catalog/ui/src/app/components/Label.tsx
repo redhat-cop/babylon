@@ -1,4 +1,5 @@
-import React, { ReactElement } from 'react';
+import type { ReactElement } from 'react';
+import React from 'react';
 import { Tooltip } from '@patternfly/react-core';
 
 const Label: React.FC<{ tooltipDescription?: ReactElement; children: React.ReactNode }> = ({

@@ -1,5 +1,5 @@
 import parseDuration from 'parse-duration';
-import {
+import type {
   AnarchyAction,
   AnarchyGovernor,
   AnarchySubject,

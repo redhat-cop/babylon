@@ -1,5 +1,5 @@
 import { apiPaths } from '@app/api';
-import { ResourceType } from '@app/types';
+import type { ResourceType } from '@app/types';
 import { escapeRegex } from '@app/util';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';

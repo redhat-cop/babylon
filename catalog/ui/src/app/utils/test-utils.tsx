@@ -1,11 +1,14 @@
-import React, { ReactElement, Suspense, useLayoutEffect, useState, act } from 'react';
-import { render, RenderOptions, RenderResult, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import React, { Suspense, useLayoutEffect, useState, act } from 'react';
+import type { RenderOptions, RenderResult } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from '@app/store';
-import { createMemoryHistory, MemoryHistory } from 'history';
+import type { MemoryHistory } from 'history';
+import { createMemoryHistory } from 'history';
 import { SWRConfig } from 'swr';
-import { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
+import type { CatalogNamespace, ServiceNamespace, UserNamespace } from '@app/types';
 import LoadingSection from '@app/components/LoadingSection';
 
 const AllTheProviders = ({ children, history }) => {

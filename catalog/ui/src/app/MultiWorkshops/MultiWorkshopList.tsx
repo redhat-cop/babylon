@@ -16,7 +16,7 @@ import PlusIcon from '@patternfly/react-icons/dist/js/icons/plus-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { apiPaths, fetcher, deleteMultiWorkshop } from '@app/api';
-import { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
+import type { MultiWorkshop, MultiWorkshopList as MultiWorkshopListType } from '@app/types';
 import { compareK8sObjectsArr, DEMO_DOMAIN, FETCH_BATCH_LIMIT } from '@app/util';
 import Footer from '@app/components/Footer';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';

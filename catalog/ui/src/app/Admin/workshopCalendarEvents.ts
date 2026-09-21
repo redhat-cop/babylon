@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { momentLocalizer } from 'react-big-calendar';
-import { Workshop } from '@app/types';
+import type { Workshop } from '@app/types';
 import { displayName } from '@app/util';
 
 export const workshopCalendarLocalizer = momentLocalizer(moment);
