@@ -1,20 +1,13 @@
 ---
 name: cli-release
 on:
-  push:
-    branches:
-      - cli  # temporary: remove after testing
-    tags:
-      - "cli-v[0-9]*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version (e.g. v0.1.0)"
-        required: true
-        type: string
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write
+  id-token: write
+  attestations: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -45,33 +38,49 @@ jobs:
         with:
           go-version-file: cli/go.mod
 
-      - name: Get version
-        id: version
-        run: |
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/cli-}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build
         working-directory: cli
         env:
           CGO_ENABLED: "0"
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.event.release.tag_name }}
         run: |
           EXT=""
           if [[ "${{ matrix.goos }}" == "windows" ]]; then EXT=".exe"; fi
           OUTPUT="babylon-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
           go build \
-            -ldflags="-X 'main.version=${{ steps.version.outputs.VERSION }}' -X 'main.buildCommit=${{ github.sha }}' -X 'main.buildTime=$(date -u)'" \
+            -ldflags="-X main.version=$VERSION -X main.buildCommit=${{ github.sha }} -X 'main.buildTime=$(date -u)'" \
             -o "../build/${OUTPUT}" .
-          cd ../build && sha256sum "${OUTPUT}" > "${OUTPUT}.sha256"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: babylon-${{ matrix.goos }}-${{ matrix.goarch }}
           path: build/babylon-*
 
+  release-assets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: babylon-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum babylon-* > sha256sums.txt
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/babylon-*
+
+      - name: Upload assets to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" dist/*
