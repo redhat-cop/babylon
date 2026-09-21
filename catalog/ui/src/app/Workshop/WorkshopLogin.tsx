@@ -13,6 +13,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import HelpIcon from '@patternfly/react-icons/dist/js/icons/help-icon';
+import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import ArrowRightIcon from '@patternfly/react-icons/dist/js/icons/arrow-right-icon';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
@@ -117,10 +118,11 @@ const WorkshopLogin: React.FC<{
                 Please review Red Hat&apos;s{' '}
                 <a
                   href="https://cloud.redhat.com/legal/acceptable-use"
+                  aria-label="Acceptable Use Policy (AUP) (opens in a new tab)"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Acceptable Use Policy (AUP) (opens in a new tab)
+                  Acceptable Use Policy (AUP) <ExternalLinkAltIcon aria-hidden="true" />
                 </a>{' '}
                 before accessing this workshop.
               </Content>
