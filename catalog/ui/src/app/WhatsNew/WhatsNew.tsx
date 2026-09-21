@@ -1,4 +1,5 @@
 import React from 'react';
+import dompurify from 'dompurify';
 import { EmptyState, EmptyStateBody, PageSection, Spinner, Title } from '@patternfly/react-core';
 import useSWRImmutable from 'swr/immutable';
 import { fetcher } from '@app/api';
@@ -44,7 +45,12 @@ const WhatsNew: React.FC = () => {
         ) : null}
       </PageSection>
       <PageSection hasBodyWrapper={false}>
-        <div className="whats-new-content" dangerouslySetInnerHTML={{ __html: data?.body || '' }} />
+        <div
+          className="whats-new-content"
+          dangerouslySetInnerHTML={{
+            __html: dompurify.sanitize(data?.body || '', { USE_PROFILES: { html: true } }),
+          }}
+        />
       </PageSection>
     </>
   );
