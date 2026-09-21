@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { workshopInstanceLimit } from '@app/Workshops/workshop-instance-limits';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import parseDuration from 'parse-duration';
 import { EditorState, LexicalEditor } from 'lexical';
@@ -1132,7 +1133,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   <div className="catalog-item-form__group-control--single">
                     <PatientNumberInput
                       min={0}
-                      max={catalogItem.spec.workshopUiMaxInstances || 40}
+                      max={workshopInstanceLimit(catalogItem)}
                       adminModifier={true}
                       onChange={(v) =>
                         dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })

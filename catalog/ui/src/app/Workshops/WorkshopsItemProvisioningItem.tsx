@@ -19,6 +19,8 @@ import PatientNumberInput from '@app/components/PatientNumberInput';
 import useSession from '@app/utils/useSession';
 import useSWR, { useSWRConfig } from 'swr';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
+import { workshopInstanceLimit } from './workshop-instance-limits';
+import { isWorkshopLocked } from './workshops-utils';
 
 const WorkshopsItemProvisioningItem: React.FC<{
   workshop: Workshop;
@@ -36,6 +38,15 @@ const WorkshopsItemProvisioningItem: React.FC<{
       : null,
     fetcher,
   );
+  const isCountLocked = isWorkshopLocked(workshop) && !isAdmin;
+  const instanceLimit = workshop.spec.multiuserServices
+    ? sfdc_enabled && JSON.parse(workshopProvision.spec.parameters?.salesforce_items || '[]').length > 0
+      ? 5
+      : 1
+    : workshopInstanceLimit(catalogItem);
+  // Ops can approve counts above the self-service limit. Do not clamp those
+  // counts when the owner reduces them or edits an unrelated field.
+  const maxCount = Math.max(instanceLimit, workshopProvision.spec.count);
 
   async function patchWorkshopProvisionSpec(patch: {
     count?: number;
@@ -101,23 +112,28 @@ const WorkshopsItemProvisioningItem: React.FC<{
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
-              max={sfdc_enabled && JSON.parse(workshopProvision.spec.parameters?.salesforce_items || '[]').length > 0 ? workshop.spec.multiuserServices ? 5 : 30 : 1}
+              max={maxCount}
               adminModifier={true}
+              rejectOutOfRange
+              isDisabled={isCountLocked || !catalogItem}
+              inputAriaLabel="Workshop Instance Count"
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
               style={{ paddingRight: "var(--pf-t--global--spacer--md)" }}
             />
+            {isCountLocked ? <p>Instance count is locked by operations. Contact operations to change it.</p> : null}
             <Tooltip
               position="right"
               content={
                 workshop.spec.multiuserServices ? (
                   <p>This item does not support multiple instances by default. If you increase the number of instances, you may need to manage user assignments manually. <br />
-                     A Salesforce ID is required to increase the limit from 1 to 5. For more than 5 instances, please submit a White Glove request.
+                     {sfdc_enabled ? 'A Salesforce ID is required to increase the limit from 1 to 5. ' : ''}
+                     For additional instances, please submit a White Glove request.
                   </p>
                 ) : (
                   <p>
                     Number of independent instances for the workshop, each user gets a dedicated instance. <br />
-                    {sfdc_enabled ? 'Salesforce Id is required to increase it.' : ''}
+                    The self-service limit is {instanceLimit}. Existing counts approved by operations are preserved.
                   </p>
                 )
               }
