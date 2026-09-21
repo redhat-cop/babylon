@@ -19,7 +19,13 @@ import kubernetes_asyncio
 import redis.asyncio as redis
 from hotfix import HotfixKubeApiClient
 from randomstring import random_string
-from audit import audit_log, audit_log_api_action
+from audit import audit_log, audit_log_api_action, parse_k8s_path
+from catalog_order_policy import (
+    CatalogOrderPolicyError,
+    catalog_item_is_visible,
+    classify_order_request,
+    enforce_catalog_order_policy,
+)
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -300,7 +306,12 @@ async def get_user_session(request, user):
         if session_json:
             session = json.loads(session_json)
     else:
-        session = session_cache.get(token)
+        cached_session = session_cache.get(token)
+        if cached_session:
+            session, expires_at = cached_session
+            if expires_at <= time.monotonic():
+                session_cache.pop(token, None)
+                session = None
 
     if not session:
         raise web.HTTPUnauthorized(reason="Invalid bearer token, no session for token")
@@ -341,7 +352,7 @@ async def start_user_session(user, user_groups):
     if redis_connection:
         await redis_connection.setex(token, session_lifetime, json.dumps(session, separators=(',',':')))
     else:
-        session_cache[token] = session
+        session_cache[token] = (session, time.monotonic() + session_lifetime)
 
     return api_client, session, token
 
@@ -1676,7 +1687,7 @@ async def selfpacedlab_post(request):
 
 
 
-async def get_system_status_from_configmap():
+async def get_system_status_from_configmap(strict=False):
     """
     Read system status from the ConfigMap.
     Returns default values if ConfigMap doesn't exist or on error.
@@ -1714,10 +1725,44 @@ async def get_system_status_from_configmap():
             logging.warning(f"System status ConfigMap '{system_status_configmap_name}' not found in namespace '{babylon_namespace}'")
         else:
             logging.error(f"Error reading system status ConfigMap: {e}")
+            if strict:
+                raise
         return default_status
     except Exception as e:
         logging.error(f"Unexpected error reading system status ConfigMap: {e}")
+        if strict:
+            raise
         return default_status
+
+
+async def get_catalog_item_for_order_policy(namespace, name):
+    try:
+        return await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='catalogitems',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 404:
+            return None
+        raise
+
+
+async def get_resource_claim_for_order_policy(namespace, name):
+    try:
+        return await custom_objects_api.get_namespaced_custom_object(
+            group='poolboy.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='resourceclaims',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 404:
+            return None
+        raise
 
 
 @routes.get("/api/system/status")
@@ -1856,6 +1901,7 @@ async def openshift_api_list_by_get_rbac(request):
     session = await get_user_session(request, user)
     api_client = proxy_api_client(session)
 
+    lease_acquired = False
     try:
         await set_impersonation_for_request(api_client, session, request)
         ret = await openshift_api_proxy(request, api_client)
@@ -1931,17 +1977,7 @@ async def openshift_api_proxy_with_cache(request):
     else:
         raise web.HTTPForbidden()
 
-    resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp is not None and time.time() - cache_time < response_cache_clean_interval:
-        return web.Response(
-            body=resp.body,
-            headers=resp.headers,
-            status=resp.status,
-        )
-
-    resp = await openshift_api_proxy(request)
-    response_cache[request.path_qs] = (resp, time.time())
-    return resp
+    return await openshift_api_proxy(request)
 
 @routes.delete("/{path:apis?/.*}")
 @routes.get("/{path:apis?/.*}")
@@ -1967,7 +2003,63 @@ async def openshift_api_proxy(request, api_client=None):
         if request.content_type and request.can_read_body:
             header_params['Content-Type'] = request.content_type
 
-        request_body = await request.json() if request.can_read_body else None
+        try:
+            request_body = await request.json() if request.can_read_body else None
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            if classify_order_request(request.method, request.path):
+                audit_log(
+                    'catalog_order_denied',
+                    user=session['user'],
+                    status=400,
+                    details={
+                        'path': request.path,
+                        'policy_code': 'invalid_json',
+                    },
+                )
+            raise web.HTTPBadRequest(reason='Invalid JSON request body')
+
+        try:
+            await enforce_catalog_order_policy(
+                method=request.method,
+                path=request.path,
+                body=request_body,
+                session=session,
+                get_system_status=lambda: get_system_status_from_configmap(strict=True),
+                get_catalog_item=get_catalog_item_for_order_policy,
+                get_resource_claim=get_resource_claim_for_order_policy,
+            )
+        except CatalogOrderPolicyError as exception:
+            audit_log(
+                'catalog_order_denied',
+                user=session['user'],
+                status=exception.status,
+                details={
+                    'path': request.path,
+                    'policy_code': exception.code,
+                },
+            )
+            http_error = {
+                400: web.HTTPBadRequest,
+                403: web.HTTPForbidden,
+            }.get(exception.status, web.HTTPServiceUnavailable)
+            raise http_error(reason=exception.reason)
+        except (
+            kubernetes_asyncio.client.exceptions.ApiException,
+            aiohttp.ClientError,
+            asyncio.TimeoutError,
+        ):
+            audit_log(
+                'catalog_order_denied',
+                user=session['user'],
+                status=503,
+                details={
+                    'path': request.path,
+                    'policy_code': 'catalog_item_lookup_failed',
+                },
+            )
+            raise web.HTTPServiceUnavailable(
+                reason='Unable to validate catalog order'
+            )
 
         response = await api_client.call_api(
             request.path,
@@ -1979,6 +2071,25 @@ async def openshift_api_proxy(request, api_client=None):
             _preload_content = False,
         )
         data = json.loads(await response.read())
+
+        parsed_path = parse_k8s_path(request.path)
+        if (
+            request.method == 'GET'
+            and parsed_path
+            and parsed_path.get('api_group') == 'babylon.gpte.redhat.com'
+            and parsed_path.get('plural') == 'catalogitems'
+            and not session.get('admin')
+        ):
+            groups = session.get('groups', [])
+            if not isinstance(groups, list):
+                groups = []
+            if 'items' in data:
+                data['items'] = [
+                    item for item in data['items']
+                    if catalog_item_is_visible(item, groups)
+                ]
+            elif not catalog_item_is_visible(data, groups):
+                raise web.HTTPNotFound()
 
         # Strip out metadata.managedFields
         data['metadata'].pop('managedFields', None)
