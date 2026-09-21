@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActionGroup,
   Button,
+  Content,
   Form,
   FormGroup,
   HelperText,
@@ -112,6 +113,17 @@ const WorkshopLogin: React.FC<{
                   </InputGroup>
                 </FormGroup>
               ) : null}
+              <Content component="p">
+                Please review Red Hat&apos;s{' '}
+                <a
+                  href="https://cloud.redhat.com/legal/acceptable-use"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Acceptable Use Policy (AUP) (opens in a new tab)
+                </a>{' '}
+                before accessing this workshop.
+              </Content>
               <ActionGroup>
                 <Button
                   icon={<ArrowRightIcon />}
