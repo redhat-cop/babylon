@@ -2103,7 +2103,6 @@ const Ops: React.FC = () => {
                         ref={toggleRef}
                         onClick={() => setPurposeFilterOpen(o => !o)}
                         isExpanded={purposeFilterOpen}
-                        isCompact
                         badge={purposeFilter.size > 0 ? <Badge isRead>{purposeFilter.size}</Badge> : undefined}
                         style={{ minWidth: 130 }}
                       >
@@ -2149,7 +2148,7 @@ const Ops: React.FC = () => {
                     {Array.from(purposeFilter).map(p => (
                       <Label
                         key={p}
-                        color="cyan"
+                        color="teal"
                         isCompact
                         onClose={() => setPurposeFilter(prev => { const next = new Set(prev); next.delete(p); return next; })}
                         className="ops-stage-chip"
