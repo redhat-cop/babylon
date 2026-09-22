@@ -339,7 +339,7 @@ class WorkshopProvision(CachedKopfObject):
 
             # Ask k8s to generate name based on WorkshopProvision name
             del definition['metadata']['name']
-            definition['metadata']['generateName'] = f"{self.name}-"
+            definition['metadata']['generateName'] = f"{component_name}-"
 
             # Set namespace to match WorkshopProvision
             definition['metadata']['namespace'] = self.namespace
@@ -536,7 +536,6 @@ class WorkshopProvision(CachedKopfObject):
         detached_count = 0
 
         async for resource_claim in self.list_resource_claims():
-            resource_claim_count += 1
             await resource_claim.adjust_action_schedule_and_lifetime(
                 lifespan_end=self.lifespan_end,
                 logger=logger,
@@ -546,6 +545,7 @@ class WorkshopProvision(CachedKopfObject):
             # Don't count tenant cluster resourceclaims
             if resource_claim.is_tenant_cluster:
                 continue
+            resource_claim_count += 1
             if resource_claim.provision_complete:
                 if resource_claim.is_failed:
                     failed_count += 1
