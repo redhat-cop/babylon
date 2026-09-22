@@ -729,6 +729,8 @@ const Ops: React.FC = () => {
 
   const [workshopSearchText, setWorkshopSearchText] = useState('');
   const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const [purposeFilter, setPurposeFilter] = useState<Set<string>>(new Set());
+  const [purposeFilterOpen, setPurposeFilterOpen] = useState(false);
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
   const whiteGloveMode = opsViewMode === 'white-glove';
@@ -824,7 +826,18 @@ const Ops: React.FC = () => {
     return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
   }, [getWorkshopClusterInfo]);
 
-  // Base-filtered list: applies white glove, search, and stage filters.
+  const availablePurposes = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ws of workshopsWithRc) {
+      const p = ws.metadata.annotations?.[`${DEMO_DOMAIN}/purpose`];
+      if (p) counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+  }, [workshopsWithRc]);
+
+  // Base-filtered list: applies white glove, search, stage, and purpose filters.
   // Used by regionStats and status counts so chips reflect the visible scope.
   const baseFilteredWorkshops = useMemo((): WorkshopWithResourceClaims[] => {
     let list: Workshop[] = workshopsWithRc;
@@ -845,8 +858,14 @@ const Ops: React.FC = () => {
     }
     if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
     if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
+    if (purposeFilter.size > 0) {
+      list = list.filter(w => {
+        const p = w.metadata.annotations?.[`${DEMO_DOMAIN}/purpose`];
+        return p !== undefined && purposeFilter.has(p);
+      });
+    }
     return list as WorkshopWithResourceClaims[];
-  }, [workshopsWithRc, workshopSearchText, stageFilter, whiteGloveMode]);
+  }, [workshopsWithRc, workshopSearchText, stageFilter, whiteGloveMode, purposeFilter]);
 
   const targets = useMemo(() => {
     let list: Workshop[] = baseFilteredWorkshops;
@@ -912,7 +931,7 @@ const Ops: React.FC = () => {
   useEffect(() => {
     setSelectedWs(new Set());
     setTablePage(1);
-  }, [workshopSearchText, stageFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
+  }, [workshopSearchText, stageFilter, purposeFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
     setFailedFilter(false);
@@ -1061,7 +1080,7 @@ const Ops: React.FC = () => {
 
   const emptyFilterMsg = useMemo(() => {
     const filterText = workshopSearchText;
-    if (!filterText && !stageFilter && !whiteGloveMode) return null;
+    if (!filterText && !stageFilter && !whiteGloveMode && purposeFilter.size === 0) return null;
 
     const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
     const searchMsg = searchTerms.length > 1
@@ -1071,12 +1090,12 @@ const Ops: React.FC = () => {
     return (
       <>
         No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
-        Try another workshop name, stage, or white glove mode.
+        Try another workshop name, stage, purpose, or white glove mode.
       </>
     );
-  }, [workshopSearchText, stageFilter, whiteGloveMode]);
+  }, [workshopSearchText, stageFilter, whiteGloveMode, purposeFilter]);
 
-  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode;
+  const isUnfiltered = !workshopSearchText && !stageFilter && !whiteGloveMode && purposeFilter.size === 0;
 
   const modalScopeDescription = useMemo(() => {
     const filterText = workshopSearchText;
@@ -2075,6 +2094,70 @@ const Ops: React.FC = () => {
                     </Label>
                   ))}
                 </div>
+                {availablePurposes.length > 0 && (
+                  <Select
+                    isOpen={purposeFilterOpen}
+                    onOpenChange={setPurposeFilterOpen}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setPurposeFilterOpen(o => !o)}
+                        isExpanded={purposeFilterOpen}
+                        badge={purposeFilter.size > 0 ? <Badge isRead>{purposeFilter.size}</Badge> : undefined}
+                        style={{ minWidth: 130 }}
+                      >
+                        Purpose
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      {availablePurposes.map(({ name, count }) => (
+                        <SelectOption
+                          key={name}
+                          value={name}
+                          hasCheckbox
+                          isSelected={purposeFilter.has(name)}
+                          onClick={() => {
+                            setPurposeFilter(prev => {
+                              const next = new Set(prev);
+                              if (next.has(name)) next.delete(name);
+                              else next.add(name);
+                              return next;
+                            });
+                          }}
+                        >
+                          {name} <Badge isRead style={{ marginLeft: 6 }}>{count}</Badge>
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                    {purposeFilter.size > 0 && (
+                      <>
+                        <Divider />
+                        <SelectOption
+                          value="__clear__"
+                          onClick={() => { setPurposeFilter(new Set()); setPurposeFilterOpen(false); }}
+                        >
+                          Clear filter
+                        </SelectOption>
+                      </>
+                    )}
+                  </Select>
+                )}
+                {purposeFilter.size > 0 && (
+                  <div className="ops-stage-filters" style={{ flexWrap: 'wrap', gap: 4 }}>
+                    {Array.from(purposeFilter).map(p => (
+                      <Label
+                        key={p}
+                        color="teal"
+                        isCompact
+                        onClose={() => setPurposeFilter(prev => { const next = new Set(prev); next.delete(p); return next; })}
+                        className="ops-stage-chip"
+                      >
+                        {p}
+                      </Label>
+                    ))}
+                  </div>
+                )}
                 <span className="ops-scope-summary">
                   {scopeLabel}
                   {hasSelection && (
