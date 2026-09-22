@@ -2001,7 +2001,14 @@ async def openshift_api_proxy_with_cache(request):
                 namespace,
             )
         if not authorized:
-            raise web.HTTPForbidden()
+            return web.json_response({
+                'apiVersion': 'v1',
+                'kind': 'Status',
+                'status': 'Failure',
+                'reason': 'Forbidden',
+                'message': 'Forbidden',
+                'code': 403,
+            }, status=403)
     finally:
         await authorization_api_client.close()
 

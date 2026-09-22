@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: catalog-api-publish-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   publish:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -24,8 +28,6 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
-      with:
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Get image tags
       id: image_tags

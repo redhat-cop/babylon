@@ -891,8 +891,7 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'response_cache', cache),
             patch.object(catalog_app, 'app_api_client', app_client),
         ):
-            with self.assertRaises(web.HTTPForbidden):
-                await catalog_app.openshift_api_proxy_with_cache(request)
+            response = await catalog_app.openshift_api_proxy_with_cache(request)
 
         proxy_client.assert_called_once_with(self.session())
         check_access.assert_awaited_once_with(
@@ -900,6 +899,16 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
         )
         authorization_client.close.assert_awaited_once_with()
         app_client.call_api.assert_not_awaited()
+        self.assertEqual(response.status, 403)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.body), {
+            'apiVersion': 'v1',
+            'kind': 'Status',
+            'status': 'Failure',
+            'reason': 'Forbidden',
+            'message': 'Forbidden',
+            'code': 403,
+        })
 
     async def test_named_catalog_item_requires_current_get_authorization_before_cache(self):
         path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems/test-item'
@@ -920,8 +929,7 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'response_cache', cache),
             patch.object(catalog_app, 'app_api_client', app_client),
         ):
-            with self.assertRaises(web.HTTPForbidden):
-                await catalog_app.openshift_api_proxy_with_cache(request)
+            response = await catalog_app.openshift_api_proxy_with_cache(request)
 
         proxy_client.assert_called_once_with(self.session())
         check_access.assert_awaited_once_with(
@@ -929,6 +937,16 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
         )
         authorization_client.close.assert_awaited_once_with()
         app_client.call_api.assert_not_awaited()
+        self.assertEqual(response.status, 403)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.body), {
+            'apiVersion': 'v1',
+            'kind': 'Status',
+            'status': 'Failure',
+            'reason': 'Forbidden',
+            'message': 'Forbidden',
+            'code': 403,
+        })
 
     async def test_catalog_item_cache_shares_raw_response_but_filters_per_user(self):
         path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
