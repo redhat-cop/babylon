@@ -143,6 +143,21 @@ spec:
             - name
             - startDate
             - endDate
+          status:
+            description: Status of MultiWorkshop
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              diffBase:
+                description: Kopf diffbase
+                type: string
+              kopf:
+                description: Kopf status storage
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              portalURL:
+                description: URL of the multi-workshop portal.
+                type: string
         required:
         - apiVersion
         - kind
