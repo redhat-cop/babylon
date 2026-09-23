@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import aiohttp
-import aiosmtplib
 import asyncio
 import jinja2
 import kopf
@@ -27,6 +26,7 @@ from babylon import Babylon
 from catalog_item import CatalogItem
 from catalog_namespace import CatalogNamespace
 from configure_kopf_logging import configure_kopf_logging
+from email_sender import EmailSender
 from infinite_relative_backoff import InfiniteRelativeBackoff
 from resource_claim import ResourceClaim
 from workshop import Workshop
@@ -73,7 +73,7 @@ if smtp_tls_ca_cert:
     with open(smtp_tls_ca_fd, 'w') as f:
         f.write(smtp_tls_ca_cert)
 
-smtp = aiosmtplib.SMTP(
+email_sender = EmailSender(dict(
     cert_bundle = smtp_tls_ca_cert_file,
     client_cert = smtp_tls_cert_file,
     client_key = smtp_tls_key_file,
@@ -82,7 +82,7 @@ smtp = aiosmtplib.SMTP(
     username = smtp_user,
     password = smtp_user_password,
     validate_certs = smtp_tls_validate_certs,
-)
+))
 
 j2env = jinja2.Environment(
     loader = jinja2.FileSystemLoader([
@@ -1150,14 +1150,4 @@ async def send_workshop_notification_email(
     await send_email_message(msg, logger=logger)
 
 async def send_email_message(msg, logger, retries=5):
-    try:
-        await smtp.connect()
-        await smtp.send_message(msg)
-        await smtp.quit()
-    except aiosmtplib.errors.SMTPException:
-        if retries > 0:
-            logger.exception(f"Failed sending email to {msg['To']}, will retry.")
-            await asyncio.sleep(5)
-            await send_email_message(msg, logger=logger, retries=retries-1)
-        else:
-            logger.exception(f"Failed sending email to {msg['To']}.")
+    await email_sender.send(msg, logger=logger, retries=retries)
