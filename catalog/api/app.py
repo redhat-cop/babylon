@@ -19,7 +19,14 @@ import kubernetes_asyncio
 import redis.asyncio as redis
 from hotfix import HotfixKubeApiClient
 from randomstring import random_string
-from audit import audit_log, audit_log_api_action
+from audit import audit_log, audit_log_api_action, parse_k8s_path
+from catalog_order_policy import (
+    CatalogOrderPolicyError,
+    catalog_item_is_visible,
+    classify_order_request,
+    enforce_catalog_order_policy,
+    reject_server_side_apply,
+)
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -41,6 +48,13 @@ jira_user_email = os.environ.get('JIRA_USER_EMAIL')
 jira_project_key = os.environ.get('JIRA_PROJECT_KEY', 'RHDPSPPT')
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
+response_cache_max_entries = int(os.environ.get('RESPONSE_CACHE_MAX_ENTRIES', 1000))
+response_cache_max_bytes = int(os.environ.get('RESPONSE_CACHE_MAX_BYTES', 33554432))
+response_cache_max_in_flight = max(
+    1, int(os.environ.get('RESPONSE_CACHE_MAX_IN_FLIGHT', 10))
+)
+response_cache_bytes = 0
+response_cache_miss_semaphore = asyncio.Semaphore(response_cache_max_in_flight)
 response_cache_clean_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
@@ -300,7 +314,12 @@ async def get_user_session(request, user):
         if session_json:
             session = json.loads(session_json)
     else:
-        session = session_cache.get(token)
+        cached_session = session_cache.get(token)
+        if cached_session:
+            session, expires_at = cached_session
+            if expires_at <= time.monotonic():
+                session_cache.pop(token, None)
+                session = None
 
     if not session:
         raise web.HTTPUnauthorized(reason="Invalid bearer token, no session for token")
@@ -317,6 +336,7 @@ async def set_impersonation_for_request(api_client, session, request):
         user_groups = await get_user_groups(impersonate_user)
         for group in user_groups:
             api_client.default_headers.add('Impersonate-Group', group)
+        return user_groups
 
 async def start_user_session(user, user_groups):
     session = {
@@ -341,7 +361,7 @@ async def start_user_session(user, user_groups):
     if redis_connection:
         await redis_connection.setex(token, session_lifetime, json.dumps(session, separators=(',',':')))
     else:
-        session_cache[token] = session
+        session_cache[token] = (session, time.monotonic() + session_lifetime)
 
     return api_client, session, token
 
@@ -1676,7 +1696,7 @@ async def selfpacedlab_post(request):
 
 
 
-async def get_system_status_from_configmap():
+async def get_system_status_from_configmap(strict=False):
     """
     Read system status from the ConfigMap.
     Returns default values if ConfigMap doesn't exist or on error.
@@ -1714,10 +1734,44 @@ async def get_system_status_from_configmap():
             logging.warning(f"System status ConfigMap '{system_status_configmap_name}' not found in namespace '{babylon_namespace}'")
         else:
             logging.error(f"Error reading system status ConfigMap: {e}")
+            if strict:
+                raise
         return default_status
     except Exception as e:
         logging.error(f"Unexpected error reading system status ConfigMap: {e}")
+        if strict:
+            raise
         return default_status
+
+
+async def get_catalog_item_for_order_policy(namespace, name):
+    try:
+        return await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='catalogitems',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 404:
+            return None
+        raise
+
+
+async def get_resource_claim_for_order_policy(namespace, name):
+    try:
+        return await custom_objects_api.get_namespaced_custom_object(
+            group='poolboy.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='resourceclaims',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status == 404:
+            return None
+        raise
 
 
 @routes.get("/api/system/status")
@@ -1925,23 +1979,137 @@ async def openshift_api_proxy_with_cache(request):
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
 
-    for catalog_namespace in session.get('catalogNamespaces', []):
-        if catalog_namespace['name'] == namespace:
-            break
-    else:
+    authorization_api_client = proxy_api_client(session)
+    try:
+        await set_impersonation_for_request(authorization_api_client, session, request)
+        name = request.match_info.get('name')
+        if name:
+            authorized = await check_api_access(
+                authorization_api_client,
+                'babylon.gpte.redhat.com',
+                'catalogitems',
+                'get',
+                namespace,
+                name,
+            )
+        else:
+            authorized = await check_api_access(
+                authorization_api_client,
+                'babylon.gpte.redhat.com',
+                'catalogitems',
+                'list',
+                namespace,
+            )
+        if not authorized:
+            return web.json_response({
+                'apiVersion': 'v1',
+                'kind': 'Status',
+                'status': 'Failure',
+                'reason': 'Forbidden',
+                'message': 'Forbidden',
+                'code': 403,
+            }, status=403)
+    finally:
+        await authorization_api_client.close()
+
+    impersonate_user = request.headers.get('Impersonate-User')
+    catalog_namespaces = session.get('catalogNamespaces', [])
+    effective_groups = None
+    if impersonate_user and session.get('admin'):
+        effective_api_client = proxy_api_client(session)
+        try:
+            effective_groups = await set_impersonation_for_request(
+                effective_api_client, session, request
+            )
+            catalog_namespaces = await get_catalog_namespaces(effective_api_client)
+        finally:
+            await effective_api_client.close()
+    if not isinstance(catalog_namespaces, list) or not any(
+        isinstance(catalog_namespace, dict)
+        and catalog_namespace.get('name') == namespace
+        for catalog_namespace in catalog_namespaces
+    ):
         raise web.HTTPForbidden()
 
-    resp, cache_time = response_cache.get(request.path_qs, (None, None))
-    if resp is not None and time.time() - cache_time < response_cache_clean_interval:
-        return web.Response(
-            body=resp.body,
-            headers=resp.headers,
-            status=resp.status,
-        )
+    query_params = [(key, value) for key, value in request.query.items()]
+    accept = request.headers.get('Accept')
+    cache_key = (request.path_qs, accept)
+    response_to_cache = None
+    cached_response = get_cached_response(cache_key)
+    if cached_response:
+        raw_data, _, status, response_headers = cached_response
+    else:
+        async with response_cache_miss_semaphore:
+            cached_response = get_cached_response(cache_key)
+            if cached_response:
+                raw_data, _, status, response_headers = cached_response
+            else:
+                header_params = {'Accept': accept} if accept else {}
+                try:
+                    response = await app_api_client.call_api(
+                        request.path,
+                        request.method,
+                        auth_settings=['BearerToken'],
+                        header_params=header_params,
+                        query_params=query_params or None,
+                        _preload_content=False,
+                    )
+                except kubernetes_asyncio.client.exceptions.ApiException as exception:
+                    if exception.body:
+                        return web.Response(
+                            body=exception.body,
+                            headers={'Content-Type': 'application/json'},
+                            status=exception.status,
+                        )
+                    return web.Response(status=exception.status)
+                raw_data = await response.read()
+                status = response.status
+                response_headers = dict(response.headers)
+                response_to_cache = (raw_data, status, response_headers)
 
-    resp = await openshift_api_proxy(request)
-    response_cache[request.path_qs] = (resp, time.time())
-    return resp
+    data = json.loads(raw_data)
+    if response_to_cache is not None:
+        cache_response(cache_key, *response_to_cache)
+    if not session.get('admin') or impersonate_user:
+        groups = effective_groups
+        if not isinstance(groups, list):
+            groups = (
+                await get_user_groups(impersonate_user)
+                if session.get('admin') and impersonate_user
+                else session.get('groups', [])
+            )
+        if not isinstance(groups, list):
+            groups = []
+        if isinstance(data, dict) and isinstance(data.get('items'), list):
+            data['items'] = [
+                item for item in data['items']
+                if catalog_item_is_visible(item, groups)
+            ]
+        elif not catalog_item_is_visible(data, groups):
+            raise web.HTTPNotFound()
+
+    if isinstance(data, dict):
+        metadata = data.get('metadata')
+        if isinstance(metadata, dict):
+            metadata.pop('managedFields', None)
+        for item in data.get('items', []):
+            if isinstance(item, dict) and isinstance(item.get('metadata'), dict):
+                item['metadata'].pop('managedFields', None)
+
+    headers = {
+        key: value for key, value in response_headers.items()
+        if key.lower() not in (
+            'content-encoding', 'content-length', 'content-type', 'transfer-encoding',
+            'etag', 'last-modified',
+        )
+    }
+    headers['Content-Encoding'] = 'gzip'
+    headers['Content-Type'] = 'application/json'
+    return web.Response(
+        body=gzip.compress(bytes(json.dumps(data), 'utf-8'), compresslevel=5),
+        headers=headers,
+        status=status,
+    )
 
 @routes.delete("/{path:apis?/.*}")
 @routes.get("/{path:apis?/.*}")
@@ -1967,7 +2135,71 @@ async def openshift_api_proxy(request, api_client=None):
         if request.content_type and request.can_read_body:
             header_params['Content-Type'] = request.content_type
 
-        request_body = await request.json() if request.can_read_body else None
+        try:
+            reject_server_side_apply(
+                request.method,
+                request.path,
+                request.headers.get('Content-Type'),
+            )
+            try:
+                request_body = await request.json() if request.can_read_body else None
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                if classify_order_request(request.method, request.path):
+                    raise CatalogOrderPolicyError(
+                        400,
+                        'invalid_json',
+                        'Invalid JSON request body',
+                    )
+                return kubernetes_status_response(
+                    400, 'BadRequest', 'Invalid JSON request body'
+                )
+
+            await enforce_catalog_order_policy(
+                method=request.method,
+                path=request.path,
+                body=request_body,
+                session=session,
+                get_system_status=lambda: get_system_status_from_configmap(strict=True),
+                get_catalog_item=get_catalog_item_for_order_policy,
+                get_resource_claim=get_resource_claim_for_order_policy,
+            )
+        except CatalogOrderPolicyError as exception:
+            audit_log(
+                'catalog_order_denied',
+                user=session['user'],
+                status=exception.status,
+                details={
+                    'path': request.path,
+                    'policy_code': exception.code,
+                },
+            )
+            reason = {
+                400: 'BadRequest',
+                403: 'Forbidden',
+                503: 'ServiceUnavailable',
+            }.get(exception.status, 'InternalError')
+            return kubernetes_status_response(
+                exception.status, reason, exception.reason
+            )
+        except (
+            kubernetes_asyncio.client.exceptions.ApiException,
+            aiohttp.ClientError,
+            asyncio.TimeoutError,
+        ):
+            audit_log(
+                'catalog_order_denied',
+                user=session['user'],
+                status=503,
+                details={
+                    'path': request.path,
+                    'policy_code': 'catalog_item_lookup_failed',
+                },
+            )
+            return kubernetes_status_response(
+                503,
+                'ServiceUnavailable',
+                'Unable to validate catalog order',
+            )
 
         response = await api_client.call_api(
             request.path,
@@ -1979,6 +2211,25 @@ async def openshift_api_proxy(request, api_client=None):
             _preload_content = False,
         )
         data = json.loads(await response.read())
+
+        parsed_path = parse_k8s_path(request.path)
+        if (
+            request.method == 'GET'
+            and parsed_path
+            and parsed_path.get('api_group') == 'babylon.gpte.redhat.com'
+            and parsed_path.get('plural') == 'catalogitems'
+            and not session.get('admin')
+        ):
+            groups = session.get('groups', [])
+            if not isinstance(groups, list):
+                groups = []
+            if 'items' in data:
+                data['items'] = [
+                    item for item in data['items']
+                    if catalog_item_is_visible(item, groups)
+                ]
+            elif not catalog_item_is_visible(data, groups):
+                raise web.HTTPNotFound()
 
         # Strip out metadata.managedFields
         data['metadata'].pop('managedFields', None)
@@ -2032,6 +2283,57 @@ async def openshift_api_proxy(request, api_client=None):
         if opened_api_client:
             await api_client.close()
 
+
+def kubernetes_status_response(status, reason, message):
+    return web.json_response({
+        'apiVersion': 'v1',
+        'kind': 'Status',
+        'status': 'Failure',
+        'reason': reason,
+        'message': message,
+        'code': status,
+    }, status=status)
+
+def remove_cached_response(cache_key):
+    global response_cache_bytes
+    cached_response = response_cache.pop(cache_key, None)
+    if cached_response:
+        response_cache_bytes = max(0, response_cache_bytes - len(cached_response[0]))
+    return cached_response
+
+
+def get_cached_response(cache_key):
+    if response_cache_max_entries <= 0 or response_cache_max_bytes <= 0:
+        return None
+    cached_response = response_cache.get(cache_key)
+    if (
+        cached_response
+        and time.time() - cached_response[1] > response_cache_clean_interval
+    ):
+        remove_cached_response(cache_key)
+        return None
+    return cached_response
+
+
+def cache_response(cache_key, raw_data, status, response_headers):
+    global response_cache_bytes
+    if (
+        not 200 <= status < 300
+        or response_cache_max_entries <= 0
+        or response_cache_max_bytes <= 0
+        or len(raw_data) > response_cache_max_bytes
+    ):
+        return
+    remove_cached_response(cache_key)
+    response_cache[cache_key] = (raw_data, time.time(), status, response_headers)
+    response_cache_bytes += len(raw_data)
+    while (
+        len(response_cache) > response_cache_max_entries
+        or response_cache_bytes > response_cache_max_bytes
+    ):
+        remove_cached_response(next(iter(response_cache)))
+
+
 async def response_cache_clean():
     """Periodically remove old cache entries to avoid memory leak."""
     try:
@@ -2039,7 +2341,7 @@ async def response_cache_clean():
             for key, value in list(response_cache.items()):
                 cache_time = value[1]
                 if time.time() - cache_time > response_cache_clean_interval:
-                    response_cache.pop(key, None)
+                    remove_cached_response(key)
             await asyncio.sleep(response_cache_clean_interval)
     except asyncio.CancelledError:
         return
