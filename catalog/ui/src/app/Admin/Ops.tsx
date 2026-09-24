@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSWR, { useSWRConfig } from 'swr';
 import {
@@ -109,6 +109,7 @@ import { COMMON_TIMEZONES, getBrowserTimezone } from '@app/components/timezones'
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
+import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { Calendar } from 'react-big-calendar';
 import {
   workshopCalendarEventStyleGetter,
@@ -117,6 +118,22 @@ import {
 } from '@app/Admin/workshopCalendarEvents';
 import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
 import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
+import {
+  kickoffSoundcheck,
+  normalizeSoundcheckBase,
+  pollSoundcheckSession,
+  type SoundcheckSessionStatus,
+} from '@app/Admin/Ops/soundcheck';
+import {
+  actionDisplayName,
+  appendOpsHistory,
+  formatOpsHistoryTime,
+  loadOpsHistory,
+  saveOpsHistory,
+  summarizeWorkshopNames,
+  type OpsHistoryAction,
+  type OpsHistoryEntry,
+} from '@app/Admin/Ops/opsHistory';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
 
@@ -413,6 +430,8 @@ const Ops: React.FC = () => {
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
   const { mutate } = useSWRConfig();
+  const interfaceConfig = useInterfaceConfig();
+  const soundcheckBase = normalizeSoundcheckBase(interfaceConfig?.soundcheck_url);
 
   // ---------- Alerts ----------
 
@@ -426,6 +445,50 @@ const Ops: React.FC = () => {
 
   const removeAlert = useCallback((key: number) => {
     setAlerts(prev => prev.filter(a => a.key !== key));
+  }, []);
+
+  // ---------- Operations history (localStorage) ----------
+
+  const [opsHistory, setOpsHistory] = useState<OpsHistoryEntry[]>(() => loadOpsHistory());
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [soundcheckLoading, setSoundcheckLoading] = useState(false);
+  const [soundcheckRun, setSoundcheckRun] = useState<{
+    status: SoundcheckSessionStatus | 'opened';
+    sessionUrl: string;
+    workshopCount: number;
+    mode: 'api' | 'deeplink';
+    error?: string;
+  } | null>(null);
+  const soundcheckAbortRef = useRef<AbortController | null>(null);
+
+  const recordHistory = useCallback((
+    action: OpsHistoryAction,
+    workshops: Workshop[],
+    ok: number,
+    fail: number,
+    opts?: { skipped?: number; detail?: string; label?: string; status?: OpsHistoryEntry['status'] },
+  ) => {
+    const names = workshops.map((ws) => displayName(ws) || ws.metadata.name);
+    setOpsHistory((prev) => {
+      const next = appendOpsHistory(prev, {
+        action,
+        label: opts?.label || actionDisplayName(action),
+        workshopCount: workshops.length,
+        workshopNames: names,
+        ok,
+        fail,
+        skipped: opts?.skipped,
+        detail: opts?.detail,
+        status: opts?.status,
+      });
+      saveOpsHistory(next);
+      return next;
+    });
+  }, []);
+
+  const clearOpsHistory = useCallback(() => {
+    setOpsHistory([]);
+    saveOpsHistory([]);
   }, []);
 
   // ---------- Multi-namespace mode ----------
@@ -1384,7 +1447,7 @@ const Ops: React.FC = () => {
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || redeployLoading;
+  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || redeployLoading || soundcheckLoading;
 
   const scaleAnalysis = useMemo(() => {
     let up = 0, down = 0, same = 0, unknown = 0;
@@ -1487,6 +1550,7 @@ const Ops: React.FC = () => {
     }
     setLockLoading(false);
     mutateWorkshops();
+    recordHistory('lock', operationTargets, ok, fail);
     if (fail === 0) addAlert(AlertVariant.success, `Locked ${ok} workshop(s)`);
     else addAlert(AlertVariant.danger, `Lock: ${ok} succeeded, ${fail} failed`);
   };
@@ -1507,6 +1571,7 @@ const Ops: React.FC = () => {
     }
     setUnlockLoading(false);
     mutateWorkshops();
+    recordHistory('unlock', operationTargets, ok, fail);
     if (fail === 0) addAlert(AlertVariant.success, `Unlocked ${ok} workshop(s)`);
     else addAlert(AlertVariant.danger, `Unlock: ${ok} succeeded, ${fail} failed`);
   };
@@ -1534,6 +1599,10 @@ const Ops: React.FC = () => {
     setExtStopLoading(false);
     mutateWorkshops();
     const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-stop set)` : '';
+    recordHistory('extend-stop', operationTargets, ok, fail, {
+      skipped: skip,
+      detail: `+${extStopDays}d ${extStopHours}h${skipMsg}`,
+    });
     if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`);
     else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
@@ -1561,6 +1630,10 @@ const Ops: React.FC = () => {
     setExtDestroyLoading(false);
     mutateWorkshops();
     const skipMsg = skip > 0 ? ` (${skip} skipped — no auto-destroy set)` : '';
+    recordHistory('extend-destroy', operationTargets, ok, fail, {
+      skipped: skip,
+      detail: `+${extDestroyDays}d ${extDestroyHours}h${skipMsg}`,
+    });
     if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`);
     else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
@@ -1590,6 +1663,7 @@ const Ops: React.FC = () => {
     }
     setNoAutostopLoading(false);
     mutateWorkshops();
+    recordHistory('disable-autostop', operationTargets, ok, fail);
     if (fail === 0) addAlert(AlertVariant.success, `Disabled auto-stop on ${ok} workshop(s) — stop pushed to ~1 year`);
     else addAlert(AlertVariant.danger, `Disable auto-stop: ${ok} succeeded, ${fail} failed`);
   };
@@ -1687,6 +1761,7 @@ const Ops: React.FC = () => {
     setScaleLoading(false);
     mutateWorkshops();
     mutateProvisions();
+    recordHistory('scale', operationTargets, ok, fail, { detail: `count=${scaleCount}` });
     if (fail === 0) addAlert(AlertVariant.success, `Scaled ${ok} workshop(s) to ${scaleCount} instances`);
     else addAlert(AlertVariant.danger, `Scale: ${ok} succeeded, ${fail} failed`);
   };
@@ -1717,6 +1792,11 @@ const Ops: React.FC = () => {
 
     setRedeployLoading(false);
 
+    const workshopsTouched = failedInstancesAnalysis.failedWorkshops.map((f) => f.workshop);
+    recordHistory('redeploy', workshopsTouched, succeeded, failed, {
+      detail: `${succeeded} instance(s)`,
+    });
+
     if (failed === 0) {
       addAlert(
         AlertVariant.success,
@@ -1740,6 +1820,102 @@ const Ops: React.FC = () => {
       addAlert(AlertVariant.success, `Opened ${urls.length} AAP2 job(s) in new tabs`);
     }
   };
+
+  const soundcheckWorkshopIds = useMemo(() => {
+    return [
+      ...new Set(
+        operationTargets
+          .map((ws) => ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name)
+          .filter(Boolean),
+      ),
+    ] as string[];
+  }, [operationTargets]);
+
+  const handleSoundcheck = async () => {
+    const ids = soundcheckWorkshopIds;
+    if (ids.length === 0) {
+      addAlert(AlertVariant.warning, 'No workshop-id labels (or names) on selected workshops');
+      return;
+    }
+    soundcheckAbortRef.current?.abort();
+    const ac = new AbortController();
+    soundcheckAbortRef.current = ac;
+    setSoundcheckLoading(true);
+    setSoundcheckRun(null);
+    try {
+      // One batch kickoff for all selected workshop ids — never N parallel full checks.
+      const result = await kickoffSoundcheck(soundcheckBase, ids, {
+        name: `Admin Ops — ${ids.length} workshop(s)`,
+        signal: ac.signal,
+      });
+      setSoundcheckRun({
+        status: result.mode === 'api' ? 'pending' : 'opened',
+        sessionUrl: result.sessionUrl,
+        workshopCount: ids.length,
+        mode: result.mode,
+      });
+      recordHistory('soundcheck', operationTargets, ids.length, 0, {
+        detail: [
+          result.mode === 'api' ? `session ${result.sessionId.slice(0, 8)}…` : 'deep-link',
+          summarizeWorkshopNames(
+            operationTargets.map((ws) => displayName(ws) || ws.metadata.name),
+          ),
+          `ids: ${ids.slice(0, 4).join(', ')}${ids.length > 4 ? ` +${ids.length - 4}` : ''}`,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        status: 'info',
+      });
+      addAlert(
+        AlertVariant.info,
+        result.mode === 'api'
+          ? `Soundcheck session started for ${ids.length} workshop(s)`
+          : `Opened Soundcheck deep-link for ${ids.length} workshop(s) (API unavailable — CORS/network)`,
+      );
+
+      if (result.mode === 'api' && result.sessionId) {
+        // Light poll of the shared session only (not per-row refresh).
+        void pollSoundcheckSession(soundcheckBase, result.sessionId, {
+          signal: ac.signal,
+          onUpdate: (snap) => {
+            setSoundcheckRun((prev) =>
+              prev
+                ? { ...prev, status: snap.status, sessionUrl: result.sessionUrl }
+                : prev,
+            );
+          },
+        }).then((final) => {
+          if (!final || ac.signal.aborted) return;
+          if (final.status === 'completed') {
+            addAlert(AlertVariant.success, `Soundcheck completed for ${ids.length} workshop(s)`);
+          } else if (final.status === 'failed') {
+            addAlert(AlertVariant.danger, 'Soundcheck session reported failed');
+          }
+        });
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      const message = err instanceof Error ? err.message : 'Failed to start Soundcheck';
+      setSoundcheckRun({
+        status: 'failed',
+        sessionUrl: soundcheckBase,
+        workshopCount: ids.length,
+        mode: 'deeplink',
+        error: message,
+      });
+      addAlert(AlertVariant.danger, message);
+    } finally {
+      setSoundcheckLoading(false);
+    }
+  };
+
+  const handleOpenSoundcheckHome = () => {
+    window.open(soundcheckBase, '_blank', 'noopener,noreferrer');
+  };
+
+  useEffect(() => () => {
+    soundcheckAbortRef.current?.abort();
+  }, []);
 
   // ---------- No namespace selected ----------
 
@@ -2373,7 +2549,107 @@ const Ops: React.FC = () => {
                     )}
                   </CardBody>
                 </Card>
+                <Card>
+                  <CardTitle>
+                    <Tooltip content="One batched Soundcheck session for selected workshop-id labels (deep showroom health). Falls back to deep-link if the API is blocked by CORS.">
+                      <span><ExternalLinkAltIcon className="ops-card-icon" /> Soundcheck</span>
+                    </Tooltip>
+                  </CardTitle>
+                  <CardBody>
+                    <p className="ops-desc">
+                      Batch-check selected workshops via Showroom Soundcheck
+                      {soundcheckWorkshopIds.length > 0
+                        ? ` · ${soundcheckWorkshopIds.length} workshop-id${soundcheckWorkshopIds.length !== 1 ? 's' : ''}`
+                        : ' · select workshops with workshop-id'}
+                      .
+                    </p>
+                    {soundcheckWorkshopIds.length > 0 && (
+                      <p className="ops-muted ops-soundcheck-ids" title={soundcheckWorkshopIds.join(', ')}>
+                        {soundcheckWorkshopIds.slice(0, 6).join(', ')}
+                        {soundcheckWorkshopIds.length > 6 ? ` +${soundcheckWorkshopIds.length - 6}` : ''}
+                      </p>
+                    )}
+                    <div className="ops-button-row">
+                      <Button
+                        variant="primary"
+                        onClick={() => { void handleSoundcheck(); }}
+                        isLoading={soundcheckLoading}
+                        isDisabled={anyLoading || soundcheckWorkshopIds.length === 0}
+                      >
+                        Run Soundcheck
+                      </Button>
+                      <Button variant="link" icon={<ExternalLinkAltIcon />} onClick={handleOpenSoundcheckHome}>
+                        Open app
+                      </Button>
+                      {soundcheckRun?.sessionUrl && (
+                        <Button
+                          variant="link"
+                          icon={<ExternalLinkAltIcon />}
+                          onClick={() => window.open(soundcheckRun.sessionUrl, '_blank', 'noopener,noreferrer')}
+                        >
+                          Last session
+                        </Button>
+                      )}
+                    </div>
+                    {soundcheckRun && (
+                      <p className={`ops-soundcheck-status ops-soundcheck-status--${soundcheckRun.status}`}>
+                        {soundcheckRun.error
+                          ? soundcheckRun.error
+                          : soundcheckRun.status === 'opened'
+                            ? `Opened deep-link for ${soundcheckRun.workshopCount} workshop(s)`
+                            : `Session ${soundcheckRun.status} · ${soundcheckRun.mode}`}
+                      </p>
+                    )}
+                  </CardBody>
+                </Card>
               </div>
+            </ExpandableSection>
+
+            <ExpandableSection
+              toggleText={`Operations History${opsHistory.length ? ` (${opsHistory.length})` : ''}`}
+              isExpanded={historyExpanded}
+              onToggle={(_e, expanded) => setHistoryExpanded(expanded)}
+              isIndented
+              style={{ marginTop: 8 }}
+            >
+              {opsHistory.length === 0 ? (
+                <p className="ops-muted">No operations yet this browser session. Lock, extend, scale, redeploy, and Soundcheck are recorded here.</p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                    <Button variant="link" isInline onClick={clearOpsHistory}>Clear history</Button>
+                  </div>
+                  <ul className="ops-history-list" aria-label="Operations history">
+                    {opsHistory.map((entry) => (
+                      <li key={entry.id} className={`ops-history-item ops-history-${entry.status}`}>
+                        <div className="ops-history-row">
+                          <span className="ops-history-time">{formatOpsHistoryTime(entry.ts)}</span>
+                          <Label
+                            color={
+                              entry.status === 'success' ? 'green'
+                                : entry.status === 'failed' ? 'red'
+                                  : entry.status === 'partial' ? 'orange'
+                                    : 'blue'
+                            }
+                            isCompact
+                          >
+                            {entry.label}
+                          </Label>
+                          <span className="ops-history-counts">
+                            {entry.workshopCount} workshop{entry.workshopCount !== 1 ? 's' : ''}
+                            {entry.fail > 0 ? ` · ${entry.ok} ok / ${entry.fail} fail` : entry.ok > 0 ? ` · ${entry.ok} ok` : ''}
+                            {entry.skipped ? ` · ${entry.skipped} skipped` : ''}
+                          </span>
+                        </div>
+                        <div className="ops-history-names">
+                          {summarizeWorkshopNames(entry.workshopNames)}
+                          {entry.detail ? ` — ${entry.detail}` : ''}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </ExpandableSection>
 
             {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
