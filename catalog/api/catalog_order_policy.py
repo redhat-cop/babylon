@@ -110,6 +110,30 @@ def classify_order_request(method: str, path: str) -> OrderRequest | None:
     )
 
 
+def reject_server_side_apply(method: Any, path: str, content_type: Any) -> None:
+    if not isinstance(method, str) or method.upper() != 'PATCH':
+        return
+    if not isinstance(content_type, str):
+        return
+    media_type = content_type.split(';', 1)[0].strip().lower()
+    if media_type != 'application/apply-patch+yaml':
+        return
+    parsed = parse_k8s_path(path)
+    if not parsed:
+        return
+    api_group = parsed.get('api_group')
+    plural = parsed.get('plural')
+    if not isinstance(api_group, str) or not isinstance(plural, str):
+        return
+    if (api_group, plural) not in _PROTECTED_ORDERS:
+        return
+    raise CatalogOrderPolicyError(
+        403,
+        'server_side_apply_not_supported',
+        'Use POST to create resources and JSON Patch or Merge Patch to update resources',
+    )
+
+
 def _invalid_reference(
     reason: str = 'Missing or invalid CatalogItem reference',
 ) -> NoReturn:

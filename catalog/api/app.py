@@ -25,6 +25,7 @@ from catalog_order_policy import (
     catalog_item_is_visible,
     classify_order_request,
     enforce_catalog_order_policy,
+    reject_server_side_apply,
 )
 
 app_api_client = core_v1_api = custom_objects_api = None
@@ -2133,21 +2134,26 @@ async def openshift_api_proxy(request, api_client=None):
             header_params['Content-Type'] = request.content_type
 
         try:
-            request_body = await request.json() if request.can_read_body else None
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            if classify_order_request(request.method, request.path):
-                audit_log(
-                    'catalog_order_denied',
-                    user=session['user'],
-                    status=400,
-                    details={
-                        'path': request.path,
-                        'policy_code': 'invalid_json',
-                    },
-                )
-            raise web.HTTPBadRequest(reason='Invalid JSON request body')
+            reject_server_side_apply(
+                request.method,
+                request.path,
+                request.headers.get('Content-Type'),
+            )
+            try:
+                request_body = await request.json() if request.can_read_body else None
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                if classify_order_request(request.method, request.path):
+                    audit_log(
+                        'catalog_order_denied',
+                        user=session['user'],
+                        status=400,
+                        details={
+                            'path': request.path,
+                            'policy_code': 'invalid_json',
+                        },
+                    )
+                raise web.HTTPBadRequest(reason='Invalid JSON request body')
 
-        try:
             await enforce_catalog_order_policy(
                 method=request.method,
                 path=request.path,
@@ -2302,6 +2308,7 @@ def cache_response(cache_key, raw_data, status, response_headers):
         or len(raw_data) > response_cache_max_bytes
     ):
         return
+    remove_cached_response(cache_key)
     response_cache[cache_key] = (raw_data, time.time(), status, response_headers)
     response_cache_bytes += len(raw_data)
     while (

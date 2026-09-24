@@ -19,6 +19,7 @@ from catalog_order_policy import (
     classify_order_request,
     enforce_catalog_order_policy,
     extract_catalog_item_references,
+    reject_server_side_apply,
 )
 
 
@@ -75,6 +76,48 @@ class TestOrderClassification(unittest.TestCase):
         for path in (None, '', '/apis/babylon.gpte.redhat.com'):
             with self.subTest(path=path):
                 self.assertIsNone(classify_order_request('POST', path))
+
+
+class TestServerSideApplyPolicy(unittest.TestCase):
+
+    def test_rejects_normalized_server_side_apply_for_protected_collections_and_resources(self):
+        pairs = (
+            ('poolboy.gpte.redhat.com', 'resourceclaims'),
+            (BABYLON_DOMAIN, 'workshops'),
+            (BABYLON_DOMAIN, 'workshopprovisions'),
+            (BABYLON_DOMAIN, 'selfpacedlabs'),
+            (BABYLON_DOMAIN, 'selfpacedlabprovisionitems'),
+            (BABYLON_DOMAIN, 'multiworkshops'),
+        )
+        for api_group, plural in pairs:
+            for suffix in ('', '/example'):
+                with self.subTest(api_group=api_group, plural=plural, suffix=suffix):
+                    with self.assertRaises(CatalogOrderPolicyError) as caught:
+                        reject_server_side_apply(
+                            'patch',
+                            f'/apis/{api_group}/v1/namespaces/user-alice/{plural}{suffix}',
+                            ' Application/Apply-Patch+Yaml ; charset=utf-8 ',
+                        )
+                    self.assertEqual(caught.exception.status, 403)
+                    self.assertEqual(caught.exception.code, 'server_side_apply_not_supported')
+                    self.assertIn('POST', caught.exception.reason)
+                    self.assertIn('JSON Patch', caught.exception.reason)
+                    self.assertIn('Merge Patch', caught.exception.reason)
+
+    def test_allows_non_ssa_patches_posts_and_unprotected_resources(self):
+        protected_path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/user-alice/workshops'
+        cases = (
+            ('PATCH', protected_path, 'application/json-patch+json'),
+            ('PATCH', protected_path, 'application/merge-patch+json'),
+            ('PATCH', protected_path, 'application/json'),
+            ('POST', protected_path, 'application/apply-patch+yaml'),
+            ('PATCH', f'/apis/{BABYLON_DOMAIN}/v1/namespaces/user-alice/catalogitems', 'application/apply-patch+yaml'),
+            (None, protected_path, 'application/apply-patch+yaml'),
+            ('PATCH', protected_path, None),
+        )
+        for method, path, content_type in cases:
+            with self.subTest(method=method, path=path, content_type=content_type):
+                reject_server_side_apply(method, path, content_type)
 
 
 class TestReferenceExtraction(unittest.TestCase):
@@ -703,6 +746,56 @@ class FakeApiClient:
     def __init__(self):
         self.default_headers = {}
         self.call_api = AsyncMock(return_value=FakeKubernetesResponse())
+
+
+class TestResponseCache(unittest.TestCase):
+
+    def setUp(self):
+        self.response_cache = catalog_app.response_cache
+        self.response_cache_bytes = catalog_app.response_cache_bytes
+        self.response_cache_max_entries = catalog_app.response_cache_max_entries
+        self.response_cache_max_bytes = catalog_app.response_cache_max_bytes
+        catalog_app.response_cache = {}
+        catalog_app.response_cache_bytes = 0
+        catalog_app.response_cache_max_entries = 2
+        catalog_app.response_cache_max_bytes = 100
+
+    def tearDown(self):
+        catalog_app.response_cache = self.response_cache
+        catalog_app.response_cache_bytes = self.response_cache_bytes
+        catalog_app.response_cache_max_entries = self.response_cache_max_entries
+        catalog_app.response_cache_max_bytes = self.response_cache_max_bytes
+
+    def test_replacing_cached_response_counts_only_replacement_bytes(self):
+        catalog_app.cache_response('item', b'old', 200, {})
+        catalog_app.cache_response('item', b'replacement', 200, {})
+
+        self.assertEqual(list(catalog_app.response_cache), ['item'])
+        self.assertEqual(catalog_app.response_cache['item'][0], b'replacement')
+        self.assertEqual(catalog_app.response_cache_bytes, len(b'replacement'))
+
+    def test_replacement_evicts_oldest_remaining_entry_when_over_byte_limit(self):
+        catalog_app.response_cache_max_bytes = 5
+        catalog_app.cache_response('replaced', b'aa', 200, {})
+        catalog_app.cache_response('other', b'bbb', 200, {})
+        catalog_app.cache_response('replaced', b'four', 200, {})
+
+        self.assertEqual(list(catalog_app.response_cache), ['replaced'])
+        self.assertEqual(catalog_app.response_cache['replaced'][0], b'four')
+        self.assertEqual(catalog_app.response_cache_bytes, len(b'four'))
+
+    def test_non_cacheable_replacement_keeps_existing_cached_response(self):
+        for status, raw_data in ((500, b'updated'), (200, b'oversized')):
+            with self.subTest(status=status, raw_data=raw_data):
+                catalog_app.response_cache.clear()
+                catalog_app.response_cache_bytes = 0
+                catalog_app.response_cache_max_bytes = 5
+                catalog_app.cache_response('item', b'old', 200, {})
+
+                catalog_app.cache_response('item', raw_data, status, {})
+
+                self.assertEqual(catalog_app.response_cache['item'][0], b'old')
+                self.assertEqual(catalog_app.response_cache_bytes, len(b'old'))
 
 
 class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
@@ -1832,6 +1925,37 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             audit.call_args.kwargs['details']['policy_code'],
             'invalid_json',
+        )
+
+    async def test_server_side_apply_is_denied_before_json_parsing_or_forwarding(self):
+        request = InvalidJsonRequest(None)
+        request.method = 'patch'
+        request.path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/user-alice/workshops/new-workshop'
+        request.headers = {
+            'Content-Type': ' Application/Apply-Patch+Yaml ; charset=utf-8 ',
+        }
+        api_client = FakeApiClient()
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'audit_log') as audit,
+        ):
+            with self.assertRaises(web.HTTPForbidden) as caught:
+                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+
+        self.assertIn('POST', caught.exception.reason)
+        api_client.call_api.assert_not_awaited()
+        audit.assert_called_once_with(
+            'catalog_order_denied',
+            user='alice',
+            status=403,
+            details={
+                'path': request.path,
+                'policy_code': 'server_side_apply_not_supported',
+            },
         )
 
     async def test_allowed_order_is_forwarded_with_original_body(self):
