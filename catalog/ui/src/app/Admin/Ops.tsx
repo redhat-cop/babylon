@@ -1821,7 +1821,10 @@ const Ops: React.FC = () => {
     }
   };
 
+  // Soundcheck is opt-in via checkbox selection only — never "all in scope" /
+  // whole-platform scroll view. Avoids accidental huge Soundcheck batches.
   const soundcheckWorkshopIds = useMemo(() => {
+    if (!hasSelection) return [] as string[];
     return [
       ...new Set(
         operationTargets
@@ -1829,12 +1832,23 @@ const Ops: React.FC = () => {
           .filter(Boolean),
       ),
     ] as string[];
-  }, [operationTargets]);
+  }, [operationTargets, hasSelection]);
 
   const handleSoundcheck = async () => {
+    if (!hasSelection) {
+      addAlert(AlertVariant.info, 'Select one or more workshops first — Soundcheck never runs against the whole platform view');
+      return;
+    }
     const ids = soundcheckWorkshopIds;
     if (ids.length === 0) {
       addAlert(AlertVariant.warning, 'No workshop-id labels (or names) on selected workshops');
+      return;
+    }
+    if (ids.length > 40) {
+      addAlert(
+        AlertVariant.warning,
+        `Refusing ${ids.length} workshops in one Soundcheck — select ≤40 (or filter/namespace) so the Soundcheck service is not flooded`,
+      );
       return;
     }
     soundcheckAbortRef.current?.abort();
@@ -2557,10 +2571,10 @@ const Ops: React.FC = () => {
                   </CardTitle>
                   <CardBody>
                     <p className="ops-desc">
-                      Batch-check selected workshops via Showroom Soundcheck
+                      Batch-check <strong>selected</strong> workshops only (one Soundcheck session — not per-row, not on scroll/refresh)
                       {soundcheckWorkshopIds.length > 0
                         ? ` · ${soundcheckWorkshopIds.length} workshop-id${soundcheckWorkshopIds.length !== 1 ? 's' : ''}`
-                        : ' · select workshops with workshop-id'}
+                        : ' · tick workshops in the table first'}
                       .
                     </p>
                     {soundcheckWorkshopIds.length > 0 && (
