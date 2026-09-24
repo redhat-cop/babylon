@@ -29,6 +29,7 @@ export interface TimelineSwimlaneProps {
   isMultiNs: boolean;
   timezone: string;
   nowPercent: number | null;
+  getSoundcheckBadge?: (ws: WorkshopWithResourceClaims) => { label: string; href: string; title: string; colorClass?: string } | null;
 }
 
 interface WorkshopRow {
@@ -95,6 +96,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
   isMultiNs,
   timezone,
   nowPercent,
+  getSoundcheckBadge,
 }) => {
   const defaultExpanded = status === 'Running' || status === 'Failed';
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -168,6 +170,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
                   multiWorkshopsByName={multiWorkshopsByName}
                   isMultiNs={isMultiNs}
                   timezone={timezone}
+                  soundcheckBadge={getSoundcheckBadge?.(workshop) ?? null}
                 />
               ))}
             </div>

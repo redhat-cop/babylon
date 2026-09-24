@@ -1852,24 +1852,37 @@ const Ops: React.FC = () => {
     ] as string[];
   }, [operationTargets, hasSelection]);
 
-  /** Visible table page only — never the whole platform. */
+  /** Visible table page or timeline targets — never the whole platform. */
   const visibleSoundcheckIds = useMemo(() => {
-    if (!showSoundcheckCol || workshopView !== 'table') return [] as string[];
+    if (!showSoundcheckCol) return [] as string[];
     const ids: string[] = [];
-    for (const group of pagedWorkshopGroups) {
-      for (const ws of group.items) {
+    if (workshopView === 'table') {
+      for (const group of pagedWorkshopGroups) {
+        for (const ws of group.items) {
+          const id = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name;
+          if (id) ids.push(id);
+        }
+      }
+    } else if (workshopView === 'timeline') {
+      for (const ws of targets) {
         const id = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name;
         if (id) ids.push(id);
       }
+    } else {
+      return [] as string[];
     }
     return normalizeWorkshopIds(ids).slice(0, 100);
-  }, [showSoundcheckCol, workshopView, pagedWorkshopGroups]);
+  }, [showSoundcheckCol, workshopView, pagedWorkshopGroups, targets]);
 
-  // One batched DB lookup for the current page (TTL cache). Does not start new checks.
+  // One batched DB lookup for the current page/timeline (TTL cache). Does not start new checks.
   useEffect(() => {
-    if (!showSoundcheckCol || workshopView !== 'table' || visibleSoundcheckIds.length === 0) return;
+    if (!showSoundcheckCol || (workshopView !== 'table' && workshopView !== 'timeline') || visibleSoundcheckIds.length === 0) {
+      return undefined;
+    }
     const need = idsNeedingStatusFetch(visibleSoundcheckIds, scStatusCacheRef.current);
-    if (need.length === 0) return;
+    if (need.length === 0) {
+      return undefined;
+    }
     const ac = new AbortController();
     setScStatusLoading(true);
     fetchWorkshopCheckStatuses(soundcheckBase, need, { signal: ac.signal })
@@ -1947,6 +1960,36 @@ const Ops: React.FC = () => {
       );
     },
     [showSoundcheckCol, getCachedScStatus, soundcheckBase, scStatusLoading],
+  );
+
+  const getTimelineSoundcheckBadge = useCallback(
+    (ws: WorkshopWithResourceClaims) => {
+      if (!showSoundcheckCol) return null;
+      const id = (ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name || '').trim();
+      if (!id) return null;
+      const entry = getCachedScStatus(id);
+      const href = buildSoundcheckWorkshopUrl(soundcheckBase, id);
+      const status = entry?.status;
+      const color =
+        status === 'completed'
+          ? 'timeline-bar__badge--soundcheck-ok'
+          : status === 'failed'
+            ? 'timeline-bar__badge--soundcheck-fail'
+            : status === 'running'
+              ? 'timeline-bar__badge--soundcheck-run'
+              : status === 'pending'
+                ? 'timeline-bar__badge--soundcheck-warn'
+                : undefined;
+      return {
+        label: status || 'check',
+        href,
+        title: status
+          ? `Last Soundcheck · ${status} · opens idempotent /session/workshop/{guid}`
+          : 'Open Soundcheck for this workshop (reuses existing session if any)',
+        colorClass: color,
+      };
+    },
+    [showSoundcheckCol, getCachedScStatus, soundcheckBase],
   );
 
   const handleSoundcheck = async () => {
@@ -2844,21 +2887,13 @@ const Ops: React.FC = () => {
                     />
                   </ToggleGroup>
                 </SplitItem>
-                {workshopView === 'table' && (
-                  <>
-                    <SplitItem>
-                      <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
-                        aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
-                        {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
-                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
-                      </Button>
-                    </SplitItem>
-                    <SplitItem>
-                      <Tooltip content="Per-row Soundcheck badges for this table page (batched status lookup, 60s cache). Badge opens idempotent /session/workshop/{guid} — reuses an existing session instead of spawning duplicates.">
+                {(workshopView === 'table' || workshopView === 'timeline') && (
+                  <SplitItem>
+                      <Tooltip content="Per-row Soundcheck badges (batched status lookup, 60s cache, ≤100 visible). Badge opens idempotent /session/workshop/{guid} — reuses an existing session instead of spawning duplicates.">
                         <Button
                           variant={showSoundcheckCol ? 'secondary' : 'plain'}
                           onClick={() => setShowSoundcheckCol((v) => !v)}
-                          aria-label="Toggle Soundcheck status column"
+                          aria-label="Toggle Soundcheck status badges"
                           aria-pressed={showSoundcheckCol}
                         >
                           <CheckCircleIcon />
@@ -2867,10 +2902,20 @@ const Ops: React.FC = () => {
                               ? scStatusLoading
                                 ? 'Soundcheck…'
                                 : 'Soundcheck on'
-                              : 'Soundcheck col'}
+                              : 'Soundcheck'}
                           </span>
                         </Button>
                       </Tooltip>
+                    </SplitItem>
+                )}
+                {workshopView === 'table' && (
+                  <>
+                    <SplitItem>
+                      <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
+                        aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
+                        {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
+                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                      </Button>
                     </SplitItem>
                   </>
                 )}
@@ -3337,6 +3382,7 @@ const Ops: React.FC = () => {
                   timezone={timezone}
                   dateRange={timelineDateRange}
                   onDateChange={handleTimelineDateChange}
+                  getSoundcheckBadge={getTimelineSoundcheckBadge}
                 />
               )}
               {workshopView === 'table' && (

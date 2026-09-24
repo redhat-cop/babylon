@@ -25,6 +25,7 @@ export interface WorkshopTimelineProps {
   timezone: string;
   dateRange: { start: Date; end: Date };
   onDateChange: (start: Date, end: Date) => void;
+  getSoundcheckBadge?: (ws: WorkshopWithResourceClaims) => { label: string; href: string; title: string; colorClass?: string } | null;
 }
 
 function getMonday(d: Date): Date {
@@ -212,6 +213,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   timezone,
   dateRange,
   onDateChange: handleDateChange,
+  getSoundcheckBadge,
 }) => {
   // Region and status filtering is done globally in Ops.tsx — timeline only filters by date range
   const visibleWorkshops = useMemo(() => {
@@ -271,6 +273,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     isMultiNs,
     timezone,
     nowPercent,
+    getSoundcheckBadge,
   };
 
   return (
