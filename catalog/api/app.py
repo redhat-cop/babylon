@@ -1910,7 +1910,6 @@ async def openshift_api_list_by_get_rbac(request):
     session = await get_user_session(request, user)
     api_client = proxy_api_client(session)
 
-    lease_acquired = False
     try:
         await set_impersonation_for_request(api_client, session, request)
         ret = await openshift_api_proxy(request, api_client)

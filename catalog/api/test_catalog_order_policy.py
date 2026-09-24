@@ -152,7 +152,7 @@ class TestReferenceExtraction(unittest.TestCase):
             refs, (CatalogItemReference(namespace=None, name='test-item'),)
         )
 
-    def test_workshop_and_selfpacedlab_labels_are_optional(self):
+    def test_workshop_and_selfpacedlab_use_catalog_item_labels(self):
         body = {'metadata': {'labels': catalog_labels()}}
         for plural in ('workshops', 'selfpacedlabs'):
             with self.subTest(plural=plural):
@@ -162,30 +162,32 @@ class TestReferenceExtraction(unittest.TestCase):
                     (CatalogItemReference(namespace='test-catalog', name='test-item'),),
                 )
 
-                unbound = {'metadata': {}}
-                self.assertEqual(
-                    extract_catalog_item_references(self.order(plural), unbound),
-                    (),
-                )
-                self.assertEqual(
-                    extract_catalog_item_references(
-                        self.order(plural),
-                        {'metadata': {'labels': {'app': 'workshop'}}},
-                    ),
-                    (),
-                )
-
-                for labels in (
-                    {f'{BABYLON_DOMAIN}/catalogItemName': 'test-item'},
-                    None,
-                ):
-                    with self.subTest(labels=labels):
-                        with self.assertRaises(CatalogOrderPolicyError) as caught:
-                            extract_catalog_item_references(
-                                self.order(plural),
-                                {'metadata': {'labels': labels}},
-                            )
-                        self.assertEqual(caught.exception.status, 400)
+    def test_workshop_and_selfpacedlab_require_complete_catalog_item_labels(self):
+        invalid_bodies = (
+            {},
+            {'metadata': {}},
+            {'metadata': {'labels': None}},
+            {'metadata': {'labels': {'app': 'workshop'}}},
+            {'metadata': {'labels': {
+                f'{BABYLON_DOMAIN}/catalogItemName': 'test-item',
+            }}},
+            {'metadata': {'labels': {
+                f'{BABYLON_DOMAIN}/catalogItemNamespace': 'test-catalog',
+            }}},
+        )
+        for plural in ('workshops', 'selfpacedlabs'):
+            for body in invalid_bodies:
+                with self.subTest(plural=plural, body=body):
+                    with self.assertRaises(CatalogOrderPolicyError) as caught:
+                        extract_catalog_item_references(
+                            self.order(plural),
+                            body,
+                        )
+                    self.assertEqual(caught.exception.status, 400)
+                    self.assertEqual(
+                        caught.exception.code,
+                        'invalid_catalog_reference',
+                    )
 
     def test_provision_children_use_spec_catalog_item_without_labels(self):
         body = {
@@ -407,6 +409,14 @@ class TestCatalogOrderPolicy(unittest.IsolatedAsyncioTestCase):
             await self.enforce(body={'metadata': {}})
         self.assertEqual(caught.exception.status, 403)
         self.assertEqual(caught.exception.code, 'ordering_blocked')
+
+    async def test_unbound_workshop_is_invalid_when_ordering_is_open(self):
+        with self.assertRaises(CatalogOrderPolicyError) as caught:
+            await self.enforce(body={'metadata': {}})
+        self.assertEqual(caught.exception.status, 400)
+        self.assertEqual(caught.exception.code, 'invalid_catalog_reference')
+        self.get_system_status.assert_awaited_once_with()
+        self.get_catalog_item.assert_not_awaited()
 
     async def test_reference_namespace_must_be_in_session(self):
         self.session['catalogNamespaces'] = [{'name': 'other-catalog'}]
@@ -1556,6 +1566,77 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             'policy_code': 'catalog_item_access_denied',
         })
         self.assertNotIn('body', audit.call_args.kwargs)
+
+    async def test_unbound_order_resources_are_bad_request_before_forwarding(self):
+        for plural in ('workshops', 'selfpacedlabs'):
+            with self.subTest(plural=plural):
+                request = FakeRequest({'metadata': {}})
+                request.path = (
+                    f'/apis/{BABYLON_DOMAIN}/v1/namespaces/user-alice/{plural}'
+                )
+                api_client = FakeApiClient()
+                system_status = AsyncMock(return_value={})
+                catalog_api = SimpleNamespace(
+                    get_namespaced_custom_object=AsyncMock()
+                )
+                auth_patches = self.authenticated_patches(self.session())
+
+                with (
+                    auth_patches[0],
+                    auth_patches[1],
+                    auth_patches[2],
+                    patch.object(catalog_app, 'custom_objects_api', catalog_api),
+                    patch.object(
+                        catalog_app,
+                        'get_system_status_from_configmap',
+                        system_status,
+                    ),
+                    patch.object(catalog_app, 'audit_log') as audit,
+                ):
+                    with self.assertRaises(web.HTTPBadRequest):
+                        await catalog_app.openshift_api_proxy(
+                            request,
+                            api_client=api_client,
+                        )
+
+                api_client.call_api.assert_not_awaited()
+                system_status.assert_awaited_once_with(strict=True)
+                catalog_api.get_namespaced_custom_object.assert_not_awaited()
+                audit.assert_called_once_with(
+                    'catalog_order_denied',
+                    user='alice',
+                    status=400,
+                    details={
+                        'path': request.path,
+                        'policy_code': 'invalid_catalog_reference',
+                    },
+                )
+
+    async def test_admin_can_create_unbound_order_resource(self):
+        request = FakeRequest({'metadata': {}})
+        api_client = FakeApiClient()
+        session = dict(self.session(), admin=True)
+        system_status = AsyncMock()
+        auth_patches = self.authenticated_patches(session)
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(
+                catalog_app,
+                'get_system_status_from_configmap',
+                system_status,
+            ),
+        ):
+            response = await catalog_app.openshift_api_proxy(
+                request,
+                api_client=api_client,
+            )
+
+        self.assertEqual(response.status, 201)
+        api_client.call_api.assert_awaited_once()
+        system_status.assert_not_awaited()
 
     async def test_missing_catalog_item_is_forbidden_before_forwarding(self):
         request = FakeRequest({'metadata': {'labels': catalog_labels()}})

@@ -165,24 +165,6 @@ def _labels_reference(body: dict[str, Any]) -> CatalogItemReference:
     return CatalogItemReference(namespace=namespace, name=name)
 
 
-def _optional_labels_reference(
-    body: dict[str, Any],
-) -> CatalogItemReference | None:
-    metadata = _dict_value(body.get('metadata'), 'Missing resource metadata')
-    if 'labels' not in metadata:
-        return None
-    labels = metadata['labels']
-    if not isinstance(labels, dict):
-        _invalid_reference('Invalid resource labels')
-    has_name = CATALOG_ITEM_NAME_LABEL in labels
-    has_namespace = CATALOG_ITEM_NAMESPACE_LABEL in labels
-    if not has_name and not has_namespace:
-        return None
-    if not has_name or not has_namespace:
-        _invalid_reference('Incomplete CatalogItem labels')
-    return _labels_reference(body)
-
-
 def _spec_catalog_item_reference(body: dict[str, Any]) -> CatalogItemReference:
     spec = _dict_value(body.get('spec'), 'Missing resource spec')
     catalog_item = _dict_value(
@@ -239,8 +221,7 @@ def extract_catalog_item_references(
         return _deduplicate(references)
 
     if order.reference_kind == 'labels':
-        reference = _optional_labels_reference(body)
-        return (reference,) if reference else ()
+        return (_labels_reference(body),)
 
     if order.reference_kind == 'provider':
         return (_provider_reference(body),)
