@@ -12,7 +12,7 @@ The policy runs before forwarding collection `POST` requests for these resources
 
 | API group | Resource | Block category | CatalogItem reference |
 |---|---|---|---|
-| `poolboy.gpte.redhat.com` | `resourceclaims` | service | `spec.provider.name`, resolved server-side across authorized catalog namespaces |
+| `poolboy.gpte.redhat.com` | `resourceclaims` | service | `spec.provider.name`, with matching catalog labels used as an optional namespace hint |
 | `babylon.gpte.redhat.com` | `workshops` | workshop | metadata labels |
 | `babylon.gpte.redhat.com` | `workshopprovisions` | workshop | `spec.catalogItem` |
 | `babylon.gpte.redhat.com` | `selfpacedlabs` | workshop | metadata labels |
@@ -30,8 +30,8 @@ For non-admin users:
 1. Read the existing system-status ConfigMap through `get_system_status_from_configmap`.
 2. Reject requests covered by an active service/workshop ordering block with HTTP 403. Use the configured block message when present.
 3. Parse all required CatalogItem references.
-4. Reject malformed or missing authoritative references with HTTP 400. ResourceClaim and provision-resource labels are neither required nor trusted.
-5. Require each explicitly referenced namespace to be present in the session's `catalogNamespaces`. Resolve a ResourceClaim provider name server-side by loading it from every authorized catalog namespace.
+4. Reject malformed or missing authoritative references with HTTP 400. Provision-resource labels are neither required nor trusted. ResourceClaim labels are optional and only identify a namespace when the label name matches `spec.provider.name`.
+5. Require each explicitly referenced namespace to be present in the session's `catalogNamespaces`. Resolve a ResourceClaim provider name from its validated namespace hint when present, otherwise load it from every authorized catalog namespace.
 6. Load each authoritative CatalogItem through the Catalog API's service Kubernetes client. A ResourceClaim provider with zero matches is unavailable; more than one match is ambiguous.
 7. Return a generic HTTP 403 when a referenced CatalogItem is absent, ambiguous, or unavailable to the session.
 8. Apply the UI's access semantics to every referenced CatalogItem:
@@ -73,6 +73,10 @@ Policy failures use these response classes:
 - HTTP 400: malformed request body or missing authoritative references;
 - HTTP 403: active ordering block, inaccessible namespace, absent or ambiguous CatalogItem, or denied/view-only access;
 - HTTP 503: CatalogItem or ResourceClaim lookup infrastructure failure.
+
+Failures use Kubernetes `Status` JSON so clients can consistently read the safe
+error message. System-status lookup failures use the distinct
+`system_status_lookup_failed` audit code.
 
 The API emits a `catalog_order_denied` audit event containing only user, request path, policy code, and HTTP status. It never logs parameter values or the complete request body.
 

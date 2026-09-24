@@ -2034,6 +2034,7 @@ async def openshift_api_proxy_with_cache(request):
     query_params = [(key, value) for key, value in request.query.items()]
     accept = request.headers.get('Accept')
     cache_key = (request.path_qs, accept)
+    response_to_cache = None
     cached_response = get_cached_response(cache_key)
     if cached_response:
         raw_data, _, status, response_headers = cached_response
@@ -2064,9 +2065,11 @@ async def openshift_api_proxy_with_cache(request):
                 raw_data = await response.read()
                 status = response.status
                 response_headers = dict(response.headers)
-                cache_response(cache_key, raw_data, status, response_headers)
+                response_to_cache = (raw_data, status, response_headers)
 
     data = json.loads(raw_data)
+    if response_to_cache is not None:
+        cache_response(cache_key, *response_to_cache)
     if not session.get('admin') or impersonate_user:
         groups = effective_groups
         if not isinstance(groups, list):
@@ -2142,16 +2145,14 @@ async def openshift_api_proxy(request, api_client=None):
                 request_body = await request.json() if request.can_read_body else None
             except (json.JSONDecodeError, UnicodeDecodeError):
                 if classify_order_request(request.method, request.path):
-                    audit_log(
-                        'catalog_order_denied',
-                        user=session['user'],
-                        status=400,
-                        details={
-                            'path': request.path,
-                            'policy_code': 'invalid_json',
-                        },
+                    raise CatalogOrderPolicyError(
+                        400,
+                        'invalid_json',
+                        'Invalid JSON request body',
                     )
-                raise web.HTTPBadRequest(reason='Invalid JSON request body')
+                return kubernetes_status_response(
+                    400, 'BadRequest', 'Invalid JSON request body'
+                )
 
             await enforce_catalog_order_policy(
                 method=request.method,
@@ -2172,11 +2173,14 @@ async def openshift_api_proxy(request, api_client=None):
                     'policy_code': exception.code,
                 },
             )
-            http_error = {
-                400: web.HTTPBadRequest,
-                403: web.HTTPForbidden,
-            }.get(exception.status, web.HTTPServiceUnavailable)
-            raise http_error(reason=exception.reason)
+            reason = {
+                400: 'BadRequest',
+                403: 'Forbidden',
+                503: 'ServiceUnavailable',
+            }.get(exception.status, 'InternalError')
+            return kubernetes_status_response(
+                exception.status, reason, exception.reason
+            )
         except (
             kubernetes_asyncio.client.exceptions.ApiException,
             aiohttp.ClientError,
@@ -2191,8 +2195,10 @@ async def openshift_api_proxy(request, api_client=None):
                     'policy_code': 'catalog_item_lookup_failed',
                 },
             )
-            raise web.HTTPServiceUnavailable(
-                reason='Unable to validate catalog order'
+            return kubernetes_status_response(
+                503,
+                'ServiceUnavailable',
+                'Unable to validate catalog order',
             )
 
         response = await api_client.call_api(
@@ -2276,6 +2282,17 @@ async def openshift_api_proxy(request, api_client=None):
     finally:
         if opened_api_client:
             await api_client.close()
+
+
+def kubernetes_status_response(status, reason, message):
+    return web.json_response({
+        'apiVersion': 'v1',
+        'kind': 'Status',
+        'status': 'Failure',
+        'reason': reason,
+        'message': message,
+        'code': status,
+    }, status=status)
 
 def remove_cached_response(cache_key):
     global response_cache_bytes

@@ -487,6 +487,39 @@ class TestCatalogOrderPolicy(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(caught.exception.status, 403)
         self.assertEqual(caught.exception.code, 'catalog_item_ambiguous')
 
+    async def test_resourceclaim_matching_labels_disambiguate_provider_namespace(self):
+        self.path = '/apis/poolboy.gpte.redhat.com/v1/namespaces/user-alice/resourceclaims'
+        self.body = {
+            'metadata': {'labels': catalog_labels(namespace='other-catalog')},
+            'spec': {'provider': {'name': 'test-item'}},
+        }
+        self.session['catalogNamespaces'].append({'name': 'other-catalog'})
+
+        await self.enforce()
+
+        self.get_catalog_item.assert_awaited_once_with('other-catalog', 'test-item')
+
+    async def test_resourceclaim_mismatched_labels_do_not_select_provider_namespace(self):
+        self.path = '/apis/poolboy.gpte.redhat.com/v1/namespaces/user-alice/resourceclaims'
+        self.body = {
+            'metadata': {
+                'labels': catalog_labels(
+                    name='different-item', namespace='other-catalog'
+                )
+            },
+            'spec': {'provider': {'name': 'test-item'}},
+        }
+        self.session['catalogNamespaces'].append({'name': 'other-catalog'})
+
+        with self.assertRaises(CatalogOrderPolicyError) as caught:
+            await self.enforce()
+
+        self.assertEqual(caught.exception.code, 'catalog_item_ambiguous')
+        self.assertEqual(
+            [call.args for call in self.get_catalog_item.await_args_list],
+            [('test-catalog', 'test-item'), ('other-catalog', 'test-item')],
+        )
+
     async def test_malformed_and_duplicate_catalog_namespaces_are_ignored(self):
         self.path = '/apis/poolboy.gpte.redhat.com/v1/namespaces/user-alice/resourceclaims'
         self.body = {'spec': {'provider': {'name': 'test-item'}}}
@@ -858,6 +891,18 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
 
     def response_body(self, response):
         return json.loads(gzip.decompress(response.body))
+
+    def assert_status_response(self, response, status, reason, message):
+        self.assertEqual(response.status, status)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.body), {
+            'apiVersion': 'v1',
+            'kind': 'Status',
+            'status': 'Failure',
+            'reason': reason,
+            'message': message,
+            'code': status,
+        })
 
     def resource_claim_workshop_body(self):
         return {
@@ -1503,6 +1548,32 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.content_type, 'application/json')
                 self.assertEqual(cache, {})
 
+    async def test_catalog_item_cache_does_not_store_invalid_json_response(self):
+        path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
+        api_client = FakeApiClient()
+        response = SimpleNamespace(
+            status=200,
+            headers={'Content-Type': 'application/json'},
+            read=AsyncMock(return_value=b'not-json'),
+        )
+        api_client.call_api.return_value = response
+        cache = {}
+        auth_patches = self.authenticated_patches(self.session())
+
+        with (
+            auth_patches[0],
+            auth_patches[1],
+            auth_patches[2],
+            patch.object(catalog_app, 'app_api_client', api_client),
+            patch.object(catalog_app, 'response_cache', cache),
+        ):
+            with self.assertRaises(json.JSONDecodeError):
+                await catalog_app.openshift_api_proxy_with_cache(
+                    self.catalog_item_request(path)
+                )
+
+        self.assertEqual(cache, {})
+
     async def test_catalog_item_cache_removes_stale_representation_validators(self):
         path = f'/apis/{BABYLON_DOMAIN}/v1/namespaces/test-catalog/catalogitems'
         api_client = FakeApiClient()
@@ -1552,11 +1623,22 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             ) as enforce,
             patch.object(catalog_app, 'audit_log') as audit,
         ):
-            with self.assertRaises(web.HTTPForbidden):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         enforce.assert_awaited_once()
         api_client.call_api.assert_not_awaited()
+        self.assertEqual(response.status, 403)
+        self.assertEqual(response.content_type, 'application/json')
+        self.assertEqual(json.loads(response.body), {
+            'apiVersion': 'v1',
+            'kind': 'Status',
+            'status': 'Failure',
+            'reason': 'Forbidden',
+            'message': 'Catalog item is not available for ordering',
+            'code': 403,
+        })
         audit.assert_called_once()
         self.assertEqual(audit.call_args.args, ('catalog_order_denied',))
         self.assertEqual(audit.call_args.kwargs['user'], 'alice')
@@ -1593,13 +1675,14 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
                     ),
                     patch.object(catalog_app, 'audit_log') as audit,
                 ):
-                    with self.assertRaises(web.HTTPBadRequest):
-                        await catalog_app.openshift_api_proxy(
-                            request,
-                            api_client=api_client,
-                        )
+                    response = await catalog_app.openshift_api_proxy(
+                        request,
+                        api_client=api_client,
+                    )
 
                 api_client.call_api.assert_not_awaited()
+                self.assertEqual(response.status, 400)
+                self.assertEqual(response.content_type, 'application/json')
                 system_status.assert_awaited_once_with(strict=True)
                 catalog_api.get_namespaced_custom_object.assert_not_awaited()
                 audit.assert_called_once_with(
@@ -1663,10 +1746,17 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             ),
             patch.object(catalog_app, 'audit_log') as audit,
         ):
-            with self.assertRaises(web.HTTPForbidden):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response,
+            403,
+            'Forbidden',
+            'Catalog item is not available for ordering',
+        )
         self.assertEqual(audit.call_args.kwargs['status'], 403)
         self.assertEqual(
             audit.call_args.kwargs['details']['policy_code'],
@@ -1699,10 +1789,17 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'audit_log') as audit,
             patch.object(catalog_app, 'audit_log_api_action') as audit_action,
         ):
-            with self.assertRaises(web.HTTPServiceUnavailable):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response,
+            503,
+            'ServiceUnavailable',
+            'Unable to validate catalog order',
+        )
         audit.assert_called_once_with(
             'catalog_order_denied',
             user='alice',
@@ -1740,10 +1837,17 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'audit_log') as audit,
             patch.object(catalog_app, 'audit_log_api_action') as audit_action,
         ):
-            with self.assertRaises(web.HTTPServiceUnavailable):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response,
+            503,
+            'ServiceUnavailable',
+            'Unable to validate catalog order',
+        )
         audit.assert_called_once_with(
             'catalog_order_denied',
             user='alice',
@@ -1775,10 +1879,17 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'audit_log') as audit,
             patch.object(catalog_app, 'audit_log_api_action') as audit_action,
         ):
-            with self.assertRaises(web.HTTPServiceUnavailable):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response,
+            503,
+            'ServiceUnavailable',
+            'Unable to validate ResourceClaim',
+        )
         audit.assert_called_once_with(
             'catalog_order_denied',
             user='alice',
@@ -1810,8 +1921,9 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             patch.object(catalog_app, 'audit_log') as audit,
             patch.object(catalog_app, 'audit_log_api_action') as audit_action,
         ):
-            with self.assertRaises(web.HTTPForbidden):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         kubernetes_api.get_namespaced_custom_object.assert_awaited_once_with(
             group='poolboy.gpte.redhat.com',
@@ -1821,6 +1933,12 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             name='existing-claim',
         )
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response,
+            403,
+            'Forbidden',
+            'Resource claim is not available for workshop conversion',
+        )
         audit.assert_called_once_with(
             'catalog_order_denied',
             user='alice',
@@ -1855,8 +1973,9 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
                     patch.object(catalog_app, 'audit_log') as audit,
                     patch.object(catalog_app, 'audit_log_api_action') as audit_action,
                 ):
-                    with self.assertRaises(web.HTTPServiceUnavailable):
-                        await catalog_app.openshift_api_proxy(request, api_client=api_client)
+                    response = await catalog_app.openshift_api_proxy(
+                        request, api_client=api_client
+                    )
 
                 kubernetes_api.get_namespaced_custom_object.assert_awaited_once_with(
                     group='poolboy.gpte.redhat.com',
@@ -1866,6 +1985,12 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
                     name='existing-claim',
                 )
                 api_client.call_api.assert_not_awaited()
+                self.assert_status_response(
+                    response,
+                    503,
+                    'ServiceUnavailable',
+                    'Unable to validate resource claim',
+                )
                 audit.assert_called_once_with(
                     'catalog_order_denied',
                     user='alice',
@@ -1935,6 +2060,7 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             catalog_app.kubernetes_asyncio.client.exceptions.ApiException(status=500),
             catalog_app.aiohttp.ClientConnectionError('Kubernetes unavailable'),
             catalog_app.asyncio.TimeoutError(),
+            RuntimeError('Invalid system status response'),
         )
         for exception in exceptions:
             with self.subTest(exception=type(exception).__name__):
@@ -1956,18 +2082,29 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
                     patch.object(catalog_app, 'audit_log') as audit,
                     patch.object(catalog_app, 'audit_log_api_action') as audit_action,
                 ):
-                    with self.assertRaises(web.HTTPServiceUnavailable):
-                        await catalog_app.openshift_api_proxy(request, api_client=api_client)
+                    response = await catalog_app.openshift_api_proxy(
+                        request, api_client=api_client
+                    )
 
                 api_client.call_api.assert_not_awaited()
                 kubernetes_api.get_namespaced_custom_object.assert_not_awaited()
+                self.assertEqual(response.status, 503)
+                self.assertEqual(response.content_type, 'application/json')
+                self.assertEqual(json.loads(response.body), {
+                    'apiVersion': 'v1',
+                    'kind': 'Status',
+                    'status': 'Failure',
+                    'reason': 'ServiceUnavailable',
+                    'message': 'Unable to read system status',
+                    'code': 503,
+                })
                 audit.assert_called_once_with(
                     'catalog_order_denied',
                     user='alice',
                     status=503,
                     details={
                         'path': request.path,
-                        'policy_code': 'catalog_item_lookup_failed',
+                        'policy_code': 'system_status_lookup_failed',
                     },
                 )
                 audit_action.assert_not_called()
@@ -1998,10 +2135,14 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             auth_patches[2],
             patch.object(catalog_app, 'audit_log') as audit,
         ):
-            with self.assertRaises(web.HTTPBadRequest):
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
         api_client.call_api.assert_not_awaited()
+        self.assert_status_response(
+            response, 400, 'BadRequest', 'Invalid JSON request body'
+        )
         self.assertEqual(audit.call_args.kwargs['status'], 400)
         self.assertEqual(
             audit.call_args.kwargs['details']['policy_code'],
@@ -2024,10 +2165,16 @@ class TestProxyIntegration(unittest.IsolatedAsyncioTestCase):
             auth_patches[2],
             patch.object(catalog_app, 'audit_log') as audit,
         ):
-            with self.assertRaises(web.HTTPForbidden) as caught:
-                await catalog_app.openshift_api_proxy(request, api_client=api_client)
+            response = await catalog_app.openshift_api_proxy(
+                request, api_client=api_client
+            )
 
-        self.assertIn('POST', caught.exception.reason)
+        self.assert_status_response(
+            response,
+            403,
+            'Forbidden',
+            'Use POST to create resources and JSON Patch or Merge Patch to update resources',
+        )
         api_client.call_api.assert_not_awaited()
         audit.assert_called_once_with(
             'catalog_order_denied',

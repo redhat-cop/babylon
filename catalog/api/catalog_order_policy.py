@@ -182,9 +182,17 @@ def _spec_catalog_item_reference(body: dict[str, Any]) -> CatalogItemReference:
 def _provider_reference(body: dict[str, Any]) -> CatalogItemReference:
     spec = _dict_value(body.get('spec'), 'Missing resource spec')
     provider = _dict_value(spec.get('provider'), 'Missing spec.provider reference')
+    name = _nonempty_string(provider.get('name'), 'Missing spec.provider.name')
+    namespace = None
+    metadata = body.get('metadata')
+    labels = metadata.get('labels') if isinstance(metadata, dict) else None
+    if isinstance(labels, dict) and labels.get(CATALOG_ITEM_NAME_LABEL) == name:
+        label_namespace = labels.get(CATALOG_ITEM_NAMESPACE_LABEL)
+        if isinstance(label_namespace, str) and label_namespace:
+            namespace = label_namespace
     return CatalogItemReference(
-        namespace=None,
-        name=_nonempty_string(provider.get('name'), 'Missing spec.provider.name'),
+        namespace=namespace,
+        name=name,
     )
 
 
@@ -429,7 +437,14 @@ async def enforce_catalog_order_policy(
         )
         return
 
-    system_status = await get_system_status()
+    try:
+        system_status = await get_system_status()
+    except Exception as exception:
+        raise CatalogOrderPolicyError(
+            503,
+            'system_status_lookup_failed',
+            'Unable to read system status',
+        ) from exception
     if isinstance(system_status, dict) and system_status.get(order.block_key):
         reason = system_status.get(order.block_message_key)
         if not isinstance(reason, str) or not reason:
