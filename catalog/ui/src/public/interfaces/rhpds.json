@@ -10,5 +10,6 @@
   "sfdc_enabled": true,
   "partner_connect_header_enabled": false,
   "rcars_enabled": true,
-  "white_glove_enabled": true
+  "white_glove_enabled": true,
+  "soundcheck_url": "https://showroom-soundcheck-dev.apps.ocpv-infra01.dal12.infra.demo.redhat.com"
 }
