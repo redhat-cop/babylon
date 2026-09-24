@@ -84,7 +84,7 @@ spec:
         - name: RESPONSE_CACHE_MAX_ENTRIES
           value: "{{ $api.responseCacheMaxEntries }}"
         - name: RESPONSE_CACHE_MAX_BYTES
-          value: "{{ $api.responseCacheMaxBytes }}"
+          value: {{ $api.responseCacheMaxBytes | int | quote }}
         - name: RESPONSE_CACHE_MAX_IN_FLIGHT
           value: "{{ $api.responseCacheMaxInFlight }}"
         - name: LOGGING_LEVEL
