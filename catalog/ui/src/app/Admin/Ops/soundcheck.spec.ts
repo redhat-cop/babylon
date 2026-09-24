@@ -1,6 +1,7 @@
 import {
   buildSoundcheckCheckUrl,
   buildSoundcheckSessionUrl,
+  buildSoundcheckWorkshopUrl,
   DEFAULT_SOUNDCHECK_URL,
   idsNeedingStatusFetch,
   invalidateStatusCache,
@@ -34,6 +35,10 @@ describe('soundcheck helpers', () => {
     expect(buildSoundcheckSessionUrl('https://sc.example.com/', 'sess-1')).toBe(
       'https://sc.example.com/session/sess-1',
     );
+    expect(buildSoundcheckWorkshopUrl('https://sc.example.com/', 'ws-guid-1')).toBe(
+      'https://sc.example.com/session/workshop/ws-guid-1',
+    );
+    expect(() => buildSoundcheckWorkshopUrl('https://sc.example.com/', '  ')).toThrow(/workshop id/i);
     expect(normalizeWorkshopIds(['a', 'a', ' b '])).toEqual(['a', 'b']);
     expect(() => buildSoundcheckCheckUrl(DEFAULT_SOUNDCHECK_URL, [])).toThrow(/workshop id/i);
   });

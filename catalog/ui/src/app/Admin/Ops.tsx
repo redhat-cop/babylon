@@ -120,6 +120,7 @@ import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorks
 import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 import {
   buildSoundcheckSessionUrl,
+  buildSoundcheckWorkshopUrl,
   fetchWorkshopCheckStatuses,
   idsNeedingStatusFetch,
   invalidateStatusCache,
@@ -1895,21 +1896,43 @@ const Ops: React.FC = () => {
   const renderSoundcheckCell = useCallback(
     (workshopIds: string[]) => {
       if (!showSoundcheckCol) return null;
-      const entries = workshopIds.map((id) => getCachedScStatus(id));
+      const ids = workshopIds.map((id) => id?.trim()).filter(Boolean) as string[];
+      const entries = ids.map((id) => getCachedScStatus(id));
       const worst = worstSoundcheckStatus(entries);
+      // Prefer idempotent workshop deep-link (no duplicate sessions on click).
+      const href = ids[0]
+        ? buildSoundcheckWorkshopUrl(soundcheckBase, ids[0])
+        : worst?.session_id
+          ? buildSoundcheckSessionUrl(soundcheckBase, worst.session_id)
+          : soundcheckBase;
       if (!worst) {
         return (
           <td>
-            <span className="ops-muted">{scStatusLoading ? '…' : '—'}</span>
+            {ids[0] ? (
+              <Tooltip content="Open Soundcheck for this workshop (reuses existing session if any)">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ops-ws-link"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Label isCompact color="grey">
+                    check
+                  </Label>
+                </a>
+              </Tooltip>
+            ) : (
+              <span className="ops-muted">{scStatusLoading ? '…' : '—'}</span>
+            )}
           </td>
         );
       }
-      const sessionUrl = buildSoundcheckSessionUrl(soundcheckBase, worst.session_id);
       return (
         <td>
-          <Tooltip content={`Last Soundcheck · ${worst.status} · click to open session`}>
+          <Tooltip content={`Last Soundcheck · ${worst.status} · open session (idempotent deep-link)`}>
             <a
-              href={sessionUrl}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
               className="ops-ws-link"
@@ -2831,7 +2854,7 @@ const Ops: React.FC = () => {
                       </Button>
                     </SplitItem>
                     <SplitItem>
-                      <Tooltip content="Shows last Soundcheck result for the current table page only (one batched DB lookup, 60s cache). Does not start new checks or poll while scrolling.">
+                      <Tooltip content="Per-row Soundcheck badges for this table page (batched status lookup, 60s cache). Badge opens idempotent /session/workshop/{guid} — reuses an existing session instead of spawning duplicates.">
                         <Button
                           variant={showSoundcheckCol ? 'secondary' : 'plain'}
                           onClick={() => setShowSoundcheckCol((v) => !v)}

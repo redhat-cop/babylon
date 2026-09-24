@@ -44,6 +44,16 @@ export function buildSoundcheckSessionUrl(
   return `${normalizeSoundcheckBase(baseUrl)}/session/${encodeURIComponent(sessionId)}`;
 }
 
+/** Idempotent per-workshop deep-link (Soundcheck get-or-create). Prefer for row badges. */
+export function buildSoundcheckWorkshopUrl(
+  baseUrl: string | undefined | null,
+  workshopId: string,
+): string {
+  const id = workshopId.trim();
+  if (!id) throw new Error('workshop id is required');
+  return `${normalizeSoundcheckBase(baseUrl)}/session/workshop/${encodeURIComponent(id)}`;
+}
+
 /**
  * Soundcheck accepts workshop GUIDs via ?workshop=id1,id2 (frontend deep-link).
  * Prefer babylon.gpte.redhat.com/workshop-id label; fall back to metadata.name.
