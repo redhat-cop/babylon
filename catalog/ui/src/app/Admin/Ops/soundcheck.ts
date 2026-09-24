@@ -195,17 +195,29 @@ export async function pollSoundcheckSession(
   return last;
 }
 
+/** TTL for per-row last-check cache (DB lookup only — does not start new checks). */
+export const SOUNDCHECK_STATUS_TTL_MS = 60_000;
+
+/** Hard cap per batch — Admin Ops table page is typically ≤100. */
+export const SOUNDCHECK_STATUS_BATCH_MAX = 100;
+
+export type SoundcheckStatusCacheEntry = {
+  at: number;
+  value: WorkshopCheckStatusEntry;
+};
+
+export type SoundcheckStatusCache = Record<string, SoundcheckStatusCacheEntry>;
+
 /**
  * Optional on-demand lookup of last check per workshop (DB only, no new checks).
- * Prefer calling only after an Actions run or row expand — not on every table refresh.
- * TTL caching is left to the caller.
+ * Prefer visible-page batches with TTL — not N calls and not on every table refresh.
  */
 export async function fetchWorkshopCheckStatuses(
   baseUrl: string | undefined | null,
   workshopIds: string[],
   opts?: { signal?: AbortSignal },
 ): Promise<Record<string, WorkshopCheckStatusEntry>> {
-  const ids = normalizeWorkshopIds(workshopIds);
+  const ids = normalizeWorkshopIds(workshopIds).slice(0, SOUNDCHECK_STATUS_BATCH_MAX);
   if (ids.length === 0) return {};
   const resp = await fetch(`${soundcheckApiRoot(baseUrl)}/workshops/check-status`, {
     method: 'POST',
@@ -219,6 +231,84 @@ export async function fetchWorkshopCheckStatuses(
   }
   const body = (await resp.json()) as { statuses?: Record<string, WorkshopCheckStatusEntry> };
   return body.statuses || {};
+}
+
+/** Ids missing from cache or past TTL (safe to re-fetch). */
+export function idsNeedingStatusFetch(
+  workshopIds: string[],
+  cache: SoundcheckStatusCache,
+  opts?: { now?: number; ttlMs?: number },
+): string[] {
+  const now = opts?.now ?? Date.now();
+  const ttl = opts?.ttlMs ?? SOUNDCHECK_STATUS_TTL_MS;
+  return normalizeWorkshopIds(workshopIds).filter((id) => {
+    const hit = cache[id];
+    return !hit || now - hit.at > ttl;
+  });
+}
+
+export function mergeStatusCache(
+  cache: SoundcheckStatusCache,
+  statuses: Record<string, WorkshopCheckStatusEntry>,
+  now = Date.now(),
+): SoundcheckStatusCache {
+  const next: SoundcheckStatusCache = { ...cache };
+  for (const [id, value] of Object.entries(statuses)) {
+    next[id] = { at: now, value };
+  }
+  return next;
+}
+
+/** Drop cache entries so the next visible-page fetch refreshes them. */
+export function invalidateStatusCache(
+  cache: SoundcheckStatusCache,
+  workshopIds: string[],
+): SoundcheckStatusCache {
+  const ids = new Set(normalizeWorkshopIds(workshopIds));
+  if (ids.size === 0) return cache;
+  const next: SoundcheckStatusCache = { ...cache };
+  for (const id of ids) delete next[id];
+  return next;
+}
+
+/** Worst-of for multi-asset group headers. */
+export function worstSoundcheckStatus(
+  statuses: Array<WorkshopCheckStatusEntry | undefined | null>,
+): WorkshopCheckStatusEntry | null {
+  const rank: Record<string, number> = {
+    failed: 4,
+    running: 3,
+    pending: 2,
+    completed: 1,
+  };
+  let best: WorkshopCheckStatusEntry | null = null;
+  let bestRank = 0;
+  for (const s of statuses) {
+    if (!s?.status) continue;
+    const r = rank[s.status] ?? 0;
+    if (r > bestRank) {
+      bestRank = r;
+      best = s;
+    }
+  }
+  return best;
+}
+
+export function soundcheckStatusLabelColor(
+  status: string | undefined | null,
+): 'green' | 'red' | 'blue' | 'orange' | 'grey' {
+  switch (status) {
+    case 'completed':
+      return 'green';
+    case 'failed':
+      return 'red';
+    case 'running':
+      return 'blue';
+    case 'pending':
+      return 'orange';
+    default:
+      return 'grey';
+  }
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {

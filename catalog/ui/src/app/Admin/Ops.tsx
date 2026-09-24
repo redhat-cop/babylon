@@ -119,10 +119,20 @@ import {
 import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
 import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 import {
+  buildSoundcheckSessionUrl,
+  fetchWorkshopCheckStatuses,
+  idsNeedingStatusFetch,
+  invalidateStatusCache,
   kickoffSoundcheck,
+  mergeStatusCache,
   normalizeSoundcheckBase,
+  normalizeWorkshopIds,
   pollSoundcheckSession,
+  soundcheckStatusLabelColor,
+  worstSoundcheckStatus,
   type SoundcheckSessionStatus,
+  type SoundcheckStatusCache,
+  type WorkshopCheckStatusEntry,
 } from '@app/Admin/Ops/soundcheck';
 import {
   actionDisplayName,
@@ -460,6 +470,13 @@ const Ops: React.FC = () => {
     error?: string;
   } | null>(null);
   const soundcheckAbortRef = useRef<AbortController | null>(null);
+  /** Opt-in per-row last-check column — off by default so scrolling is free. */
+  const [showSoundcheckCol, setShowSoundcheckCol] = useState(false);
+  const [scStatusCache, setScStatusCache] = useState<SoundcheckStatusCache>({});
+  const [scStatusLoading, setScStatusLoading] = useState(false);
+  const [scStatusRefresh, setScStatusRefresh] = useState(0);
+  const scStatusCacheRef = useRef<SoundcheckStatusCache>({});
+  scStatusCacheRef.current = scStatusCache;
 
   const recordHistory = useCallback((
     action: OpsHistoryAction,
@@ -1834,6 +1851,81 @@ const Ops: React.FC = () => {
     ] as string[];
   }, [operationTargets, hasSelection]);
 
+  /** Visible table page only — never the whole platform. */
+  const visibleSoundcheckIds = useMemo(() => {
+    if (!showSoundcheckCol || workshopView !== 'table') return [] as string[];
+    const ids: string[] = [];
+    for (const group of pagedWorkshopGroups) {
+      for (const ws of group.items) {
+        const id = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name;
+        if (id) ids.push(id);
+      }
+    }
+    return normalizeWorkshopIds(ids).slice(0, 100);
+  }, [showSoundcheckCol, workshopView, pagedWorkshopGroups]);
+
+  // One batched DB lookup for the current page (TTL cache). Does not start new checks.
+  useEffect(() => {
+    if (!showSoundcheckCol || workshopView !== 'table' || visibleSoundcheckIds.length === 0) return;
+    const need = idsNeedingStatusFetch(visibleSoundcheckIds, scStatusCacheRef.current);
+    if (need.length === 0) return;
+    const ac = new AbortController();
+    setScStatusLoading(true);
+    fetchWorkshopCheckStatuses(soundcheckBase, need, { signal: ac.signal })
+      .then((statuses) => {
+        setScStatusCache((prev) => mergeStatusCache(prev, statuses));
+      })
+      .catch(() => {
+        // CORS / offline — leave column empty; Run Soundcheck deep-link still works
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setScStatusLoading(false);
+      });
+    return () => ac.abort();
+  }, [showSoundcheckCol, workshopView, visibleSoundcheckIds, soundcheckBase, scStatusRefresh]);
+
+  const getCachedScStatus = useCallback(
+    (workshopId: string | undefined | null): WorkshopCheckStatusEntry | undefined => {
+      if (!workshopId) return undefined;
+      return scStatusCache[workshopId]?.value;
+    },
+    [scStatusCache],
+  );
+
+  const renderSoundcheckCell = useCallback(
+    (workshopIds: string[]) => {
+      if (!showSoundcheckCol) return null;
+      const entries = workshopIds.map((id) => getCachedScStatus(id));
+      const worst = worstSoundcheckStatus(entries);
+      if (!worst) {
+        return (
+          <td>
+            <span className="ops-muted">{scStatusLoading ? '…' : '—'}</span>
+          </td>
+        );
+      }
+      const sessionUrl = buildSoundcheckSessionUrl(soundcheckBase, worst.session_id);
+      return (
+        <td>
+          <Tooltip content={`Last Soundcheck · ${worst.status} · click to open session`}>
+            <a
+              href={sessionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ops-ws-link"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Label isCompact color={soundcheckStatusLabelColor(worst.status)}>
+                {worst.status}
+              </Label>
+            </a>
+          </Tooltip>
+        </td>
+      );
+    },
+    [showSoundcheckCol, getCachedScStatus, soundcheckBase, scStatusLoading],
+  );
+
   const handleSoundcheck = async () => {
     if (!hasSelection) {
       addAlert(AlertVariant.info, 'Select one or more workshops first — Soundcheck never runs against the whole platform view');
@@ -1880,6 +1972,9 @@ const Ops: React.FC = () => {
           .join(' · '),
         status: 'info',
       });
+      // Refresh opt-in column for these ids after kickoff (still one batch, not N).
+      setScStatusCache((prev) => invalidateStatusCache(prev, ids));
+      setScStatusRefresh((n) => n + 1);
       addAlert(
         AlertVariant.info,
         result.mode === 'api'
@@ -1900,6 +1995,8 @@ const Ops: React.FC = () => {
           },
         }).then((final) => {
           if (!final || ac.signal.aborted) return;
+          setScStatusCache((prev) => invalidateStatusCache(prev, ids));
+          setScStatusRefresh((n) => n + 1);
           if (final.status === 'completed') {
             addAlert(AlertVariant.success, `Soundcheck completed for ${ids.length} workshop(s)`);
           } else if (final.status === 'failed') {
@@ -2725,13 +2822,34 @@ const Ops: React.FC = () => {
                   </ToggleGroup>
                 </SplitItem>
                 {workshopView === 'table' && (
-                  <SplitItem>
-                    <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
-                      aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
-                      {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
-                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
-                    </Button>
-                  </SplitItem>
+                  <>
+                    <SplitItem>
+                      <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
+                        aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
+                        {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
+                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                      </Button>
+                    </SplitItem>
+                    <SplitItem>
+                      <Tooltip content="Shows last Soundcheck result for the current table page only (one batched DB lookup, 60s cache). Does not start new checks or poll while scrolling.">
+                        <Button
+                          variant={showSoundcheckCol ? 'secondary' : 'plain'}
+                          onClick={() => setShowSoundcheckCol((v) => !v)}
+                          aria-label="Toggle Soundcheck status column"
+                          aria-pressed={showSoundcheckCol}
+                        >
+                          <CheckCircleIcon />
+                          <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                            {showSoundcheckCol
+                              ? scStatusLoading
+                                ? 'Soundcheck…'
+                                : 'Soundcheck on'
+                              : 'Soundcheck col'}
+                          </span>
+                        </Button>
+                      </Tooltip>
+                    </SplitItem>
+                  </>
                 )}
                 {workshopView === 'timeline' && (
                   <>
@@ -3220,6 +3338,13 @@ const Ops: React.FC = () => {
                           Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
                         </Button>
                       </th>
+                      {showSoundcheckCol && (
+                        <th>
+                          <Tooltip content="Last Soundcheck session (page only, cached). Opt-in — off by default.">
+                            <span>Soundcheck{scStatusLoading ? '…' : ''}</span>
+                          </Tooltip>
+                        </th>
+                      )}
                       <th>
                         <Button variant="plain" isInline onClick={() => setSortMode('lock-asc')}
                           className="ops-col-sort-btn" aria-label="Sort by lock status">
@@ -3405,6 +3530,13 @@ const Ops: React.FC = () => {
                               return <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
                             })()}
                           </td>
+                          {renderSoundcheckCell(
+                            group.items.map(
+                              (ws) =>
+                                ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] ||
+                                ws.metadata.name,
+                            ),
+                          )}
                           <td>
                             {grpLocked > 0 ? (
                               <Tooltip content={isMultiAsset
@@ -3594,6 +3726,9 @@ const Ops: React.FC = () => {
                                 <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
                               )}
                             </td>
+                            {renderSoundcheckCell([
+                              ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name,
+                            ])}
                             <td>
                               {locked ? (
                                 <Tooltip content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}>

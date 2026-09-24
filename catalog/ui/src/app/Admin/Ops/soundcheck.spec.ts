@@ -2,10 +2,15 @@ import {
   buildSoundcheckCheckUrl,
   buildSoundcheckSessionUrl,
   DEFAULT_SOUNDCHECK_URL,
+  idsNeedingStatusFetch,
+  invalidateStatusCache,
   kickoffSoundcheck,
+  mergeStatusCache,
   normalizeSoundcheckBase,
   normalizeWorkshopIds,
   soundcheckApiRoot,
+  soundcheckStatusLabelColor,
+  worstSoundcheckStatus,
 } from './soundcheck';
 
 describe('soundcheck helpers', () => {
@@ -59,5 +64,32 @@ describe('soundcheck helpers', () => {
     expect(openSpy).toHaveBeenCalledWith(deep.sessionUrl, '_blank', 'noopener,noreferrer');
 
     openSpy.mockRestore();
+  });
+
+  it('TTL cache only re-fetches stale or missing ids', () => {
+    const now = 1_000_000;
+    const cache = mergeStatusCache(
+      {},
+      { a: { status: 'completed', session_id: 's1', created_at: 't' }, b: null },
+      now,
+    );
+    expect(idsNeedingStatusFetch(['a', 'b', 'c'], cache, { now, ttlMs: 60_000 })).toEqual(['c']);
+    expect(idsNeedingStatusFetch(['a', 'b'], cache, { now: now + 61_000, ttlMs: 60_000 })).toEqual([
+      'a',
+      'b',
+    ]);
+    expect(invalidateStatusCache(cache, ['a']).a).toBeUndefined();
+  });
+
+  it('picks worst status for group headers', () => {
+    expect(
+      worstSoundcheckStatus([
+        { status: 'completed', session_id: '1', created_at: 't' },
+        { status: 'failed', session_id: '2', created_at: 't' },
+        null,
+      ])?.status,
+    ).toBe('failed');
+    expect(soundcheckStatusLabelColor('completed')).toBe('green');
+    expect(soundcheckStatusLabelColor(undefined)).toBe('grey');
   });
 });
