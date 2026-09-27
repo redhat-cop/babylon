@@ -19,7 +19,7 @@ import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { apiPaths, fetcher, silentFetcher } from '@app/api';
+import { apiPaths, fetcher } from '@app/api';
 import type { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -68,16 +68,6 @@ function statusLabel(state: string): string {
       return state;
   }
 }
-
-const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
-  const { data } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
-    silentFetcher,
-    { refreshInterval: 30000 },
-  );
-  const assignee = data?.assignee?.displayName || fallback;
-  return <>{assignee || '—'}</>;
-};
 
 const defaultPerPage = 20;
 
@@ -207,6 +197,7 @@ const WhiteGloveListContent: React.FC = () => {
                 const assignee = ann[`${DEMO_DOMAIN}/assignee`];
                 const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
                 const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
+                const jiraError = ann[`${DEMO_DOMAIN}/jira-error`];
                 const svcName = ann[`${DEMO_DOMAIN}/service-name`];
                 const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
                 const svcType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
@@ -226,13 +217,17 @@ const WhiteGloveListContent: React.FC = () => {
                       <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                     </Td>
                     <Td>
-                      <JiraAssigneeCell jiraTicketId={jiraTicketId} fallback={assignee} />
+                      {assignee || '—'}
                     </Td>
                     <Td>
                       {jiraTicketUrl ? (
                         <a href={jiraTicketUrl} target="_blank" rel="noopener noreferrer">
                           {jiraTicketId || 'View'}
                         </a>
+                      ) : jiraError ? (
+                        <span className="service-status--failed" title={`Ops ticket not created: ${jiraError}`}>
+                          <ExclamationTriangleIcon /> Not created
+                        </span>
                       ) : (
                         '—'
                       )}
