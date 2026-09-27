@@ -186,6 +186,31 @@ describe('WhiteGloveCreate', () => {
     });
   });
 
+  test('renders the premium event classification checkbox, unchecked by default', async () => {
+    await render(<WhiteGloveCreate />, {
+      history: createMemoryHistory({ initialEntries: ['/white-glove/create'] }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Event Classification')).toBeInTheDocument();
+    });
+    const checkbox = screen.getByLabelText('This is a premium event (Tier 3)');
+    expect(checkbox).not.toBeChecked();
+  });
+
+  test('toggles the premium event checkbox when clicked', async () => {
+    await render(<WhiteGloveCreate />, {
+      history: createMemoryHistory({ initialEntries: ['/white-glove/create'] }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('This is a premium event (Tier 3)')).toBeInTheDocument();
+    });
+    const checkbox = screen.getByLabelText('This is a premium event (Tier 3)');
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+  });
+
   test('displays blocked dates when present', async () => {
     const useSystemStatus = jest.requireMock('@app/utils/useSystemStatus').default;
     useSystemStatus.mockReturnValue({
