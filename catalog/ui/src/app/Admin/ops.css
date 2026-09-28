@@ -1177,3 +1177,91 @@ a.ops-ws-meta:hover {
 [data-theme="dark"] .ops-operations-grid .pf-v6-c-card {
   --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--secondary--default, #212427);
 }
+
+/* Operations History */
+.ops-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  border-radius: 4px;
+}
+
+.ops-history-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  font-size: 0.82rem;
+}
+
+.ops-history-item:last-child {
+  border-bottom: none;
+}
+
+.ops-history-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ops-history-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+  min-width: 9.5rem;
+}
+
+.ops-history-counts {
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+}
+
+.ops-history-names {
+  margin-top: 2px;
+  color: var(--pf-t--global--text--color--regular, #151515);
+  word-break: break-word;
+}
+
+.ops-history-failed {
+  border-left: 3px solid var(--pf-t--global--color--status--danger--default, #c9190b);
+}
+
+.ops-history-partial {
+  border-left: 3px solid var(--pf-t--global--color--status--warning--default, #f0ab00);
+}
+
+.ops-history-success {
+  border-left: 3px solid var(--pf-t--global--color--status--success--default, #3e8635);
+}
+
+.ops-history-info {
+  border-left: 3px solid var(--pf-t--global--color--status--info--default, #2b9af3);
+}
+
+.ops-soundcheck-ids {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-soundcheck-status {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+}
+
+.ops-soundcheck-status--completed {
+  color: var(--pf-t--global--color--status--success--default, #3e8635);
+}
+
+.ops-soundcheck-status--failed {
+  color: var(--pf-t--global--color--status--danger--default, #c9190b);
+}
+
+.ops-soundcheck-status--running,
+.ops-soundcheck-status--pending {
+  color: var(--pf-t--global--color--status--info--default, #2b9af3);
+}

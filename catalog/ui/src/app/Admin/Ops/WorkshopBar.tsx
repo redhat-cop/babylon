@@ -27,6 +27,8 @@ export interface WorkshopBarProps {
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
+  /** Optional Soundcheck badge (idempotent workshop deep-link). */
+  soundcheckBadge?: { label: string; href: string; title: string; colorClass?: string } | null;
 }
 
 function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'failed' | 'scheduled' | 'stopped' {
@@ -84,6 +86,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   multiWorkshopsByName,
   isMultiNs,
   timezone,
+  soundcheckBadge,
 }) => {
   const navigate = useNavigate();
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
@@ -251,6 +254,18 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
         <span className="timeline-bar__name">{name}</span>
 
         <span className="timeline-bar__details">
+          {soundcheckBadge && (
+            <a
+              href={soundcheckBadge.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`timeline-bar__badge timeline-bar__badge--soundcheck${soundcheckBadge.colorClass ? ` ${soundcheckBadge.colorClass}` : ''}`}
+              title={soundcheckBadge.title}
+              onClick={(e) => e.stopPropagation()}
+            >
+              SC {soundcheckBadge.label}
+            </a>
+          )}
           {urgencyTag && (
             <span className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}>
               {urgencyTag}

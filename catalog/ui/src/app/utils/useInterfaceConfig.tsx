@@ -45,7 +45,7 @@ export default function useInterfaceConfig() {
       sfdc_enabled: true,
       partner_connect_header_enabled: false,
       rcars_enabled: false,
-      white_glove_enabled: true
+      white_glove_enabled: true,
     };
   }
   return data;

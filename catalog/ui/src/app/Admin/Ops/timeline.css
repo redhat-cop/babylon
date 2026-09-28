@@ -425,6 +425,38 @@
   background: rgba(255, 0, 0, 0.3);
 }
 
+.timeline-bar__badge--soundcheck {
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.timeline-bar__badge--soundcheck:hover {
+  filter: brightness(0.95);
+  text-decoration: none;
+}
+
+.timeline-bar__badge--soundcheck-ok {
+  background: rgba(62, 134, 53, 0.85);
+  color: #fff;
+}
+
+.timeline-bar__badge--soundcheck-fail {
+  background: rgba(201, 25, 11, 0.85);
+  color: #fff;
+}
+
+.timeline-bar__badge--soundcheck-run {
+  background: rgba(43, 154, 243, 0.85);
+  color: #fff;
+}
+
+.timeline-bar__badge--soundcheck-warn {
+  background: rgba(240, 171, 0, 0.9);
+  color: #151515;
+}
+
 .timeline-bar__badge--urgency {
   font-weight: 700;
   text-transform: uppercase;
