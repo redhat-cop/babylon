@@ -19,8 +19,6 @@ type TInterface = {
   partner_connect_header_enabled: boolean;
   rcars_enabled: boolean;
   white_glove_enabled: boolean;
-  /** Optional Showroom Soundcheck base URL for Admin Ops deep-links */
-  soundcheck_url?: string;
 };
 export function useInterface(userInterface: string) {
   const { data, error } = useSWRImmutable<TInterface>(`./public/interfaces/${userInterface}.json`, publicFetcher);
@@ -48,7 +46,6 @@ export default function useInterfaceConfig() {
       partner_connect_header_enabled: false,
       rcars_enabled: false,
       white_glove_enabled: true,
-      soundcheck_url: undefined,
     };
   }
   return data;

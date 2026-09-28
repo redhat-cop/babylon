@@ -28,7 +28,7 @@ export type WorkshopCheckStatusEntry = {
   created_at: string;
 } | null;
 
-export function normalizeSoundcheckBase(url: string | undefined | null): string {
+export function normalizeSoundcheckBase(url?: string | null): string {
   const raw = (url || DEFAULT_SOUNDCHECK_URL).trim().replace(/\/+$/, '');
   return raw || DEFAULT_SOUNDCHECK_URL;
 }

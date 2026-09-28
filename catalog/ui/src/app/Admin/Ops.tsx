@@ -109,7 +109,6 @@ import { COMMON_TIMEZONES, getBrowserTimezone } from '@app/components/timezones'
 import WorkshopStatus from '@app/Workshops/WorkshopStatus';
 import ProjectSelector from '@app/components/ProjectSelector';
 import useSession from '@app/utils/useSession';
-import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import { Calendar } from 'react-big-calendar';
 import {
   workshopCalendarEventStyleGetter,
@@ -441,8 +440,7 @@ const Ops: React.FC = () => {
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
   const { mutate } = useSWRConfig();
-  const interfaceConfig = useInterfaceConfig();
-  const soundcheckBase = normalizeSoundcheckBase(interfaceConfig?.soundcheck_url);
+  const soundcheckBase = normalizeSoundcheckBase();
 
   // ---------- Alerts ----------
 
