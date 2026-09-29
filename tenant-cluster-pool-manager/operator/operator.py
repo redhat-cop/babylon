@@ -465,8 +465,10 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
         await tenant_cluster_pool.remove_cluster_from_status(cluster.resource_claim_name)
         return ClusterState.DELETED, 0
 
-    await resource_claim.disable_autostop()
-    await resource_claim.disable_autodestroy()
+    # Disable automatic stop and destroy unless owned by a workshop
+    if resource_claim.workshop_id is None:
+        await resource_claim.disable_autostop()
+        await resource_claim.disable_autodestroy()
 
     # If not started then cluster is pending
     if resource_claim.state != 'started':
