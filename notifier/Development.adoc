@@ -5,6 +5,25 @@ An OpenShift cluster with cluster-admin is required for `odo` development.
 https://developers.redhat.com/products/codeready-containers/overview[CodeReady Containers] is recommended for local development.
 An Ansible test suite is available for functional testing.
 
+## SMTP regression tests
+
+With the notifier's pinned `aiosmtplib` dependency installed, run from the repository root:
+
+---------------------------------------
+python3 -m unittest discover -s notifier -p 'test_*.py' -v
+---------------------------------------
+
+These tests simulate delivery failures, timeouts, cancellation, and failed SMTP
+shutdown without contacting a mail server. Delivery uses a fresh connection per
+attempt, with a 60-second deadline for connect/send and a separate 60-second
+deadline for QUIT. Connections are always closed, including on cancellation.
+Failed QUIT does not retry an email already accepted by the SMTP server.
+
+SMTP acceptance is not a guarantee of inbox delivery. A lost response after DATA
+can still lead to duplicate delivery on retry. Notification deduplication markers
+are currently written before sending; this change does not provide durable retries
+for notifications whose send attempts are exhausted.
+
 ## Development with `odo`
 
 Use of `odo` is recommended for fast iterative development.
