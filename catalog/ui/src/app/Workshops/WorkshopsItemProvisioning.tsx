@@ -7,7 +7,8 @@ import WorkshopsItemProvisioningItem from './WorkshopsItemProvisioningItem';
 const WorkshopsItemProvisioning: React.FC<{
   workshop?: Workshop;
   workshopProvisions?: WorkshopProvision[];
-}> = ({ workshop, workshopProvisions }) => {
+  isClusterTenantWorkshop?: boolean;
+}> = ({ workshop, workshopProvisions, isClusterTenantWorkshop = false }) => {
   if (!workshopProvisions || workshopProvisions.length === 0) {
     return (
       <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No WorkshopProvisions found!" variant="full">
@@ -26,6 +27,7 @@ const WorkshopsItemProvisioning: React.FC<{
           key={workshopProvision.metadata.uid}
           workshop={workshop}
           workshopProvision={workshopProvision}
+          isClusterTenantWorkshop={isClusterTenantWorkshop}
         />
       ))}
     </>

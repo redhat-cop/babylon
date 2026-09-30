@@ -67,7 +67,14 @@ import WorkshopsItemServices from './WorkshopsItemServices';
 import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import WorkshopInfoTab, { getWorkshopInfoMessageTemplate } from './WorkshopInfoTab';
-import { checkWorkshopCanStart, checkWorkshopCanStop, isWorkshopLocked, isWorkshopStarted } from './workshops-utils';
+import {
+  checkWorkshopCanStart,
+  checkWorkshopCanStop,
+  hasTenantClusterPools,
+  isTenantClusterResourceClaim,
+  isWorkshopLocked,
+  isWorkshopStarted,
+} from './workshops-utils';
 import Label from '@app/components/Label';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import ProjectSelector from '@app/components/ProjectSelector';
@@ -255,13 +262,18 @@ const WorkshopsItemComponent: React.FC<{
   );
 
   const instanceResourceClaims = useMemo(
-    () => (resourceClaims || []).filter((r) => !r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    () => (resourceClaims || []).filter((r) => !isTenantClusterResourceClaim(r)),
     [resourceClaims],
   );
 
   const clusterResourceClaims = useMemo(
-    () => (resourceClaims || []).filter((r) => !!r.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`]),
+    () => (resourceClaims || []).filter(isTenantClusterResourceClaim),
     [resourceClaims],
+  );
+
+  const isClusterTenantWorkshop = useMemo(
+    () => clusterResourceClaims.length > 0 || (workshopProvisions || []).some(hasTenantClusterPools),
+    [clusterResourceClaims.length, workshopProvisions],
   );
 
   // Check if workshop has an info message template
@@ -693,7 +705,11 @@ const WorkshopsItemComponent: React.FC<{
           {enableManageWorkshopProvisions ? (
             <Tab eventKey="provision" title={<TabTitleText>Provisioning</TabTitleText>}>
               {activeTab === 'provision' ? (
-                <WorkshopsItemProvisioning workshop={workshop} workshopProvisions={workshopProvisions} />
+                <WorkshopsItemProvisioning
+                  workshop={workshop}
+                  workshopProvisions={workshopProvisions}
+                  isClusterTenantWorkshop={isClusterTenantWorkshop}
+                />
               ) : null}
             </Tab>
           ) : null}
@@ -704,7 +720,10 @@ const WorkshopsItemComponent: React.FC<{
               ) : null}
             </Tab>
           ) : null}
-          <Tab eventKey="instances" title={<TabTitleText>Instances</TabTitleText>}>
+          <Tab
+            eventKey="instances"
+            title={<TabTitleText>{isClusterTenantWorkshop ? 'Tenants' : 'Instances'}</TabTitleText>}
+          >
             {activeTab === 'instances' ? (
               <WorkshopsItemServices
                 modalState={modalState}
