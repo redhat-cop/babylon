@@ -25,7 +25,8 @@ import { isWorkshopLocked } from './workshops-utils';
 const WorkshopsItemProvisioningItem: React.FC<{
   workshop: Workshop;
   workshopProvision: WorkshopProvision;
-}> = ({ workshop, workshopProvision }) => {
+  isClusterTenantWorkshop?: boolean;
+}> = ({ workshop, workshopProvision, isClusterTenantWorkshop = false }) => {
   const { isAdmin } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
   const { mutate } = useSWRConfig();
@@ -47,6 +48,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
   // Ops can approve counts above the self-service limit. Do not clamp those
   // counts when the owner reduces them or edits an unrelated field.
   const maxCount = Math.max(instanceLimit, workshopProvision.spec.count);
+  const workshopCountLabel = isClusterTenantWorkshop ? 'Workshop Tenant Count' : 'Workshop Instance Count';
 
   async function patchWorkshopProvisionSpec(patch: {
     count?: number;
@@ -106,9 +108,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
         </DescriptionListGroup>
 
         <DescriptionListGroup>
-          <DescriptionListTerm>
-            Workshop Instance Count
-          </DescriptionListTerm>
+          <DescriptionListTerm>{workshopCountLabel}</DescriptionListTerm>
           <DescriptionListDescription>
             <PatientNumberInput
               min={0}
@@ -116,7 +116,7 @@ const WorkshopsItemProvisioningItem: React.FC<{
               adminModifier={true}
               rejectOutOfRange
               isDisabled={isCountLocked || !catalogItem}
-              inputAriaLabel="Workshop Instance Count"
+              inputAriaLabel={workshopCountLabel}
               onChange={(value: number) => patchWorkshopProvisionSpec({ count: value })}
               value={workshopProvision.spec.count}
               style={{ paddingRight: "var(--pf-t--global--spacer--md)" }}

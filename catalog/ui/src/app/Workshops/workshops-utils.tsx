@@ -1,5 +1,11 @@
 import type { ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { canExecuteAction, checkResourceClaimCanStart, checkResourceClaimCanStop, DEMO_DOMAIN } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  canExecuteAction,
+  checkResourceClaimCanStart,
+  checkResourceClaimCanStop,
+  DEMO_DOMAIN,
+} from '@app/util';
 import { getAutoStopTime, getMinDefaultRuntime } from '@app/Services/service-utils';
 import parseDuration from 'parse-duration';
 
@@ -96,4 +102,12 @@ export function isWorkshopLocked(workshop: Workshop) {
     return workshop.metadata?.labels?.[`${DEMO_DOMAIN}/lock-enabled`] === 'true';
   }
   return false;
+}
+
+export function isTenantClusterResourceClaim(resourceClaim: ResourceClaim): boolean {
+  return !!resourceClaim.metadata.labels?.[`${BABYLON_DOMAIN}/tenant-cluster-pool`];
+}
+
+export function hasTenantClusterPools(workshopProvision: WorkshopProvision): boolean {
+  return Array.isArray(workshopProvision.status?.tenantClusterPools);
 }

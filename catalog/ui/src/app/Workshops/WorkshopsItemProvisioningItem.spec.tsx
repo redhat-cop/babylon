@@ -23,7 +23,7 @@ jest.mock('@app/api', () => ({
 }));
 jest.mock('@app/components/OpenshiftConsoleLink', () => () => null);
 
-function setup({ count = 1, locked = false, multi = false, salesforce = false } = {}) {
+function setup({ count = 1, locked = false, multi = false, salesforce = false, clusterTenant = false } = {}) {
   const workshop = {
     apiVersion: 'babylon.gpte.redhat.com/v1',
     kind: 'Workshop',
@@ -45,7 +45,11 @@ function setup({ count = 1, locked = false, multi = false, salesforce = false } 
   } as WorkshopProvision;
   return render(
     <MemoryRouter>
-      <WorkshopsItemProvisioningItem workshop={workshop} workshopProvision={provision} />
+      <WorkshopsItemProvisioningItem
+        workshop={workshop}
+        workshopProvision={provision}
+        isClusterTenantWorkshop={clusterTenant}
+      />
     </MemoryRouter>,
   );
 }
@@ -73,6 +77,13 @@ test.each([false, true])('saves a normal workshop count without Salesforce when 
   fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '20' } });
   await flushSave();
   expect(patchWorkshopProvision).toHaveBeenCalledWith(expect.objectContaining({ patch: { spec: { count: 20 } } }));
+});
+
+test('labels the count as tenants for cluster tenant workshops', () => {
+  setup({ clusterTenant: true });
+  expect(screen.getByText('Workshop Tenant Count')).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton', { name: 'Workshop Tenant Count' })).toBeInTheDocument();
+  expect(screen.queryByText('Workshop Instance Count')).not.toBeInTheDocument();
 });
 
 test('uses the same default limit of 40 as workshop creation', async () => {
