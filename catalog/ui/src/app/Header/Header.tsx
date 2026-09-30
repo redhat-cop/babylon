@@ -97,8 +97,8 @@ const Header: React.FC<{
     );
   }
 
-  // 5. What's New (admin only)
-  if (isAdmin) {
+  // 5. What's New (admin only, excluding the partner interface)
+  if (isAdmin && userInterface !== 'rhdp-partners') {
     userHelpDropdownItems.push(
       <DropdownItem
         key="whats-new"
