@@ -262,7 +262,15 @@ class ResourceClaim(K8sObject):
         return None
 
     @property
+    def workshop_name(self) -> str|None:
+        """Return name workshop assigned by workshop manager if ResourceClaim belongs to a Workshop"""
+        if self.metadata.labels is not None:
+            return self.metadata.labels.get('babylon.gpte.redhat.com/workshop')
+        return None
+
+    @property
     def workshop_provision_name(self) -> str|None:
+        """Return name of WorkshopProvision whcih manages ResourceClaim if managed by a WorkshopProvision"""
         if self.metadata.owner_references is not None:
             for owner_reference in self.metadata.owner_references:
                 if owner_reference.kind == 'WorkshopProvision':

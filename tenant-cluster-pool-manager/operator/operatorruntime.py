@@ -21,6 +21,7 @@ class OperatorRuntime():
     workshop_label = f"{babylon_domain}/workshop"
     workshop_provision_label = f"{babylon_domain}/workshop-provision"
     workshop_uid_label = f"{babylon_domain}/workshop-uid"
+    workshop_id_label = f"{babylon_domain}/workshop-id"
 
     sandbox_api_auth_token = os.environ.get('SANDBOX_API_AUTH_TOKEN')
     sandbox_api_url = os.environ.get('SANDBOX_API_URL')

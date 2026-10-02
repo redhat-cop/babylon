@@ -465,8 +465,8 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
         await tenant_cluster_pool.remove_cluster_from_status(cluster.resource_claim_name)
         return ClusterState.DELETED, 0
 
-    # Disable automatic stop and destroy unless owned by a workshop
-    if resource_claim.workshop_id is None:
+    # Disable automatic stop and destroy unless owned by a WorkshopProvision
+    if resource_claim.workshop_provision_name is None:
         await resource_claim.disable_autostop()
         await resource_claim.disable_autodestroy()
 
@@ -527,6 +527,7 @@ async def provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger)
         OperatorRuntime.workshop_label,
         OperatorRuntime.workshop_provision_label,
         OperatorRuntime.workshop_uid_label,
+        OperatorRuntime.workshop_id_label,
     ):
         if label in tenant_cluster_pool.labels:
             resource_claim_labels[label] = tenant_cluster_pool.labels[label]
