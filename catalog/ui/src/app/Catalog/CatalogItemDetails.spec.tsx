@@ -30,6 +30,32 @@ jest.mock('@app/utils/useServiceQuota', () => {
 const catalogItem = catalogItemObj as CatalogItem;
 
 describe('CatalogItemDetails Component', () => {
+  test.each([
+    ['Server_cloud_OS', 'Automation', 'Server Cloud OS, Automation'],
+    ['Automation', 'automation', 'Automation'],
+    ['', 'AI_Platform', 'AI Platform'],
+    ['Edge_computing', 'Custom_TDP', 'Edge Computing, Custom TDP'],
+  ])('combines TDP values %s and %s in the details', async (tdp1, tdp2, expected) => {
+    const item = {
+      ...catalogItem,
+      metadata: {
+        ...catalogItem.metadata,
+        labels: { ...catalogItem.metadata.labels, 'babylon.gpte.redhat.com/TDP1': tdp1, 'babylon.gpte.redhat.com/TDP2': tdp2 },
+      },
+    };
+    const { getByText, queryByText } = await render(
+      <Drawer isExpanded>
+        <DrawerContent panelContent={<CatalogItemDetails catalogItem={item} onClose={jest.fn()} />}>
+          <DrawerContentBody />
+        </DrawerContent>
+      </Drawer>,
+    );
+    expect(getByText('Technical Decision Point')).toBeInTheDocument();
+    expect(getByText(expected)).toBeInTheDocument();
+    expect(queryByText('TDP1')).not.toBeInTheDocument();
+    expect(queryByText('TDP2')).not.toBeInTheDocument();
+  });
+
   test("When renders as a patternfly panelContent, should display 'CatalogItem' properties", async () => {
     const { getByText } = await render(
       <Drawer isExpanded={true}>

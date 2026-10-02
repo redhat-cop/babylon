@@ -26,6 +26,7 @@ import {
 import LoadingIcon from '@app/components/LoadingIcon';
 import Footer from '@app/components/Footer';
 import {
+  getCatalogLabelEntries,
   formatString,
   getCategory,
   HIDDEN_ANNOTATIONS,
@@ -132,12 +133,12 @@ function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
   return favList.some((f) => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']);
 }
 
-function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
+export function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
   for (const [attr, values] of Object.entries(labelFilter)) {
     const matchAttr = attr.toLowerCase();
     const matchValues = values.map((v) => v.toLowerCase());
     let matched = false;
-    for (const [ciLabel, ciValue] of Object.entries(catalogItem.metadata.labels || {})) {
+    for (const [ciLabel, ciValue] of getCatalogLabelEntries(catalogItem.metadata.labels)) {
       if (ciLabel.startsWith(`${BABYLON_DOMAIN}/`)) {
         const ciAttr = ciLabel
           .substring(BABYLON_DOMAIN.length + 1)
