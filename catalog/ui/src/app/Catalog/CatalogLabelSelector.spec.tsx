@@ -6,7 +6,7 @@ import { BABYLON_DOMAIN } from '@app/util';
 import catalogItem from '../__mocks__/catalogItem.json';
 import CatalogLabelSelector from './CatalogLabelSelector';
 
-const values = ['Server_Cloud_OS', 'Automation', 'AI_Platform', 'Virtualization', 'Application_Platform', 'Container_Management', 'Other'];
+const values = ['Server_Cloud_OS', 'Automation', 'AI_Platform', 'Virtualization', 'Application_Platform', 'Container_Management', 'Other', 'Edge_Computing'];
 const items = values.map((value) => ({
   ...catalogItem,
   metadata: {
@@ -23,10 +23,12 @@ test('offers one combined checkbox filter, counts each item once, and supports s
   await user.click(screen.getByText('Technical Decision Point'));
   expect(screen.queryByText('TDP1')).not.toBeInTheDocument();
   expect(screen.queryByText('TDP2')).not.toBeInTheDocument();
-  expect(screen.getAllByRole('checkbox')).toHaveLength(7);
+  expect(screen.getAllByRole('checkbox')).toHaveLength(values.length);
   for (const value of values) {
     expect(screen.getByRole('checkbox', { name: `${value.replace(/_/g, ' ')} (1)` })).toBeInTheDocument();
   }
+  await user.click(screen.getByRole('checkbox', { name: 'Edge Computing (1)' }));
+  expect(onSelect).toHaveBeenLastCalledWith({ technical_decision_point: ['edge_computing'] });
   await user.click(screen.getByRole('checkbox', { name: 'Automation (1)' }));
   expect(onSelect).toHaveBeenLastCalledWith({ technical_decision_point: ['automation'] });
   rerender(<CatalogLabelSelector {...props} selected={{ technical_decision_point: ['automation'] }} />);

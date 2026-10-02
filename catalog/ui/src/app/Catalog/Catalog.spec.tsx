@@ -70,8 +70,8 @@ describe('Technical Decision Point filtering', () => {
   }) as CatalogItem;
 
   test.each(['TDP1', 'TDP2', 'tdp1'])('matches a value in %s case-insensitively', (label) => {
-    expect(filterCatalogItemByLabels(item({ [`${BABYLON_DOMAIN}/${label}`]: 'Server_cloud_OS' }), {
-      technical_decision_point: ['server_cloud_os'],
+    expect(filterCatalogItemByLabels(item({ [`${BABYLON_DOMAIN}/${label}`]: 'Edge_computing' }), {
+      technical_decision_point: ['edge_computing'],
     })).toBe(true);
   });
 

@@ -34,6 +34,7 @@ describe('CatalogItemDetails Component', () => {
     ['Server_cloud_OS', 'Automation', 'Server Cloud OS, Automation'],
     ['Automation', 'automation', 'Automation'],
     ['', 'AI_Platform', 'AI Platform'],
+    ['Edge_computing', 'Custom_TDP', 'Edge Computing, Custom TDP'],
   ])('combines TDP values %s and %s in the details', async (tdp1, tdp2, expected) => {
     const item = {
       ...catalogItem,
