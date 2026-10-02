@@ -3,6 +3,36 @@ import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN, formatDuration } from '@app/uti
 
 export const ALL_CATALOGS_NS = 'all';
 
+export const TECHNICAL_DECISION_POINT = 'Technical_Decision_Point';
+
+const TECHNICAL_DECISION_POINT_VALUES = [
+  'Server_Cloud_OS',
+  'Automation',
+  'AI_Platform',
+  'Virtualization',
+  'Application_Platform',
+  'Container_Management',
+  'Other',
+];
+
+// Present TDP1 and TDP2 as one multivalued label without changing stored metadata.
+export function getCatalogLabelEntries(labels: CatalogItem['metadata']['labels']): [string, string][] {
+  const entries: [string, string][] = [];
+  const seenDecisionPoints = new Set<string>();
+  for (const [label, value] of Object.entries(labels || {})) {
+    const [domain, attr] = label.split('/');
+    if ((domain === BABYLON_DOMAIN || domain === CATALOG_MANAGER_DOMAIN) && /^tdp[12]$/i.test(attr)) {
+      if (!value || seenDecisionPoints.has(value.toLowerCase())) continue;
+      seenDecisionPoints.add(value.toLowerCase());
+      const canonicalValue = TECHNICAL_DECISION_POINT_VALUES.find((v) => v.toLowerCase() === value.toLowerCase());
+      entries.push([`${BABYLON_DOMAIN}/${TECHNICAL_DECISION_POINT}`, canonicalValue || value]);
+    } else {
+      entries.push([label, value]);
+    }
+  }
+  return entries;
+}
+
 export function getProvider(catalogItem: CatalogItem) {
   const { domain, key } = CUSTOM_LABELS.PROVIDER;
   return catalogItem.metadata.labels?.[`${domain}/${key}`] || 'Red Hat';

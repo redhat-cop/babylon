@@ -50,6 +50,8 @@ import {
   getDescription,
   formatTime,
   HIDDEN_LABELS_DETAIL_VIEW,
+  TECHNICAL_DECISION_POINT,
+  getCatalogLabelEntries,
   formatString,
   getRating,
   CUSTOM_LABELS,
@@ -198,11 +200,12 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
     );
 
   const attributes: { [attr: string]: string } = {};
-  for (const [label, value] of Object.entries(labels || {})) {
+  for (const [label, value] of getCatalogLabelEntries(labels)) {
     if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
       const attr = label.substring(BABYLON_DOMAIN.length + 1);
       if (!HIDDEN_LABELS_DETAIL_VIEW.includes(attr)) {
-        attributes[attr] = value;
+        attributes[attr] =
+          attr === TECHNICAL_DECISION_POINT && attributes[attr] ? `${attributes[attr]}, ${value}` : value;
       }
     }
     if (label.startsWith(`${CATALOG_MANAGER_DOMAIN}/`)) {

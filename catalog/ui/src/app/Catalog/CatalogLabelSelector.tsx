@@ -4,7 +4,7 @@ import FilterAltIcon from '@patternfly/react-icons/dist/js/icons/filter-alt-icon
 import type { CatalogItem } from '@app/types';
 import { BABYLON_DOMAIN, CATALOG_MANAGER_DOMAIN } from '@app/util';
 import StarRating from '@app/components/StarRating';
-import { formatString, HIDDEN_LABELS, CUSTOM_LABELS } from './catalog-utils';
+import { getCatalogLabelEntries, formatString, HIDDEN_LABELS, CUSTOM_LABELS } from './catalog-utils';
 
 import './catalog-label-selector.css';
 
@@ -31,7 +31,7 @@ const CatalogLabelSelector: React.FC<{
   const labels: { [label: string]: CatalogLabelValues } = {};
   for (const catalogItem of catalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
-    for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
+    for (const [label, value] of getCatalogLabelEntries(catalogItem.metadata.labels)) {
       let domain: string = null;
       if (label.startsWith(`${BABYLON_DOMAIN}/`)) {
         domain = BABYLON_DOMAIN;
@@ -65,7 +65,7 @@ const CatalogLabelSelector: React.FC<{
 
   for (const catalogItem of filteredCatalogItems || []) {
     if (!catalogItem.metadata.labels) continue;
-    for (const [label, value] of Object.entries(catalogItem.metadata.labels)) {
+    for (const [label, value] of getCatalogLabelEntries(catalogItem.metadata.labels)) {
       if (label.toLowerCase() === `${CUSTOM_LABELS.CATEGORY.domain}/${CUSTOM_LABELS.CATEGORY.key}`) continue;
       // Allow multiple values for labels with numeric suffixes
       if (label.startsWith(`${BABYLON_DOMAIN}/`)) {

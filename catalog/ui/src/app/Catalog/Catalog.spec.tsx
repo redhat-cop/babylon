@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, waitFor, fireEvent, generateSession } from '../utils/test-utils';
-import Catalog from './Catalog';
+import Catalog, { filterCatalogItemByLabels } from './Catalog';
+import { BABYLON_DOMAIN } from '@app/util';
 import catalogItemsObj from '../__mocks__/catalogItems.json';
 import type { CatalogItem } from '@app/types';
 
@@ -59,5 +60,35 @@ describe('Catalog Component', () => {
     expect(link.setAttribute).toHaveBeenNthCalledWith(1, 'href', blob);
     expect(link.setAttribute).toHaveBeenNthCalledWith(2, 'download', 'demo-redhat-catalog.csv');
     expect(link.click).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Technical Decision Point filtering', () => {
+  const item = (labels: Record<string, string>) => ({
+    ...catalogItemsObj.items[0],
+    metadata: { ...catalogItemsObj.items[0].metadata, labels },
+  }) as CatalogItem;
+
+  test.each(['TDP1', 'TDP2', 'tdp1'])('matches a value in %s case-insensitively', (label) => {
+    expect(filterCatalogItemByLabels(item({ [`${BABYLON_DOMAIN}/${label}`]: 'Server_cloud_OS' }), {
+      technical_decision_point: ['server_cloud_os'],
+    })).toBe(true);
+  });
+
+  test('matches any selected value in either label while requiring other filters', () => {
+    const catalogItem = item({
+      [`${BABYLON_DOMAIN}/TDP1`]: 'Automation',
+      [`${BABYLON_DOMAIN}/TDP2`]: 'AI_Platform',
+      [`${BABYLON_DOMAIN}/Product`]: 'RHEL',
+    });
+    expect(filterCatalogItemByLabels(catalogItem, {
+      technical_decision_point: ['virtualization', 'ai_platform'], product: ['rhel'],
+    })).toBe(true);
+    expect(filterCatalogItemByLabels(catalogItem, {
+      technical_decision_point: ['automation'], product: ['other'],
+    })).toBe(false);
+    expect(filterCatalogItemByLabels(catalogItem, { technical_decision_point: ['other'] })).toBe(false);
+    expect(filterCatalogItemByLabels(item({}), { technical_decision_point: ['automation'] })).toBe(false);
+    expect(filterCatalogItemByLabels(item({}), {})).toBe(true);
   });
 });
