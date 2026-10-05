@@ -1293,14 +1293,17 @@ const ServicesItemComponent: React.FC<{
 
                   {isTenantClusterItem ? (
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Sandbox API</DescriptionListTerm>
+                      <DescriptionListTerm>Cluster Registration</DescriptionListTerm>
                       <DescriptionListDescription>
+                        <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem', margin: 0 }}>
+                          Registration of the backing shared cluster with the Sandbox API. This is not the status of your service.
+                        </p>
                         {sandboxApiStatus === 'loading' ? (
                           <Spinner size="md" />
                         ) : pendingTenantAction ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             <Spinner size="md" />
-                            {{ onboard: 'Onboarding...', offboard: 'Offboarding...', enable: 'Enabling...', disable: 'Disabling...' }[pendingTenantAction] || 'Processing...'}
+                            {{ onboard: 'Onboarding shared cluster...', offboard: 'Offboarding shared cluster...', enable: 'Enabling shared cluster...', disable: 'Disabling shared cluster...' }[pendingTenantAction] || 'Processing...'}
                           </span>
                         ) : sandboxApiStatus === 'not onboarded' ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>

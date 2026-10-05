@@ -3,10 +3,10 @@ import { Alert, Button, Modal, ModalBody, ModalFooter, ModalHeader, Spinner } fr
 import type { SandboxApiStatus } from '@app/utils/useSandboxApi';
 
 const actionLabels: Record<string, string> = {
-  onboard: 'Onboarding...',
-  offboard: 'Offboarding...',
-  enable: 'Enabling...',
-  disable: 'Disabling...',
+  onboard: 'Onboarding shared cluster...',
+  offboard: 'Offboarding shared cluster...',
+  enable: 'Enabling shared cluster...',
+  disable: 'Disabling shared cluster...',
 };
 
 const SandboxApiActions: React.FC<{
