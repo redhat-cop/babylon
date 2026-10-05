@@ -120,7 +120,7 @@ const ClusterRow: React.FC<{
           {cluster.resourceClaimName}
         </Link>
       </Td>
-      <Td dataLabel="Sandbox API State">
+      <Td dataLabel="Cluster Registration State">
         <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
           {cluster.sandboxApiState}
         </Label>
@@ -464,7 +464,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                 <Thead>
                   <Tr>
                     <Th>ResourceClaim</Th>
-                    <Th>Sandbox API State</Th>
+                    <Th>Cluster Registration State</Th>
                     <Th>Placements</Th>
                     <Th>Actions</Th>
                   </Tr>

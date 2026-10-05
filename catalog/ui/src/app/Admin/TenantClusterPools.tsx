@@ -232,7 +232,7 @@ const TenantClusterPools: React.FC = () => {
                     <th>Pool Saturation</th>
                     <th>Max Capacity</th>
                     <th>Placements</th>
-                    <th>Sandbox API State</th>
+                    <th>Cluster Registration State</th>
                     <th>Created At</th>
                   </tr>
                 </thead>
