@@ -62,12 +62,13 @@ const SelfPacedLabLogin: React.FC<{
         <div className={`workshop-login__layout${hasDescription ? ' workshop-login__layout--with-desc' : ''}`}>
           <div className="workshop-login__card">
             <h2 className="workshop-login__card-title">Access this lab</h2>
-            <Form className="workshop-login__form">
+            <Form className="workshop-login__form" autoComplete="off">
               <FormGroup fieldId="email" isRequired label="Email">
                 <InputGroup>
                   <InputGroupItem isFill>
                     <TextInput
                       type="email"
+                      autoComplete="off"
                       id="email"
                       placeholder="email@redhat.com"
                       isRequired
@@ -101,6 +102,7 @@ const SelfPacedLabLogin: React.FC<{
                         isRequired
                         onChange={(_event, val) => setAccessPassword(val)}
                         type="password"
+                        autoComplete="off"
                         value={accessPassword}
                       />
                     </InputGroupItem>
