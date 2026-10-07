@@ -105,7 +105,7 @@
     "@patternfly/react-icons": "^6.6.1",
     "@patternfly/react-styles": "^6.6.1",
     "@patternfly/react-table": "^6.6.1",
-    "@reduxjs/toolkit": "^2.12.0",
+    "@reduxjs/toolkit": "^2.13.0",
     "asciidoctor": "~3.0.4",
     "dompurify": "^3.4.16",
     "fuse.js": "^7.5.0",
