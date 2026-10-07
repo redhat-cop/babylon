@@ -61,6 +61,7 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [shareWith, setShareWith] = useState<string[]>([]);
   const [shareWithInput, setShareWithInput] = useState('');
   const [notes, setNotes] = useState('');
+  const [isPremiumEvent, setIsPremiumEvent] = useState(false);
 
   const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
 
@@ -137,6 +138,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         shareWith: shareWith.length > 0 ? shareWith : undefined,
         deliveryMode: deliveryMode || undefined,
         audienceType: audienceType || undefined,
+        isPremiumEvent: isPremiumEvent || undefined,
       };
       const result = await createWhiteGloveRequest({
         ...wgrData,
@@ -417,6 +419,26 @@ const WhiteGloveCreateContent: React.FC = () => {
                 <SelectOption value="partners">Partners</SelectOption>
               </SelectList>
             </Select>
+          </FormGroup>
+
+          <FormGroup
+            label={
+              <>
+                Event Classification{' '}
+                <Tooltip content="Premium events get white-glove ops treatment — dedicated day-of monitoring, priority escalation, and pre-event dry runs.">
+                  <OutlinedQuestionCircleIcon className="tooltip-icon-only" />
+                </Tooltip>
+              </>
+            }
+            fieldId="premium-event"
+          >
+            <Checkbox
+              id="premium-event"
+              label="This is a premium event (Tier 3)"
+              description="Check for marquee, high-visibility engagements — roadshows, Summit-adjacent sessions, Train-the-Trainer, or executive briefings — where a delivery slip is business-critical."
+              isChecked={isPremiumEvent}
+              onChange={(_e, checked) => setIsPremiumEvent(checked)}
+            />
           </FormGroup>
 
           <FormGroup
