@@ -896,13 +896,11 @@ const Ops: React.FC = () => {
     return null;
   }, [tenantClusterLookup, workshopsWithRc]);
 
-  // Helper to get tenant cluster display name for a workshop
+  // Helper to get tenant pool name for a workshop
   const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
     const info = getWorkshopClusterInfo(ws);
     if (!info) return null;
-    // Return short cluster name (truncate prefix if too long)
-    const shortName = info.clusterName.replace(/^tenant-cluster-pool-/, '');
-    return shortName.length > 15 ? shortName.slice(0, 15) + '…' : shortName;
+    return info.poolName;
   }, [getWorkshopClusterInfo]);
 
   const availablePurposes = useMemo(() => {
@@ -3160,7 +3158,7 @@ const Ops: React.FC = () => {
                   </div>
                 </div>
                 <div className="ops-filter-row">
-                  <span className="ops-filter-inline-label">Cluster</span>
+                  <span className="ops-filter-inline-label">Pool</span>
                   <div className="ops-schedule-filters">
                   <Label
                     color={clusterFilter === 'all' ? 'blue' : 'grey'}
@@ -3170,15 +3168,15 @@ const Ops: React.FC = () => {
                   >
                     All ({clusterStats.totalCount})
                   </Label>
-                  {clusterStats.sortedClusters.map(cluster => (
+                  {clusterStats.sortedClusters.map(pool => (
                     <Label
-                      key={cluster}
-                      color={clusterFilter === cluster ? 'blue' : 'grey'}
+                      key={pool}
+                      color={clusterFilter === pool ? 'blue' : 'grey'}
                       isCompact
-                      onClick={() => setClusterFilter(clusterFilter === cluster ? 'all' : cluster)}
+                      onClick={() => setClusterFilter(clusterFilter === pool ? 'all' : pool)}
                       className="ops-schedule-chip"
                     >
-                      {cluster} ({clusterStats.clusterCounts[cluster]})
+                      {pool} ({clusterStats.clusterCounts[pool]})
                     </Label>
                   ))}
                   {clusterStats.noneCount > 0 && (
@@ -3188,7 +3186,7 @@ const Ops: React.FC = () => {
                       onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
                       className="ops-schedule-chip"
                     >
-                      No Cluster ({clusterStats.noneCount})
+                      No Pool ({clusterStats.noneCount})
                     </Label>
                   )}
                   </div>
@@ -3210,7 +3208,7 @@ const Ops: React.FC = () => {
                     onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'with-tenant' ? 'all' : 'with-tenant')}
                     className="ops-schedule-chip"
                   >
-                    With Tenant Cluster ({tenantAssignmentStats.withTenantCount})
+                    With Tenant Pool ({tenantAssignmentStats.withTenantCount})
                   </Label>
                   <Label
                     color={tenantAssignmentFilter === 'no-tenant' ? 'blue' : 'grey'}
@@ -3218,7 +3216,7 @@ const Ops: React.FC = () => {
                     onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'no-tenant' ? 'all' : 'no-tenant')}
                     className="ops-schedule-chip"
                   >
-                    No Tenant Cluster ({tenantAssignmentStats.noTenantCount})
+                    No Tenant Pool ({tenantAssignmentStats.noTenantCount})
                   </Label>
                   </div>
                 </div>
@@ -3432,7 +3430,7 @@ const Ops: React.FC = () => {
                           Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
                         </Button>
                       </th>
-                      <th>Tenant Cluster</th>
+                      <th>Tenant Pool</th>
                       <th className="ops-col-reg">Reg</th>
                       <th>Password</th>
                       <th>
@@ -3508,8 +3506,8 @@ const Ops: React.FC = () => {
                         if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
                         if (getWhiteGloved(ws)) grpWhiteGlove++;
 
-                        const clusterName = getWorkshopCluster(ws);
-                        if (clusterName) grpClusters.add(clusterName);
+                        const poolName = getWorkshopCluster(ws);
+                        if (poolName) grpClusters.add(poolName);
                         if (!grpClusterInfo) {
                           grpClusterInfo = getWorkshopClusterInfo(ws);
                         }
@@ -3640,24 +3638,25 @@ const Ops: React.FC = () => {
                             {grpClusters.size === 1 && grpClusterInfo ? (
                               (() => {
                                 const capacityState = grpClusterInfo.placementCapacityPercent >= 85 ? 'critical' : grpClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy';
-                                const clusterName = Array.from(grpClusters)[0];
                                 return (
-                                  <Label
-                                    isCompact
-                                    color={capacityState === 'critical' ? 'red' : capacityState === 'warning' ? 'orange' : 'blue'}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`);
-                                    }}
-                                    style={{ cursor: 'pointer' }}
-                                  >
-                                    🖥️ {clusterName}
-                                  </Label>
+                                  <Tooltip content={`Pool: ${grpClusterInfo.poolName} · ${grpClusterInfo.availableClusters}/${grpClusterInfo.totalClusters} clusters available · ${grpClusterInfo.placementCount}/${grpClusterInfo.maxTotalPlacements} placements (${grpClusterInfo.placementCapacityPercent}%)`}>
+                                    <Label
+                                      isCompact
+                                      color={capacityState === 'critical' ? 'red' : capacityState === 'warning' ? 'orange' : 'blue'}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`);
+                                      }}
+                                      style={{ cursor: 'pointer' }}
+                                    >
+                                      {grpClusterInfo.poolName} ({grpClusterInfo.availableClusters}/{grpClusterInfo.totalClusters})
+                                    </Label>
+                                  </Tooltip>
                                 );
                               })()
                             ) : grpClusters.size > 1 ? (
-                              <Tooltip content={`Multiple clusters: ${Array.from(grpClusters).join(', ')}`}>
-                                <Label isCompact color="purple">{grpClusters.size} clusters</Label>
+                              <Tooltip content={`Multiple pools: ${Array.from(grpClusters).join(', ')}`}>
+                                <Label isCompact color="purple">{grpClusters.size} pools</Label>
                               </Tooltip>
                             ) : (
                               <span className="ops-muted">&mdash;</span>
@@ -3820,17 +3819,19 @@ const Ops: React.FC = () => {
                             </td>
                             <td>
                               {wsClusterName && wsClusterInfo ? (
-                                <Label
-                                  isCompact
-                                  color={wsCapacityState === 'critical' ? 'red' : wsCapacityState === 'warning' ? 'orange' : 'blue'}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`);
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  🖥️ {wsClusterName}
-                                </Label>
+                                <Tooltip content={`Pool: ${wsClusterInfo.poolName} · ${wsClusterInfo.availableClusters}/${wsClusterInfo.totalClusters} clusters available · ${wsClusterInfo.placementCount}/${wsClusterInfo.maxTotalPlacements} placements (${wsClusterInfo.placementCapacityPercent}%)`}>
+                                  <Label
+                                    isCompact
+                                    color={wsCapacityState === 'critical' ? 'red' : wsCapacityState === 'warning' ? 'orange' : 'blue'}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`);
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    {wsClusterInfo.poolName} ({wsClusterInfo.availableClusters}/{wsClusterInfo.totalClusters})
+                                  </Label>
+                                </Tooltip>
                               ) : (
                                 <span className="ops-muted">&mdash;</span>
                               )}
