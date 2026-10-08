@@ -184,7 +184,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           <tr><td>Namespace</td><td>{ns}</td></tr>
           <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
           {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
-          {clusterName && <tr><td>Tenant Cluster</td><td><code>{clusterName}</code></td></tr>}
+          {clusterInfo && <tr><td>Tenant Pool</td><td><code>{clusterInfo.poolName}</code></td></tr>}
           {clusterInfo && (
             <>
               <tr>
@@ -271,14 +271,14 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
               {urgencyTag}
             </span>
           )}
-          {clusterName && (
+          {clusterInfo && (
             <span
               className={`timeline-bar__badge timeline-bar__badge--cluster${capacityState ? ` timeline-bar__badge--cluster-${capacityState}` : ''}`}
-              title={`Tenant cluster: ${clusterName}${clusterInfo ? ` (${clusterInfo.placementCapacityPercent}% capacity)` : ''} - click to view`}
+              title={`Pool: ${clusterInfo.poolName} · ${clusterInfo.availableClusters}/${clusterInfo.totalClusters} clusters available (${clusterInfo.placementCapacityPercent}% placement capacity) - click to view`}
               onClick={handleClusterBadgeClick}
               style={{ cursor: 'pointer' }}
             >
-              🖥️ {clusterName}
+              {clusterInfo.poolName} ({clusterInfo.availableClusters}/{clusterInfo.totalClusters})
             </span>
           )}
           {isMultiNs && (
