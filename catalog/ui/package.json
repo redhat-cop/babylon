@@ -110,7 +110,7 @@
     "@reduxjs/toolkit": "^2.13.0",
     "dompurify": "^3.4.16",
     "fuse.js": "^7.5.0",
-    "js-yaml": "^5.4.2",
+    "js-yaml": "^5.4.3",
     "json2csv": "^5.0.7",
     "lexical": "^0.52.0",
     "lodash.throttle": "^4.1.1",
