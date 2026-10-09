@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 from dataclasses import dataclass, replace
 from typing import Any, Awaitable, Callable, NoReturn
