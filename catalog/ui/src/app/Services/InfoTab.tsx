@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import type { ResourceClaim, ServiceActionActions } from '@app/types';
-import { BABYLON_DOMAIN, isResourceClaimPartOfWorkshop, renderContent } from '@app/util';
+import { BABYLON_DOMAIN, isResourceClaimPartOfWorkshop } from '@app/util';
 import {
   DescriptionList,
   DescriptionListDescription,
@@ -62,11 +63,17 @@ const InfoTab: React.FC<{
       return null;
     }
 
-    const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
-      format: infoMessageTemplate.templateFormat,
-      vars: createAsciiDocAttributes(provision_vars, '--'),
-    }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
-    return <AdocWrapper html={htmlRenderedTemplate} />;
+    return (
+      <RenderedContent
+        content={infoMessageTemplate.template}
+        options={{
+          format: infoMessageTemplate.templateFormat,
+          vars: createAsciiDocAttributes(provision_vars, '--'),
+        }}
+      >
+        {(html) => <AdocWrapper html={html.replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString)} />}
+      </RenderedContent>
+    );
   }, [
     infoMessageTemplate.template,
     infoMessageTemplate.templateFormat,

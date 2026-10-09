@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import Fuse from 'fuse.js';
 import { Grid } from 'react-window';
 import type { CellComponentProps } from 'react-window';
@@ -8,7 +9,7 @@ import LoadingSection from '@app/components/LoadingSection';
 import useSWR from 'swr';
 import type { CatalogItem } from '@app/types';
 import { apiPaths, fetcherItemsInAllPages } from '@app/api';
-import { displayName, FETCH_BATCH_LIMIT, renderContent, stripHtml } from '@app/util';
+import { displayName, FETCH_BATCH_LIMIT } from '@app/util';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogCategorySelector from '@app/Catalog/CatalogCategorySelector';
 import {
@@ -181,7 +182,7 @@ const SelectableCatalogItemCard: React.FC<{
           </Title>
           {description ? (
             <div className="catalog-item-card__description">
-              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+              <RenderedContent content={description} options={{ format: descriptionFormat }} maxLength={150} />
             </div>
           ) : null}
           <div className="catalog-item-card__rating">

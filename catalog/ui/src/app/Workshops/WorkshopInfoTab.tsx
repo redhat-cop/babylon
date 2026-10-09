@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import type { MessageTemplate, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
-import { DEMO_DOMAIN, renderContent } from '@app/util';
+import { DEMO_DOMAIN } from '@app/util';
 import { Content, ContentVariants, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, Divider, MenuToggle, Select, SelectList, SelectOption, Stack, StackItem } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
@@ -74,11 +75,17 @@ const WorkshopInfoTab: React.FC<{
         )
       : {};
 
-    const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
-      format: infoMessageTemplate.templateFormat,
-      vars: createAsciiDocAttributes(provision_vars, '--'),
-    }).replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString);
-    return <AdocWrapper html={htmlRenderedTemplate} />;
+    return (
+      <RenderedContent
+        content={infoMessageTemplate.template}
+        options={{
+          format: infoMessageTemplate.templateFormat,
+          vars: createAsciiDocAttributes(provision_vars, '--'),
+        }}
+      >
+        {(html) => <AdocWrapper html={html.replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString)} />}
+      </RenderedContent>
+    );
   }, [infoMessageTemplate, resourceClaimForInfo]);
 
   const infoSourceSelectToggle = (toggleRef: React.Ref<MenuToggleElement>) => (

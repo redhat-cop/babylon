@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import { Link } from 'react-router-dom';
 import * as yaml from 'js-yaml';
 import {
@@ -16,7 +17,6 @@ import {
 import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import type { WorkshopUserAssignment } from '@app/types';
-import { renderContent } from '@app/util';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -169,12 +169,9 @@ const WorkshopsItemUserAssignments: React.FC<{
                       <DescriptionListGroup>
                         <DescriptionListTerm>Messages</DescriptionListTerm>
                         <DescriptionListDescription>
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: renderContent(userAssignment.spec.messages.replace(/\n/g, '  +\n'), {
-                                format: 'asciidoc',
-                              }),
-                            }}
+                          <RenderedContent
+                            content={userAssignment.spec.messages.replace(/\n/g, '  +\n')}
+                            options={{ format: 'asciidoc' }}
                           />
                         </DescriptionListDescription>
                       </DescriptionListGroup>

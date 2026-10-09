@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import { Checkbox, FormGroup } from '@patternfly/react-core';
-import { renderContent } from '@app/util';
 
 const TermsOfService: React.FC<{
   agreed: boolean;
@@ -8,7 +8,7 @@ const TermsOfService: React.FC<{
   text?: string;
 }> = ({ agreed, onChange, text }) => {
   const tosHtml = useMemo(
-    () => <div dangerouslySetInnerHTML={{ __html: renderContent(text, { format: 'html' }) }} />,
+    () => <RenderedContent content={text} options={{ format: 'html' }} />,
     [text],
   );
   return (

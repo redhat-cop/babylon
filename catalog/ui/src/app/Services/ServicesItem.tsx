@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
@@ -80,7 +81,6 @@ import {
   BABYLON_DOMAIN,
   canExecuteAction,
   displayName,
-  renderContent,
   isResourceClaimPartOfWorkshop,
   isResourceClaimPartOfSelfPacedLab,
   getStageFromK8sObject,
@@ -183,11 +183,7 @@ const ComponentDetailsList: React.FC<{
   const provisionMessagesHtml = useMemo(
     () =>
       _provisionMessages ? (
-        <div
-          dangerouslySetInnerHTML={{
-            __html: renderContent(_provisionMessages, { format: 'asciidoc' }),
-          }}
-        />
+        <RenderedContent content={_provisionMessages} options={{ format: 'asciidoc' }} />
       ) : null,
     [_provisionMessages],
   );

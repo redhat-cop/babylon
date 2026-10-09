@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import * as yaml from 'js-yaml';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
-import { renderContent } from '@app/util';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
@@ -24,25 +24,27 @@ const SelfPacedLabContent: React.FC<{
 
   const templateHtml = useMemo(() => {
     if (!infoMessageTemplate || !userAssignment?.data) return null;
-    const htmlRenderedTemplate = renderContent(infoMessageTemplate.template, {
-      format: infoMessageTemplate.templateFormat,
-      vars: createAsciiDocAttributes(userAssignment.data, '--'),
-    });
     return (
-      <div style={{ padding: "var(--pf-t--global--spacer--md)" }}>
-        <AdocWrapper html={htmlRenderedTemplate} />
-      </div>
+      <RenderedContent
+        content={infoMessageTemplate.template}
+        options={{
+          format: infoMessageTemplate.templateFormat,
+          vars: createAsciiDocAttributes(userAssignment.data, '--'),
+        }}
+      >
+        {(html) => (
+          <div style={{ padding: 'var(--pf-t--global--spacer--md)' }}>
+            <AdocWrapper html={html} />
+          </div>
+        )}
+      </RenderedContent>
     );
   }, [infoMessageTemplate, JSON.stringify(userAssignment.data)]);
 
   const userAssignmentMessagesHtml = useMemo(
     () =>
       userAssignment.messages ? (
-        <div
-          dangerouslySetInnerHTML={{
-            __html: renderContent(userAssignment.messages.replace(/\n/g, '  +\n'), { format: 'asciidoc' }),
-          }}
-        />
+        <RenderedContent content={userAssignment.messages.replace(/\n/g, '  +\n')} options={{ format: 'asciidoc' }} />
       ) : null,
     [userAssignment.messages],
   );
@@ -73,7 +75,7 @@ const SelfPacedLabContent: React.FC<{
               {renderEditor ? (
                 <EditorViewer value={description} />
               ) : (
-                <div dangerouslySetInnerHTML={{ __html: renderContent(description, { format: 'html' }) }} />
+                <RenderedContent content={description} options={{ format: 'html' }} />
               )}
             </div>
           ) : null}

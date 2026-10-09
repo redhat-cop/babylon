@@ -4,6 +4,16 @@
 module.exports = {
   // A preset that is used as a base for Jest's configuration
   preset: 'ts-jest/presets/js-with-ts',
+  transform: {
+    '[/\\\\]@asciidoctor[/\\\\]core[/\\\\]build[/\\\\]browser[/\\\\]index\\.js$':
+      '<rootDir>/test-asciidoctor-transform.cjs',
+  },
+
+  // Transform ESM browser libraries for the Node 22 CommonJS test runner.
+  transformIgnorePatterns: [
+    'node_modules/\\.pnpm/(?!(?:@lexical\\+[^@]+|lexical|@preact\\+signals-core|@asciidoctor\\+core)@)',
+    'node_modules/(?!\\.pnpm/|@lexical/|lexical/|@preact/signals-core/|@asciidoctor/core/)',
+  ],
 
   verbose: true,
 
