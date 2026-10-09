@@ -1,9 +1,10 @@
 import React from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Badge, Card, CardBody, CardHeader, Stack, StackItem, Title, Tooltip } from '@patternfly/react-core';
 import type { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
-import { displayName, renderContent, stripHtml } from '@app/util';
+import { displayName } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import CatalogItemIcon from './CatalogItemIcon';
 import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getSLA, getSLABadgeClass, getStage, getStatusFromCatalogItem } from './catalog-utils';
@@ -70,7 +71,7 @@ const CatalogItemListItem: React.FC<{ catalogItem: CatalogItem }> = ({ catalogIt
           </Title>
           {description ? (
             <div className="catalog-item-card__description">
-              {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+              <RenderedContent content={description} options={{ format: descriptionFormat }} maxLength={150} />
             </div>
           ) : null}
           <div className="catalog-item-card__rating">

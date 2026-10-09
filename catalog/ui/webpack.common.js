@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
+const { IgnorePlugin } = require('webpack');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
@@ -15,6 +16,11 @@ module.exports = () => {
     },
     module: {
       rules: [
+        {
+          // These URLs locate Node-only data directories, not browser assets.
+          test: /[\\/]@asciidoctor[\\/]core[\\/]build[\\/]browser[\\/]index\.js$/,
+          parser: { url: false },
+        },
         {
           test: /\.(js|jsx|tsx|ts)$/,
           exclude: /node_modules/,
@@ -85,6 +91,12 @@ module.exports = () => {
       assetModuleFilename: 'fonts/[hash:8][ext][query]',
     },
     plugins: [
+      // Asciidoctor's browser bundle retains optional Node imports. Let its
+      // browser fallbacks handle their absence rather than bundling polyfills.
+      new IgnorePlugin({
+        resourceRegExp: /^node:(?:async_hooks|fs(?:\/promises)?|path)$/,
+        contextRegExp: /[\\/]@asciidoctor[\\/]core[\\/]build[\\/]browser/,
+      }),
       new Dotenv({
         systemvars: true,
         silent: true,
