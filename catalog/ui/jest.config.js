@@ -5,6 +5,12 @@ module.exports = {
   // A preset that is used as a base for Jest's configuration
   preset: 'ts-jest/presets/js-with-ts',
 
+  // Lexical 0.51+ ships ESM; transform it for the Node 22 CommonJS test runner.
+  transformIgnorePatterns: [
+    'node_modules/\\.pnpm/(?!(?:@lexical\\+[^@]+|lexical|@preact\\+signals-core)@)',
+    'node_modules/(?!\\.pnpm/|@lexical/|lexical/|@preact/signals-core/)',
+  ],
+
   verbose: true,
 
   // Automatically clear mock calls and instances between every test

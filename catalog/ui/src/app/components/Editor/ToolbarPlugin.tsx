@@ -12,6 +12,7 @@ import {
   $isRangeSelection,
   $createParagraphNode,
   $getNodeByKey,
+  $onUpdate,
 } from 'lexical';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { $isParentElementRTL, $setBlocksType, $isAtNodeEnd } from '@lexical/selection';
@@ -25,7 +26,8 @@ import {
 } from '@lexical/list';
 import { createPortal } from 'react-dom';
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode } from '@lexical/rich-text';
-import { $createCodeNode, $isCodeNode, getDefaultCodeLanguage, getCodeLanguages } from '@lexical/code';
+import { $createCodeNode, $isCodeNode, getDefaultCodeLanguage } from '@lexical/code';
+import { getCodeLanguages } from '@lexical/code-prism';
 
 const LowPriority = 1;
 
@@ -150,7 +152,7 @@ function FloatingLinkEditor({ editor }) {
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
-          updateLinkEditor();
+          $onUpdate(() => editor.read('latest', updateLinkEditor));
           return true;
         },
         LowPriority,
@@ -516,7 +518,7 @@ const ToolbarPlugin: React.FC = () => {
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,
         () => {
-          updateToolbar();
+          $onUpdate(() => editor.read('latest', updateToolbar));
           return false;
         },
         LowPriority,
