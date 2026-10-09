@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import {
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
 } from '@patternfly/react-core';
-import { renderContent, BABYLON_DOMAIN } from '@app/util';
+import { BABYLON_DOMAIN } from '@app/util';
 import type { ResourceClaim } from '@app/types';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 
@@ -18,12 +19,9 @@ const UserMessage: React.FC<{
   const userMessagesHtml = useMemo(
     () =>
       userMessages ? (
-        <div
-          dangerouslySetInnerHTML={{
-            __html: renderContent(userMessages.trim().replace(/([^\n])\n(?!\n)/g, '$1 +\n'), {
-              format: 'asciidoc',
-            }),
-          }}
+        <RenderedContent
+          content={userMessages.trim().replace(/([^\n])\n(?!\n)/g, '$1 +\n')}
+          options={{ format: 'asciidoc' }}
         />
       ) : null,
     [userMessages],

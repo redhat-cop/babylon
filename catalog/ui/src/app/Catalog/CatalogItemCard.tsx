@@ -1,9 +1,10 @@
 import React from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Badge, CardBody, CardHeader, Split, SplitItem, Title, Tooltip } from '@patternfly/react-core';
 import type { CatalogItem } from '@app/types';
 import StatusPageIcons from '@app/components/StatusPageIcons';
-import { displayName, renderContent, stripHtml } from '@app/util';
+import { displayName } from '@app/util';
 import StarRating from '@app/components/StarRating';
 import { ALL_CATALOGS_NS, formatString, getDescription, getProvider, getRating, getStage, getStatusFromCatalogItem, getSLA, getSLABadgeClass } from './catalog-utils';
 import CatalogItemIcon from './CatalogItemIcon';
@@ -85,7 +86,7 @@ const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick,
             </Title>
             {description ? (
               <div className="catalog-item-card__description">
-                {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+                <RenderedContent content={description} options={{ format: descriptionFormat }} maxLength={150} />
               </div>
             ) : null}
             <div className="catalog-item-card__rating">
@@ -117,7 +118,7 @@ const CatalogItemCard: React.FC<CatalogItemCardProps> = ({ catalogItem, onClick,
             </Title>
             {description ? (
               <div className="catalog-item-card__description">
-                {stripHtml(renderContent(description, { format: descriptionFormat })).slice(0, 150)}
+                <RenderedContent content={description} options={{ format: descriptionFormat }} maxLength={150} />
               </div>
             ) : null}
             <div className="catalog-item-card__rating">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import {
   ActionGroup,
   Button,
@@ -17,7 +18,6 @@ import Hero from '@app/components/Hero';
 import heroImg from '@app/bgimages/hero-img.jpeg';
 import EditorViewer from '@app/components/Editor/EditorViewer';
 import type { SelfPacedLabDetails } from './selfPacedLabApi';
-import { renderContent } from '@app/util';
 
 import '@app/Workshop/workshop-login.css';
 
@@ -139,7 +139,7 @@ const SelfPacedLabLogin: React.FC<{
                 {renderEditor ? (
                   <EditorViewer value={description} />
                 ) : (
-                  <div dangerouslySetInnerHTML={{ __html: renderContent(description, { format: 'html' }) }} />
+                  <RenderedContent content={description} options={{ format: 'html' }} />
                 )}
               </div>
             </aside>

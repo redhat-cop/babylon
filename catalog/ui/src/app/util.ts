@@ -1,4 +1,4 @@
-import AsciiDoctor from 'asciidoctor'; // Use asciidoctor to translate descriptions
+import { convert } from '@asciidoctor/core'; // Use asciidoctor to translate descriptions
 import dompurify from 'dompurify'; // Use dompurify to make asciidoctor output safe
 import type {
   AccessControl,
@@ -129,13 +129,13 @@ export function recursiveAssign(target: object, source: object): void {
   }
 }
 
-type RenderContentOpt = {
+export type RenderContentOpt = {
   allowIFrame?: boolean;
   format?: 'asciidoc' | 'html';
   vars?: object;
 };
 
-export function renderContent(content: string, options: RenderContentOpt = {}): string {
+export async function renderContent(content: string, options: RenderContentOpt = {}): Promise<string> {
   const sanitize_opt = {
     ADD_TAGS: [],
     ADD_ATTR: [],
@@ -152,14 +152,9 @@ export function renderContent(content: string, options: RenderContentOpt = {}): 
   if (options.format === 'html') {
     return dompurify.sanitize(content, sanitize_opt);
   } else {
-    const asciidoctor = AsciiDoctor();
-    return dompurify.sanitize(
-      asciidoctor
-        .convert(content, { attributes: options.vars })
-        .toString()
-        .replace(/&#8203;/gi, '-'),
-      sanitize_opt,
-    );
+    const html = await convert(content || '', { attributes: options.vars });
+    if (typeof html !== 'string') throw new Error('Asciidoctor did not return HTML');
+    return dompurify.sanitize(html.replace(/&#8203;/gi, '-'), sanitize_opt);
   }
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import RenderedContent from '@app/components/RenderedContent';
 import parseDuration from 'parse-duration';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -35,7 +36,6 @@ import {
   checkAccessControl,
   compareK8sObjects,
   displayName,
-  renderContent,
   BABYLON_DOMAIN,
   isLabDeveloper,
   CATALOG_MANAGER_DOMAIN,
@@ -151,11 +151,10 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
 
   const descriptionHtml = useMemo(
     () => (
-      <div
+      <RenderedContent
         className="catalog-item-details__description"
-        dangerouslySetInnerHTML={{
-          __html: description ? renderContent(description, { format: descriptionFormat }) : 'No description available.',
-        }}
+        content={description || 'No description available.'}
+        options={{ format: descriptionFormat }}
       />
     ),
     [description, descriptionFormat],
