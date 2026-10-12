@@ -974,6 +974,7 @@ export interface WhiteGloveRequestSpec {
   shareWith?: string[];
   deliveryMode?: 'virtual' | 'on-site' | 'hybrid';
   audienceType?: 'external-customers' | 'internal-redhat' | 'partners';
+  isPremiumEvent?: boolean;
 }
 
 export interface WhiteGloveRequestList {

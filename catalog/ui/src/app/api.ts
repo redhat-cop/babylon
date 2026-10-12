@@ -1589,6 +1589,7 @@ export async function createWhiteGloveRequest(data: {
   shareWith?: string[];
   deliveryMode?: string;
   audienceType?: string;
+  isPremiumEvent?: boolean;
   namespace: string;
 }): Promise<WhiteGloveRequest> {
   const session = await getApiSession();
@@ -1625,6 +1626,7 @@ export async function createWhiteGloveRequest(data: {
       shareWith: data.shareWith,
       deliveryMode: data.deliveryMode as WhiteGloveRequest['spec']['deliveryMode'],
       audienceType: data.audienceType as WhiteGloveRequest['spec']['audienceType'],
+      isPremiumEvent: data.isPremiumEvent,
     },
   };
   return await createK8sObject(definition);
@@ -1667,6 +1669,7 @@ export async function createJiraTicketForWgr(data: {
   shareWith?: string[];
   deliveryMode?: string;
   audienceType?: string;
+  isPremiumEvent?: boolean;
 }): Promise<{ key: string; url: string }> {
   const response = await apiFetch('/api/jira/wgr', {
     method: 'POST',

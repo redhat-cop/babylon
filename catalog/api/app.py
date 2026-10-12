@@ -20,6 +20,7 @@ import redis.asyncio as redis
 from hotfix import HotfixKubeApiClient
 from randomstring import random_string
 from audit import audit_log, audit_log_api_action, parse_k8s_path
+from wgr_labels import wgr_jira_labels
 from catalog_order_policy import (
     CatalogOrderPolicyError,
     catalog_item_is_visible,
@@ -1024,6 +1025,8 @@ async def create_jira_wgr_ticket(request):
         description_lines.append(f"Delivery Mode: {data['deliveryMode']}")
     if data.get('audienceType'):
         description_lines.append(f"Audience Type: {data['audienceType']}")
+    if data.get('isPremiumEvent'):
+        description_lines.append("Premium Event: Yes (Tier 3)")
     if data.get('eventDate'):
         description_lines.append(f"Event Start: {data['eventDate']}")
     if data.get('eventEndDate'):
@@ -1038,16 +1041,7 @@ async def create_jira_wgr_ticket(request):
 
     description_text = '\n'.join(description_lines)
 
-    labels = ['whiteglove', 'whiteglove-pending']
-    if len(catalog_item_names_list) > 1:
-        labels.append('whiteglove-multi-asset')
-    if not catalog_item_names_list:
-        labels.append('whiteglove-consultation')
-    event_date_str = data.get('eventDate')
-    if event_date_str:
-        event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
-        if (event_date - datetime.now(timezone.utc)).days < 14:
-            labels.append('whiteglove-short-notice')
+    labels = wgr_jira_labels(data)
 
     jira_payload = {
         "fields": {
