@@ -1,8 +1,14 @@
 import React from 'react';
 import { waitFor } from '@testing-library/react';
+import { SWRConfig } from 'swr';
 import { render as customRender, generateSession } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';
 import WhiteGloveDetail from './WhiteGloveDetail';
+
+// Isolate the SWR cache per render so annotations from one test do not leak.
+const withFreshCache = (node: React.ReactElement) => (
+  <SWRConfig value={{ provider: () => new Map() }}>{node}</SWRConfig>
+);
 
 const DEMO_DOMAIN = 'demo.redhat.com';
 const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
@@ -223,5 +229,30 @@ describe('WhiteGloveDetail - admin actions', () => {
 
     expect(getByText('Approve')).toBeInTheDocument();
     expect(getByText('Reject')).toBeInTheDocument();
+  });
+});
+
+describe('WhiteGloveDetail - Jira ticket creation failure', () => {
+  beforeAll(() => {
+    adminSession = false;
+    mockFetcher.mockReset();
+  });
+
+  test('warns when the ops tracking ticket could not be created', async () => {
+    const wgr = makeWgrData('pending-approval', {
+      [`${DEMO_DOMAIN}/jira-error`]: 'Jira API error (503)',
+    });
+    mockFetcher.mockResolvedValue(wgr);
+
+    const { getByText } = await customRender(withFreshCache(<WhiteGloveDetail />), {
+      history: createMemoryHistory({
+        initialEntries: ['/white-glove/user-test-redhat-com/wgr-test-1'],
+      }),
+    });
+
+    await waitFor(() => {
+      expect(getByText('Ops tracking ticket was not created')).toBeInTheDocument();
+    });
+    expect(getByText(/Jira API error \(503\)/)).toBeInTheDocument();
   });
 });

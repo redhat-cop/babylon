@@ -21,7 +21,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
-import { apiPaths, deleteWhiteGloveRequest, fetcher, silentFetcher, updateSystemStatus } from '@app/api';
+import { apiPaths, deleteWhiteGloveRequest, fetcher, updateSystemStatus } from '@app/api';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import type { WhiteGloveRequest, WhiteGloveRequestList } from '@app/types';
@@ -45,16 +45,6 @@ function statusIcon(state: string) {
       return <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}><ClockIcon /> {state || 'Pending Approval'}</span>;
   }
 }
-
-const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
-  const { data } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
-    silentFetcher,
-    { refreshInterval: 30000 },
-  );
-  const assignee = data?.assignee?.displayName || fallback;
-  return <>{assignee || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}</>;
-};
 
 const BlockedDatesManager: React.FC = () => {
   const { wgBlockedDates, mutate } = useSystemStatus();
@@ -277,13 +267,17 @@ const WhiteGloveAdminListContent: React.FC = () => {
                     <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                   </Td>
                   <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
-                    <JiraAssigneeCell jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]} fallback={ann[`${DEMO_DOMAIN}/assignee`]} />
+                    {ann[`${DEMO_DOMAIN}/assignee`] || <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>Unassigned</span>}
                   </Td>
                   <Td dataLabel="Jira">
                     {ann[`${DEMO_DOMAIN}/jira-ticket-id`] ? (
                       <a href={ann[`${DEMO_DOMAIN}/jira-ticket-url`] || '#'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px' }}>
                         {ann[`${DEMO_DOMAIN}/jira-ticket-id`]}
                       </a>
+                    ) : ann[`${DEMO_DOMAIN}/jira-error`] ? (
+                      <span className="service-status--failed" style={{ fontSize: '13px' }} title={`Ops ticket not created: ${ann[`${DEMO_DOMAIN}/jira-error`]}`}>
+                        <ExclamationCircleIcon /> Not created
+                      </span>
                     ) : '—'}
                   </Td>
                   <Td dataLabel="Actions">
