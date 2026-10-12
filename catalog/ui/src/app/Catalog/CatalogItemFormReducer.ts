@@ -504,6 +504,7 @@ function salesforceIdRequired(state: FormState): boolean {
     if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
+  if (state.user.groups?.some((g) => g === 'partner' || g === 'partners')) return false;
   if (state.workshop && state.workshop.provisionCount > 1) return true;
   return false;
 }
