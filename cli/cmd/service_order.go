@@ -42,12 +42,27 @@ Examples:
 			return fmt.Errorf("invalid --end-date: %w", err)
 		}
 
-		params, err := parseParameters(orderParams, catalogItem.Spec.Parameters)
+		// Apply purpose before required/enum validation. Catalog defaults and
+		// explicit --param values take precedence over the Development fallback.
+		inputs := append([]string(nil), orderParams...)
+		catalogPurpose := false
+		for _, param := range catalogItem.Spec.Parameters {
+			if param.Name != "purpose" {
+				continue
+			}
+			catalogPurpose = true
+			if orderPurpose != "" {
+				inputs = append(inputs, "purpose="+orderPurpose)
+			} else if param.Value == "" && (param.OpenAPIV3Schema == nil || param.OpenAPIV3Schema.Default == nil) {
+				inputs = append([]string{"purpose=Development"}, inputs...)
+			}
+		}
+		params, err := parseParameters(inputs, catalogItem.Spec.Parameters)
 		if err != nil {
 			return err
 		}
 
-		if orderPurpose != "" {
+		if orderPurpose != "" && !catalogPurpose {
 			params["purpose"] = orderPurpose
 		}
 

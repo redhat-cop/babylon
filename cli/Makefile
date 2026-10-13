@@ -6,6 +6,7 @@ export CGO_ENABLED=0
 
 CLI_LDFLAGS = -X 'main.version=$(VERSION)' -X 'main.buildCommit=$(COMMIT)' -X 'main.buildTime=$(DATE)'
 CLI_PLATFORMS ?= linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
+FUNCTIONAL_TEST_TIMEOUT ?= 90m
 
 babylon:
 	@mkdir -p build
@@ -28,7 +29,11 @@ babylon-cross:
 	@cd build && sha256sum babylon-*
 	@echo '```'
 
+test-functional: babylon
+	BABYLON_FUNCTIONAL_TEST=1 BABYLON_FUNCTIONAL_BINARY="$(abspath build/babylon)" \
+		go test -v -count=1 -timeout=$(FUNCTIONAL_TEST_TIMEOUT) ./tests/functional -run '^TestServiceLifecycle$$'
+
 clean:
 	rm -f build/babylon*
 
-.PHONY: babylon babylon-cross clean
+.PHONY: babylon babylon-cross test-functional clean

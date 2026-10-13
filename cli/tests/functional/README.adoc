@@ -1,0 +1,115 @@
+= CLI Functional Tests
+
+The lifecycle test runs the actual Babylon CLI against a real environment.
+It describes an empty-config catalog item, orders a service, waits for provisioning,
+stops and starts the service, checks status and listing, then deletes it and waits
+for the ResourceClaim to disappear.
+
+== Run against Babylon
+
+From the `cli/` directory, build the CLI and log in to the target environment:
+
+[source,shell]
+----
+make babylon
+./build/babylon --config "$HOME/.config/babylon/functional.yaml" login \
+  https://babylon.example.com
+
+BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" make test-functional
+----
+
+Replace the example URL with the target environment's URL.
+Use a separate config file for each environment and keep login configs outside
+the repository.
+
+To let another process or a coding agent run the test, make the login config
+available privately on the machine running the tests and supply its path through
+`BABYLON_FUNCTIONAL_CONFIG`.
+The config includes both the Babylon session token and OAuth proxy cookies;
+the token alone is insufficient. Do not put these credentials in source files,
+test output, or issue/PR descriptions.
+A separate config file does not restrict the login's permissions or lifetime.
+
+The default catalog item is `tests.test-empty-config.prod`, in the test catalog.
+The test orders it with a two-hour lifespan and uses its default parameters.
+The account must be able to order that item and manage services in the selected namespace.
+An existing default login config can also be used with just `make test-functional`.
+
+== Network access
+
+Without explicit proxy settings, the CLI tries a direct connection first.
+If DNS/TCP connection setup fails and the Red Hat proxy can be detected through
+DNS, it retries through that proxy. Detection uses the same `squid.redhat.com:3128`
+endpoint as sandbox-cli. Direct dialing is bounded to three seconds and proxy
+discovery to two seconds, leaving time within the API client's request timeout
+for the fallback.
+
+Existing `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` settings, including lowercase
+variants, take precedence and disable automatic fallback. An explicitly empty
+proxy setting or `NO_PROXY=*` can be used to opt out.
+Loopback destinations stay direct. HTTP error responses, TLS certificate errors,
+and failures after an HTTP connection was established do not trigger fallback;
+an already-submitted order is never replayed through the proxy.
+
+== Configuration
+
+[cols="2,2,4",options="header"]
+|===
+|Variable |Default |Purpose
+|`BABYLON_FUNCTIONAL_CONFIG` |CLI's default config path |Existing login config, read without modifying it.
+|`BABYLON_FUNCTIONAL_CATALOG_ITEM` |`tests.test-empty-config.prod` |Catalog item supporting provision, stop, start, and destroy.
+|`BABYLON_FUNCTIONAL_NAMESPACE` |Config/session namespace |Service namespace; catalog lookup still searches catalog namespaces.
+|`BABYLON_FUNCTIONAL_SERVER` |Server in login config |Explicit server override.
+|`BABYLON_FUNCTIONAL_TIMEOUT` |`15m` |Timeout for each lifecycle wait and failure cleanup.
+|`BABYLON_FUNCTIONAL_POLL_INTERVAL` |`5s` |Time between status checks.
+|`BABYLON_FUNCTIONAL_COMMAND_TIMEOUT` |`45s` |Timeout for each CLI subprocess.
+|`FUNCTIONAL_TEST_TIMEOUT` |`90m` |Go test's overall timeout, set through Make.
+|`BABYLON_FUNCTIONAL_BINARY` |Built from the current source |Executable override for direct `go test`; Make supplies `build/babylon`.
+|===
+
+Durations use Go syntax, such as `30s`, `20m`, or `1h`.
+If increasing lifecycle timeouts, also increase the overall test timeout to leave
+enough time for all four waits and cleanup.
+Ambient `BABYLON_SERVER` and `BABYLON_NAMESPACE` variables are ignored by the
+runner; use the functional-test variables above to override the chosen config.
+
+Direct invocation is also supported:
+
+[source,shell]
+----
+BABYLON_FUNCTIONAL_TEST=1 \
+BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" \
+  go test -v -count=1 -timeout=90m ./tests/functional -run '^TestServiceLifecycle$'
+----
+
+== Assertions and cleanup
+
+* Order output must contain the new service's name, namespace, UID, provider,
+  and matching CatalogItem labels.
+* Polling checks actual `started` and `stopped` states; lifecycle failure states
+  fail immediately. Timeouts report the last observed state.
+* Each settled state is checked in JSON, YAML, and human-readable status output,
+  and the service must appear in `service list`.
+* Deletion waits for a ResourceClaim status request to return HTTP 404, rather
+  than accepting a deletion timestamp or an authentication/network error.
+* The deleted service must no longer appear in `service list`.
+* After an order succeeds, failures trigger a bounded cleanup attempt for that
+  exact service. Cleanup errors fail the test and include its name and namespace.
+
+Disappearance of the ResourceClaim does not independently prove that every
+downstream cloud resource has finished destruction.
+The runner logs service identity and state transitions without dumping credentials
+or the complete provisioning data.
+
+== Local checks
+
+Ordinary `go test ./...` skips the real-environment lifecycle test.
+It still runs polling/cleanup checks and exercises the same lifecycle runner with
+real CLI subprocesses against a local HTTP test server. These local tests verify
+the harness and CLI wiring; they do not replace a run against Babylon.
+
+[source,shell]
+----
+go test ./...
+go vet ./...
+----

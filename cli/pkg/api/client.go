@@ -31,7 +31,8 @@ func NewClient(baseURL string) *Client {
 	return &Client{
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: newHTTPTransport(),
 		},
 	}
 }
@@ -48,7 +49,10 @@ func (c *Client) getTransport() *http.Transport {
 	if t, ok := c.HTTPClient.Transport.(*http.Transport); ok {
 		return t
 	}
-	t := &http.Transport{}
+	if t, ok := c.HTTPClient.Transport.(*proxyFallbackTransport); ok {
+		return t.direct
+	}
+	t := http.DefaultTransport.(*http.Transport).Clone()
 	c.HTTPClient.Transport = t
 	return t
 }
