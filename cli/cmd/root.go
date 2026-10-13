@@ -81,7 +81,7 @@ Get started by logging in:
 		}
 
 		// Create API client
-		apiClient = api.NewClient(serverURL)
+		apiClient = api.NewClient(normalizeURL(serverURL))
 		apiClient.Token = cfg.Auth.Token
 		apiClient.Cookies = cfg.Auth.Cookies
 		apiClient.Debug = debug

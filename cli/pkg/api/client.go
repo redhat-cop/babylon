@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,12 +19,13 @@ import (
 
 // Client is the Babylon API client.
 type Client struct {
-	BaseURL    string
-	Token      string            // Babylon session token (Authentication header)
-	Cookies    map[string]string // OAuth proxy cookies
-	Debug      bool
-	HTTPClient *http.Client
-	Session    *types.Session
+	BaseURL          string
+	Token            string            // Babylon session token (Authentication header)
+	Cookies          map[string]string // OAuth proxy cookies
+	Debug            bool
+	HTTPClient       *http.Client
+	Session          *types.Session
+	sessionExpiresAt time.Time
 }
 
 // NewClient creates a new API client.
@@ -102,6 +104,28 @@ func IsConflict(err error) bool {
 }
 
 func (c *Client) doRequest(method, path string, body interface{}, contentType string) ([]byte, error) {
+	// Session requests must not recursively try to obtain another session.
+	if path == "/auth/session" {
+		return c.requestOnce(method, path, body, contentType)
+	}
+	if c.Session != nil {
+		if err := c.EnsureSession(); err != nil {
+			return nil, err
+		}
+	}
+	data, err := c.requestOnce(method, path, body, contentType)
+	var apiErr *APIError
+	if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusUnauthorized && c.Session != nil && len(c.Cookies) > 0 {
+		if _, err := c.GetSession(); err != nil {
+			return nil, err
+		}
+		// Retry only once; a rejected renewed session requires a new login.
+		return c.requestOnce(method, path, body, contentType)
+	}
+	return data, err
+}
+
+func (c *Client) requestOnce(method, path string, body interface{}, contentType string) ([]byte, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)

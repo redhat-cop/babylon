@@ -43,7 +43,13 @@ Examples:
 			return fmt.Errorf("invalid --end-date: %w", err)
 		}
 
-		params, err := parseParameters(workshopParams, catalogItem.Spec.Parameters)
+		inputs := append([]string(nil), workshopParams...)
+		for _, param := range catalogItem.Spec.Parameters {
+			if param.Name == "purpose" && param.Value == "" && (param.OpenAPIV3Schema == nil || param.OpenAPIV3Schema.Default == nil) {
+				inputs = append([]string{"purpose=Development"}, inputs...)
+			}
+		}
+		params, err := parseParameters(inputs, catalogItem.Spec.Parameters)
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/redhat-gpte/babylon/cli/pkg/types"
 )
@@ -23,12 +24,16 @@ func (c *Client) parseSessionFromData(data []byte) (*types.Session, error) {
 	}
 	c.Session = &session
 	c.Token = session.Token
+	c.sessionExpiresAt = time.Time{}
+	if session.Lifetime > 0 {
+		c.sessionExpiresAt = time.Now().Add(time.Duration(session.Lifetime) * time.Second)
+	}
 	return &session, nil
 }
 
 // EnsureSession ensures a valid session exists, fetching one if needed.
 func (c *Client) EnsureSession() error {
-	if c.Session != nil {
+	if c.Session != nil && (c.sessionExpiresAt.IsZero() || time.Now().Before(c.sessionExpiresAt)) {
 		return nil
 	}
 	_, err := c.GetSession()

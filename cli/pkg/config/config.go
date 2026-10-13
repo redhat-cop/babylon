@@ -72,16 +72,12 @@ func Save(path string, cfg *Config) error {
 		return err
 	}
 
-	file, err := os.CreateTemp(filepath.Dir(path), ".config-")
+	file, err := createConfigTemp(filepath.Dir(path))
 	if err != nil {
 		return err
 	}
 	tempPath := file.Name()
 	defer os.Remove(tempPath)
-	if err := file.Chmod(0600); err != nil {
-		_ = file.Close()
-		return err
-	}
 	if _, err := file.Write(data); err != nil {
 		_ = file.Close()
 		return err
@@ -98,6 +94,13 @@ func secureParentDir(dir string) error {
 		return err
 	}
 	root := filepath.VolumeName(absDir) + string(os.PathSeparator)
+	rootInfo, err := os.Lstat(root)
+	if err != nil {
+		return err
+	}
+	if err := checkParentPermissions(root, rootInfo, root == absDir); err != nil {
+		return err
+	}
 	rel, err := filepath.Rel(root, absDir)
 	if err != nil {
 		return err
@@ -110,7 +113,7 @@ func secureParentDir(dir string) error {
 		current = filepath.Join(current, component)
 		info, err := os.Lstat(current)
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(current, 0700); err != nil {
+			if err := createSecureDirectory(current); err != nil {
 				return err
 			}
 			continue
@@ -124,11 +127,8 @@ func secureParentDir(dir string) error {
 		if !info.IsDir() {
 			return fmt.Errorf("config parent path %q is not a directory", current)
 		}
-		if info.Mode().Perm()&0022 != 0 && info.Mode()&os.ModeSticky == 0 {
-			return fmt.Errorf("config parent path %q must not be group or world writable", current)
-		}
-		if current == absDir && info.Mode().Perm()&0022 != 0 {
-			return fmt.Errorf("config parent path %q must not be group or world writable", current)
+		if err := checkParentPermissions(current, info, current == absDir); err != nil {
+			return err
 		}
 	}
 	return nil

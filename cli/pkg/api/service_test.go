@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -48,6 +49,72 @@ func TestStartResourceClaimLegacyPatchesResourceActionSchedules(t *testing.T) {
 	unsupportedSchedule := resourceActionSchedule(t, patch, 1)
 	if unsupportedSchedule["start"] != "2026-01-01T00:00:00Z" || unsupportedSchedule["stop"] != "2026-01-01T04:00:00Z" {
 		t.Fatalf("unsupported resource schedule changed: %#v", unsupportedSchedule)
+	}
+}
+
+func TestStartLegacyResourceClaimUsesShortestConfiguredRuntime(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		states, templates []string
+		summary           string
+		want              time.Duration
+	}{
+		{name: "resource states", states: []string{"1h", "2h"}, want: time.Hour},
+		{name: "day duration", states: []string{"2d", "6h"}, want: 6 * time.Hour},
+		{name: "resource templates", templates: []string{"1h", "2h"}, want: time.Hour},
+		{name: "state overrides template", states: []string{"2h", "3h"}, templates: []string{"1h", "1h"}, want: 2 * time.Hour},
+		{name: "summary takes precedence", states: []string{"1h", "2h"}, summary: "3h", want: 3 * time.Hour},
+		{name: "missing defaults", want: 4 * time.Hour},
+		{name: "invalid default", states: []string{"invalid", "1h"}, want: time.Hour},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			claim := legacyResourceClaim()
+			for i := range claim.Spec.Resources {
+				if len(tc.templates) > i {
+					claim.Spec.Resources[i].Template = json.RawMessage(fmt.Sprintf(`{"spec":{"vars":{"action_schedule":{"default_runtime":%q}}}}`, tc.templates[i]))
+				}
+				if len(tc.states) > i {
+					claim.Status.Resources[i].State.Spec.Vars = &types.AnarchySubjectVars{ActionSchedule: &types.AnarchyActionSchedule{DefaultRuntime: tc.states[i]}}
+				}
+			}
+			if tc.summary != "" {
+				claim.Status.Summary = &types.ResourceClaimSummary{RuntimeDefault: tc.summary}
+			}
+			patches := make(chan map[string]interface{}, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodPatch {
+					var patch map[string]interface{}
+					if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+						t.Error(err)
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+					patches <- patch
+				}
+				_ = json.NewEncoder(w).Encode(claim)
+			}))
+			defer server.Close()
+			if _, err := NewClient(server.URL).StartResourceClaim("user", "legacy"); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case patch := <-patches:
+				schedule := resourceActionSchedule(t, patch, 0)
+				start, err := time.Parse(time.RFC3339, schedule["start"].(string))
+				if err != nil {
+					t.Fatal(err)
+				}
+				stop, err := time.Parse(time.RFC3339, schedule["stop"].(string))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := stop.Sub(start); got != tc.want {
+					t.Fatalf("scheduled runtime = %s, want %s", got, tc.want)
+				}
+			default:
+				t.Fatal("start did not patch the resource claim")
+			}
+		})
 	}
 }
 

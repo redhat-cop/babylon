@@ -116,11 +116,11 @@ func watchWorkshopStatus(name string) error {
 			return err
 		}
 
-		readyCount, total := countReady(services)
+		readyCount, total := countReady(ws, services)
 		elapsed := time.Since(startTime).Truncate(time.Second)
 
 		// Clear line and print progress
-		fmt.Fprintf(os.Stderr, "\r\033[KProvisioning:  %d/%d ready  (%s elapsed)", readyCount, total, elapsed)
+		fmt.Fprintf(os.Stderr, "\r\033[KProvisioning:  %s  (%s elapsed)", readinessProgress(readyCount, total), elapsed)
 
 		if total > 0 && readyCount == total {
 			fmt.Fprintf(os.Stderr, "\n")
@@ -137,14 +137,31 @@ func watchWorkshopStatus(name string) error {
 	}
 }
 
-func countReady(services []types.ResourceClaim) (int, int) {
+func countReady(ws *types.Workshop, services []types.ResourceClaim) (int, int) {
 	ready := 0
 	for _, svc := range services {
+		if svc.Metadata.DeletionTimestamp != "" {
+			continue
+		}
+		if _, tenantCluster := svc.Metadata.Labels[types.BabylonDomain+"/tenant-cluster-pool"]; tenantCluster {
+			continue
+		}
 		if seatState(&svc) == "started" {
 			ready++
 		}
 	}
-	return ready, len(services)
+	total := 0
+	if ws.Status != nil && ws.Status.ProvisionCount != nil {
+		total = ws.Status.ProvisionCount.Ordered
+	}
+	return ready, total
+}
+
+func readinessProgress(ready, total int) string {
+	if total <= 0 {
+		return fmt.Sprintf("%d/? ready", ready)
+	}
+	return fmt.Sprintf("%d/%d ready", ready, total)
 }
 
 func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.ResourceClaim, provisionTimes map[string]time.Time) {
@@ -159,10 +176,10 @@ func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.Resou
 		fmt.Fprintf(w, "Password:    %s\n", ws.Spec.AccessPassword)
 	}
 
-	readyCount, total := countReady(services)
-	fmt.Fprintf(w, "\nProvisioning:  %d/%d ready\n", readyCount, total)
+	readyCount, total := countReady(ws, services)
+	fmt.Fprintf(w, "\nProvisioning:  %s\n", readinessProgress(readyCount, total))
 
-	if total > 0 {
+	if len(services) > 0 {
 		t := output.NewTable("SEAT", "STATE", "PROVISIONED", "AGE")
 		for i, svc := range services {
 			provisioned := "-"
@@ -208,13 +225,27 @@ func printWorkshopStatus(w io.Writer, ws *types.Workshop, services []types.Resou
 
 func seatState(svc *types.ResourceClaim) string {
 	if svc.Status != nil {
-		for _, r := range svc.Status.Resources {
-			if r.State != nil && r.State.Spec.Vars != nil && r.State.Spec.Vars.CurrentState != "" {
-				return r.State.Spec.Vars.CurrentState
-			}
-		}
 		if svc.Status.Summary != nil && svc.Status.Summary.State != "" {
 			return svc.Status.Summary.State
+		}
+		started := false
+		for _, r := range svc.Status.Resources {
+			if r.State == nil {
+				return "pending"
+			}
+			if r.State.Kind != "" && r.State.Kind != "AnarchySubject" {
+				continue
+			}
+			if r.State.Spec.Vars == nil || r.State.Spec.Vars.CurrentState == "" {
+				return "pending"
+			}
+			if r.State.Spec.Vars.CurrentState != "started" {
+				return r.State.Spec.Vars.CurrentState
+			}
+			started = true
+		}
+		if started {
+			return "started"
 		}
 	}
 	return "pending"

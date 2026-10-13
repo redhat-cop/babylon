@@ -116,12 +116,7 @@ func (c *Client) StartResourceClaim(namespace, name string) (*types.ResourceClai
 		return nil, err
 	}
 
-	runtimeDefault := 4 * time.Hour // default 4h
-	if claim.Status != nil && claim.Status.Summary != nil && claim.Status.Summary.RuntimeDefault != "" {
-		if d, err := parseDuration(claim.Status.Summary.RuntimeDefault); err == nil {
-			runtimeDefault = d
-		}
-	}
+	runtimeDefault := resourceClaimDefaultRuntime(claim)
 
 	now := time.Now().UTC()
 	startTimestamp := formatTime(now)
@@ -144,6 +139,46 @@ func (c *Client) StartResourceClaim(namespace, name string) (*types.ResourceClai
 	}
 
 	return c.PatchResourceClaim(namespace, name, patch)
+}
+
+func resourceClaimDefaultRuntime(claim *types.ResourceClaim) time.Duration {
+	const fallback = 4 * time.Hour
+	if claim.Status != nil && claim.Status.Summary != nil {
+		if d, err := parseDuration(claim.Status.Summary.RuntimeDefault); err == nil {
+			return d
+		}
+	}
+	if claim.Spec.Provider != nil || len(claim.Spec.Resources) == 0 {
+		return fallback
+	}
+
+	// Legacy resources share a stop time; use the shortest runtime, as the UI does.
+	var shortest time.Duration
+	for i, resource := range claim.Spec.Resources {
+		configured := ""
+		if claim.Status != nil {
+			for _, status := range claim.Status.Resources {
+				if status.Name == resource.Name && status.State != nil && status.State.Spec.Vars != nil && status.State.Spec.Vars.ActionSchedule != nil {
+					configured = status.State.Spec.Vars.ActionSchedule.DefaultRuntime
+					break
+				}
+			}
+		}
+		if configured == "" {
+			var template types.AnarchySubject
+			if err := json.Unmarshal(resource.Template, &template); err == nil && template.Spec.Vars != nil && template.Spec.Vars.ActionSchedule != nil {
+				configured = template.Spec.Vars.ActionSchedule.DefaultRuntime
+			}
+		}
+		runtime := fallback
+		if d, err := parseDuration(configured); err == nil {
+			runtime = d
+		}
+		if i == 0 || runtime < shortest {
+			shortest = runtime
+		}
+	}
+	return shortest
 }
 
 // StopResourceClaim stops a running resource claim.
