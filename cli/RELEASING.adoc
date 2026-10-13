@@ -1,0 +1,49 @@
+= Releasing Babylon CLI binaries
+
+The `cli-release` GitHub Actions workflow builds Linux amd64/arm64,
+macOS amd64/arm64, and Windows amd64 binaries, generates checksums, and
+attests their build provenance. It uploads the assets to a *draft release*.
+
+GitHub locks assets when an immutable release is published. Binaries must
+therefore be attached before publication. Saving a draft release does not
+trigger a `release` workflow; this workflow runs on `v*` tag pushes instead.
+
+== Create a release
+
+After the release changes have been merged, create and push a new version tag
+at the commit to release:
+
+[source,shell]
+----
+git tag v0.44.10 <release-commit>
+git push origin v0.44.10
+----
+
+Replace the example version and commit with the desired release identity.
+Pushing the tag also triggers the repository's other matching tag workflows.
+
+The CLI workflow creates a draft release with generated notes, or attaches the
+assets to an existing draft for that tag. After the workflow succeeds, open
+the draft on GitHub, review the notes, confirm the five binaries and
+`sha256sums.txt` are attached, and publish the release.
+
+Do not publish the release while the workflow is still building or uploading.
+
+== Retry for an existing tag
+
+For a tag that contains this workflow, rerun a failed Actions run, or dispatch
+the workflow explicitly from the tag:
+
+[source,shell]
+----
+gh workflow run cli-release.yaml --repo redhat-cop/babylon --ref v0.44.10
+----
+
+The workflow must run from a tag, so the binary version, embedded commit, and
+provenance all describe the tagged source. Running it from a branch fails the
+preflight check. Uploads to an existing draft replace assets with the same names.
+
+Published releases are rejected before building. An already-published immutable
+release cannot be repaired by rerunning the upload; use a new version tag.
+Build artifacts from earlier runs remain downloadable from their Actions pages
+until artifact retention expires.

@@ -1,8 +1,13 @@
 ---
 name: cli-release
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: cli-release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -11,9 +16,31 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RELEASE_TAG: ${{ github.ref_name }}
 
 jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check release tag and draft status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [[ "$REF_TYPE" != "tag" ]]; then
+            printf '%s\n' '::error::Run this workflow from a release tag, not a branch. See cli/RELEASING.adoc.'
+            exit 1
+          fi
+          DRAFT=$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate \
+            --jq '.[] | select(.tag_name == env.RELEASE_TAG) | .draft')
+          if [[ -n "$DRAFT" && "$DRAFT" != "true" ]]; then
+            printf '%s\n' '::error::This tag already has a published release. Use a new version tag so assets can be uploaded before publication.'
+            exit 1
+          fi
+
   build:
+    needs: check-release
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,7 +71,7 @@ jobs:
           CGO_ENABLED: "0"
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          VERSION: ${{ github.event.release.tag_name }}
+          VERSION: ${{ env.RELEASE_TAG }}
         run: |
           EXT=""
           if [[ "${{ matrix.goos }}" == "windows" ]]; then EXT=".exe"; fi
@@ -79,9 +106,18 @@ jobs:
         with:
           subject-path: dist/babylon-*
 
-      - name: Upload assets to release
+      - name: Upload assets to draft release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" dist/*
+        run: |
+          DRAFT=$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate \
+            --jq '.[] | select(.tag_name == env.RELEASE_TAG) | .draft')
+          if [[ "$DRAFT" == "true" ]]; then
+            gh release upload "$RELEASE_TAG" dist/* --clobber
+          elif [[ -z "$DRAFT" ]]; then
+            gh release create "$RELEASE_TAG" dist/* --draft --verify-tag --generate-notes
+          else
+            printf '%s\n' '::error::The release was published before the assets were uploaded. Use a new version tag.'
+            exit 1
+          fi
