@@ -10,7 +10,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import aiohttp
 from aiohttp import web
@@ -1270,6 +1270,17 @@ async def update_jira_issue_labels(request):
 
 confluence_page_id = os.environ.get('CONFLUENCE_WHATS_NEW_PAGE_ID', '479821972')
 
+def confluence_page_content(data):
+    return {
+        "id": data.get("id", ""),
+        "title": data.get("title", ""),
+        "body": data.get("body", {}).get("view", {}).get("value", ""),
+        "version": data.get("version", {}).get("number"),
+        "lastUpdated": data.get("version", {}).get("when"),
+        "createdAt": data.get("history", {}).get("createdDate"),
+    }
+
+
 @routes.get("/api/whats-new")
 async def get_whats_new(request):
     await get_proxy_user(request)
@@ -1284,25 +1295,54 @@ async def get_whats_new(request):
     }
 
     async with aiohttp.ClientSession() as http_session:
-        async with http_session.get(
-            f"{jira_base_url}/wiki/rest/api/content/{confluence_page_id}"
-            f"?expand=body.view,version,title",
-            headers=headers,
-        ) as resp:
-            if resp.status == 404:
-                raise web.HTTPNotFound(reason="What's New page not found")
-            if resp.status != 200:
-                error_body = await resp.text()
-                logging.error(f"Confluence API error ({resp.status}): {error_body}")
-                raise web.HTTPBadGateway(reason=f"Failed to fetch What's New content: {resp.status}")
-            data = await resp.json()
+        async def fetch_content(path, params):
+            async with http_session.get(
+                f"{jira_base_url}{path}", headers=headers, params=params,
+            ) as resp:
+                if resp.status == 404:
+                    raise web.HTTPNotFound(reason="What's New page not found")
+                if resp.status != 200:
+                    logging.error("Confluence API error (%s)", resp.status)
+                    raise web.HTTPBadGateway(reason=f"Failed to fetch What's New content: {resp.status}")
+                return await resp.json()
 
-    return web.json_response({
-        "title": data.get("title", ""),
-        "body": data.get("body", {}).get("view", {}).get("value", ""),
-        "version": data.get("version", {}).get("number"),
-        "lastUpdated": data.get("version", {}).get("when"),
-    })
+        async def fetch_page(page_id):
+            data = await fetch_content(
+                f"/wiki/rest/api/content/{quote(str(page_id), safe='')}",
+                {"expand": "body.view,version,title,history"},
+            )
+            return confluence_page_content(data)
+
+        content = await fetch_page(confluence_page_id)
+        content["children"] = []
+        params = {"limit": "100"}
+        seen_cursors = set()
+        while True:
+            children = await fetch_content(
+                f"/wiki/api/v2/pages/{quote(confluence_page_id, safe='')}/direct-children",
+                params,
+            )
+            for child in children.get("results", []):
+                if child.get("type") == "page":
+                    content["children"].append(await fetch_page(child["id"]))
+            next_link = children.get("_links", {}).get("next")
+            if not next_link:
+                break
+            # Only reuse the cursor, never send credentials to a returned URL.
+            cursor = parse_qs(urlparse(next_link).query).get("cursor", [None])[0]
+            if not cursor or cursor in seen_cursors:
+                raise web.HTTPBadGateway(reason="Invalid Confluence pagination")
+            seen_cursors.add(cursor)
+            params = {"limit": "100", "cursor": cursor}
+
+    def creation_timestamp(page):
+        try:
+            return datetime.fromisoformat(page.get("createdAt") or "").timestamp()
+        except (ValueError, TypeError):
+            return float("-inf")
+
+    content["children"].sort(key=creation_timestamp, reverse=True)
+    return web.json_response(content)
 
 
 @routes.get("/api/usage-cost/request/{request_id}")

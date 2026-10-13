@@ -431,6 +431,12 @@ const appRoutes: IAppRoute[] = [
     title: "Babylon | What's New",
     accessControl: 'admin',
   },
+  {
+    component: WhatsNew,
+    path: '/whats-new/:pageId',
+    title: "Babylon | What's New",
+    accessControl: 'admin',
+  },
 ];
 const publicRoutes: IAppRoute[] = [
   {
