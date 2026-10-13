@@ -29,6 +29,14 @@ type lifecycleOptions struct {
 }
 
 func TestServiceLifecycle(t *testing.T) {
+	runner, options := functionalSetup(t)
+	if err := runLifecycle(t.Context(), runner.run, options, t.Logf); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func functionalSetup(t *testing.T) (cliRunner, lifecycleOptions) {
+	t.Helper()
 	if os.Getenv("BABYLON_FUNCTIONAL_TEST") != "1" {
 		t.Skip("run make test-functional to test a real Babylon environment")
 	}
@@ -61,9 +69,7 @@ func TestServiceLifecycle(t *testing.T) {
 		pollInterval: durationSetting(t, "BABYLON_FUNCTIONAL_POLL_INTERVAL", 5*time.Second),
 	}
 	t.Logf("Testing catalog item %s using config %s", item, configPath)
-	if err := runLifecycle(t.Context(), runner.run, options, t.Logf); err != nil {
-		t.Fatal(err)
-	}
+	return runner, options
 }
 
 func runLifecycle(ctx context.Context, run cliCommand, options lifecycleOptions, logf func(string, ...any)) (err error) {

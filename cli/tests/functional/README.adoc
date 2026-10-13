@@ -1,9 +1,13 @@
 = CLI Functional Tests
 
-The lifecycle test runs the actual Babylon CLI against a real environment.
-It describes an empty-config catalog item, orders a service, waits for provisioning,
-stops and starts the service, checks status and listing, then deletes it and waits
-for the ResourceClaim to disappear.
+The lifecycle tests run the actual Babylon CLI against a real environment:
+
+* The service lifecycle describes an empty-config catalog item, orders a service,
+  waits for provisioning, stops and starts it, checks status and listing, then
+  deletes it and waits for the ResourceClaim to disappear.
+* The workshop lifecycle creates a two-seat workshop, waits for both seat claims
+  and their `started` states, checks status including `--watch`, checks listing,
+  then deletes the workshop and waits for it and its seat claims to disappear.
 
 == Run against Babylon
 
@@ -16,6 +20,14 @@ make babylon
   https://babylon.example.com
 
 BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" make test-functional
+----
+
+`make test-functional` runs both lifecycles. To select one:
+
+[source,shell]
+----
+BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" make test-functional-service
+BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" make test-functional-workshop
 ----
 
 Replace the example URL with the target environment's URL.
@@ -31,8 +43,9 @@ test output, or issue/PR descriptions.
 A separate config file does not restrict the login's permissions or lifetime.
 
 The default catalog item is `tests.test-empty-config.prod`, in the test catalog.
-The test orders it with a two-hour lifespan and uses its default parameters.
-The account must be able to order that item and manage services in the selected namespace.
+Both tests use a two-hour lifespan and the catalog item's default parameters.
+The account must be able to order that item and manage services, Workshops, and
+WorkshopProvisions in the selected namespace.
 An existing default login config can also be used with just `make test-functional`.
 
 == Network access
@@ -57,19 +70,19 @@ an already-submitted order is never replayed through the proxy.
 |===
 |Variable |Default |Purpose
 |`BABYLON_FUNCTIONAL_CONFIG` |CLI's default config path |Existing login config, read without modifying it.
-|`BABYLON_FUNCTIONAL_CATALOG_ITEM` |`tests.test-empty-config.prod` |Catalog item supporting provision, stop, start, and destroy.
-|`BABYLON_FUNCTIONAL_NAMESPACE` |Config/session namespace |Service namespace; catalog lookup still searches catalog namespaces.
+|`BABYLON_FUNCTIONAL_CATALOG_ITEM` |`tests.test-empty-config.prod` |Catalog item supporting service and workshop provisioning, stop, start, and destroy.
+|`BABYLON_FUNCTIONAL_NAMESPACE` |Config/session namespace |Service/workshop namespace; catalog lookup still searches catalog namespaces.
 |`BABYLON_FUNCTIONAL_SERVER` |Server in login config |Explicit server override.
 |`BABYLON_FUNCTIONAL_TIMEOUT` |`15m` |Timeout for each lifecycle wait and failure cleanup.
 |`BABYLON_FUNCTIONAL_POLL_INTERVAL` |`5s` |Time between status checks.
 |`BABYLON_FUNCTIONAL_COMMAND_TIMEOUT` |`45s` |Timeout for each CLI subprocess.
-|`FUNCTIONAL_TEST_TIMEOUT` |`90m` |Go test's overall timeout, set through Make.
+|`FUNCTIONAL_TEST_TIMEOUT` |`120m` |Go test's overall timeout, set through Make.
 |`BABYLON_FUNCTIONAL_BINARY` |Built from the current source |Executable override for direct `go test`; Make supplies `build/babylon`.
 |===
 
 Durations use Go syntax, such as `30s`, `20m`, or `1h`.
 If increasing lifecycle timeouts, also increase the overall test timeout to leave
-enough time for all four waits and cleanup.
+enough time for all waits and cleanup across the selected lifecycles.
 Ambient `BABYLON_SERVER` and `BABYLON_NAMESPACE` variables are ignored by the
 runner; use the functional-test variables above to override the chosen config.
 
@@ -79,10 +92,10 @@ Direct invocation is also supported:
 ----
 BABYLON_FUNCTIONAL_TEST=1 \
 BABYLON_FUNCTIONAL_CONFIG="$HOME/.config/babylon/functional.yaml" \
-  go test -v -count=1 -timeout=90m ./tests/functional -run '^TestServiceLifecycle$'
+  go test -v -count=1 -timeout=120m ./tests/functional -run '^Test(Service|Workshop)Lifecycle$'
 ----
 
-== Assertions and cleanup
+== Service assertions and cleanup
 
 * Order output must contain the new service's name, namespace, UID, provider,
   and matching CatalogItem labels.
@@ -101,15 +114,45 @@ downstream cloud resource has finished destruction.
 The runner logs service identity and state transitions without dumping credentials
 or the complete provisioning data.
 
+== Workshop assertions and cleanup
+
+* Creation must return the workshop's name, namespace, UID, display name,
+  access password, lifespan, and matching CatalogItem labels.
+* The workshop must appear in `workshop list` with the same identity.
+* Polling waits for the ordered count and both non-deleting seat claims;
+  tenant-cluster claims do not count as seats. Failed provisions fail the wait.
+* Each seat must have a name, namespace, UID, and matching workshop label, reach
+  `started` without resource failures, and appear in `service list`.
+* JSON `--watch`, YAML, and table status output must report the same workshop
+  and all ordered seats as ready.
+* Deletion must return HTTP 404 for the workshop and every known associated claim,
+  rather than accepting a deletion timestamp. The workshop must then disappear
+  from `workshop list`.
+* Failures and cancellation trigger bounded cleanup independent of the canceled
+  test context. A failed WorkshopProvision creation recovers this test's workshop
+  by its unique display name and catalog labels before deleting it.
+* Cleanup failures include the workshop name and namespace in the test error.
+
+The workshop test does not register users or assign seats. As with the service
+test, claim deletion does not independently prove all cloud resources are gone.
+
 == Local checks
 
-Ordinary `go test ./...` skips the real-environment lifecycle test.
+Ordinary `go test ./...` skips both real-environment lifecycle tests.
 It still runs polling/cleanup checks and exercises the same lifecycle runner with
 real CLI subprocesses against a local HTTP test server. These local tests verify
 the harness and CLI wiring; they do not replace a run against Babylon.
+Workshop checks cover partial creation, provisioning failure, cancellation,
+cleanup errors, namespace overrides, and leaving unrelated services untouched.
+A separate subprocess watch test verifies that missing counts, delayed seats,
+and a pending aggregate cannot produce early success, while deleting and
+tenant-cluster claims do not prevent completion once all actual seats are ready.
 
 [source,shell]
 ----
 go test ./...
 go vet ./...
+
+# Run just the local workshop checks:
+go test -v ./tests/functional -run '^TestCLIWorkshop'
 ----
