@@ -132,6 +132,7 @@ import {
   worstSoundcheckStatus,
   type SoundcheckSessionStatus,
   type SoundcheckStatusCache,
+  type SoundcheckTargetSummary,
   type WorkshopCheckStatusEntry,
 } from '@app/Admin/Ops/soundcheck';
 import {
@@ -467,6 +468,8 @@ const Ops: React.FC = () => {
     workshopCount: number;
     mode: 'api' | 'deeplink';
     error?: string;
+    totalTargets?: number;
+    failedTargets?: SoundcheckTargetSummary[];
   } | null>(null);
   const soundcheckAbortRef = useRef<AbortController | null>(null);
   /** Opt-in per-row last-check column — off by default so scrolling is free. */
@@ -2051,7 +2054,14 @@ const Ops: React.FC = () => {
           onUpdate: (snap) => {
             setSoundcheckRun((prev) =>
               prev
-                ? { ...prev, status: snap.status, sessionUrl: result.sessionUrl }
+                ? {
+                    ...prev,
+                    status: snap.status,
+                    sessionUrl: result.sessionUrl,
+                    ...(snap.totalTargets != null
+                      ? { totalTargets: snap.totalTargets, failedTargets: snap.failedTargets }
+                      : {}),
+                  }
                 : prev,
             );
           },
@@ -2060,7 +2070,13 @@ const Ops: React.FC = () => {
           setScStatusCache((prev) => invalidateStatusCache(prev, ids));
           setScStatusRefresh((n) => n + 1);
           if (final.status === 'completed') {
-            addAlert(AlertVariant.success, `Soundcheck completed for ${ids.length} workshop(s)`);
+            const failCount = final.failedTargets?.length ?? 0;
+            addAlert(
+              failCount > 0 ? AlertVariant.warning : AlertVariant.success,
+              failCount > 0
+                ? `Soundcheck completed — ${failCount} of ${final.totalTargets} target(s) unhealthy`
+                : `Soundcheck completed for ${ids.length} workshop(s)`,
+            );
           } else if (final.status === 'failed') {
             addAlert(AlertVariant.danger, 'Soundcheck session reported failed');
           }
@@ -2765,13 +2781,53 @@ const Ops: React.FC = () => {
                       )}
                     </div>
                     {soundcheckRun && (
-                      <p className={`ops-soundcheck-status ops-soundcheck-status--${soundcheckRun.status}`}>
-                        {soundcheckRun.error
-                          ? soundcheckRun.error
-                          : soundcheckRun.status === 'opened'
-                            ? `Opened deep-link for ${soundcheckRun.workshopCount} workshop(s)`
-                            : `Session ${soundcheckRun.status} · ${soundcheckRun.mode}`}
-                      </p>
+                      <div className={`ops-soundcheck-status ops-soundcheck-status--${soundcheckRun.status}`}>
+                        {soundcheckRun.error ? (
+                          <p style={{ margin: 0 }}>{soundcheckRun.error}</p>
+                        ) : soundcheckRun.status === 'opened' ? (
+                          <p style={{ margin: 0 }}>Opened deep-link for {soundcheckRun.workshopCount} workshop(s)</p>
+                        ) : (
+                          <>
+                            <div className="ops-soundcheck-counts">
+                              {soundcheckRun.totalTargets != null ? (
+                                <>
+                                  <Label
+                                    isCompact
+                                    color={(soundcheckRun.failedTargets?.length ?? 0) > 0 ? 'red' : 'green'}
+                                  >
+                                    {soundcheckRun.failedTargets?.length ?? 0} failed
+                                  </Label>
+                                  <Label isCompact color="grey">
+                                    {soundcheckRun.totalTargets} targets
+                                  </Label>
+                                </>
+                              ) : null}
+                              <span className="ops-muted">
+                                Session {soundcheckRun.status} · {soundcheckRun.mode}
+                              </span>
+                            </div>
+                            {(soundcheckRun.failedTargets?.length ?? 0) > 0 && (
+                              <ul className="ops-soundcheck-alerts">
+                                {soundcheckRun.failedTargets!.map((t, i) => (
+                                  <li key={i}>
+                                    <strong>{t.label}</strong>
+                                    {t.errorMessage ? <span className="ops-muted"> — {t.errorMessage}</span> : null}
+                                    {' '}
+                                    <a
+                                      href={t.sessionHref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="ops-ws-link"
+                                    >
+                                      Open <ExternalLinkAltIcon style={{ fontSize: '0.75em', verticalAlign: 'middle' }} />
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
                   </CardBody>
                 </Card>

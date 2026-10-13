@@ -15,11 +15,21 @@ export type SoundcheckKickoffResult = {
   mode: 'api' | 'deeplink';
 };
 
+export type SoundcheckTargetSummary = {
+  label: string;
+  url: string;
+  status: string;
+  errorMessage: string | null;
+  sessionHref: string;
+};
+
 export type SoundcheckSessionSnapshot = {
   sessionId: string;
   status: SoundcheckSessionStatus;
   name?: string;
   completedAt?: string | null;
+  totalTargets?: number;
+  failedTargets?: SoundcheckTargetSummary[];
 };
 
 export type WorkshopCheckStatusEntry = {
@@ -157,16 +167,24 @@ export async function fetchSoundcheckSession(
   }
   const body = (await resp.json()) as {
     session?: { session_id?: string; status?: string; name?: string; completed_at?: string | null };
+    targets?: Array<{ label: string; url: string; status: string; error_message: string | null }>;
   };
   const session = body.session;
   if (!session?.session_id) {
     throw new Error('Invalid session response');
   }
+  const sessionHref = buildSoundcheckSessionUrl(baseUrl, session.session_id);
+  const targets = body.targets ?? [];
+  const failedTargets: SoundcheckTargetSummary[] = targets
+    .filter((t) => t.status === 'unhealthy' || t.status === 'error')
+    .map((t) => ({ label: t.label, url: t.url, status: t.status, errorMessage: t.error_message, sessionHref }));
   return {
     sessionId: session.session_id,
     status: (session.status || 'pending') as SoundcheckSessionStatus,
     name: session.name,
     completedAt: session.completed_at,
+    totalTargets: targets.length > 0 ? targets.length : undefined,
+    failedTargets: targets.length > 0 ? failedTargets : undefined,
   };
 }
 
