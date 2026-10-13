@@ -102,7 +102,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const prevSandboxParametersRef = React.useRef<Record<string, unknown>>({});
-  const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email } = useSession().getSession();
+  const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email, userInterface } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
   const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage, isServiceOrderingBlocked, serviceOrderingBlockedMessage } = useSystemStatus();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
@@ -181,7 +181,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       type: 'init',
       catalogItem,
       serviceNamespace: initialServiceNamespace,
-      user: { groups, roles, isAdmin },
+      user: { groups, roles, isAdmin, userInterface },
       purposeOpts,
       sfdc_enabled,
       workshop: workshopInitialProps,
