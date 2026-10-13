@@ -11,6 +11,7 @@ type UserProps = {
   groups: string[];
   isAdmin: boolean;
   roles: string[];
+  userInterface: string;
 };
 type WorkshopProps = {
   userRegistration: string;
@@ -281,7 +282,7 @@ function initDates(catalogItem: CatalogItem, currTime?: number) {
 function reduceFormStateInit(
   catalogItem: CatalogItem,
   serviceNamespace: ServiceNamespace,
-  { isAdmin, groups, roles },
+  { isAdmin, groups, roles, userInterface }: UserProps,
   purposeOpts: TPurposeOpts,
   sfdc_enabled: boolean,
   workshopInitialProps?: WorkshopProps,
@@ -333,6 +334,7 @@ function reduceFormStateInit(
       isAdmin,
       roles,
       groups,
+      userInterface,
     },
     conditionChecks: {
       completed: false,
@@ -504,6 +506,7 @@ function salesforceIdRequired(state: FormState): boolean {
     if (p.sfdcRequired) return true;
   }
   if (state.user.isAdmin) return false;
+  if (state.user.userInterface === 'rhdp-partners') return false;
   if (state.workshop && state.workshop.provisionCount > 1) return true;
   return false;
 }

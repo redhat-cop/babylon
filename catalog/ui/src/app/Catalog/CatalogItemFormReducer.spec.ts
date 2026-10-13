@@ -25,6 +25,7 @@ const mockUserProps = {
   isAdmin: false,
   groups: ['test-group'],
   roles: ['test-role'],
+  userInterface: 'rhpds',
 };
 
 const mockPurposeOpts: TPurposeOpts = [
