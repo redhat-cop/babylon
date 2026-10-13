@@ -97,23 +97,7 @@ const Header: React.FC<{
     );
   }
 
-  // 5. What's New (admin only, excluding the partner interface)
-  if (isAdmin && userInterface !== 'rhdp-partners') {
-    userHelpDropdownItems.push(
-      <DropdownItem
-        key="whats-new"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsUserHelpDropdownOpen(false);
-          navigate('/whats-new');
-        }}
-      >
-        What&apos;s New
-      </DropdownItem>,
-    );
-  }
-
-  // 6. About RHDP
+  // 5. About RHDP
   if (learn_more_link) {
     userHelpDropdownItems.push(
       <DropdownItem key="learn-more" value={learn_more_link}>

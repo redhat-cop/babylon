@@ -1,99 +1,227 @@
+.whats-new-page {
+  --news-ink: var(--pf-t--global--text--color--regular, #151515);
+  --news-muted: var(--pf-t--global--text--color--subtle, #6a6e73);
+  --news-border: var(--pf-t--global--border--color--default, #d2d2d2);
+  --news-surface: var(--pf-t--global--background--color--primary--default, #fff);
+  --news-inset: var(--pf-t--global--background--color--secondary--default, #f2f2f2);
+  --news-accent: #ee0000;
+  background: var(--news-surface);
+  color: var(--news-ink);
+  padding: clamp(28px, 5vw, 72px) clamp(20px, 5vw, 72px) 80px;
+}
+
+.whats-new-shell {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.whats-new-page--article .whats-new-shell {
+  max-width: 760px;
+}
+
+.whats-new-breadcrumb {
+  margin-bottom: 40px;
+  overflow-wrap: anywhere;
+}
+
 .whats-new-header {
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  margin-bottom: 32px;
+}
+
+.whats-new-header::before {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 4px;
+  background: var(--news-accent);
+  margin-bottom: 24px;
+}
+
+.whats-new-header .whats-new-title {
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
+  font-size: clamp(32px, 3.5vw, 48px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .whats-new-last-updated {
-  margin-top: var(--pf-t--global--spacer--sm);
-  color: var(--pf-t--global--text--color--subtle);
-  font-size: var(--pf-t--global--font--size--sm);
-}
-
-.whats-new-content {
-  max-width: 900px;
+  margin-top: 20px;
+  color: var(--news-muted);
+  font-size: 14px;
   line-height: 1.6;
 }
 
-.whats-new-content h1 {
-  font-size: 2em;
-  font-weight: bold;
-  margin: 0.67em 0;
+.whats-new-content {
+  max-width: 72ch;
+  font-size: 17px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
 }
 
-.whats-new-content h2 {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin: 0.75em 0;
+.whats-new-content:empty {
+  display: none;
 }
 
-.whats-new-content h3 {
-  font-size: 1.25em;
-  font-weight: bold;
-  margin: 0.75em 0;
+.whats-new-content > :first-child {
+  margin-top: 0;
 }
 
-.whats-new-content h4 {
-  font-size: 1.1em;
-  font-weight: bold;
-  margin: 0.75em 0;
+.whats-new-content :is(h1, h2, h3, h4, h5, h6) {
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 2em 0 0.7em;
+  letter-spacing: -0.015em;
+  scroll-margin-top: 24px;
+  text-wrap: balance;
 }
 
-.whats-new-content h5 {
-  font-size: 1em;
-  font-weight: bold;
-  margin: 0.75em 0;
+.whats-new-content h1 { font-size: 2em; }
+.whats-new-content h2 { font-size: 1.65em; }
+.whats-new-content h3 { font-size: 1.3em; }
+.whats-new-content h4 { font-size: 1.15em; }
+.whats-new-content :is(h5, h6) { font-size: 1em; }
+.whats-new-content p { margin: 0 0 1.25em; }
+
+.whats-new-content :is(ul, ol) {
+  padding-inline-start: 1.5em;
+  margin: 0 0 1.5em;
 }
 
-.whats-new-content h6 {
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 0.75em 0;
+.whats-new-content ul { list-style: disc; }
+.whats-new-content ol { list-style: decimal; }
+.whats-new-content ul ul { list-style: circle; }
+.whats-new-content ul ul ul { list-style: square; }
+.whats-new-content li { display: list-item; padding-inline-start: 0.25em; margin: 0.5em 0; }
+.whats-new-content li > p { margin-bottom: 0.5em; }
+.whats-new-content li > :is(ul, ol) { margin-bottom: 0.5em; }
+
+.whats-new-content a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
 }
 
-.whats-new-content p {
-  margin: 0.5em 0;
-}
-
-.whats-new-content ul,
-.whats-new-content ol {
-  padding-left: 2em;
-  margin: 0.5em 0;
-}
-
-.whats-new-content ul {
-  list-style-type: disc;
-}
-
-.whats-new-content ol {
-  list-style-type: decimal;
-}
-
-.whats-new-content ul ul {
-  list-style-type: circle;
-}
-
-.whats-new-content ul ul ul {
-  list-style-type: square;
-}
-
-.whats-new-content li {
-  display: list-item;
-  margin: 0.25em 0;
+.whats-new-page a:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--brand--default, #0066cc);
+  outline-offset: 5px;
+  border-radius: 2px;
 }
 
 .whats-new-content img {
   max-width: 100%;
   height: auto;
+  border-radius: 4px;
+  margin-block: 12px;
 }
+
+.whats-new-content :is(figure, .table-wrap) {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 28px 0;
+}
+
+.whats-new-content figcaption {
+  color: var(--news-muted);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.whats-new-content blockquote {
+  border-inline-start: 3px solid var(--news-accent);
+  background: var(--news-inset);
+  padding: 20px 24px;
+  margin: 28px 0;
+}
+
+.whats-new-content blockquote > :last-child { margin-bottom: 0; }
+
+.whats-new-content code {
+  font-size: 0.88em;
+  background: var(--news-inset);
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+
+.whats-new-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  background: var(--news-inset);
+  border: 1px solid var(--news-border);
+  border-radius: 4px;
+  padding: 20px;
+  margin: 28px 0;
+  line-height: 1.65;
+  font-size: 14px;
+  overflow-wrap: normal;
+}
+
+.whats-new-content pre code { padding: 0; background: none; font-size: inherit; }
 
 .whats-new-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
-  width: 100%;
-  margin: 1em 0;
+  margin: 28px 0;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-.whats-new-content th,
-.whats-new-content td {
-  border: 1px solid var(--pf-t--global--border--color--default);
-  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
-  text-align: left;
+.whats-new-content :is(th, td) {
+  border: 1px solid var(--news-border);
+  padding: 12px 16px;
+  text-align: start;
+  vertical-align: top;
+}
+
+.whats-new-content th { background: var(--news-inset); font-weight: 700; }
+.whats-new-content hr { border: 0; border-top: 1px solid var(--news-border); margin: 40px 0; }
+
+.whats-new-posts { margin-top: 48px; }
+.whats-new-posts-heading { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+.whats-new-post-list { list-style: none; margin: 0; padding: 0; }
+
+.whats-new-post {
+  padding: 32px 0;
+  border-top: 1px solid var(--news-border);
+}
+
+.whats-new-post--latest {
+  padding: clamp(24px, 4vw, 40px);
+  margin-bottom: 16px;
+  background: var(--news-inset);
+  border: 0;
+  border-inline-start: 4px solid var(--news-accent);
+}
+
+.whats-new-post-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--news-muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.whats-new-latest-label { color: var(--news-ink); font-weight: 600; }
+.whats-new-post-title { font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif; font-size: 26px; line-height: 1.3; font-weight: 600; }
+.whats-new-post-title a { color: var(--news-ink); text-decoration: none; }
+.whats-new-post-title a:hover { text-decoration: underline; text-underline-offset: 0.15em; }
+.whats-new-post-excerpt { max-width: 65ch; color: var(--news-muted); font-size: 16px; line-height: 1.75; margin-top: 12px; }
+.whats-new-post-excerpt:empty { display: none; }
+.whats-new-footer { border-top: 1px solid var(--news-border); margin-top: 56px; padding-top: 24px; font-size: 15px; }
+
+@media (max-width: 600px) {
+  .whats-new-page { padding-bottom: 48px; }
+  .whats-new-content { font-size: 16px; line-height: 1.75; }
+  .whats-new-breadcrumb { margin-bottom: 28px; }
+  .whats-new-posts { margin-top: 32px; }
+  .whats-new-post-title { font-size: 23px; }
 }
