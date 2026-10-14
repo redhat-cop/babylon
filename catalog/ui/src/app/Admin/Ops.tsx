@@ -816,7 +816,8 @@ const Ops: React.FC = () => {
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline'>('table');
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline' | 'monitoring'>('table');
+  const [infraExpanded, setInfraExpanded] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
   const [tableRegionFilter, setTableRegionFilter] = useState<RegionKey>('all');
@@ -1387,6 +1388,27 @@ const Ops: React.FC = () => {
     }
     return { withTenantCount, noTenantCount, totalCount: baseFilteredWorkshops.length };
   }, [baseFilteredWorkshops, getWorkshopCluster]);
+
+  const poolFleetStats = useMemo(() => {
+    if (!allTcpData?.items) return [];
+    return allTcpData.items.map(pool => {
+      const clusters = pool.status?.clusters ?? [];
+      const total = clusters.length;
+      const available = clusters.filter(c => c.sandboxApiState === 'available').length;
+      const pending = clusters.filter(c => c.sandboxApiState === 'pending').length;
+      const disabled = clusters.filter(c => c.sandboxApiState === 'disabled').length;
+      const workshopCount = clusterStats.clusterCounts[pool.metadata.name] ?? 0;
+      return {
+        name: pool.metadata.name,
+        total,
+        available,
+        pending,
+        disabled,
+        workshopCount,
+        saturationPct: total > 0 ? Math.round(((total - available) / total) * 100) : 0,
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [allTcpData, clusterStats]);
 
   const failedInstancesAnalysis = useMemo(() => {
     const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
@@ -2255,6 +2277,20 @@ const Ops: React.FC = () => {
             </Tooltip>
           </SplitItem>
           <SplitItem>
+            <Tooltip content="Open RHDP Monitoring Dashboard">
+              <Button
+                variant="plain"
+                component="a"
+                href="https://dashboard-rhdp-monitoring-dashboard.apps.ocpv-infra01.dal12.infra.demo.redhat.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open RHDP Monitoring Dashboard"
+              >
+                <ExternalLinkAltIcon />
+              </Button>
+            </Tooltip>
+          </SplitItem>
+          <SplitItem>
             {workshops.length > 0 && (
               <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
@@ -2825,6 +2861,87 @@ const Ops: React.FC = () => {
               )}
             </ExpandableSection>
 
+            {/* Tenant Cluster Pool Fleet Status */}
+            {poolFleetStats.length > 0 && (
+              <ExpandableSection
+                toggleText={(() => {
+                  const totalClusters = poolFleetStats.reduce((s, p) => s + p.total, 0);
+                  const availClusters = poolFleetStats.reduce((s, p) => s + p.available, 0);
+                  return `Infra — ${poolFleetStats.length} pool${poolFleetStats.length !== 1 ? 's' : ''}, ${availClusters}/${totalClusters} clusters available`;
+                })()}
+                isExpanded={infraExpanded}
+                onToggle={(_e, expanded) => setInfraExpanded(expanded)}
+                isIndented
+                className="ops-infra-section"
+              >
+                <div className="ops-infra-grid">
+                  {poolFleetStats.map(pool => {
+                    const healthColor = pool.total === 0 ? 'grey'
+                      : pool.available === 0 ? 'red'
+                      : pool.saturationPct >= 90 ? 'orange'
+                      : pool.saturationPct >= 70 ? 'gold'
+                      : 'green';
+                    return (
+                      <div key={pool.name} className="ops-infra-pool-card">
+                        <div className="ops-infra-pool-header">
+                          <Label color={healthColor} isCompact>
+                            {pool.available}/{pool.total}
+                          </Label>
+                          <span className="ops-infra-pool-name">{pool.name}</span>
+                          {pool.workshopCount > 0 && (
+                            <Label isCompact color="blue" style={{ marginLeft: 'auto' }}>
+                              {pool.workshopCount} ws
+                            </Label>
+                          )}
+                        </div>
+                        <div className="ops-infra-pool-detail">
+                          <span className="ops-infra-detail-item" style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
+                            {pool.available} avail
+                          </span>
+                          {pool.pending > 0 && (
+                            <span className="ops-infra-detail-item" style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
+                              {pool.pending} pending
+                            </span>
+                          )}
+                          {pool.disabled > 0 && (
+                            <span className="ops-infra-detail-item ops-muted">
+                              {pool.disabled} disabled
+                            </span>
+                          )}
+                          <span className="ops-infra-detail-item ops-muted" style={{ marginLeft: 'auto' }}>
+                            {pool.saturationPct}% used
+                          </span>
+                        </div>
+                        <div className="ops-infra-pool-bar">
+                          <div
+                            className="ops-infra-pool-bar-fill"
+                            style={{
+                              width: `${pool.saturationPct}%`,
+                              background: healthColor === 'red' ? 'var(--pf-t--global--color--status--danger--default)'
+                                : healthColor === 'orange' ? 'var(--pf-t--global--color--status--warning--default)'
+                                : healthColor === 'gold' ? 'var(--pf-t--global--color--status--warning--default)'
+                                : 'var(--pf-t--global--color--status--success--default)',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Refreshes every 60s. Source: TenantClusterPool resources.{' '}
+                  <a
+                    href="https://dashboard-rhdp-monitoring-dashboard.apps.ocpv-infra01.dal12.infra.demo.redhat.com/dashboard.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'underline' }}
+                  >
+                    Full monitoring dashboard <ExternalLinkAltIcon style={{ fontSize: '0.7rem' }} />
+                  </a>
+                </div>
+              </ExpandableSection>
+            )}
+
             {targets.length === 0 && workshops.length > 0 && emptyFilterMsg && (
               <Alert variant="warning" isInline title="No matches" style={{ marginBottom: 16 }}>
                 {emptyFilterMsg}
@@ -2879,6 +2996,14 @@ const Ops: React.FC = () => {
                       isSelected={workshopView === 'timeline'}
                       onChange={(_e, selected) => {
                         if (selected) setWorkshopView('timeline');
+                      }}
+                    />
+                    <ToggleGroupItem
+                      icon={<ExternalLinkAltIcon />}
+                      text="Monitoring"
+                      isSelected={workshopView === 'monitoring'}
+                      onChange={(_e, selected) => {
+                        if (selected) setWorkshopView('monitoring');
                       }}
                     />
                   </ToggleGroup>
@@ -3345,6 +3470,28 @@ const Ops: React.FC = () => {
                       showMultiDayTimes
                     />
                   )}
+                </div>
+              )}
+              {workshopView === 'monitoring' && (
+                <div className="ops-monitoring-frame-wrap">
+                  <iframe
+                    src="https://dashboard-rhdp-monitoring-dashboard.apps.ocpv-infra01.dal12.infra.demo.redhat.com/dashboard.html"
+                    title="RHDP Monitoring Dashboard"
+                    className="ops-monitoring-frame"
+                    onError={() => {/* iframe error is silent; fallback link is shown below */}}
+                  />
+                  <div className="ops-monitoring-fallback">
+                    <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                    If the dashboard doesn't load,{' '}
+                    <a
+                      href="https://dashboard-rhdp-monitoring-dashboard.apps.ocpv-infra01.dal12.infra.demo.redhat.com/dashboard.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      open it in a new tab
+                    </a>.
+                    You may need to authenticate via OpenShift SSO on first visit.
+                  </div>
                 </div>
               )}
               {workshopView === 'timeline' && (
