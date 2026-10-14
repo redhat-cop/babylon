@@ -246,7 +246,7 @@ This is the page shared with attendees. It requires **no authentication**.
 2. **Hero section**: Full-width banner using `spec.backgroundImage` (falls back to a bundled default hero image). Overlaid with the workshop title and description.
 3. **Workshop cards grid**: Each asset is displayed as a card with:
    - Display name and description
-   - Available seat count (for Workshop-type assets, when `availableSeats` is present)
+   - Available seat count, including zero (for Workshop and SelfPacedLab assets, and supported external lab events, when `availableSeats` is present)
    - Click action: opens the workshop or external URL in a new tab
 4. **Footer**: Standard platform footer.
 

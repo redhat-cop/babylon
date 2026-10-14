@@ -104,6 +104,14 @@ describe('MultiWorkshopLanding', () => {
             workshopId: 'spl-1',
             availableSeats: 1,
           },
+          ...['Workshop', 'SelfPacedLab'].map((type) => ({
+            key: `${type}-full`,
+            name: `${type}-full`,
+            displayName: `${type} Full`,
+            type,
+            workshopId: `${type}-full`,
+            availableSeats: 0,
+          })),
         ],
       },
     };
@@ -140,6 +148,10 @@ describe('MultiWorkshopLanding', () => {
     // Seats display
     expect(getByText(/5 seats available/)).toBeInTheDocument();
     expect(getByText(/1 seat available/)).toBeInTheDocument();
+    for (const type of ['Workshop', 'SelfPacedLab']) {
+      expect(getByText(`${type} Full`).closest('a')).toHaveTextContent('0 seats available');
+    }
+    expect(getByText('RHEL 9 Fundamentals').closest('a')).not.toHaveTextContent('seats available');
 
     // Footer
     expect(getByTestId('footer')).toBeInTheDocument();
