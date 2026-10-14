@@ -1,4 +1,6 @@
 import React from 'react';
+import { createMemoryHistory } from 'history';
+import { fetcher } from '@app/api';
 import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
@@ -8,7 +10,7 @@ import type { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
   silentFetcher: () => Promise.resolve(null),
-  fetcher: () => Promise.resolve(catalogItemObj as CatalogItem),
+  fetcher: jest.fn(() => Promise.resolve(catalogItemObj as CatalogItem)),
 }));
 
 jest.mock('@app/components/ResourcePoolSelector', () => {
@@ -80,6 +82,31 @@ jest.mock('@app/utils/useServiceQuota', () => {
 });
 
 describe('CatalogItemForm Component', () => {
+  test('defaults white glove orders to the requester namespace outside the approver session', async () => {
+    jest.mocked(fetcher).mockImplementation(async (path) =>
+      String(path).includes('/whitegloverequests/')
+        ? {
+            metadata: {
+              namespace: 'user-requester-redhat-com',
+              name: 'wgr-test',
+              annotations: { 'demo.redhat.com/requester': 'requester@redhat.com' },
+            },
+            spec: {},
+          }
+        : catalogItemObj,
+    );
+    try {
+      const { getByText } = await render(<CatalogItemForm />, {
+        history: createMemoryHistory({
+          initialEntries: ['/catalog/babylon-catalog-test/order/test?wgr=user-requester-redhat-com/wgr-test'],
+        }),
+      });
+      await waitFor(() => expect(getByText('user-requester-redhat-com')).toBeInTheDocument());
+    } finally {
+      jest.mocked(fetcher).mockImplementation(async () => catalogItemObj);
+    }
+  });
+
   test("When renders should display 'CatalogItem' properties and parameters", async () => {
     const { getByText, getByLabelText } = await render(<CatalogItemForm />);
     const catalogItemDisplayName = await waitFor(() => getByText('Order Test Config'));

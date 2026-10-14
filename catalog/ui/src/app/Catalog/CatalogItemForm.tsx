@@ -229,12 +229,15 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
     }
 
+    // An approver's session may not include the requester's user namespace.
     const wgrServiceNamespace = serviceNamespaces.find(
       (ns) => ns.name === whiteGloveRequest.metadata.namespace,
-    );
-    if (wgrServiceNamespace) {
-      dispatchFormState({ type: 'serviceNamespace', serviceNamespace: wgrServiceNamespace });
-    }
+    ) || {
+      name: whiteGloveRequest.metadata.namespace,
+      displayName: whiteGloveRequest.metadata.namespace,
+      requester: whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`],
+    };
+    dispatchFormState({ type: 'serviceNamespace', serviceNamespace: wgrServiceNamespace });
 
     dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
 

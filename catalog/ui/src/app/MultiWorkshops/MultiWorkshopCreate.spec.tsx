@@ -1,4 +1,5 @@
 import React from 'react';
+import { apiPaths, fetcher } from '@app/api';
 import { render, waitFor, screen, fireEvent } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';
 import MultiWorkshopCreate from './MultiWorkshopCreate';
@@ -112,6 +113,36 @@ describe('MultiWorkshopCreate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     currentSession = { ...mockSession };
+  });
+
+  test('defaults white glove workshops to the requester namespace outside the approver session', async () => {
+    currentSession = { ...mockSession, isAdmin: true };
+    jest.mocked(apiPaths.WHITE_GLOVE_REQUEST).mockReturnValue('/api/wgr-test');
+    jest.mocked(fetcher).mockImplementation(async (path) =>
+      path === '/api/wgr-test'
+        ? {
+            metadata: {
+              namespace: 'user-requester-redhat-com',
+              name: 'wgr-test',
+              annotations: { 'demo.redhat.com/requester': 'requester@redhat.com' },
+            },
+            spec: {},
+          }
+        : null,
+    );
+    try {
+      await render(<MultiWorkshopCreate />, {
+        history: createMemoryHistory({
+          initialEntries: ['/multi-workshop/create?wgr=user-requester-redhat-com/wgr-test'],
+        }),
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('project-selector')).toHaveTextContent('user-requester-redhat-com'),
+      );
+    } finally {
+      jest.mocked(apiPaths.WHITE_GLOVE_REQUEST).mockReturnValue(null);
+      jest.mocked(fetcher).mockResolvedValue(null);
+    }
   });
 
   test('renders the form with title and breadcrumb', async () => {

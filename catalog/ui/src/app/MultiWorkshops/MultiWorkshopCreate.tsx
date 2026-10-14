@@ -171,12 +171,15 @@ const MultiWorkshopCreate: React.FC = () => {
         : prev.assets,
     }));
 
+    // An approver's session may not include the requester's user namespace.
     const wgrServiceNamespace = serviceNamespaces.find(
       (ns) => ns.name === whiteGloveRequest.metadata.namespace,
-    );
-    if (wgrServiceNamespace) {
-      setSelectedNamespace(wgrServiceNamespace);
-    }
+    ) || {
+      name: whiteGloveRequest.metadata.namespace,
+      displayName: whiteGloveRequest.metadata.namespace,
+      requester: whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`],
+    };
+    setSelectedNamespace(wgrServiceNamespace);
 
     setWgrApplied(true);
   }, [whiteGloveRequest, wgrApplied, serviceNamespaces]);
