@@ -41,3 +41,10 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+
+  analyze-go:
+    name: Analyze (go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: No Go code in repository
+        run: echo "Repository contains no Go source code; skipping Go analysis."
