@@ -61,6 +61,8 @@ import { getBrowserTimezone } from '@app/components/timezones';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 
+import { getAssetProvisioning } from './provisioning';
+
 import './multiworkshop-create.css';
 
 export async function fetcherItemsInAllPages(pathFn: (continueId: string) => string, opts?: Record<string, unknown>) {
@@ -309,10 +311,7 @@ const MultiWorkshopCreate: React.FC = () => {
         const catalogItem = catalogItemData?.catalogItem;
         const hourlyCost = metrics.medianLifetimeCostByHour * 1.1;
 
-        // For multiuser catalog items, don't multiply by seats (one instance serves all users)
-        // For single-user catalog items, multiply by seats (each user needs their own instance)
-        const isMultiuser = catalogItem?.spec?.workshopUserMode === 'multi';
-        totalHourlyCost += isMultiuser ? hourlyCost : hourlyCost * createFormData.numberSeats;
+        totalHourlyCost += hourlyCost * getAssetProvisioning(catalogItem, createFormData.numberSeats).count;
         hasCostData = true;
       }
     });

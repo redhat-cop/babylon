@@ -1,3 +1,4 @@
+import { getAssetProvisioning } from '@app/MultiWorkshops/provisioning';
 import parseDuration from 'parse-duration';
 import type {
   AnarchyAction,
@@ -99,6 +100,7 @@ type CreateWorkshopPovisionOpt = {
   workshop: Workshop;
   useAutoDetach: boolean;
   selectedResourcePool?: string;
+  multiuserSeatAllocation?: boolean;
 };
 
 export type CreateServiceRequestParameterValues = {
@@ -957,6 +959,7 @@ export async function createWorkshopProvision({
   workshop,
   useAutoDetach,
   selectedResourcePool,
+  multiuserSeatAllocation,
 }: CreateWorkshopPovisionOpt) {
   const definition: WorkshopProvision = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
@@ -974,6 +977,7 @@ export async function createWorkshopProvision({
       },
       annotations: {
         [`${BABYLON_DOMAIN}/category`]: catalogItem.spec.category,
+        ...(multiuserSeatAllocation ? { [`${BABYLON_DOMAIN}/multiuser-seat-allocation`]: 'true' } : {}),
       },
       ownerReferences: [
         {
@@ -1849,15 +1853,19 @@ export async function createWorkshopProvisionFromAsset({
     throw new Error('CatalogItem is required for creating WorkshopProvision');
   }
 
+  const allocation = getAssetProvisioning(catalogItem, (multiworkshopData.numberSeats as number) || 1);
+
   // Use the existing createWorkshopProvision function
   const provision = await createWorkshopProvision({
     catalogItem,
     concurrency: 10,
-    count: (multiworkshopData.numberSeats as number) || 1,
+    count: allocation.count,
+    multiuserSeatAllocation: allocation.parameters.num_users !== undefined,
     parameters: {
       purpose: multiworkshopData.purpose,
       purpose_activity: multiworkshopData['purpose-activity'],
       salesforce_items: JSON.stringify(multiworkshopData.salesforceItems || []),
+      ...allocation.parameters,
     },
     startDelay: 10,
     workshop,

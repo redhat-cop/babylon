@@ -15,6 +15,7 @@ import resourceprovider
 import workshop as workshop_import
 from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
+from multiuser import num_users_schema, next_instance_users
 
 LAB_KEY_GENERATOR = StringGenerator("[a-z0-9]{32}")
 
@@ -152,6 +153,20 @@ class WorkshopProvision(CachedKopfObject):
                 )
             raise
 
+        parameters = dict(self.parameters)
+        # MultiWorkshop provisions store total seats; each claim gets its share.
+        schema = num_users_schema(catalog_item.spec)
+        if (self.annotations.get(f'{OperatorRuntime.babylon_domain}/multiuser-seat-allocation') == 'true'
+                and schema is not None and 'num_users' in parameters):
+            allocated_users = 0
+            async for claim in self.list_resource_claims():
+                if claim.is_tenant_cluster or (claim.provision_complete and claim.is_failed):
+                    continue
+                allocated_users += claim.definition['spec'].get('provider', {}).get(
+                    'parameterValues', {}).get('num_users', 0)
+            parameters['num_users'] = next_instance_users(
+                schema, parameters['num_users'], allocated_users)
+
         resource_claim_definition = {
             "apiVersion": f"{OperatorRuntime.poolboy_domain}/{OperatorRuntime.poolboy_api_version}",
             "kind": "ResourceClaim",
@@ -178,7 +193,7 @@ class WorkshopProvision(CachedKopfObject):
                     "name": catalog_item.name,
                     "parameterValues": {
                         key: value
-                        for key, value in self.parameters.items()
+                        for key, value in parameters.items()
                         if resource_provider.has_parameter(key)
                     },
                 }
@@ -235,8 +250,8 @@ class WorkshopProvision(CachedKopfObject):
 
         for catalog_item_parameter in catalog_item.parameters:
             value = (
-                self.parameters[catalog_item_parameter.name]
-                if catalog_item_parameter.name in self.parameters
+                parameters[catalog_item_parameter.name]
+                if catalog_item_parameter.name in parameters
                 else catalog_item_parameter.default
             )
             if value is None and not catalog_item_parameter.required:
