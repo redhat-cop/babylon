@@ -119,7 +119,9 @@ Data flows through **SWR** (stale-while-revalidate) for server state, with no Re
 When catalog items have associated metrics (fetched by asset UUID), the create form displays:
 
 - **Estimated provisioning time**: maximum across all selected assets
-- **Estimated cost**: calculated from duration × hourly cost estimates, accounting for multiuser vs single-user seat logic
+- **Estimated cost**: calculated from duration × hourly cost estimates × provisioned instance count.
+- **Multiuser assets**: when `spec.multiuser` is true and a `num_users` parameter exists, the provision stores the requested seats in `parameters.num_users`. With no schema maximum it creates one instance; otherwise its count is `ceil(seats / maximum)`. The workshop manager distributes users across individual instances (30 seats with a maximum of 20 becomes 20 + 10). Failed instances do not count toward allocated seats when retrying. New provisions carry the `babylon.gpte.redhat.com/multiuser-seat-allocation` annotation so existing provisions retain their original per-instance parameter semantics.
+- Assets without this multiuser parameter keep one instance per seat.
 
 ### Validation and Guards
 

@@ -13,6 +13,7 @@ from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
 
 from operatorruntime import OperatorRuntime
 from cachedkopfobject import CachedKopfObject
+from multiuser import num_users_schema, provision_count
 
 
 class MultiWorkshop(CachedKopfObject):
@@ -431,13 +432,17 @@ class MultiWorkshop(CachedKopfObject):
         if self.salesforce_items:
             provision_parameters['salesforce_items'] = json.dumps(self.salesforce_items)
 
+        if num_users_schema(ci_spec) is not None:
+            provision_parameters['num_users'] = self.number_seats
+            provision_annotations[f'{OperatorRuntime.babylon_domain}/multiuser-seat-allocation'] = 'true'
+
         provision_spec = {
             'catalogItem': {
                 'name': ci_meta['name'],
                 'namespace': ci_meta['namespace'],
             },
             'concurrency': 10,
-            'count': self.number_seats,
+            'count': provision_count(ci_spec, self.number_seats),
             'parameters': provision_parameters,
             'resourcePool': 'disabled',
             'startDelay': 10,

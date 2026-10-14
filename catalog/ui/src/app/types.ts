@@ -172,6 +172,7 @@ export interface AgnosticVRepo {
   name: string;
 }
 export interface CatalogItemSpec {
+  multiuser?: boolean;
   accessControl?: AccessControl;
   agnosticvRepo?: AgnosticVRepo;
   bookbag?: any;
