@@ -2879,7 +2879,7 @@ const Ops: React.FC = () => {
                     const healthColor = pool.total === 0 ? 'grey'
                       : pool.available === 0 ? 'red'
                       : pool.saturationPct >= 90 ? 'orange'
-                      : pool.saturationPct >= 70 ? 'gold'
+                      : pool.saturationPct >= 70 ? 'yellow'
                       : 'green';
                     return (
                       <div key={pool.name} className="ops-infra-pool-card">
