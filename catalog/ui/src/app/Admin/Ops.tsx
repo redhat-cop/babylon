@@ -2918,8 +2918,7 @@ const Ops: React.FC = () => {
                             style={{
                               width: `${pool.saturationPct}%`,
                               background: healthColor === 'red' ? 'var(--pf-t--global--color--status--danger--default)'
-                                : healthColor === 'orange' ? 'var(--pf-t--global--color--status--warning--default)'
-                                : healthColor === 'gold' ? 'var(--pf-t--global--color--status--warning--default)'
+                                : healthColor === 'orange' || healthColor === 'yellow' ? 'var(--pf-t--global--color--status--warning--default)'
                                 : 'var(--pf-t--global--color--status--success--default)',
                             }}
                           />
