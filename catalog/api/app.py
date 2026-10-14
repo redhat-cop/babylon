@@ -1411,7 +1411,7 @@ async def public_multiworkshop_get(request):
             return web.json_response({'error': 'MultiWorkshop not found'}, status=404)
         multiworkshop = multiworkshop_list['items'][0]
 
-        # Enrich each catalog asset with availableSeats from its Workshop status
+        # Enrich each catalog asset with availableSeats from its resource status
         assets = multiworkshop.get('spec', {}).get('assets', [])
         for asset in assets:
             asset_type = asset.get('type', 'Workshop')
@@ -1464,14 +1464,19 @@ async def public_multiworkshop_get(request):
             elif not workshop_name or not workshop_namespace:
                 continue
             try:
+                is_self_paced_lab = asset_type == 'SelfPacedLab'
                 workshop = await custom_objects_api.get_namespaced_custom_object(
                     group='babylon.gpte.redhat.com',
                     version='v1',
                     namespace=workshop_namespace,
-                    plural='workshops',
+                    plural='selfpacedlabs' if is_self_paced_lab else 'workshops',
                     name=workshop_name
                 )
-                available = workshop.get('status', {}).get('userCount', {}).get('available')
+                status = workshop.get('status', {})
+                available = (
+                    status.get('poolCount', {}).get('ready')
+                    if is_self_paced_lab else status.get('userCount', {}).get('available')
+                )
                 if available is not None:
                     asset['availableSeats'] = available
 
