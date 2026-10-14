@@ -1247,6 +1247,91 @@ a.ops-ws-meta:hover {
   white-space: nowrap;
 }
 
+/* ── Infrastructure Fleet Panel ───────────────────────────────────────── */
+
+.ops-infra-section {
+  margin-bottom: 12px;
+}
+
+.ops-infra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ops-infra-pool-card {
+  border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--pf-t--global--background--color--secondary--default, #f5f5f5);
+}
+
+.ops-infra-pool-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.ops-infra-pool-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.ops-infra-pool-detail {
+  display: flex;
+  gap: 8px;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.ops-infra-detail-item {
+  white-space: nowrap;
+}
+
+.ops-infra-pool-bar {
+  height: 4px;
+  background: var(--pf-t--global--border--color--default, #d2d2d2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ops-infra-pool-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+/* ── Monitoring iframe panel ──────────────────────────────────────────── */
+
+.ops-monitoring-frame-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 700px;
+}
+
+.ops-monitoring-frame {
+  width: 100%;
+  height: 700px;
+  border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.ops-monitoring-fallback {
+  font-size: 0.8rem;
+  color: var(--pf-t--global--text--color--subtle, #6a6e73);
+}
+
 .ops-soundcheck-status {
   margin: 8px 0 0;
   font-size: 0.78rem;
