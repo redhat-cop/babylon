@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useId } from 'react';
 import RenderedContent from '@app/components/RenderedContent';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -30,7 +30,6 @@ import {
   CardExpandableContent,
   CardHeader,
   CardTitle,
-  ExpandableSection,
   List,
   ListItem,
   Tooltip,
@@ -188,146 +187,220 @@ const ComponentDetailsList: React.FC<{
     [_provisionMessages],
   );
   const [now] = useState(() => Date.now());
+  const [isAdvancedSettingsExpanded, setIsAdvancedSettingsExpanded] = useState(false);
+  const advancedSettingsId = useId();
+  const [isProvisionJobVarsExpanded, setIsProvisionJobVarsExpanded] = useState(false);
+  const provisionJobVarsId = useId();
+  const provisionJobVarsEntries = isAdmin ? Object.entries(resourceState?.spec?.vars?.job_vars ?? {}) : [];
   return (
-    <DescriptionList isHorizontal={!isInsideCard}>
+    <>
       {resourceState?.kind === 'AnarchySubject' ? (
         <>
-          {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
-              <DescriptionListDescription>
-                <LocalTimestamp timestamp={startTimestamp} />
-                <span style={{ padding: '0 6px' }}>
-                  (<TimeInterval toTimestamp={startTimestamp} />)
-                </span>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : stopDate && Number(stopDate) > now ? null : currentState !== 'stopped' ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
-              <DescriptionListDescription>Now</DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
-          {provisionMessages ? (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Provision Messages</DescriptionListTerm>
-              <DescriptionListDescription>{provisionMessagesHtml}</DescriptionListDescription>
-            </DescriptionListGroup>
-          ) : null}
+          <DescriptionList isHorizontal={!isInsideCard}>
+            {externalPlatformUrl || isPartOfWorkshop ? null : startDate && Number(startDate) > now ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Scheduled Start</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <LocalTimestamp timestamp={startTimestamp} />
+                  <span style={{ padding: '0 6px' }}>
+                    (<TimeInterval toTimestamp={startTimestamp} />)
+                  </span>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : stopDate && Number(stopDate) > now ? null : currentState !== 'stopped' ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Scheduled Stop</DescriptionListTerm>
+                <DescriptionListDescription>Now</DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+            {provisionMessages ? (
+              <DescriptionListGroup>
+                <DescriptionListTerm>Provision Messages</DescriptionListTerm>
+                <DescriptionListDescription>{provisionMessagesHtml}</DescriptionListDescription>
+              </DescriptionListGroup>
+            ) : null}
+          </DescriptionList>
           {isAdmin || isLabDeveloper(groups) || (provisionDataEntries && provisionDataEntries.length > 0) ? (
-            <ExpandableSection toggleText="Advanced settings">
-              {provisionDataEntries && provisionDataEntries.length > 0 ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Provision Data</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <DescriptionList isHorizontal className="services-item__provision-data">
-                      {provisionDataEntries
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .map(([key, value]) => (
-                          <DescriptionListGroup key={key}>
-                            <DescriptionListTerm>{key}</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {typeof value === 'string' ? (
-                                value.startsWith('https://') ? (
-                                  <a href={value} target="_blank" rel="noopener noreferrer">
-                                    <code>{value}</code>
-                                  </a>
-                                ) : value.length > 200 ? (
+            <Card
+              id={advancedSettingsId}
+              isExpanded={isAdvancedSettingsExpanded}
+              isCompact
+              className="services-item__component-card"
+            >
+              <CardHeader
+                onExpand={() => setIsAdvancedSettingsExpanded((expanded) => !expanded)}
+                toggleButtonProps={{
+                  id: `${advancedSettingsId}-toggle`,
+                  'aria-label': 'Toggle Advanced settings',
+                }}
+              >
+                <CardTitle>Advanced settings</CardTitle>
+              </CardHeader>
+              <CardExpandableContent>
+                <CardBody>
+                  <DescriptionList>
+                    {provisionDataEntries && provisionDataEntries.length > 0 ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Provision Data</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <DescriptionList isHorizontal className="services-item__provision-data">
+                            {provisionDataEntries
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .map(([key, value]) => (
+                                <DescriptionListGroup key={key}>
+                                  <DescriptionListTerm>{key}</DescriptionListTerm>
+                                  <DescriptionListDescription>
+                                    {typeof value === 'string' ? (
+                                      value.startsWith('https://') ? (
+                                        <a href={value} target="_blank" rel="noopener noreferrer">
+                                          <code>{value}</code>
+                                        </a>
+                                      ) : value.length > 200 ? (
+                                        <div className="services-item__provision-data--long-value">
+                                          <code>{value}</code>
+                                        </div>
+                                      ) : (
+                                        <code>{value}</code>
+                                      )
+                                    ) : (
+                                      <code>{JSON.stringify(value)}</code>
+                                    )}
+                                  </DescriptionListDescription>
+                                </DescriptionListGroup>
+                              ))}
+                          </DescriptionList>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {isAdmin || isLabDeveloper(groups) ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>UUID</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {isAdmin && resourceState ? (
+                      <DescriptionListGroup key="anarchy-namespace">
+                        <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
+                            {resourceState.metadata.namespace}
+                          </Link>
+                          <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {isAdmin && resourceState ? (
+                      <DescriptionListGroup key="anarchy-governor">
+                        <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <Link
+                            to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}
+                          >
+                            {resourceState.spec.governor}
+                          </Link>
+                          <OpenshiftConsoleLink
+                            reference={{
+                              apiVersion: 'anarchy.gpte.redhat.com/v1',
+                              kind: 'AnarchyGovernor',
+                              name: resourceState.spec.governor,
+                              namespace: resourceState.metadata.namespace,
+                            }}
+                          />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {isAdmin && resourceState ? (
+                      <DescriptionListGroup key="anarchy-subject">
+                        <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <Link
+                            to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}
+                          >
+                            {resourceState.metadata.name}
+                          </Link>
+                          <OpenshiftConsoleLink resource={resourceState} />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
+                      <DescriptionListGroup key="tower-jobs">
+                        <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <List style={{ margin: 'var(--pf-t--global--spacer--sm)' }}>
+                            {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
+                              towerJob.towerJobURL ? (
+                                <ListItem key={stage}>
+                                  <Link
+                                    to={'https://' + towerJob.towerJobURL}
+                                    style={{ textTransform: 'capitalize' }}
+                                    target="_blank"
+                                  >
+                                    {stage}
+                                  </Link>
+                                </ListItem>
+                              ) : null,
+                            )}
+                          </List>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                  </DescriptionList>
+                </CardBody>
+              </CardExpandableContent>
+            </Card>
+          ) : null}
+          {isAdmin ? (
+            <Card
+              id={provisionJobVarsId}
+              isExpanded={isProvisionJobVarsExpanded}
+              isCompact
+              className="services-item__component-card"
+            >
+              <CardHeader
+                onExpand={() => setIsProvisionJobVarsExpanded((expanded) => !expanded)}
+                toggleButtonProps={{
+                  id: `${provisionJobVarsId}-toggle`,
+                  'aria-label': 'Toggle Provision Job vars (admin only)',
+                }}
+              >
+                <CardTitle>Provision Job vars (admin only)</CardTitle>
+              </CardHeader>
+              <CardExpandableContent>
+                <CardBody>
+                  {provisionJobVarsEntries.length > 0 ? (
+                    <DescriptionList className="services-item__provision-data">
+                      {provisionJobVarsEntries
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([key, value]) => {
+                          const displayValue = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+                          return (
+                            <DescriptionListGroup key={key}>
+                              <DescriptionListTerm>{key}</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                {displayValue?.length > 200 ? (
                                   <div className="services-item__provision-data--long-value">
-                                    <code>{value}</code>
+                                    <code>{displayValue}</code>
                                   </div>
                                 ) : (
-                                  <code>{value}</code>
-                                )
-                              ) : (
-                                <code>{JSON.stringify(value)}</code>
-                              )}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        ))}
+                                  <code>{displayValue}</code>
+                                )}
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                          );
+                        })}
                     </DescriptionList>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {isAdmin || isLabDeveloper(groups) ? (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>UUID</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    {resourceState?.spec?.vars?.job_vars?.uuid || <p>-</p>}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {isAdmin && resourceState ? (
-                <DescriptionListGroup key="anarchy-namespace">
-                  <DescriptionListTerm>Anarchy Namespace</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Link to={`/admin/anarchysubjects/${resourceState.metadata.namespace}`}>
-                      {resourceState.metadata.namespace}
-                    </Link>
-                    <OpenshiftConsoleLink resource={resourceState} linkToNamespace />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {isAdmin && resourceState ? (
-                <DescriptionListGroup key="anarchy-governor">
-                  <DescriptionListTerm>AnarchyGovernor</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Link
-                      to={`/admin/anarchygovernors/${resourceState.metadata.namespace}/${resourceState.spec.governor}`}
-                    >
-                      {resourceState.spec.governor}
-                    </Link>
-                    <OpenshiftConsoleLink
-                      reference={{
-                        apiVersion: 'anarchy.gpte.redhat.com/v1',
-                        kind: 'AnarchyGovernor',
-                        name: resourceState.spec.governor,
-                        namespace: resourceState.metadata.namespace,
-                      }}
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {isAdmin && resourceState ? (
-                <DescriptionListGroup key="anarchy-subject">
-                  <DescriptionListTerm>AnarchySubject</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Link
-                      to={`/admin/anarchysubjects/${resourceState.metadata.namespace}/${resourceState.metadata.name}`}
-                    >
-                      {resourceState.metadata.name}
-                    </Link>
-                    <OpenshiftConsoleLink resource={resourceState} />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-              {(isAdmin || isLabDeveloper(groups)) && resourceState?.status?.towerJobs ? (
-                <DescriptionListGroup key="tower-jobs">
-                  <DescriptionListTerm>Ansible Jobs</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <List style={{ margin: 'var(--pf-t--global--spacer--sm)' }}>
-                      {Object.entries(resourceState.status?.towerJobs).map(([stage, towerJob]) =>
-                        towerJob.towerJobURL ? (
-                          <ListItem key={stage}>
-                            <Link
-                              to={'https://' + towerJob.towerJobURL}
-                              style={{ textTransform: 'capitalize' }}
-                              target="_blank"
-                            >
-                              {stage}
-                            </Link>
-                          </ListItem>
-                        ) : null,
-                      )}
-                    </List>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              ) : null}
-            </ExpandableSection>
+                  ) : (
+                    <p>No provision job vars available.</p>
+                  )}
+                </CardBody>
+              </CardExpandableContent>
+            </Card>
           ) : null}
         </>
       ) : null}
-    </DescriptionList>
+    </>
   );
 };
 
