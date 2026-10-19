@@ -105,7 +105,7 @@
     "@patternfly/react-core": "^6.6.2",
     "@patternfly/react-drag-drop": "^6.6.2",
     "@patternfly/react-icons": "^6.6.1",
-    "@patternfly/react-styles": "^6.6.1",
+    "@patternfly/react-styles": "^6.7.0",
     "@patternfly/react-table": "^6.6.1",
     "@reduxjs/toolkit": "^2.13.0",
     "dompurify": "^3.4.17",
