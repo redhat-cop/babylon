@@ -639,7 +639,7 @@ class MultiWorkshop(CachedKopfObject):
             },
             'poolSize': self.number_seats,
             'assignedLifespan': '4h',
-            'unassignedLifespan': '24h',
+            'unassignedLifespan': ci_spec.get('runtime', {}).get('default', '24h'),
             'concurrency': 5,
             'startDelay': 10,
             'selfPacedLabName': spl_name,

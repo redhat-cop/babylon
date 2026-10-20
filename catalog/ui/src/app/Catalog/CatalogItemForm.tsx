@@ -153,11 +153,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     () => ({
       poolSize: 5,
       assignedLifespan: '4h',
-      unassignedLifespan: '24h',
+      unassignedLifespan: catalogItem.spec.runtime?.default || '24h',
       concurrency: 5,
       startDelay: 10,
     }),
-    [],
+    [catalogItem.spec.runtime?.default],
   );
 
   const onToggleClick = () => {
