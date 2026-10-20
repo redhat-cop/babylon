@@ -102,7 +102,7 @@
     "@lexical/table": "^0.52.0",
     "@lexical/utils": "^0.52.0",
     "@monaco-editor/react": "^4.7.0",
-    "@patternfly/react-core": "^6.6.2",
+    "@patternfly/react-core": "^6.7.0",
     "@patternfly/react-drag-drop": "^6.6.2",
     "@patternfly/react-icons": "^6.6.1",
     "@patternfly/react-styles": "^6.7.0",
