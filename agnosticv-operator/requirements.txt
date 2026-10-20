@@ -1,5 +1,5 @@
 aiofiles==24.1.0
-aiohttp==3.14.3
+aiohttp==3.14.4
 aioshutil==1.6
 deepmerge==2.1.0
 inflection==0.5.1
