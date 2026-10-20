@@ -157,6 +157,13 @@ class SelfPacedLabProvisionItem(CachedKopfObject):
             },
         }
 
+        # Lifespans control destruction; keep instances running while waiting
+        # for assignment and throughout the user's assigned lifespan.
+        if resource_provider_obj.has_parameter('stop_timestamp'):
+            resource_claim_definition['spec']['provider']['parameterValues'][
+                'stop_timestamp'
+            ] = (datetime.now(timezone.utc) + timedelta(hours=999)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
         # SelfPacedLab manages its own warm pool; disable Poolboy ResourcePool
         resource_claim_definition['metadata']['annotations'][
             Babylon.resource_pool_annotation
