@@ -637,7 +637,7 @@ class MultiWorkshop(CachedKopfObject):
                 'name': ci_meta['name'],
                 'namespace': ci_meta['namespace'],
             },
-            'poolSize': 5,
+            'poolSize': self.number_seats,
             'assignedLifespan': '4h',
             'unassignedLifespan': '24h',
             'concurrency': 5,
