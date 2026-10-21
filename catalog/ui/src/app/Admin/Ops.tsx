@@ -118,8 +118,8 @@ import {
 import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
 import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 import {
-  buildSoundcheckCheckUrl,
   buildSoundcheckSessionUrl,
+  buildSoundcheckWorkshopUrl,
   fetchWorkshopCheckStatuses,
   idsNeedingStatusFetch,
   invalidateStatusCache,
@@ -816,8 +816,7 @@ const Ops: React.FC = () => {
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline' | 'monitoring' | 'soundcheck'>('table');
-  const [soundcheckFrameUrl, setSoundcheckFrameUrl] = useState<string>('');
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline' | 'monitoring'>('table');
   const [infraExpanded, setInfraExpanded] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all');
@@ -1931,31 +1930,28 @@ const Ops: React.FC = () => {
       const ids = workshopIds.map((id) => id?.trim()).filter(Boolean) as string[];
       const entries = ids.map((id) => getCachedScStatus(id));
       const worst = worstSoundcheckStatus(entries);
-      const url = ids.length > 0
-        ? buildSoundcheckCheckUrl(soundcheckBase, ids)
+      // Prefer idempotent workshop deep-link (no duplicate sessions on click).
+      const href = ids[0]
+        ? buildSoundcheckWorkshopUrl(soundcheckBase, ids[0])
         : worst?.session_id
           ? buildSoundcheckSessionUrl(soundcheckBase, worst.session_id)
           : soundcheckBase;
-
-      const openEmbedded = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSoundcheckFrameUrl(url);
-        setWorkshopView('soundcheck');
-      };
-
       if (!worst) {
         return (
           <td>
             {ids[0] ? (
-              <Tooltip content="Open Soundcheck for this workshop (embedded view; use link icon for new tab)">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
-                    <Label isCompact color="grey">check</Label>
-                  </button>
-                  <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
-                    <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
-                  </a>
-                </span>
+              <Tooltip content="Open Soundcheck for this workshop (reuses existing session if any)">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ops-ws-link"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Label isCompact color="grey">
+                    check
+                  </Label>
+                </a>
               </Tooltip>
             ) : (
               <span className="ops-muted">{scStatusLoading ? '…' : '—'}</span>
@@ -1965,17 +1961,18 @@ const Ops: React.FC = () => {
       }
       return (
         <td>
-          <Tooltip content={`Last Soundcheck · ${worst.status} · click to open embedded, link icon for new tab`}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
-                <Label isCompact color={soundcheckStatusLabelColor(worst.status)}>
-                  {worst.status}
-                </Label>
-              </button>
-              <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
-                <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
-              </a>
-            </span>
+          <Tooltip content={`Last Soundcheck · ${worst.status} · open session (idempotent deep-link)`}>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ops-ws-link"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Label isCompact color={soundcheckStatusLabelColor(worst.status)}>
+                {worst.status}
+              </Label>
+            </a>
           </Tooltip>
         </td>
       );
@@ -1989,7 +1986,7 @@ const Ops: React.FC = () => {
       const id = (ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name || '').trim();
       if (!id) return null;
       const entry = getCachedScStatus(id);
-      const href = buildSoundcheckCheckUrl(soundcheckBase, [id]);
+      const href = buildSoundcheckWorkshopUrl(soundcheckBase, id);
       const status = entry?.status;
       const color =
         status === 'completed'
@@ -2005,8 +2002,8 @@ const Ops: React.FC = () => {
         label: status || 'check',
         href,
         title: status
-          ? `Last Soundcheck · ${status} · open or start a new check`
-          : 'Run Soundcheck for this workshop',
+          ? `Last Soundcheck · ${status} · opens idempotent /session/workshop/{guid}`
+          : 'Open Soundcheck for this workshop (reuses existing session if any)',
         colorClass: color,
       };
     },
@@ -3008,17 +3005,6 @@ const Ops: React.FC = () => {
                         if (selected) setWorkshopView('monitoring');
                       }}
                     />
-                    <ToggleGroupItem
-                      icon={<CheckCircleIcon />}
-                      text="Soundcheck"
-                      isSelected={workshopView === 'soundcheck'}
-                      onChange={(_e, selected) => {
-                        if (selected) {
-                          setSoundcheckFrameUrl((u) => u || soundcheckBase);
-                          setWorkshopView('soundcheck');
-                        }
-                      }}
-                    />
                   </ToggleGroup>
                 </SplitItem>
                 {(workshopView === 'table' || workshopView === 'timeline') && (
@@ -3504,22 +3490,6 @@ const Ops: React.FC = () => {
                       open it in a new tab
                     </a>.
                     You may need to authenticate via OpenShift SSO on first visit.
-                  </div>
-                </div>
-              )}
-              {workshopView === 'soundcheck' && (
-                <div className="ops-monitoring-frame-wrap">
-                  <iframe
-                    src={soundcheckFrameUrl || soundcheckBase}
-                    title="Soundcheck"
-                    className="ops-monitoring-frame"
-                    onError={() => {/* silent */}}
-                  />
-                  <div className="ops-monitoring-fallback">
-                    <ExternalLinkAltIcon style={{ marginRight: 4 }} />
-                    <a href={soundcheckFrameUrl || soundcheckBase} target="_blank" rel="noopener noreferrer">
-                      Open Soundcheck in a new tab
-                    </a>
                   </div>
                 </div>
               )}
