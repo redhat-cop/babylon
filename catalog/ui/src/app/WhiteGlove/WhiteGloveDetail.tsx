@@ -262,6 +262,7 @@ const WhiteGloveDetailContent: React.FC = () => {
     || ann[`${BABYLON_DOMAIN}/created-by`]
     || '—';
   const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
+  const jiraError = ann[`${DEMO_DOMAIN}/jira-error`];
   const jiraAssignee = jiraData?.assignee;
   const jiraStatus = jiraData?.status;
   const jiraComments = jiraData?.comments || [];
@@ -373,7 +374,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           {wgr.spec.displayName || wgr.metadata.name}
         </Title>
 
-        {justCreated && (
+        {justCreated && !jiraError && (
           <Alert variant="success" title="Request submitted successfully!" isInline style={{ marginBottom: '16px' }}>
             <p>Your request is pending ops review.</p>
             <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
@@ -381,6 +382,19 @@ const WhiteGloveDetailContent: React.FC = () => {
               <li>Track progress via JSM ticket or Slack channel below</li>
               <li>Ops will reach out if more info needed</li>
             </ul>
+          </Alert>
+        )}
+
+        {jiraError && (
+          <Alert variant="warning" title="Ops tracking ticket was not created" isInline style={{ marginBottom: '16px' }}>
+            <p>
+              Your request was saved, but the Jira ticket ops uses to track it could not be created
+              automatically. Ops may not see this request until the ticket is created. Please contact the
+              RHDP operations team so they can follow up.
+            </p>
+            <p style={{ marginTop: '8px', fontSize: 'var(--pf-t--global--font--size--xs)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Details: {jiraError}
+            </p>
           </Alert>
         )}
 

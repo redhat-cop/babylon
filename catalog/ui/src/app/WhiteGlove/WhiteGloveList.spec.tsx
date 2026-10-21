@@ -1,8 +1,15 @@
 import React from 'react';
 import { waitFor } from '@testing-library/react';
+import { SWRConfig } from 'swr';
 import { render as customRender, generateSession } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';
 import WhiteGloveList from './WhiteGloveList';
+
+// Each render gets an isolated SWR cache so data from one test does not leak
+// into the next (the shared test-utils SWRConfig uses the global cache).
+const withFreshCache = (node: React.ReactElement) => (
+  <SWRConfig value={{ provider: () => new Map() }}>{node}</SWRConfig>
+);
 
 const DEMO_DOMAIN = 'demo.redhat.com';
 
@@ -122,5 +129,66 @@ describe('WhiteGloveList', () => {
     expect(rows[0].textContent).toContain('Approved Workshop');
     expect(rows[1].textContent).toContain('RHEL 9 Summit Workshop');
     expect(rows[2].textContent).toContain('Rejected Workshop');
+  });
+
+  test('shows the cached assignee without polling Jira per row (no N+1)', async () => {
+    mockSilentFetcher.mockClear();
+    const wgr = {
+      apiVersion: 'babylon.io/v1',
+      kind: 'WhiteGloveRequest',
+      metadata: {
+        name: 'wgr-assigned',
+        namespace: 'user-test-redhat-com',
+        uid: 'uid-a',
+        creationTimestamp: '2026-09-01T10:00:00Z',
+        annotations: {
+          [`${DEMO_DOMAIN}/state`]: 'approved',
+          [`${DEMO_DOMAIN}/jira-ticket-id`]: 'WGR-777',
+          [`${DEMO_DOMAIN}/jira-ticket-url`]: 'https://jira.example.com/WGR-777',
+          [`${DEMO_DOMAIN}/assignee`]: 'Jamie Ops',
+        },
+      },
+      spec: { displayName: 'Assigned Workshop' },
+    };
+    mockFetcher.mockResolvedValue({ items: [wgr], metadata: {} });
+
+    const { getByText } = await customRender(withFreshCache(<WhiteGloveList />), {
+      history: createMemoryHistory({ initialEntries: ['/white-glove'] }),
+    });
+
+    await waitFor(() => {
+      expect(getByText('Assigned Workshop')).toBeInTheDocument();
+    });
+    expect(getByText('Jamie Ops')).toBeInTheDocument();
+    // The list must not fetch the Jira issue per row — that was the N+1.
+    expect(mockSilentFetcher).not.toHaveBeenCalled();
+  });
+
+  test('flags a request whose ops ticket could not be created', async () => {
+    const wgr = {
+      apiVersion: 'babylon.io/v1',
+      kind: 'WhiteGloveRequest',
+      metadata: {
+        name: 'wgr-jira-error',
+        namespace: 'user-test-redhat-com',
+        uid: 'uid-e',
+        creationTimestamp: '2026-09-01T10:00:00Z',
+        annotations: {
+          [`${DEMO_DOMAIN}/state`]: 'pending-approval',
+          [`${DEMO_DOMAIN}/jira-error`]: 'Jira API error (503)',
+        },
+      },
+      spec: { displayName: 'Ticketless Workshop' },
+    };
+    mockFetcher.mockResolvedValue({ items: [wgr], metadata: {} });
+
+    const { getByText } = await customRender(withFreshCache(<WhiteGloveList />), {
+      history: createMemoryHistory({ initialEntries: ['/white-glove'] }),
+    });
+
+    await waitFor(() => {
+      expect(getByText('Ticketless Workshop')).toBeInTheDocument();
+    });
+    expect(getByText('Not created')).toBeInTheDocument();
   });
 });

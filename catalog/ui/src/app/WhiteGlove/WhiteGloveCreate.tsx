@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWRImmutable from 'swr/immutable';
-import { Alert, Breadcrumb, BreadcrumbItem, Button, Checkbox, Form, FormGroup, Label, LabelGroup, MenuToggle, PageSection, Select, SelectList, SelectOption, TextArea, TextInput, Title, Tooltip } from '@patternfly/react-core';
+import { Alert, Breadcrumb, BreadcrumbItem, Button, Checkbox, Form, FormGroup, FormHelperText, HelperText, HelperTextItem, Label, LabelGroup, MenuToggle, PageSection, Select, SelectList, SelectOption, TextArea, TextInput, Title, Tooltip } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -60,6 +60,7 @@ const WhiteGloveCreateContent: React.FC = () => {
   const [isAudienceTypeOpen, setIsAudienceTypeOpen] = useState(false);
   const [shareWith, setShareWith] = useState<string[]>([]);
   const [shareWithInput, setShareWithInput] = useState('');
+  const [shareWithError, setShareWithError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
 
   const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
@@ -107,10 +108,17 @@ const WhiteGloveCreateContent: React.FC = () => {
   function addShareWithEmail() {
     const email = shareWithInput.trim();
     if (!email) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-    if (shareWith.includes(email)) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setShareWithError(`"${email}" is not a valid email address.`);
+      return;
+    }
+    if (shareWith.includes(email)) {
+      setShareWithError(`"${email}" has already been added.`);
+      return;
+    }
     setShareWith((prev) => [...prev, email]);
     setShareWithInput('');
+    setShareWithError(null);
   }
 
   async function onSubmit(): Promise<void> {
@@ -158,7 +166,27 @@ const WhiteGloveCreateContent: React.FC = () => {
           },
         });
       } catch (jiraError) {
+        // The request itself was created, but ops tracks it via Jira — a failure
+        // here would otherwise leave a ticketless request with no signal to the
+        // user or ops. Persist the failure so the detail page and admin list can
+        // surface it and ops can follow up. (GPTEINFRA-18083)
         console.warn('Failed to create Jira ticket for WGR:', jiraError);
+        try {
+          await patchWhiteGloveRequest({
+            name: result.metadata.name,
+            namespace: result.metadata.namespace,
+            patch: {
+              metadata: {
+                annotations: {
+                  [`${DEMO_DOMAIN}/jira-error`]:
+                    jiraError instanceof Error ? jiraError.message : String(jiraError),
+                },
+              },
+            },
+          });
+        } catch (patchError) {
+          console.error('Failed to record Jira error on WGR:', patchError);
+        }
       }
 
       navigate(`/white-glove/${result.metadata.namespace}/${result.metadata.name}`, {
@@ -434,7 +462,11 @@ const WhiteGloveCreateContent: React.FC = () => {
               <TextInput
                 id="share-with"
                 value={shareWithInput}
-                onChange={(_e, value) => setShareWithInput(value)}
+                validated={shareWithError ? 'error' : 'default'}
+                onChange={(_e, value) => {
+                  setShareWithInput(value);
+                  if (shareWithError) setShareWithError(null);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -454,6 +486,13 @@ const WhiteGloveCreateContent: React.FC = () => {
                 Add
               </Button>
             </div>
+            {shareWithError && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">{shareWithError}</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
             {shareWith.length > 0 && (
               <LabelGroup style={{ marginTop: '8px' }}>
                 {shareWith.map((email) => (

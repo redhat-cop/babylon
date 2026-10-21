@@ -186,6 +186,56 @@ describe('WhiteGloveCreate', () => {
     });
   });
 
+  test('shows an error for an invalid share-with email and does not add it', async () => {
+    await render(<WhiteGloveCreate />, {
+      history: createMemoryHistory({ initialEntries: ['/white-glove/create'] }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter email address')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('Enter email address'), { target: { value: 'not-an-email' } });
+    fireEvent.click(screen.getByText('Add'));
+
+    expect(screen.getByText(/is not a valid email address/)).toBeInTheDocument();
+  });
+
+  test('shows an error when the same share-with email is added twice', async () => {
+    await render(<WhiteGloveCreate />, {
+      history: createMemoryHistory({ initialEntries: ['/white-glove/create'] }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter email address')).toBeInTheDocument();
+    });
+
+    const input = screen.getByPlaceholderText('Enter email address');
+    fireEvent.change(input, { target: { value: 'a@redhat.com' } });
+    fireEvent.click(screen.getByText('Add'));
+    fireEvent.change(input, { target: { value: 'a@redhat.com' } });
+    fireEvent.click(screen.getByText('Add'));
+
+    expect(screen.getByText(/has already been added/)).toBeInTheDocument();
+  });
+
+  test('adds a valid share-with email without showing an error', async () => {
+    await render(<WhiteGloveCreate />, {
+      history: createMemoryHistory({ initialEntries: ['/white-glove/create'] }),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter email address')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('Enter email address'), { target: { value: 'valid@redhat.com' } });
+    fireEvent.click(screen.getByText('Add'));
+
+    expect(screen.getByText('valid@redhat.com')).toBeInTheDocument();
+    expect(screen.queryByText(/is not a valid email address/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/has already been added/)).not.toBeInTheDocument();
+  });
+
   test('displays blocked dates when present', async () => {
     const useSystemStatus = jest.requireMock('@app/utils/useSystemStatus').default;
     useSystemStatus.mockReturnValue({
