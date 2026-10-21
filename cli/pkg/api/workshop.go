@@ -1,9 +1,10 @@
 package api
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"net/url"
 	"time"
 
@@ -330,11 +331,16 @@ func (c *Client) GetAnarchySubject(namespace, name string) (*types.AnarchySubjec
 }
 
 // GeneratePassword generates a random password of the given length.
-func GeneratePassword(n int) string {
+func GeneratePassword(n int) (string, error) {
 	const chars = "abcdefghjkmnpqrstuvwxyz23456789"
 	b := make([]byte, n)
+	max := big.NewInt(int64(len(chars)))
 	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+		idx, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", fmt.Errorf("generate secure random password character: %w", err)
+		}
+		b[i] = chars[idx.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }
