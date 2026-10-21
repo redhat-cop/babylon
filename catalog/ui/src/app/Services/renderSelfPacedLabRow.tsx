@@ -37,6 +37,14 @@ const renderSelfPacedLabRow = ({
   const autoDestroyTime = selfPacedLab.spec.lifespan?.end ? Date.parse(selfPacedLab.spec.lifespan.end) : null;
 
   const poolCount = selfPacedLab.status?.poolCount;
+  const resources = (selfPacedLab.resourceClaims || []).flatMap((r) => r.status?.resources || []).map((r) => r.state);
+  const clusters = [
+    ...new Set(
+      resources
+        .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
+        .filter((cluster): cluster is string => Boolean(cluster)),
+    ),
+  ].sort();
 
   const nameCell = (
     <>
@@ -59,7 +67,7 @@ const renderSelfPacedLabRow = ({
     </>
   );
   const guidCell = <span key="selfpacedlab-guid">-</span>;
-  const clusterCell = <span key="selfpacedlab-cluster">-</span>;
+  const clusterCell = <span key="selfpacedlab-cluster">{clusters.join(', ') || '-'}</span>;
   const statusCell = autoStartTime && autoStartTime > Date.now() ? (
     <span className="services-item__status--scheduled" key="scheduled">
       <CheckCircleIcon key="scheduled-icon" /> Scheduled
