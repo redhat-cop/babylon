@@ -39,6 +39,7 @@ import {
 } from './workshops-utils';
 import type { ModalState } from './WorkshopsItem';
 import WorkshopStatus from './WorkshopStatus';
+import ServiceClusterDetails from '@app/Services/ServiceClusterDetails';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
 import TimeInterval from '@app/components/TimeInterval';
@@ -353,6 +354,7 @@ const WorkshopsItemDetails: React.FC<{
           {isAdmin ? <OpenshiftConsoleLink resource={workshop} /> : null}
         </DescriptionListDescription>
       </DescriptionListGroup>
+      <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={[...(resourceClaims || []), ...clusterResourceClaims]} />
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>

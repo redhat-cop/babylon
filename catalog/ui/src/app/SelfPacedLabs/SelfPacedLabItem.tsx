@@ -58,6 +58,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import Label from '@app/components/Label';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
+import ServiceClusterDetails from '@app/Services/ServiceClusterDetails';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import SelectableTable from '@app/components/SelectableTable';
@@ -579,6 +580,7 @@ const SelfPacedLabItemComponent: React.FC<{
                     {isAdmin ? <OpenshiftConsoleLink resource={selfPacedLab} /> : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={resourceClaims} />
                 <DescriptionListGroup>
                   <DescriptionListTerm>Lab URL</DescriptionListTerm>
                   <DescriptionListDescription>
