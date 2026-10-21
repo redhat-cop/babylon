@@ -111,3 +111,13 @@ export function isTenantClusterResourceClaim(resourceClaim: ResourceClaim): bool
 export function hasTenantClusterPools(workshopProvision: WorkshopProvision): boolean {
   return Array.isArray(workshopProvision.status?.tenantClusterPools);
 }
+
+export function getWorkshopClusterResourceClaims(
+  resourceClaims: ResourceClaim[] = [],
+  workshopProvisions: WorkshopProvision[] = [],
+): ResourceClaim[] {
+  const clusterResourceClaims = resourceClaims.filter(isTenantClusterResourceClaim);
+  return clusterResourceClaims.length > 0 || workshopProvisions.some(hasTenantClusterPools)
+    ? clusterResourceClaims
+    : resourceClaims;
+}

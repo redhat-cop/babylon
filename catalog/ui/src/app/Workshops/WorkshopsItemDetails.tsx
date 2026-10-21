@@ -33,6 +33,7 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import {
   checkWorkshopCanStop,
   getWorkshopAutoStopTime,
+  getWorkshopClusterResourceClaims,
   getWorkshopLifespan,
   isWorkshopLocked,
   isWorkshopStarted,
@@ -354,7 +355,13 @@ const WorkshopsItemDetails: React.FC<{
           {isAdmin ? <OpenshiftConsoleLink resource={workshop} /> : null}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={[...(resourceClaims || []), ...clusterResourceClaims]} />
+      <ServiceClusterDetails
+        isAdmin={isAdmin}
+        resourceClaims={getWorkshopClusterResourceClaims(
+          [...(resourceClaims || []), ...clusterResourceClaims],
+          workshopProvisions,
+        )}
+      />
       <DescriptionListGroup>
         <DescriptionListTerm>Workshop URL</DescriptionListTerm>
         <DescriptionListDescription>
