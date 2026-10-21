@@ -734,7 +734,7 @@ const ServicesList: React.FC<{
           <SelectableTable
             columns={
               isAdmin
-                ? ['Name', 'GUID', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
+                ? ['Name', 'GUID', 'Cluster', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
                 : ['Name', 'Status', 'Created At', 'Auto-stop', 'Auto-destroy', 'Actions']
             }
             onSelectAll={(isSelected) => {

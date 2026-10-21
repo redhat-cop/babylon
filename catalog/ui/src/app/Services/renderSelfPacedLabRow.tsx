@@ -59,6 +59,7 @@ const renderSelfPacedLabRow = ({
     </>
   );
   const guidCell = <span key="selfpacedlab-guid">-</span>;
+  const clusterCell = <span key="selfpacedlab-cluster">-</span>;
   const statusCell = autoStartTime && autoStartTime > Date.now() ? (
     <span className="services-item__status--scheduled" key="scheduled">
       <CheckCircleIcon key="scheduled-icon" /> Scheduled
@@ -108,7 +109,7 @@ const renderSelfPacedLabRow = ({
 
   return {
     cells: isAdmin
-      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      ? [nameCell, guidCell, clusterCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
       : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };

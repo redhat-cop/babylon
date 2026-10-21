@@ -65,6 +65,7 @@ export interface AnarchySubjectSpec {
     job_vars?: {
       guid: string;
       uuid: string;
+      sandbox_openshift_cluster?: string;
     };
     healthy?: boolean;
     check_status_state?: string;
