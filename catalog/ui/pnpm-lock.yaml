@@ -59,8 +59,8 @@ importers:
         specifier: ^6.7.0
         version: 6.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@patternfly/react-icons':
-        specifier: ^6.6.1
-        version: 6.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^6.7.0
+        version: 6.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@patternfly/react-styles':
         specifier: ^6.7.0
         version: 6.7.0
@@ -1799,12 +1799,6 @@ packages:
 
   '@patternfly/react-drag-drop@6.7.0':
     resolution: {integrity: sha512-SHKAFU7jN97h1nRv6xnN8Nxn33GcyyBqkWBw5TNmF291Sn4406F/zRW3dvbWQbrOCqCBisdnhdZlEKdG5g9bDw==}
-    peerDependencies:
-      react: ^17 || ^18 || ^19
-      react-dom: ^17 || ^18 || ^19
-
-  '@patternfly/react-icons@6.6.1':
-    resolution: {integrity: sha512-EUHnTliMlUMNfaueyGTaNcdCDGN4CjLtQpNdSg6iWcl5oloHtUDEAIltP0nbCWnepMJDoM2YgjMlyjwWlkNzXg==}
     peerDependencies:
       react: ^17 || ^18 || ^19
       react-dom: ^17 || ^18 || ^19
@@ -7761,12 +7755,6 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
       resize-observer-polyfill: 1.5.1
 
-  '@patternfly/react-icons@6.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      tslib: 2.8.1
-
   '@patternfly/react-icons@6.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       react: 19.3.0
@@ -7778,7 +7766,7 @@ snapshots:
   '@patternfly/react-table@6.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@patternfly/react-core': 6.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@patternfly/react-icons': 6.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@patternfly/react-icons': 6.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@patternfly/react-styles': 6.7.0
       '@patternfly/react-tokens': 6.6.1
       lodash: 4.18.1
