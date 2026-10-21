@@ -363,10 +363,10 @@ const ComponentDetailsList: React.FC<{
                 onExpand={() => setIsProvisionJobVarsExpanded((expanded) => !expanded)}
                 toggleButtonProps={{
                   id: `${provisionJobVarsId}-toggle`,
-                  'aria-label': 'Toggle Provision Job vars (admin only)',
+                  'aria-label': 'Toggle Ansible job vars (admin only)',
                 }}
               >
-                <CardTitle>Provision Job vars (admin only)</CardTitle>
+                <CardTitle>Ansible job vars (admin only)</CardTitle>
               </CardHeader>
               <CardExpandableContent>
                 <CardBody>
@@ -393,7 +393,7 @@ const ComponentDetailsList: React.FC<{
                         })}
                     </DescriptionList>
                   ) : (
-                    <p>No provision job vars available.</p>
+                    <p>No Ansible job vars available.</p>
                   )}
                 </CardBody>
               </CardExpandableContent>
