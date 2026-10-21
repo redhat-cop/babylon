@@ -143,6 +143,13 @@
   padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md);
 }
 
+/* An expanded parent card must not rotate a collapsed nested card's toggle. */
+.services-item__component-card.pf-v6-c-card:not(.pf-m-expanded)
+  > .pf-v6-c-card__header
+  .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(0deg);
+}
+
 .services-item__component-card .pf-v6-c-card__title {
   font-size: var(--pf-t--global--font--size--body--default);
   flex: 1;
