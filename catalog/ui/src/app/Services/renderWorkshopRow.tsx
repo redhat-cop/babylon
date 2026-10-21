@@ -12,6 +12,7 @@ import {
   checkWorkshopCanStart,
   checkWorkshopCanStop,
   getWorkshopAutoStopTime,
+  getWorkshopClusterResourceClaims,
   getWorkshopLifespan,
   isWorkshopLocked,
 } from '@app/Workshops/workshops-utils';
@@ -51,7 +52,9 @@ const renderWorkshopRow = ({
     : [];
   const clusters = [
     ...new Set(
-      resources
+      getWorkshopClusterResourceClaims(workshop.resourceClaims)
+        .flatMap((r) => r.status?.resources || [])
+        .map((r) => r.state)
         .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
         .filter((cluster): cluster is string => Boolean(cluster)),
     ),
