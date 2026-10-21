@@ -47,6 +47,9 @@ const renderResourceClaimRow = ({
   const resourceHandle = resourceClaim.status?.resourceHandle;
   const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
+  const cluster = resources
+    .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
+    .find((value) => value);
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const isPartOfSelfPacedLab = isResourceClaimPartOfSelfPacedLab(resourceClaim);
@@ -128,6 +131,8 @@ const renderResourceClaimRow = ({
       )}
     </React.Fragment>
   );
+
+  const clusterCell = <span key="resource-claim-cluster">{cluster || '-'}</span>;
 
   const nameCell = (
     // Name
@@ -257,7 +262,7 @@ const renderResourceClaimRow = ({
 
   return {
     cells: isAdmin
-      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      ? [nameCell, guidCell, clusterCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
       : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };

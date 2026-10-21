@@ -112,6 +112,7 @@ import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
 import ServiceStatus from './ServiceStatus';
+import ServiceClusterDetails from './ServiceClusterDetails';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
 import SandboxApiActions from '@app/components/SandboxApiActions';
@@ -1195,6 +1196,7 @@ const ServicesItemComponent: React.FC<{
                       )}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
+                  <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={[resourceClaim]} />
                   <DescriptionListGroup>
                     <DescriptionListTerm>Requested On</DescriptionListTerm>
                     <DescriptionListDescription>

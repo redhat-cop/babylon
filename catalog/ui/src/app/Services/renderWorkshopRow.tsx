@@ -49,6 +49,13 @@ const renderWorkshopRow = ({
   const resources = workshop.resourceClaims
     ? workshop.resourceClaims.flatMap((r) => r.status?.resources || []).map((r) => r.state)
     : [];
+  const clusters = [
+    ...new Set(
+      resources
+        .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
+        .filter((cluster): cluster is string => Boolean(cluster)),
+    ),
+  ].sort();
   if (resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', workshop });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', workshop });
@@ -92,6 +99,7 @@ const renderWorkshopRow = ({
     </>
   );
   const guidCell = <span key="workshop-guid">-</span>;
+  const clusterCell = <span key="workshop-cluster">{clusters.join(', ') || '-'}</span>;
   const resourceClaimsLoaded = workshop.resourceClaims !== undefined;
   const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
   const statusCell = (
@@ -175,7 +183,7 @@ const renderWorkshopRow = ({
 
   return {
     cells: isAdmin
-      ? [nameCell, guidCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
+      ? [nameCell, guidCell, clusterCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell]
       : [nameCell, statusCell, createdAtCell, autoStopCell, autoDestroyCell, actionsCell],
   };
 };
