@@ -25,8 +25,11 @@ from catalog_order_policy import (
     catalog_item_is_visible,
     classify_order_request,
     enforce_catalog_order_policy,
+    reject_direct_catalog_item_order_write,
     reject_server_side_apply,
 )
+from catalog_item_order_kube import KubeError, KubeOrderClient
+from catalog_item_order_service import CatalogItemOrderService, OrderApiError
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -58,6 +61,9 @@ response_cache_miss_semaphore = asyncio.Semaphore(response_cache_max_in_flight)
 response_cache_clean_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
+# CatalogItemOrder endpoints are opt-in until approval decisions (GPTEINFRA-18189),
+# UI (GPTEINFRA-18190) and enforcement on direct paths (GPTEINFRA-18191) land.
+catalog_item_orders_enabled = os.environ.get('CATALOG_ITEM_ORDERS_ENABLED', 'false').lower() == 'true'
 
 logging.basicConfig(level=os.environ.get('LOGGING_LEVEL', 'INFO'))
 
@@ -1942,6 +1948,131 @@ async def update_system_status(request):
         logging.error(f"Unexpected error updating system status: {e}")
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
+def catalog_item_order_service(session):
+    async def check_create_access(group, plural, namespace):
+        api_client = proxy_api_client(session)
+        try:
+            return await check_api_access(api_client, group, plural, 'create', namespace)
+        finally:
+            await api_client.close()
+
+    return CatalogItemOrderService(
+        kube=KubeOrderClient(
+            app_api_client,
+            babylon_namespace=babylon_namespace,
+            system_status_configmap=system_status_configmap_name,
+        ),
+        get_system_status=lambda: get_system_status_from_configmap(strict=True),
+        check_create_access=check_create_access,
+    )
+
+
+def catalog_item_order_requester_email(user):
+    """Requester email for manager lookup (GPTEINFRA-18189).
+
+    Taken from the OpenShift user name when it is an address. Request headers
+    are not used: a client-supplied X-Forwarded-Email can pass through the
+    proxy when the identity provider supplies no email."""
+    name = user['metadata']['name']
+    return name if '@' in name else None
+
+
+def catalog_item_order_error(code, message, status):
+    return web.json_response({'error': code, 'message': message}, status=status)
+
+
+async def handle_catalog_item_order_request(request, operation, audit_event=None):
+    """Authenticate, then run operation(service, session, user).
+
+    Identity is derived from the session; admin impersonation headers are
+    rejected because orders record the authenticated requester."""
+    if not catalog_item_orders_enabled:
+        raise web.HTTPNotFound()
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if request.headers.get('Impersonate-User'):
+        return catalog_item_order_error(
+            'impersonation_not_supported', 'Orders cannot be submitted while impersonating', 400
+        )
+    namespace = request.match_info.get('namespace')
+    name = request.match_info.get('name')
+    try:
+        status, data = await operation(catalog_item_order_service(session), session, user)
+    except OrderApiError as exception:
+        if audit_event:
+            audit_log(
+                f"{audit_event}_denied", user=session['user'], status=exception.status,
+                resource_type='CatalogItemOrder', resource_name=name, namespace=namespace,
+                details={'policy_code': exception.code},
+            )
+        return catalog_item_order_error(exception.code, exception.message, exception.status)
+    except (KubeError, aiohttp.ClientError, asyncio.TimeoutError) as exception:
+        logging.exception("CatalogItemOrder request failed")
+        return catalog_item_order_error('order_backend_unavailable', 'Unable to process order', 503)
+    if audit_event:
+        audit_log(
+            audit_event, user=session['user'], status=status, resource_type='CatalogItemOrder',
+            resource_name=data.get('name') if isinstance(data, dict) else name,
+            namespace=data.get('namespace') if isinstance(data, dict) else namespace,
+            details={'phase': data.get('phase')} if isinstance(data, dict) else None,
+        )
+    return web.json_response(data, status=status)
+
+
+@routes.post("/api/catalog-item-orders")
+async def catalog_item_order_submit(request):
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return catalog_item_order_error('invalid_json', 'Invalid JSON request body', 400)
+
+    async def operation(service, session, user):
+        return await service.submit(
+            body, session=session, user_uid=user['metadata']['uid'],
+            email=catalog_item_order_requester_email(user),
+        )
+    return await handle_catalog_item_order_request(request, operation, 'catalog_item_order_submitted')
+
+
+@routes.get("/api/catalog-item-orders")
+async def catalog_item_order_list(request):
+    async def operation(service, session, user):
+        items = await service.list(
+            session=session, user_uid=user['metadata']['uid'], namespace=request.query.get('namespace'),
+        )
+        return 200, {'items': items}
+    return await handle_catalog_item_order_request(request, operation)
+
+
+@routes.get("/api/catalog-item-orders/{namespace}/{name}")
+async def catalog_item_order_get(request):
+    async def operation(service, session, user):
+        return 200, await service.get(
+            request.match_info['namespace'], request.match_info['name'],
+            session=session, user_uid=user['metadata']['uid'],
+        )
+    return await handle_catalog_item_order_request(request, operation)
+
+
+@routes.post("/api/catalog-item-orders/{namespace}/{name}/cancel")
+async def catalog_item_order_cancel(request):
+    async def operation(service, session, user):
+        return 200, await service.cancel(
+            request.match_info['namespace'], request.match_info['name'],
+            session=session, user_uid=user['metadata']['uid'],
+        )
+    return await handle_catalog_item_order_request(request, operation, 'catalog_item_order_cancelled')
+
+
+@routes.post("/api/catalog-item-orders/{namespace}/{name}/retry")
+async def catalog_item_order_retry(request):
+    async def operation(service, session, user):
+        return 202, await service.retry(
+            request.match_info['namespace'], request.match_info['name'],
+            session=session, user_uid=user['metadata']['uid'],
+        )
+    return await handle_catalog_item_order_request(request, operation, 'catalog_item_order_retry_requested')
+
 @routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabprovisionitems|selfpacedlabuserassignments}")
 @routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
 async def openshift_api_list_by_get_rbac(request):
@@ -2186,6 +2317,7 @@ async def openshift_api_proxy(request, api_client=None):
                 request.path,
                 request.headers.get('Content-Type'),
             )
+            reject_direct_catalog_item_order_write(request.method, request.path)
             try:
                 request_body = await request.json() if request.can_read_body else None
             except (json.JSONDecodeError, UnicodeDecodeError):

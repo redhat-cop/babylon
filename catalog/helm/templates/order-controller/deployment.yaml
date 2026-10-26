@@ -1,0 +1,61 @@
+{{- if .Values.catalogItemOrders.enabled }}
+{{- $controller := .Values.catalogItemOrders.controller }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "babylonCatalog.orderControllerName" . }}
+  namespace: {{ include "babylonCatalog.namespaceName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $controller.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "babylonCatalog.orderControllerSelectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "babylonCatalog.orderControllerSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.api.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "babylonCatalog.orderControllerServiceAccountName" . }}
+      containers:
+      - name: controller
+        # Same image as the catalog API so the API and controller share the
+        # policy evaluator, request normalization and provisioning adapters.
+        image: {{ include "babylonCatalog.apiImage" . | quote }}
+        imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+        command:
+        - python3
+        - /opt/app-root/src/catalog_item_order_controller.py
+        env:
+        {{- with $controller.catalogBaseUrl }}
+        - name: CATALOG_BASE_URL
+          value: {{ . | quote }}
+        {{- end }}
+        - name: ORDER_APPROVAL_EXPIRES_AFTER
+          value: {{ $controller.approvalExpiresAfter | quote }}
+        - name: ORDER_RETRY_WINDOW
+          value: {{ $controller.retry.window | quote }}
+        - name: ORDER_RETRY_MAX_ATTEMPTS
+          value: {{ $controller.retry.maxAttempts | quote }}
+        - name: ORDER_CONTROLLER_RESYNC_INTERVAL
+          value: {{ $controller.resyncInterval | quote }}
+        - name: ORDER_CONTROLLER_WORKERS
+          value: {{ $controller.workers | quote }}
+        {{- with $controller.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+{{- end }}

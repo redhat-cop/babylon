@@ -30,6 +30,37 @@ api:
   serviceAccount:
     name: # default use api component name
 
+# CatalogItemOrder approval workflow (GPTEINFRA-18188). Opt-in: keep disabled until
+# approval decisions (GPTEINFRA-18189), UI (GPTEINFRA-18190) and enforcement on legacy
+# and direct provisioning paths (GPTEINFRA-18191) are deployed. Enabling this does not
+# make legacy ResourceClaim/Workshop creation enforce approval policies.
+catalogItemOrders:
+  # Enables /api/catalog-item-orders endpoints, API RBAC and the order controller.
+  enabled: false
+  controller:
+    name: # default use chart name + '-order-controller'
+    replicaCount: 1
+    # Public catalog URL used for resource url annotations and approval review links.
+    catalogBaseUrl:
+    # Defaults when a catalog item approval policy does not set them.
+    approvalExpiresAfter: 72h
+    retry:
+      # Window measured from the time approval was satisfied.
+      window: 72h
+      # Total provisioning attempts, including the initial attempt.
+      maxAttempts: 3
+    resyncInterval: 60
+    workers: 4
+    resources:
+      requests:
+        cpu: 100m
+        memory: "256Mi"
+      limits:
+        cpu: "1"
+        memory: "512Mi"
+    serviceAccount:
+      name: # default use controller name
+
 ui:
   name: # default use chart name + '-ui'
   image:

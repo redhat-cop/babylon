@@ -90,6 +90,39 @@ _PROTECTED_ORDERS = {
 }
 
 
+CATALOG_ITEM_ORDER_PLURAL = 'catalogitemorders'
+
+
+def reject_direct_catalog_item_order_write(method: Any, path: str) -> None:
+    """CatalogItemOrders are written only by the catalog API order endpoints
+    and the order controller, never through the Kubernetes proxy."""
+    if not isinstance(method, str) or method.upper() == 'GET':
+        return
+    parsed = parse_k8s_path(path)
+    if (
+        parsed
+        and parsed.get('api_group') == BABYLON_DOMAIN
+        and parsed.get('plural') == CATALOG_ITEM_ORDER_PLURAL
+    ):
+        raise CatalogOrderPolicyError(
+            403,
+            'catalog_item_order_write_forbidden',
+            'Use the /api/catalog-item-orders endpoints to manage orders',
+        )
+
+
+def ordering_block_reason(
+    system_status: Any, block_key: str, block_message_key: str
+) -> str | None:
+    """Return the ordering-blocked message if ordering is blocked, else None."""
+    if not isinstance(system_status, dict) or not system_status.get(block_key):
+        return None
+    reason = system_status.get(block_message_key)
+    if not isinstance(reason, str) or not reason:
+        reason = 'Ordering is temporarily unavailable'
+    return reason
+
+
 def classify_order_request(method: str, path: str) -> OrderRequest | None:
     if not isinstance(method, str) or method.upper() != 'POST':
         return None
@@ -445,10 +478,10 @@ async def enforce_catalog_order_policy(
             'system_status_lookup_failed',
             'Unable to read system status',
         ) from exception
-    if isinstance(system_status, dict) and system_status.get(order.block_key):
-        reason = system_status.get(order.block_message_key)
-        if not isinstance(reason, str) or not reason:
-            reason = 'Ordering is temporarily unavailable'
+    reason = ordering_block_reason(
+        system_status, order.block_key, order.block_message_key
+    )
+    if reason:
         raise CatalogOrderPolicyError(403, 'ordering_blocked', reason)
 
     references = extract_catalog_item_references(order, body)
@@ -466,3 +499,48 @@ async def enforce_catalog_order_policy(
                 'catalog_item_access_denied',
                 'Catalog item is not available for ordering',
             )
+
+
+async def enforce_catalog_item_order_restrictions(
+    *,
+    catalog_item_reference: CatalogItemReference,
+    block_key: str,
+    block_message_key: str,
+    session: dict[str, Any],
+    get_system_status: Callable[[], Awaitable[dict[str, Any]]],
+    get_catalog_item: Callable[[str, str], Awaitable[dict[str, Any] | None]],
+) -> dict[str, Any]:
+    """Apply the existing ordering restrictions to a CatalogItemOrder submission.
+
+    Same checks as enforce_catalog_order_policy for direct resource creation:
+    catalog namespace visibility, ordering blocks and catalog item access
+    control, with the same admin bypass for blocks and access control.
+    Returns the CatalogItem. The approval policy is evaluated separately by
+    the CatalogItemOrder controller."""
+    catalog_namespaces = _catalog_namespaces(session)
+    _, catalog_item = await _load_catalog_item(
+        catalog_item_reference, catalog_namespaces, get_catalog_item
+    )
+    if session.get('admin'):
+        return catalog_item
+    try:
+        system_status = await get_system_status()
+    except Exception as exception:
+        raise CatalogOrderPolicyError(
+            503,
+            'system_status_lookup_failed',
+            'Unable to read system status',
+        ) from exception
+    reason = ordering_block_reason(system_status, block_key, block_message_key)
+    if reason:
+        raise CatalogOrderPolicyError(403, 'ordering_blocked', reason)
+    groups = session.get('groups', [])
+    if not isinstance(groups, list):
+        groups = []
+    if not catalog_item_allows_ordering(catalog_item, groups):
+        raise CatalogOrderPolicyError(
+            403,
+            'catalog_item_access_denied',
+            'Catalog item is not available for ordering',
+        )
+    return catalog_item
