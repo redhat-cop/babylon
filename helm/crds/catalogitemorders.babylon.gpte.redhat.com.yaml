@@ -465,6 +465,12 @@ spec:
                       - Failed
                       - Provisioning
                       - Succeeded
+              completedAt:
+                description: >-
+                  When the order reached a completed state. The controller deletes completed orders
+                  after the configured retention once their resources are gone.
+                type: string
+                format: date-time
               blocked:
                 type: object
                 properties:

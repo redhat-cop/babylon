@@ -159,6 +159,14 @@ class FakeKube:
         self.status_writes += 1
         return copy.deepcopy(current)
 
+    async def delete_order(self, order):
+        key = (order['metadata']['namespace'], order['metadata']['name'])
+        current = self.orders.get(key)
+        if current is None or current['metadata']['resourceVersion'] != order['metadata']['resourceVersion']:
+            return False
+        del self.orders[key]
+        return True
+
     def tamper_spec(self, namespace, name, mutate):
         """Simulate a privileged spec write bypassing validation."""
         current = self.orders[(namespace, name)]

@@ -748,6 +748,129 @@ class TestRunLoop(ControllerTestCase):
         self.assertEqual(len(self.kube.created), 1)
 
 
+class TestRetention(ControllerTestCase):
+    async def cancelled_order(self, key='key-retain-1'):
+        order = await self.reconcile(await self.submit(self.add_item(raw_policy=MANAGER_POLICY), submission(key=key)))
+        order = await self.kube.replace_order_status(order, cancel_order(order, 'alice', self.clock()))
+        self.assertEqual(order['status']['completedAt'], format_time(self.clock()))
+        return order
+
+    async def sweep(self, order):
+        current = await self.kube.get_order(USER_NAMESPACE, order['metadata']['name'])
+        deleted = await self.controller.apply_retention(current)
+        return deleted, (USER_NAMESPACE, order['metadata']['name']) in self.kube.orders
+
+    async def test_completed_order_deleted_after_30_days(self):
+        self.assertEqual(ControllerConfig().retention, '30d')
+        order = await self.cancelled_order()
+        self.clock.advance(days=29, hours=23)
+        self.assertEqual(await self.sweep(order), (False, True))
+        self.clock.advance(hours=1)
+        self.assertEqual(await self.sweep(order), (True, False))
+
+    async def test_completed_at_tracks_final_transitions(self):
+        item = self.add_item(raw_policy=MANAGER_POLICY)
+        pending = await self.reconcile(await self.submit(item, submission(key='key-expiring')))
+        self.assertNotIn('completedAt', pending['status'])
+        self.clock.advance(hours=72)
+        expired = await self.reconcile(pending)
+        self.assertEqual(expired['status']['completedAt'], format_time(self.clock()))
+
+        _, failed = await TestRetry.failed_order(self)
+        self.assertIn('completedAt', failed['status'])
+        await self.kube.replace_order_status(failed, request_retry(failed, 'alice', self.clock()))
+        retried = await self.reconcile(failed)
+        self.assertEqual(retried['status']['phase'], 'Provisioning')
+        self.assertNotIn('completedAt', retried['status'])
+
+        blocked = await self.reconcile(await self.submit(self.add_item(raw_policy={'version': 'v9'}), submission(key='key-blocked1')))
+        self.assertTrue(blocked['status']['blocked']['recoverable'])
+        self.assertNotIn('completedAt', blocked['status'])
+
+    async def test_pending_and_in_progress_orders_are_never_deleted(self):
+        pending = await self.reconcile(await self.submit(self.add_item(raw_policy=MANAGER_POLICY)))
+        provisioning = await self.reconcile(await self.submit(body=submission(key='key-progress')))
+        self.kube.system_status = {'workshops_ordering_blocked': True}
+        blocked = await self.reconcile(await self.submit(body=submission(order_type='workshop', key='key-hold-001')))
+        self.assertTrue(blocked['status']['blocked']['recoverable'])
+        self.clock.advance(days=365)
+        for order in (pending, provisioning, blocked):
+            with self.subTest(phase=order['status']['phase']):
+                self.assertEqual(await self.sweep(order), (False, True))
+
+    async def test_order_kept_while_its_environment_exists(self):
+        order = await self.reconcile(await self.submit())
+        self.set_claim_status(order, complete_claim_status())
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['phase'], 'Provisioned')
+        self.clock.advance(days=31)
+        self.assertEqual(await self.sweep(order), (False, True))
+        await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
+        self.assertEqual(await self.sweep(order), (True, False))
+
+    async def test_relabelled_or_replaced_resources(self):
+        order = await self.reconcile(await self.submit())
+        self.set_claim_status(order, complete_claim_status())
+        order = await self.reconcile(order)
+        ref = order['status']['attempts'][0]['resources'][0]
+        key = ('ResourceClaim', ref['namespace'], ref['name'])
+        self.kube.resources[key]['metadata']['labels'] = {}
+        self.clock.advance(days=31)
+        self.assertEqual(await self.sweep(order), (False, True), 'relabelling does not hide the environment')
+        self.kube.resources[key]['metadata']['uid'] = 'unrelated'
+        self.assertEqual(await self.sweep(order), (True, False))
+
+    async def test_retryable_failure_is_kept(self):
+        self.config.retention = '1d'
+        _, order = await TestRetry.failed_order(self)
+        await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
+        self.clock.advance(days=2)
+        self.assertEqual(await self.sweep(order), (False, True))
+        self.clock.advance(days=2)
+        self.assertEqual(await self.sweep(order), (True, False))
+
+    async def test_backfills_missing_completed_at(self):
+        order = await self.cancelled_order()
+        self.kube.force_status(USER_NAMESPACE, order['metadata']['name'], lambda status: status.pop('completedAt'))
+        self.clock.advance(days=100)
+        self.assertEqual(await self.sweep(order), (False, True))
+        current = await self.kube.get_order(USER_NAMESPACE, order['metadata']['name'])
+        self.assertEqual(current['status']['completedAt'], format_time(self.clock()))
+        self.clock.advance(days=30)
+        self.assertEqual(await self.sweep(order), (True, False))
+
+    async def test_delete_is_refused_if_order_changed(self):
+        order = await self.cancelled_order()
+        self.clock.advance(days=31)
+        stale = await self.kube.get_order(USER_NAMESPACE, order['metadata']['name'])
+        self.kube.force_status(USER_NAMESPACE, order['metadata']['name'], lambda status: None)
+        self.assertFalse(await self.controller.apply_retention(stale))
+        self.assertIn((USER_NAMESPACE, order['metadata']['name']), self.kube.orders)
+
+    async def test_retention_disabled(self):
+        self.config.retention = None
+        order = await self.cancelled_order()
+        self.clock.advance(days=3650)
+        self.assertEqual(await self.sweep(order), (False, True))
+
+    async def test_resync_applies_retention(self):
+        class NoWatch:
+            async def list_cluster_custom_object(self, *args, **kwargs):
+                raise RuntimeError('watch unavailable')
+        self.kube.custom_objects_api = NoWatch()
+        order = await self.cancelled_order()
+        self.clock.advance(days=31)
+        task = asyncio.create_task(run(self.controller, self.kube, self.config))
+        for _ in range(50):
+            await asyncio.sleep(0.01)
+            if (USER_NAMESPACE, order['metadata']['name']) not in self.kube.orders:
+                break
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertNotIn((USER_NAMESPACE, order['metadata']['name']), self.kube.orders)
+
+
 class TestConfig(unittest.TestCase):
     def test_from_env_and_validation(self):
         config = ControllerConfig.from_env({
@@ -760,6 +883,11 @@ class TestConfig(unittest.TestCase):
             ControllerConfig(retry_window='forever')
         with self.assertRaises(ValueError):
             ControllerConfig(retry_max_attempts=0)
+        self.assertEqual(ControllerConfig.from_env({}).retention, '30d')
+        self.assertIsNone(ControllerConfig.from_env({'ORDER_RETENTION': ''}).retention)
+        self.assertEqual(ControllerConfig.from_env({'ORDER_RETENTION': '90d'}).retention, '90d')
+        with self.assertRaises(ValueError):
+            ControllerConfig(retention='forever')
 
 
 if __name__ == '__main__':

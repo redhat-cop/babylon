@@ -59,6 +59,7 @@ from catalog_item_order import (
     format_time,
     generate_name_suffix,
     order_attempts,
+    order_completed,
     order_id,
     order_phase,
     parse_time,
@@ -101,10 +102,14 @@ class ControllerConfig:
     history_limit: int = 50
     workshop_fail_threshold: int = 60
     self_paced_lab_fail_threshold: int = 60
+    # Delete completed orders this long after completion; None disables.
+    retention: str | None = '30d'
 
     def __post_init__(self):
         if self.review_base_url is None:
             self.review_base_url = self.catalog_base_url
+        if self.retention is not None and not parse_duration(self.retention):
+            raise ValueError('retention must be a duration such as 30d, or empty to disable')
         for name in ('approval_expires_after', 'retry_window'):
             if parse_duration(getattr(self, name)) is None:
                 raise ValueError(f"{name} must be a duration such as 72h")
@@ -126,6 +131,7 @@ class ControllerConfig:
             history_limit=int(environ.get('ORDER_HISTORY_LIMIT', 50)),
             workshop_fail_threshold=int(environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60)),
             self_paced_lab_fail_threshold=int(environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60)),
+            retention=environ.get('ORDER_RETENTION', '30d') or None,
         )
 
 
@@ -196,6 +202,12 @@ class CatalogItemOrderController:
     def _transition(self, order, status, phase, event, now, message=''):
         status['phase'] = phase
         status.pop('blocked', None)
+        # Retention is measured from completedAt; leaving a completed phase
+        # (for example a retry from Failed) clears it.
+        if phase in TERMINAL_PHASES or phase == PHASE_FAILED:
+            status['completedAt'] = format_time(now)
+        else:
+            status.pop('completedAt', None)
         generation = (order.get('metadata') or {}).get('generation')
         if generation is not None:
             status['observedGeneration'] = generation
@@ -220,8 +232,50 @@ class CatalogItemOrderController:
             blocked['resumePhase'] = resume_phase
         self._transition(order, status, PHASE_BLOCKED, reason, now, message)
         status['blocked'] = blocked
+        if not recoverable:
+            status['completedAt'] = format_time(now)
         set_condition(status, 'Ready', 'False', reason, message, now)
         return status
+
+    async def apply_retention(self, order):
+        """Delete a completed order once its retention period has passed.
+
+        Never deletes orders that are pending or in progress, failed orders
+        that can still be retried, or orders whose provisioning resources
+        still exist, so the record outlives the environment it authorized.
+        Returns True if the order was deleted."""
+        if self.config.retention is None or not order_completed(order):
+            return False
+        now = self.clock()
+        status = order.get('status') or {}
+        completed_at = parse_time(status.get('completedAt'))
+        if completed_at is None:
+            # Completed before completedAt was recorded: start the clock now.
+            updated = copy.deepcopy(status)
+            updated['completedAt'] = format_time(now)
+            try:
+                await self.kube.replace_order_status(order, updated)
+            except KubeConflictError:
+                pass
+            return False
+        if now < completed_at + timedelta(seconds=parse_duration(self.config.retention)):
+            return False
+        if order_phase(order) == PHASE_FAILED and evaluate_retry(order, now).eligible:
+            return False
+        for attempt in order_attempts(order):
+            for ref in attempt.get('resources') or []:
+                if not ref.get('uid'):
+                    continue
+                obj = await self.kube.get_resource(ref)
+                if obj is not None and obj['metadata'].get('uid') == ref['uid']:
+                    return False
+        if not await self.kube.delete_order(order):
+            return False
+        logger.info(
+            "Deleted CatalogItemOrder %s in phase %s after retention %s",
+            order_id(order), order_phase(order), self.config.retention,
+        )
+        return True
 
     # Catalog item and policy checks
 
@@ -718,6 +772,11 @@ async def run(controller, kube, config):
                 for order in await kube.list_orders():
                     if order_needs_reconcile(order):
                         enqueue(order)
+                    else:
+                        try:
+                            await controller.apply_retention(order)
+                        except Exception:
+                            logger.exception("Failed to apply retention to CatalogItemOrder %s", order_id(order))
             except Exception:
                 logger.exception("Failed to list CatalogItemOrders")
             await asyncio.sleep(config.resync_interval)

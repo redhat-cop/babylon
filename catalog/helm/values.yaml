@@ -49,6 +49,10 @@ catalogItemOrders:
       window: 72h
       # Total provisioning attempts, including the initial attempt.
       maxAttempts: 3
+    # Delete completed orders (provisioned, failed, denied, expired, cancelled or
+    # permanently blocked) this long after completion. Orders that can still be
+    # retried or whose provisioning resources still exist are kept. Empty disables.
+    retention: 30d
     resyncInterval: 60
     workers: 4
     resources:

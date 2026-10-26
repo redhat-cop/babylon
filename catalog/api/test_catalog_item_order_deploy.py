@@ -219,7 +219,7 @@ class TestHelm(unittest.TestCase):
         })
         controller_role = find(docs, 'ClusterRole', 'babylon-catalog-order-controller')[0]
         self.assertEqual(order_rules(controller_role), {
-            'catalogitemorders': ['get', 'list', 'watch'],
+            'catalogitemorders': ['delete', 'get', 'list', 'watch'],
             'catalogitemorders/status': ['get', 'update'],
         })
         for role in (api_role, controller_role):
@@ -242,6 +242,7 @@ class TestHelm(unittest.TestCase):
         env = {e['name']: e.get('value') for e in container['env']}
         self.assertEqual(env['CATALOG_BASE_URL'], 'https://catalog.example.com')
         self.assertEqual(env['ORDER_RETRY_MAX_ATTEMPTS'], '2')
+        self.assertEqual(env['ORDER_RETENTION'], '30d')
         self.assertFalse(container['securityContext']['allowPrivilegeEscalation'])
         api_env = {e['name']: e.get('value') for e in api['spec']['template']['spec']['containers'][0]['env']}
         self.assertEqual(api_env['CATALOG_ITEM_ORDERS_ENABLED'], 'true')
