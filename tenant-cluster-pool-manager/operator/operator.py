@@ -7,6 +7,8 @@ babylon-tenant-cluster-pool-manager
 import json
 import logging
 
+from datetime import datetime, timezone
+
 import kopf
 
 from operatorruntime import OperatorRuntime
@@ -58,6 +60,30 @@ async def tenant_cluster_pool_create(logger, body, **_):
     tenant_cluster_pool = TenantClusterPool(OperatorRuntime.babylon, body)
     await manage_tenant_cluster_pool(tenant_cluster_pool, logger)
 
+@kopf.on.delete(
+    TenantClusterPool.api_group, TenantClusterPool.api_version, TenantClusterPool.plural,
+    labels={
+        OperatorRuntime.babylon_ignore_label: kopf.ABSENT,
+    },
+)
+async def tentant_cluster_pool_delete(logger, body, **_):
+    """Handle delete of TenantClusterPool"""
+    tenant_cluster_pool = TenantClusterPool(OperatorRuntime.babylon, body)
+    for cluster in tenant_cluster_pool.clusters:
+        if cluster.sandbox_api_state != "removed":
+            logger.info(
+                "Removing cluster %s on %s deletion",
+                cluster.name, tenant_cluster_pool,
+
+            )
+            await OperatorRuntime.sandbox_api.remove_ocp_shared_cluster_configuration(
+                cluster.name, force=True
+            )
+        await OperatorRuntime.babylon.delete_resource_claim(
+            name=cluster.resource_claim_name,
+            namespace=tenant_cluster_pool.namespace,
+        )
+
 @kopf.on.resume(
     TenantClusterPool.api_group, TenantClusterPool.api_version, TenantClusterPool.plural,
     labels={
@@ -101,8 +127,6 @@ async def tenant_cluster_pool_timer(logger, body, **_):
 async def resource_claim_event(body, labels, logger, namespace, **_):
     """Handle ResourceClaim labeled for ClusterTenantPool"""
     resource_claim = ResourceClaim(OperatorRuntime.babylon, body)
-    if resource_claim.is_deleting:
-        return
     tenant_cluster_pool_name = labels.get(OperatorRuntime.tenant_cluster_pool_label)
     try:
         tenant_cluster_pool = await OperatorRuntime.babylon.get_tenant_cluster_pool(
@@ -111,12 +135,17 @@ async def resource_claim_event(body, labels, logger, namespace, **_):
         )
     except BabylonApiException as err:
         if err.status == 404:
-            logger.warning(
-                "%s labeled for TenantClusterPool %s, but no such pool found.",
-                resource_claim, tenant_cluster_pool_name
-            )
+            if not resource_claim.is_deleting:
+                logger.warning(
+                    "%s labeled for TenantClusterPool %s, but no such pool found.",
+                    resource_claim, tenant_cluster_pool_name
+                )
             return
         raise
+
+    # Delete handler of TenantClusterPool will handle cleanup of ResourceClaim
+    if tenant_cluster_pool.is_deleting:
+        return
 
     for cluster in tenant_cluster_pool.clusters:
         if cluster.resource_claim_name == resource_claim.name:
@@ -125,11 +154,13 @@ async def resource_claim_event(body, labels, logger, namespace, **_):
             )
             break
     else:
-        logger.warning(
-            "%s has label indicating it belongs to %s, but does not appear in status.",
-            resource_claim,
-            tenant_cluster_pool,
-        )
+        # Warn if not found and not recently created
+        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds > 5:
+            logger.warning(
+                "%s has label indicating it belongs to %s, but does not appear in status.",
+                resource_claim,
+                tenant_cluster_pool,
+            )
 
 async def clear_tenant_cluster_action(resource_claim: ResourceClaim) -> None:
     """Clear tenant cluster action annotation"""
@@ -188,7 +219,9 @@ async def handle_tenant_cluster_deleted(
             cluster.resource_claim_name,
             tenant_cluster_pool,
         )
-        await OperatorRuntime.sandbox_api.remove_ocp_shared_cluster_configuration(cluster.name)
+        await OperatorRuntime.sandbox_api.remove_ocp_shared_cluster_configuration(
+            cluster.name, force=True
+        )
     else:
         logger.info(
             "ResourceClaim %s for %s deleted",
@@ -204,7 +237,9 @@ async def handle_tenant_cluster_offboard(
     logger,
 ) -> None:
     """Handle offboarding cluster from sandbox api."""
-    await OperatorRuntime.sandbox_api.remove_ocp_shared_cluster_configuration(cluster.name)
+    await OperatorRuntime.sandbox_api.remove_ocp_shared_cluster_configuration(
+        cluster.name, force=True
+    )
     await tenant_cluster_pool.set_cluster_sandbox_api_state(
         resource_claim_name=cluster.resource_claim_name,
         sandbox_api_state="removed",
@@ -399,7 +434,7 @@ async def manage_tenant_cluster_pool_cluster(tenant_cluster_pool, cluster, logge
     )
 
 async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
-    """Manage TenantClusterePool"""
+    """Manage TenantClusterPool"""
 
     # First manage current clusters...
     (available_placement_count, cluster_count, have_cluster_pending

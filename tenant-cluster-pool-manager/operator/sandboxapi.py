@@ -252,6 +252,7 @@ class SandboxAPI:
 
     async def remove_ocp_shared_cluster_configuration(self,
         name: str,
+        force: bool=False,
     ) -> bool:
         """Remove ocp-shared-cluster-configuration.
 
@@ -266,8 +267,12 @@ class SandboxAPI:
         was not found.
         """
         await self.connect()
+        params = {}
+        if force:
+            params["force"] = "true"
         async with self.__client_session.delete(
             f"/api/v1/ocp-shared-cluster-configurations/{name}/offboard",
+            params=params,
             headers={
                 "Authorization": f"Bearer {self.__access_token}",
             }
