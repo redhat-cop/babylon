@@ -63,6 +63,117 @@ spec:
                     type: array
                     items:
                       type: string
+              approvalPolicy:
+                description: >-
+                  Approval policy published from AgnosticV `__meta__.catalog.approval_policy`.
+                  Absent means no approval is required. A policy with state Invalid blocks
+                  CatalogItemOrders for this item. Evaluated by the CatalogItemOrder controller;
+                  legacy and direct provisioning paths do not enforce it.
+                  See docs/Catalog_Item_Orders.md.
+                type: object
+                required:
+                - state
+                properties:
+                  approval:
+                    type: object
+                    properties:
+                      approver:
+                        type: string
+                        enum:
+                        - requester_manager
+                      expiresAfter:
+                        description: >-
+                          Time an approval request stays pending before the order expires.
+                        type: string
+                        pattern: ^([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s)?$
+                  default:
+                    type: string
+                    enum:
+                    - manager_required
+                    - not_required
+                  defaultOverrideReason:
+                    type: string
+                    maxLength: 500
+                  defaultReason:
+                    type: string
+                    maxLength: 500
+                  digest:
+                    description: >-
+                      sha256 digest of the semantic policy content. Changes invalidate pending
+                      and reusable approvals.
+                    type: string
+                  errors:
+                    description: >-
+                      Validation errors when state is Invalid.
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: string
+                  evaluatorVersion:
+                    type: string
+                  retry:
+                    description: >-
+                      Limits for reusing an approval after a controller-verified provisioning failure.
+                    type: object
+                    properties:
+                      maxAttempts:
+                        description: Total provisioning attempts, including the initial attempt.
+                        type: integer
+                        minimum: 1
+                        maximum: 10
+                      window:
+                        description: Retry window measured from the time approval was satisfied.
+                        type: string
+                        pattern: ^([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s)?$
+                  rules:
+                    type: array
+                    maxItems: 50
+                    items:
+                      type: object
+                      required:
+                      - id
+                      - reason
+                      - require
+                      - when
+                      properties:
+                        disabled:
+                          type: boolean
+                        disabledReason:
+                          type: string
+                          maxLength: 500
+                        id:
+                          type: string
+                          pattern: ^[a-z0-9]([a-z0-9_-]{0,61}[a-z0-9])?$
+                        reason:
+                          type: string
+                          maxLength: 500
+                        require:
+                          type: string
+                          enum:
+                          - manager
+                        when:
+                          description: >-
+                            Condition tree of `all` / `any` nodes and `{field, op, value}` comparisons.
+                            Recursive, so validated by the policy evaluator rather than this schema.
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                  source:
+                    description: Provenance of the published policy.
+                    type: object
+                    properties:
+                      agnosticvRepo:
+                        type: string
+                      gitCommit:
+                        type: string
+                      path:
+                        type: string
+                  state:
+                    type: string
+                    enum:
+                    - Invalid
+                    - Valid
+                  version:
+                    type: string
               agnosticvRepo:
                 description:
                   Information about source AgnosticV repository.

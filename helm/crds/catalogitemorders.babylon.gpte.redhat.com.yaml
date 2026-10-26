@@ -1,0 +1,598 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: catalogitemorders.babylon.gpte.redhat.com
+spec:
+  conversion:
+    strategy: None
+  group: babylon.gpte.redhat.com
+  names:
+    kind: CatalogItemOrder
+    listKind: CatalogItemOrderList
+    plural: catalogitemorders
+    singular: catalogitemorder
+  scope: Namespaced
+  versions:
+  - name: v1
+    additionalPrinterColumns:
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    - name: Type
+      type: string
+      jsonPath: .spec.orderType
+    - name: Catalog Item
+      type: string
+      jsonPath: .spec.catalogItem.name
+    - name: Approval
+      type: string
+      jsonPath: .status.approval.state
+    - name: Requester
+      type: string
+      jsonPath: .spec.requester.user
+      priority: 1
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+    schema:
+      openAPIV3Schema:
+        description: >-
+          Durable order for a catalog item, created by the catalog API before provisioning.
+          The CatalogItemOrder controller evaluates the catalog item approval policy and creates
+          provisioning resources only when approval is satisfied or not required.
+          Only trusted service accounts write this resource; see docs/Catalog_Item_Orders.md.
+        type: object
+        required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+            properties:
+              name:
+                maxLength: 63
+                pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+                type: string
+          spec:
+            description: >-
+              Immutable, server-derived order request. Any change after creation is rejected by
+              validation and, for fields not visible to validation rules, detected by the controller
+              through metadata.generation and spec.requestDigest.
+            type: object
+            x-kubernetes-validations:
+            - rule: self == oldSelf
+              message: CatalogItemOrder spec is immutable
+            required:
+            - catalogItem
+            - idempotencyKeyDigest
+            - orderType
+            - request
+            - requestDigest
+            - requester
+            - submissionDigest
+            - submittedAt
+            properties:
+              catalogItem:
+                description: CatalogItem ordered and the revision used to normalize the request.
+                type: object
+                required:
+                - materialDigest
+                - name
+                - namespace
+                - uid
+                properties:
+                  materialDigest:
+                    description: >-
+                      Digest of the provisioning-relevant CatalogItem fields at submission.
+                      A different digest at dispatch blocks the order.
+                    type: string
+                    maxLength: 1024
+                  name:
+                    type: string
+                    maxLength: 1024
+                  namespace:
+                    type: string
+                    maxLength: 1024
+                  resourceVersion:
+                    type: string
+                    maxLength: 1024
+                  uid:
+                    type: string
+                    maxLength: 1024
+              idempotencyKeyDigest:
+                description: sha256 digest of the client idempotency key.
+                type: string
+                maxLength: 1024
+              orderType:
+                type: string
+                enum:
+                - selfPacedLab
+                - service
+                - workshop
+              request:
+                description: Normalized request with effective defaults applied.
+                type: object
+                required:
+                - parameters
+                - schedule
+                properties:
+                  activity:
+                    type: string
+                    maxLength: 256
+                  explanation:
+                    type: string
+                    maxLength: 4096
+                  parameters:
+                    description: Effective catalog parameter values, including defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  purpose:
+                    type: string
+                    maxLength: 256
+                  salesforceItems:
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: object
+                      required:
+                      - id
+                      - type
+                      properties:
+                        id:
+                          type: string
+                          maxLength: 128
+                        type:
+                          type: string
+                          enum:
+                          - campaign
+                          - opportunity
+                          - project
+                  schedule:
+                    description: >-
+                      Explicit times are absolute. Defaults for orders without a start time are kept
+                      relative (endAfter, stopAfter) and resolved when an attempt is dispatched.
+                    type: object
+                    properties:
+                      end:
+                        type: string
+                        maxLength: 64
+                        format: date-time
+                      endAfter:
+                        type: string
+                        maxLength: 32
+                        pattern: ^([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s)?$
+                      readyBy:
+                        type: string
+                        maxLength: 64
+                        format: date-time
+                      start:
+                        type: string
+                        maxLength: 64
+                        format: date-time
+                      stop:
+                        type: string
+                        maxLength: 64
+                        format: date-time
+                      stopAfter:
+                        type: string
+                        maxLength: 32
+                        pattern: ^([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s)?$
+                  selfPacedLab:
+                    type: object
+                    required:
+                    - assignedLifespan
+                    - poolSize
+                    - unassignedLifespan
+                    properties:
+                      accessPassword:
+                        type: string
+                        maxLength: 1024
+                      assignedLifespan:
+                        type: string
+                        maxLength: 1024
+                      concurrency:
+                        type: integer
+                        minimum: 1
+                      description:
+                        type: string
+                        maxLength: 65536
+                      displayName:
+                        type: string
+                        maxLength: 1024
+                      openRegistration:
+                        type: boolean
+                      poolSize:
+                        type: integer
+                        minimum: 1
+                      startDelay:
+                        type: integer
+                        minimum: 0
+                      unassignedLifespan:
+                        type: string
+                        maxLength: 1024
+                  service:
+                    type: object
+                    properties:
+                      autoDetach:
+                        type: boolean
+                      resourcePool:
+                        type: string
+                        maxLength: 1024
+                  skipSalesforceId:
+                    type: boolean
+                  workshop:
+                    type: object
+                    required:
+                    - concurrency
+                    - count
+                    - startDelay
+                    properties:
+                      accessPassword:
+                        type: string
+                        maxLength: 1024
+                      autoDetach:
+                        type: boolean
+                      concurrency:
+                        type: integer
+                        minimum: 1
+                      count:
+                        type: integer
+                        minimum: 1
+                      description:
+                        type: string
+                        maxLength: 65536
+                      displayName:
+                        type: string
+                        maxLength: 1024
+                      openRegistration:
+                        type: boolean
+                      resourcePool:
+                        type: string
+                        maxLength: 1024
+                      startDelay:
+                        type: integer
+                        minimum: 0
+              requestDigest:
+                description: >-
+                  sha256 digest binding requester, target namespace, catalog item revision, order type
+                  and normalized request. Approval decisions must reference this digest.
+                type: string
+                maxLength: 1024
+              requester:
+                description: Authenticated requester derived from the catalog API session.
+                type: object
+                required:
+                - uid
+                - user
+                properties:
+                  email:
+                    type: string
+                    maxLength: 1024
+                  uid:
+                    type: string
+                    maxLength: 1024
+                  user:
+                    type: string
+                    maxLength: 1024
+              submissionDigest:
+                description: >-
+                  sha256 digest of the client submission, used to reject reuse of an idempotency key
+                  with different inputs.
+                type: string
+                maxLength: 1024
+              submittedAt:
+                type: string
+                maxLength: 64
+                format: date-time
+          status:
+            description: Controller-owned lifecycle state. Updated with resourceVersion preconditions.
+            type: object
+            properties:
+              approval:
+                type: object
+                properties:
+                  approver:
+                    type: string
+                  decision:
+                    description: >-
+                      Decision recorded by the trusted decision service (GPTEINFRA-18189).
+                      Must reference the current requestDigest and policyDigest.
+                    type: object
+                    properties:
+                      comment:
+                        type: string
+                        maxLength: 2048
+                      decidedAt:
+                        type: string
+                        format: date-time
+                      decidedBy:
+                        type: string
+                      decidedByEmail:
+                        type: string
+                      outcome:
+                        type: string
+                        enum:
+                        - Approved
+                        - Denied
+                      policyDigest:
+                        type: string
+                      requestDigest:
+                        type: string
+                      source:
+                        type: string
+                  exemption:
+                    description: >-
+                      Exemption recorded by an approval exemption provider. No provider is enabled;
+                      reporting-level exemption semantics are unresolved.
+                    type: object
+                    properties:
+                      reason:
+                        type: string
+                      source:
+                        type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+                  manager:
+                    description: Manager data resolution, owned by GPTEINFRA-18189.
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                      message:
+                        type: string
+                      resolvedAt:
+                        type: string
+                        format: date-time
+                      source:
+                        type: string
+                      state:
+                        type: string
+                  policyDigest:
+                    type: string
+                  requestDigest:
+                    type: string
+                  requestedAt:
+                    type: string
+                    format: date-time
+                  reviewUrl:
+                    type: string
+                  revocation:
+                    type: object
+                    properties:
+                      reason:
+                        type: string
+                      revokedAt:
+                        type: string
+                        format: date-time
+                      revokedBy:
+                        type: string
+                  satisfiedAt:
+                    description: Time approval was decided or determined not required. Retry window origin.
+                    type: string
+                    format: date-time
+                  state:
+                    type: string
+                    enum:
+                    - Approved
+                    - Denied
+                    - Expired
+                    - NotRequired
+                    - Pending
+                    - Revoked
+              attempts:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - number
+                  - state
+                  properties:
+                    cleanedUpAt:
+                      type: string
+                      format: date-time
+                    failure:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                        reason:
+                          type: string
+                        retryable:
+                          type: boolean
+                        verifiedAt:
+                          type: string
+                          format: date-time
+                    finishedAt:
+                      type: string
+                      format: date-time
+                    number:
+                      type: integer
+                      minimum: 1
+                    resources:
+                      description: Planned resources, recorded before creation, with uid once created.
+                      type: array
+                      items:
+                        type: object
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        - namespace
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          uid:
+                            type: string
+                    schedule:
+                      description: Schedule resolved when the attempt was dispatched.
+                      type: object
+                      properties:
+                        end:
+                          type: string
+                          format: date-time
+                        readyBy:
+                          type: string
+                          format: date-time
+                        start:
+                          type: string
+                          format: date-time
+                        stop:
+                          type: string
+                          format: date-time
+                    startedAt:
+                      type: string
+                      format: date-time
+                    state:
+                      type: string
+                      enum:
+                      - CleanedUp
+                      - CleaningUp
+                      - Dispatching
+                      - Failed
+                      - Provisioning
+                      - Succeeded
+              blocked:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  recoverable:
+                    type: boolean
+                  resumePhase:
+                    type: string
+                  since:
+                    type: string
+                    format: date-time
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - status
+                  - type
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - 'False'
+                      - 'True'
+                      - Unknown
+                    type:
+                      type: string
+              history:
+                description: Bounded audit trail of lifecycle events.
+                type: array
+                items:
+                  type: object
+                  properties:
+                    actor:
+                      type: string
+                    event:
+                      type: string
+                    message:
+                      type: string
+                    phase:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+              observedGeneration:
+                type: integer
+              phase:
+                type: string
+                enum:
+                - Blocked
+                - Cancelled
+                - Denied
+                - Expired
+                - Failed
+                - PendingApproval
+                - Provisioned
+                - Provisioning
+                - Ready
+                - Submitted
+              policy:
+                description: Policy evaluation result and snapshot of the policy used.
+                type: object
+                properties:
+                  disabledRules:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        reason:
+                          type: string
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                  evaluatedAt:
+                    type: string
+                    format: date-time
+                  evaluatorVersion:
+                    type: string
+                  approvalRequired:
+                    type: boolean
+                  matchedRules:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        reason:
+                          type: string
+                  digest:
+                    type: string
+                  retryLimits:
+                    type: object
+                    properties:
+                      maxAttempts:
+                        type: integer
+                      window:
+                        type: string
+                  snapshot:
+                    description: Copy of CatalogItem spec.approvalPolicy evaluated.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  state:
+                    type: string
+                  version:
+                    type: string
+              retry:
+                type: object
+                properties:
+                  requestedAt:
+                    type: string
+                    format: date-time
+                  requestedBy:
+                    type: string
+    served: true
+    storage: true
+    subresources:
+      status: {}
