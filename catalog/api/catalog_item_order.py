@@ -785,6 +785,20 @@ def active_attempt(order):
     return None
 
 
+def order_completed(order):
+    """True once an order needs no further controller work: terminal phases,
+    non-recoverable blocks, and failures with no retry in progress."""
+    status = order.get('status') or {}
+    phase = order_phase(order)
+    if phase in TERMINAL_PHASES:
+        return True
+    if phase == PHASE_BLOCKED:
+        return not (status.get('blocked') or {}).get('recoverable')
+    if phase == PHASE_FAILED:
+        return not status.get('retry') and active_attempt(order) is None
+    return False
+
+
 def set_condition(status, condition_type, value, reason, message, now):
     conditions = status.setdefault('conditions', [])
     for condition in conditions:
@@ -831,6 +845,7 @@ def cancel_order(order, actor, now):
         )
     status = copy.deepcopy(order.get('status') or {})
     status['phase'] = PHASE_CANCELLED
+    status['completedAt'] = format_time(now)
     status.pop('blocked', None)
     set_condition(status, 'Ready', 'False', 'Cancelled', 'Order was cancelled by the requester', now)
     add_history(status, 'Cancelled', now, actor, 'Order cancelled before provisioning')
@@ -1033,6 +1048,7 @@ def order_view(order, now=None):
         },
         'conditions': status.get('conditions', []),
         'blocked': status.get('blocked'),
+        'completedAt': status.get('completedAt'),
         'attempts': [
             {
                 **attempt,

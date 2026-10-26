@@ -46,6 +46,7 @@ helm template catalog/helm \
 | `ORDER_APPROVAL_EXPIRES_AFTER` | `72h` | Pending approval lifetime when the policy does not set one. |
 | `ORDER_RETRY_WINDOW` | `72h` | Retry window when the policy does not set one. |
 | `ORDER_RETRY_MAX_ATTEMPTS` | `3` | Total attempts, including the initial one, when the policy does not set it. |
+| `ORDER_RETENTION` | `30d` | Delete completed orders this long after `status.completedAt`; empty disables. Helm: `catalogItemOrders.controller.retention`. |
 | `ORDER_CONTROLLER_RESYNC_INTERVAL` | `60` | Seconds between full resyncs; also how often child resource status is checked. |
 | `WORKSHOP_FAIL_PERCENTAGE_THRESHOLD`, `SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD` | `60` | Same thresholds the workshop and self-paced lab managers use to stop provisioning. |
 
@@ -241,7 +242,17 @@ Rules:
 
 `spec` is immutable and server-derived: requester (user, uid, and email when the OpenShift user name is an address; request headers are not trusted for this), catalog item reference with uid, resourceVersion and a digest of provisioning-relevant fields (`materialDigest`), order type, normalized request with effective defaults, `submittedAt`, idempotency key digest, submission digest and `requestDigest`. Immutability is enforced by a `self == oldSelf` validation rule and, for fields that rule cannot see (`request.parameters`), by the controller blocking any order whose `metadata.generation` is not 1 or whose `requestDigest` does not match.
 
-Users have no RBAC on `catalogitemorders`; the catalog API proxy also rejects writes to them. `babylon-cluster-reader` and `babylon-cluster-admin` have read-only access. Provisioning resources carry `babylon.gpte.redhat.com/catalog-item-order`, `-order-uid` and `-order-attempt` labels and have **no ownerReference to the order**, so deleting an order never deletes an environment. No retention policy is implemented; orders remain until deleted by an administrator.
+Users have no RBAC on `catalogitemorders`; the catalog API proxy also rejects writes to them. `babylon-cluster-reader` and `babylon-cluster-admin` have read-only access. Provisioning resources carry `babylon.gpte.redhat.com/catalog-item-order`, `-order-uid` and `-order-attempt` labels and have **no ownerReference to the order**, so deleting an order never deletes an environment.
+
+### Retention
+
+The controller sets `status.completedAt` when an order completes: `Provisioned`, `Denied`, `Expired`, `Cancelled`, `Failed`, or `Blocked` without automatic recovery. A retry clears it. On each resync the controller deletes orders whose `completedAt` is older than `ORDER_RETENTION` (default `30d`), except:
+
+- pending or in-progress orders, including recoverable blocks, which are never deleted;
+- failed orders that are still eligible for a retry;
+- orders with any recorded provisioning resource still present (matched by uid), so the order outlives the environment it authorized and is deleted on a later resync after that environment is gone.
+
+Deletion uses uid and resourceVersion preconditions, so an order updated after it was read (for example by a retry request) is not deleted. Completed orders without `completedAt` get it set on the next resync, and the retention clock starts then. Deleting the namespace also deletes its orders.
 
 ### Lifecycle
 
@@ -344,4 +355,4 @@ Start with service items in a non-production stage, with the flag enabled and `c
 - Resource `demo.redhat.com/requester` annotations use the requester email when known, otherwise the user name; the UI used the namespace requester or the session email.
 - Workshop and self-paced lab provisions receive effective parameter values including defaults, as services already do, so the provisioned values are those that were evaluated.
 - Salesforce ID validation remains a UI concern; the API validates only the shape of `salesforceItems`.
-- No order retention or garbage collection policy; choose one with platform owners before production.
+- Completed orders are deleted after 30 days and their history goes with them. Archiving approval records elsewhere (for example the reporting database) is not implemented.

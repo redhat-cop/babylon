@@ -97,6 +97,25 @@ class KubeOrderClient:
         except kubernetes_asyncio.client.exceptions.ApiException as exception:
             raise _wrap(exception) from exception
 
+    async def delete_order(self, order):
+        """Delete an order only if unchanged since it was read.
+
+        Returns False if it is gone or was modified (resourceVersion changed)."""
+        try:
+            await self.custom_objects_api.delete_namespaced_custom_object(
+                group=API_GROUP, version=API_VERSION, plural=PLURAL,
+                namespace=order['metadata']['namespace'], name=order['metadata']['name'],
+                body={'preconditions': {
+                    'uid': order['metadata']['uid'],
+                    'resourceVersion': order['metadata']['resourceVersion'],
+                }},
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status in (404, 409):
+                return False
+            raise _wrap(exception) from exception
+        return True
+
     async def get_catalog_item(self, namespace, name):
         return await self._get(API_GROUP, 'v1', 'catalogitems', namespace, name)
 

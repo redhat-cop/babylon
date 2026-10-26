@@ -44,6 +44,8 @@ spec:
           value: {{ $controller.retry.window | quote }}
         - name: ORDER_RETRY_MAX_ATTEMPTS
           value: {{ $controller.retry.maxAttempts | quote }}
+        - name: ORDER_RETENTION
+          value: {{ $controller.retention | default "" | quote }}
         - name: ORDER_CONTROLLER_RESYNC_INTERVAL
           value: {{ $controller.resyncInterval | quote }}
         - name: ORDER_CONTROLLER_WORKERS
