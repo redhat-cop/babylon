@@ -642,6 +642,16 @@ class BabylonClient:
     async def get_resource_handle(self, name:str) -> ResourceHandle:
         return await ResourceHandle.get(client=self, name=name, namespace="poolboy")
 
+    async def list_resource_handles(self,
+        label_selector:str|None=None,
+    ) -> AsyncGenerator[ResourceHandle, None]:
+        async for resource_handle in ResourceHandle.list(
+            client=self,
+            label_selector=label_selector,
+            namespace="poolboy",
+        ):
+            yield resource_handle
+
     # ResourcePool methods
     async def get_resource_pool(self, name:str) -> ResourcePool:
         return await ResourcePool.get(client=self, name=name, namespace="poolboy")

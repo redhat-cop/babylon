@@ -136,6 +136,7 @@ class K8sObject:
 
     @property
     def is_deleting(self) -> bool:
+        """Return true if deletionTimestamp is set"""
         return self.metadata.deletion_timestamp is not None
 
     @property

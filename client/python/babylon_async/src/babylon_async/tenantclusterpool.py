@@ -7,6 +7,7 @@ from typing import Any, List, Mapping
 
 from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
+from .resourcehandle import ResourceHandle
 
 class TenantClusterPool(K8sObject):
     api_group = "babylon.gpte.redhat.com"
@@ -172,6 +173,13 @@ class TenantClusterPool(K8sObject):
                 if err.status != 422:
                     raise
                 await self.refresh()
+
+    async def list_tenant_resource_handles(self) -> Generator[ResourceHandle, None, None]:
+        """Iterate through tenant ResourceHandles"""
+        async for resource_handle in self.client.list_resource_handles(
+            label_selector=f"babylon.gpte.redhat.com/tenant-cluster-pool={self.name}",
+        ):
+            yield resource_handle
 
     async def remove_cluster_from_status(self,
         resource_claim_name:str,

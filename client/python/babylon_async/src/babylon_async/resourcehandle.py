@@ -99,8 +99,30 @@ class ResourceHandle(K8sObject):
         return None
 
     @property
-    def guid(self) -> str|None:
+    def guid(self) -> str:
+        """Return GUID, derived from name suffix"""
         return self.name[5:]
+
+    @property
+    def is_bound(self) -> bool:
+        """Return true if ResourceClaim associated"""
+        return self.spec.has_resource_claim
+
+    @property
+    def is_healthy(self) -> bool|None:
+        """Return whether ResourceHandle is healthy.
+        True means all resources related to ResourceHandle are healthy.
+        False means that some resource related to ResourceHandle is in a failed state.
+        None means health cannot be determined."""
+        return self.status.healthy
+
+    @property
+    def is_ready(self) -> bool|None:
+        """Return whether ResourceHandle is ready.
+        True means provision is complete and all resources are in desired state.
+        False means provision is not complete or is still converging to desired state.
+        None means readiness cannot be determined."""
+        return self.status.ready
 
     @property
     def lifespan_end_datetime(self) -> datetime|None:
@@ -123,6 +145,16 @@ class ResourceHandle(K8sObject):
         if self.status is None or self.status.summary is None:
             return None
         return self.status.summary.get('provision_data')
+
+    @property
+    def resource_claim_name(self) -> str|None:
+        """Return ResourceClaim name if bound"""
+        return self.spec.resource_claim_name
+
+    @property
+    def resource_claim_namespace(self) -> str|None:
+        """Return ResourceClaim name if bound"""
+        return self.spec.resource_claim_namespace
 
     @property
     def spec(self) -> ResourceHandleSpec:
@@ -167,6 +199,11 @@ class ResourceHandleSpec:
         self._definition = definition
 
     @property
+    def has_resource_claim(self) -> bool:
+        """Return whether spec has resourceClaim"""
+        return 'resourceClaim' in self._definition
+
+    @property
     def lifespan(self) -> ResourceHandleSpecLifespan|None:
         if 'lifespan' not in self._definition:
             return None
@@ -177,6 +214,21 @@ class ResourceHandleSpec:
         if 'provider' not in self._definition:
             return None
         return ResourceHandleSpecProvider(self._definition['provider'])
+
+    @property
+    def resource_claim_name(self) -> str|None:
+        """Return ResourceClaim name if bound"""
+        if 'resourceClaim' in self._definition:
+            return self._definition['resourceClaim'].get('name')
+        return None
+
+    @property
+    def resource_claim_namespace(self) -> str|None:
+        """Return ResourceClaim name if bound"""
+        if 'resourceClaim' in self._definition:
+            return self._definition['resourceClaim'].get('namespace')
+        return None
+
 
 class ResourceHandleSpecLifespan:
     def __init__(self, definition):
@@ -238,10 +290,12 @@ class ResourceHandleStatus:
 
     @property
     def healthy(self) -> bool|None:
+        """Return value of healthy from status"""
         return self._definition.get('healthy')
 
     @property
     def ready(self) -> bool|None:
+        """Return value of ready from status"""
         return self._definition.get('ready')
 
     @property

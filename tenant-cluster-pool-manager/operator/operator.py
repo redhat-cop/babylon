@@ -527,6 +527,29 @@ async def manage_tenant_pool(
     this will return 1."""
 
     handle_count_without_placements = 0
+
+    async for resource_handle in self.list_tenant_resource_handles():
+        if resource_handle.is_deleting:
+            continue
+        if resource_handle.is_healthy == False:
+            if resource_handle.is_bound:
+                logger.warning(
+                    "%s tenant %s found unhealthy, "
+                    "leaving because it is bound to ResourceClaim %s in %s",
+                    self, resource_handle,
+                    resource_handle.resource_claim_name,
+                    resource_handle.resource_claim_namespace,
+                )
+            else:
+                logger.warning("%s tenant %s found unhealthy, deleting.", self, resource_handle)
+                await resource_handle.delete()
+                continue
+        # Check if guid has sandbox placement on cluster
+
+
+        if resource_handle.is_bound:
+            What now?
+
     # FIXME - loop through ResourceHandles 
 
     if tenant_pool.is_deleted:
