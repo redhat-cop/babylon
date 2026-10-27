@@ -78,6 +78,12 @@ from catalog_item_order_adapters import (
     plan_resources,
 )
 from catalog_item_order_kube import KubeConflictError, KubeError, KubeOrderClient
+from catalog_item_order_manager import (
+    AUTHORITY_BASES,
+    ManagerLookupError,
+    ReportingApiClient,
+    normalize_email,
+)
 from catalog_order_policy import catalog_item_allows_ordering, ordering_block_reason
 
 logger = logging.getLogger('catalog_item_order_controller')
@@ -149,11 +155,14 @@ class NoApprovalExemptions:
 
 
 class CatalogItemOrderController:
-    def __init__(self, kube, config=None, clock=utcnow, exemptions=None):
+    def __init__(self, kube, config=None, clock=utcnow, exemptions=None, manager_resolver=None):
+        """manager_resolver provides `async get_manager_data(email)`, normally a
+        ReportingApiClient. Without one, manager resolution stays unresolved."""
         self.kube = kube
         self.config = config or ControllerConfig()
         self.clock = clock
         self.exemptions = exemptions or NoApprovalExemptions()
+        self.manager_resolver = manager_resolver
 
     async def reconcile(self, namespace, name, max_steps=20):
         """Advance one order until it needs to wait. Returns the final order."""
@@ -349,6 +358,11 @@ class CatalogItemOrderController:
         if isinstance(published, dict):
             policy_status['snapshot'] = copy.deepcopy(published)
         status['policy'] = policy_status
+        if self.config.catalog_base_url:
+            status['orderUrl'] = (
+                f"{self.config.catalog_base_url.rstrip('/')}/orders/"
+                f"{order['metadata']['namespace']}/{order['metadata']['name']}"
+            )
 
         if evaluation['state'] in ('Invalid', 'Error'):
             reason = 'PolicyInvalid' if evaluation['state'] == 'Invalid' else 'PolicyEvaluationFailed'
@@ -377,8 +391,9 @@ class CatalogItemOrderController:
                 'expiresAt': format_time(now + timedelta(seconds=parse_duration(expires_after))),
                 'manager': {
                     'source': 'reporting-api',
-                    'state': 'Unresolved',
-                    'message': 'Manager resolution and notification are provided by GPTEINFRA-18189',
+                    'state': 'Pending',
+                    'attempts': 0,
+                    'nextAttemptAt': format_time(now),
                 },
             })
             if self.config.review_base_url:
@@ -405,6 +420,8 @@ class CatalogItemOrderController:
             return 'Decision outcome is not valid'
         if not decision.get('source'):
             return 'Decision source is missing'
+        if (decision.get('authority') or {}).get('basis') not in AUTHORITY_BASES:
+            return 'Decision has no recognized authority basis'
         decided_by = decision.get('decidedBy')
         if not decided_by:
             return 'Decision approver is missing'
@@ -463,7 +480,60 @@ class CatalogItemOrderController:
             approval['state'] = APPROVAL_EXPIRED
             set_condition(status, 'ApprovalSatisfied', 'False', 'Expired', 'Approval request expired', now)
             return self._transition(order, status, PHASE_EXPIRED, 'ApprovalExpired', now)
+        if await self._resolve_manager(order, status, approval, now):
+            changed = True
         return status if changed else None
+
+    async def _resolve_manager(self, order, status, approval, now):
+        """Resolve the direct manager to notify. Returns True if status changed.
+
+        Resolution only selects the notification recipient; it is not
+        authorization, which the decision endpoints check live. Failures leave
+        approval pending with an actionable condition and are retried with
+        backoff until the original expiry, which is never extended."""
+        manager = approval.setdefault('manager', {'source': 'reporting-api', 'attempts': 0})
+        if manager.get('state') == 'Resolved':
+            return False
+        next_attempt = parse_time(manager.get('nextAttemptAt'))
+        if next_attempt is None or now < next_attempt:
+            return False
+        attempts = int(manager.get('attempts') or 0) + 1
+        manager.update({'attempts': attempts, 'lastAttemptAt': format_time(now)})
+        retry = True
+        requester_email = normalize_email(order['spec']['requester'].get('email'))
+        if requester_email is None:
+            reason, retry = 'RequesterEmailMissing', False
+            message = 'Requester has no email address; an administrator must review this request'
+        elif self.manager_resolver is None:
+            reason, retry = 'ManagerLookupNotConfigured', False
+            message = 'Manager lookup is not configured; an administrator must review this request'
+        else:
+            try:
+                data = await self.manager_resolver.get_manager_data(requester_email)
+            except ManagerLookupError as exception:
+                reason, message = exception.reason, exception.message
+            else:
+                if data.direct_manager_email:
+                    manager['directManager'] = {'email': data.direct_manager_email}
+                    if data.direct_manager_name:
+                        manager['directManager']['name'] = data.direct_manager_name
+                    manager.update({'state': 'Resolved', 'resolvedAt': format_time(now)})
+                    for key in ('reason', 'message', 'nextAttemptAt'):
+                        manager.pop(key, None)
+                    set_condition(status, 'ManagerResolved', 'True', 'Resolved', '', now)
+                    self._history(status, 'ManagerResolved', now)
+                    return True
+                reason = 'DirectManagerMissing'
+                message = 'Reporting API has no direct manager for the requester'
+        if retry:
+            delay = min(60 * 2 ** (attempts - 1), 1800)
+            manager['nextAttemptAt'] = format_time(now + timedelta(seconds=delay))
+            message = f"{message}; retrying. Managers in the reporting chain and administrators can still review the request"
+        else:
+            manager.pop('nextAttemptAt', None)
+        manager.update({'state': 'Unresolved', 'reason': reason, 'message': message[:1024]})
+        set_condition(status, 'ManagerResolved', 'False', reason, message[:1024], now)
+        return True
 
     async def _dispatch_problem(self, order, status, now):
         """Return (reason, message, recoverable) blocking dispatch, or None."""
@@ -826,7 +896,13 @@ async def main():
             babylon_namespace=babylon_namespace,
             system_status_configmap=os.environ.get('SYSTEM_STATUS_CONFIGMAP', 'babylon-system-status'),
         )
-        controller = CatalogItemOrderController(kube, config)
+        reporting_api = os.environ.get(
+            'SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080'
+        )
+        controller = CatalogItemOrderController(
+            kube, config,
+            manager_resolver=ReportingApiClient(reporting_api, os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')),
+        )
         logger.info("Starting CatalogItemOrder controller")
         await run(controller, kube, config)
 

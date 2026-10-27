@@ -33,6 +33,8 @@ from order_test_support import (
     submission,
 )
 
+MANAGER_AUTHORITY = {'basis': 'direct_manager', 'source': 'reporting-api'}
+
 REQUESTER = Requester(user='alice', uid=USER_UID, email='alice@example.com')
 
 
@@ -353,8 +355,7 @@ def failed_order(attempts=1, retryable=True, satisfied_at=NOW, approval_state='A
 class TestDecisionContract(unittest.TestCase):
     def test_records_decision_bound_to_digests(self):
         order = pending_order()
-        status = record_approval_decision(
-            order, outcome='Approved', decided_by='manager', now=NOW + timedelta(hours=1),
+        status = record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW + timedelta(hours=1),
             source='catalog-api/approvals', comment='ok',
         )
         decision = status['approval']['decision']
@@ -372,27 +373,27 @@ class TestDecisionContract(unittest.TestCase):
         for name, kwargs in cases.items():
             with self.subTest(name):
                 with self.assertRaises(ApprovalDecisionError):
-                    record_approval_decision(order, now=NOW, source='s', **kwargs)
+                    record_approval_decision(order, authority=MANAGER_AUTHORITY, now=NOW, source='s', **kwargs)
         with self.assertRaises(ApprovalDecisionError):
-            record_approval_decision(order, outcome='Approved', decided_by='manager', now=NOW + timedelta(hours=73), source='s')
+            record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW + timedelta(hours=73), source='s')
         stale = pending_order()
         stale['status']['approval']['requestDigest'] = 'sha256:old'
         with self.assertRaises(ApprovalDecisionError):
-            record_approval_decision(stale, outcome='Approved', decided_by='manager', now=NOW, source='s')
+            record_approval_decision(stale, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW, source='s')
         cancelled = pending_order()
         cancelled['status']['phase'] = PHASE_CANCELLED
         with self.assertRaises(ApprovalDecisionError):
-            record_approval_decision(cancelled, outcome='Approved', decided_by='manager', now=NOW, source='s')
+            record_approval_decision(cancelled, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW, source='s')
 
     def test_conflicting_second_decision_rejected(self):
         order = pending_order()
-        order['status'] = record_approval_decision(order, outcome='Denied', decided_by='manager', now=NOW, source='s')
+        order['status'] = record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Denied', decided_by='manager', now=NOW, source='s')
         self.assertEqual(
-            record_approval_decision(order, outcome='Denied', decided_by='manager', now=NOW, source='s'),
+            record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Denied', decided_by='manager', now=NOW, source='s'),
             order['status'],
         )
         with self.assertRaises(ApprovalDecisionError):
-            record_approval_decision(order, outcome='Approved', decided_by='manager', now=NOW, source='s')
+            record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW, source='s')
 
     def test_revoke(self):
         order = pending_order()

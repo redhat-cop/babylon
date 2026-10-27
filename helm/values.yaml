@@ -184,6 +184,10 @@ configNamespace:
 
 notifier:
   deploy: false
+  # Approval emails for CatalogItemOrders (GPTEINFRA-18189). Enable together with
+  # catalogItemOrders.enabled in the catalog chart.
+  catalogItemOrders:
+    enabled: false
   image:
     repository: quay.io/rhpds/babylon-notifier
     pullPolicy: IfNotPresent

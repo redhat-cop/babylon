@@ -66,6 +66,8 @@ spec:
             secretKeyRef:
               key: database-password
               name: babylon-notifier-redis
+        - name: CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED
+          value: {{ (($notifier.catalogItemOrders).enabled | default false) | ternary "true" "false" | quote }}
         {{- with $notifier.onlySendTo }}
         - name: ONLY_SEND_TO
           value: {{ . | quote }}

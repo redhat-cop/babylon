@@ -1,0 +1,12 @@
+{# Escaped title for order emails; base.mjml.j2's default title does not escape. #}
+<mj-column>
+  <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+    Status: {{ service_status|e }}
+  </mj-text>
+  <mj-text font-family="Red Hat Display" font-weight="regular" align="center" font-size="35px" color="#000" line-height="1.2">
+    {{ service_display_name|e }}
+  </mj-text>
+  <mj-text font-family="Red Hat Text" font-weight="regular" align="center" font-size="16px" color="#000" line-height="1.2">
+    from {{ catalog_namespace.display_name|e }}
+  </mj-text>
+</mj-column>
