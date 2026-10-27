@@ -1,0 +1,11 @@
+{
+  "id": 102,
+  "email": "carol@example.com",
+  "full_name": "Carol Contractor",
+  "user_group": "employee",
+  "is_manager": false,
+  "employee_number": null,
+  "supervisor_number": null,
+  "manager": [],
+  "manager_levels": []
+}

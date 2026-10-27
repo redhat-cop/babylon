@@ -1,0 +1,23 @@
+{% extends "base.mjml.j2" %}
+{% block title %}{% include "_catalog-item-order-title.mjml.j2" %}{% endblock title %}
+{% block content %}
+<mj-column>
+  <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
+    <p>{{ requester_name|e }} has requested <strong>{{ catalog_item_display_name|e }}</strong> and your approval is needed before it can be provisioned.</p>
+    {% include "_catalog-item-order-summary.mjml.j2" %}
+    {% if expires_at %}<p>This request expires on <strong>{{ expires_at|e }}</strong>. If no decision is made by then, it will not be provisioned.</p>{% endif %}
+    <p>Open the request to review it and approve or deny it. You will be asked to sign in; opening the link does not record a decision.</p>
+  </mj-text>
+</mj-column>
+{% endblock content %}
+{% block action %}
+{% if review_url %}
+<mj-section padding-top="0" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+  <mj-column>
+    <mj-button font-family="Red Hat Text" background-color="#ee0000" color="#ffffff" font-size="16px" href="{{ review_url|e }}">
+      Review request
+    </mj-button>
+  </mj-column>
+</mj-section>
+{% endif %}
+{% endblock action %}

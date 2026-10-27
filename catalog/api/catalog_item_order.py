@@ -945,24 +945,26 @@ class ApprovalDecisionError(Exception):
         self.message = message
 
 
-def record_approval_decision(order, *, outcome, decided_by, now, source,
+APPROVAL_AUTHORITY_BASES = ('administrator', 'direct_manager', 'management_chain')
+
+
+def record_approval_decision(order, *, outcome, decided_by, now, source, authority,
                              decided_by_email=None, comment=None):
-    """Approval-state integration contract for GPTEINFRA-18189.
+    """Record an approval decision in status.approval.decision.
 
-    Returns an updated status carrying status.approval.decision. The trusted
-    decision service must authenticate and authorize the approver (manager
-    relationship via Reporting API GET /users/by-email/{email}) before calling
-    this and must write the result with the order resourceVersion. The
-    controller performs the resulting lifecycle transition after verifying
-    that the decision quotes the current request and policy digests.
-
-    There is intentionally no HTTP endpoint for this in GPTEINFRA-18188."""
+    The caller (catalog API decision endpoints) authenticates the actor and
+    establishes `authority` ({basis, source, level?}) before calling this, and
+    writes the result with the order resourceVersion. The controller performs
+    the resulting lifecycle transition after verifying that the decision
+    quotes the current request and policy digests."""
     if outcome not in DECISION_OUTCOMES:
         raise ApprovalDecisionError('invalid_outcome', f"outcome must be one of {', '.join(DECISION_OUTCOMES)}")
     if not isinstance(decided_by, str) or not decided_by:
         raise ApprovalDecisionError('invalid_approver', 'decided_by is required')
     if not isinstance(source, str) or not source:
         raise ApprovalDecisionError('invalid_source', 'source is required')
+    if not isinstance(authority, dict) or authority.get('basis') not in APPROVAL_AUTHORITY_BASES:
+        raise ApprovalDecisionError('invalid_authority', 'authority basis is required')
     status = copy.deepcopy(order.get('status') or {})
     approval = status.get('approval') or {}
     if order_phase(order) != PHASE_PENDING_APPROVAL or approval.get('state') != APPROVAL_PENDING:
@@ -972,7 +974,11 @@ def record_approval_decision(order, *, outcome, decided_by, now, source,
         if existing.get('outcome') == outcome and existing.get('decidedBy') == decided_by:
             return status
         raise ApprovalDecisionError('already_decided', 'A decision has already been recorded')
-    if decided_by == order['spec']['requester']['user']:
+    requester = order['spec']['requester']
+    if decided_by == requester['user'] or (
+        decided_by_email and requester.get('email')
+        and decided_by_email.lower() == requester['email'].lower()
+    ):
         raise ApprovalDecisionError('self_approval', 'Requesters cannot decide their own orders')
     expires_at = parse_time(approval.get('expiresAt'))
     if expires_at is None or now > expires_at:
@@ -986,6 +992,9 @@ def record_approval_decision(order, *, outcome, decided_by, now, source,
         'requestDigest': approval['requestDigest'],
         'policyDigest': approval.get('policyDigest'),
         'source': source,
+        'authority': {
+            key: authority[key] for key in ('basis', 'source', 'level') if authority.get(key) is not None
+        },
     }
     if decided_by_email:
         decision['decidedByEmail'] = decided_by_email
@@ -993,7 +1002,10 @@ def record_approval_decision(order, *, outcome, decided_by, now, source,
         decision['comment'] = comment[:2048]
     approval['decision'] = decision
     status['approval'] = approval
-    add_history(status, f"Decision{outcome}", now, decided_by, f"Approval decision recorded by {source}")
+    add_history(
+        status, f"Decision{outcome}", now, decided_by,
+        f"Approval decision recorded by {source} ({authority['basis']})",
+    )
     return status
 
 
@@ -1049,6 +1061,7 @@ def order_view(order, now=None):
         'conditions': status.get('conditions', []),
         'blocked': status.get('blocked'),
         'completedAt': status.get('completedAt'),
+        'orderUrl': status.get('orderUrl'),
         'attempts': [
             {
                 **attempt,
@@ -1061,4 +1074,84 @@ def order_view(order, now=None):
     }
     if now is not None:
         view['retry'] = evaluate_retry(order, now).as_dict()
+    return view
+
+
+_SENSITIVE_PARAMETER_RE = re.compile(r'(password|passwd|secret|token|credential|private|key)', re.IGNORECASE)
+
+
+def _safe_parameters(order, catalog_item=None):
+    """Parameters that are safe to show to an approver: drops names that look
+    sensitive and parameters whose schema declares a password format."""
+    sensitive = set()
+    for parameter in ((catalog_item or {}).get('spec') or {}).get('parameters') or []:
+        if not isinstance(parameter, dict):
+            continue
+        schema = parameter.get('openAPIV3Schema') or {}
+        if isinstance(schema, dict) and schema.get('format') == 'password':
+            sensitive.add(parameter.get('name'))
+    return {
+        name: value for name, value in (order['spec']['request'].get('parameters') or {}).items()
+        if name not in sensitive and not _SENSITIVE_PARAMETER_RE.search(name)
+    }
+
+
+def request_summary(order):
+    """Non-sensitive request summary used by review pages and emails."""
+    spec = order['spec']
+    request = spec['request']
+    inputs = policy_request_inputs(spec)
+    summary = {
+        'orderType': spec['orderType'],
+        'quantity': inputs['quantity'],
+        'durationHours': round(inputs['duration_hours'], 2),
+    }
+    for key in ('purpose', 'activity', 'explanation'):
+        if request.get(key):
+            summary[key] = request[key]
+    schedule = request.get('schedule') or {}
+    for key in ('start', 'end', 'endAfter', 'stop', 'stopAfter'):
+        if schedule.get(key):
+            summary.setdefault('schedule', {})[key] = schedule[key]
+    return summary
+
+
+def review_view(order, catalog_item=None, authority=None):
+    """Sanitized order summary for approvers (managers and administrators)."""
+    metadata = order.get('metadata') or {}
+    spec = order['spec']
+    status = order.get('status') or {}
+    approval = status.get('approval') or {}
+    policy = status.get('policy') or {}
+    catalog_spec = (catalog_item or {}).get('spec') or {}
+    view = {
+        'uid': metadata.get('uid'),
+        'orderId': order_id(order),
+        'phase': order_phase(order),
+        'requester': {key: spec['requester'].get(key) for key in ('user', 'email') if spec['requester'].get(key)},
+        'catalogItem': {
+            'name': spec['catalogItem']['name'],
+            'namespace': spec['catalogItem']['namespace'],
+            'displayName': catalog_spec.get('displayName') or spec['catalogItem']['name'],
+        },
+        'submittedAt': spec.get('submittedAt'),
+        'request': request_summary(order),
+        'parameters': _safe_parameters(order, catalog_item),
+        'reasons': [rule.get('reason') for rule in policy.get('matchedRules') or []],
+        'approval': {
+            key: approval.get(key)
+            for key in ('state', 'requestedAt', 'expiresAt', 'reviewUrl', 'decision')
+            if approval.get(key) is not None
+        },
+        'canDecide': bool(authority) and order_phase(order) == PHASE_PENDING_APPROVAL
+        and approval.get('state') == APPROVAL_PENDING and not approval.get('decision'),
+    }
+    manager = approval.get('manager') or {}
+    if manager:
+        view['approval']['manager'] = {
+            key: manager.get(key) for key in ('state', 'reason', 'message', 'directManager')
+            if manager.get(key) is not None
+        }
+    if authority:
+        view['authority'] = authority
     return view

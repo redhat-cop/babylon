@@ -38,6 +38,16 @@ spec:
         - name: CATALOG_BASE_URL
           value: {{ . | quote }}
         {{- end }}
+        # Manager resolution reuses the catalog API Reporting API configuration.
+        {{- with $controller.reportingApiUrl }}
+        - name: SALESFORCE_API
+          value: {{ . | quote }}
+        {{- end }}
+        - name: SALESFORCE_AUTHORIZATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.salesforceApiSecretName" . }}
+              key: salesforce-api-token
         - name: ORDER_APPROVAL_EXPIRES_AFTER
           value: {{ $controller.approvalExpiresAfter | quote }}
         - name: ORDER_RETRY_WINDOW

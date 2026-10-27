@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 import jinja2
 import kopf
+import kubernetes_asyncio
 import logging
 import os
 import redis.asyncio
@@ -24,6 +25,7 @@ from tempfile import mkstemp
 
 from babylon import Babylon
 from catalog_item import CatalogItem
+from catalog_item_order_notifier import OrderNotifier
 from catalog_namespace import CatalogNamespace
 from configure_kopf_logging import configure_kopf_logging
 from email_sender import EmailSender
@@ -47,6 +49,12 @@ smtp_tls_cert_file = os.environ.get('SMTP_TLS_CERT_FILE', None)
 smtp_tls_key = os.environ.get('SMTP_TLS_KEY', None)
 smtp_tls_key_file = os.environ.get('SMTP_TLS_KEY_FILE', None)
 smtp_tls_validate_certs = os.environ.get('SMTP_TLS_VALIDATE_CERTS', 'true') != 'false'
+
+# CatalogItemOrder approval emails (GPTEINFRA-18189). Opt-in, like the order API.
+catalog_item_order_notifications_enabled = (
+    os.environ.get('CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED', 'false').lower() == 'true'
+)
+order_notifier = None
 
 ### Development/Test variables
 # Only send messages to contact listed in ONLY_SEND_TO
@@ -146,8 +154,25 @@ async def configure(settings: kopf.OperatorSettings, **_):
         decode_responses=True,
     )
 
+    if catalog_item_order_notifications_enabled:
+        global order_notifier
+        order_notifier = OrderNotifier(
+            redis = redis_connection,
+            get_order = get_catalog_item_order,
+            get_catalog_item = get_catalog_item_definition,
+            get_catalog_namespace_display_name = get_catalog_namespace_display_name,
+            render_html = render_mjml_template,
+            html_to_text = html2text,
+            send = lambda msg: send_email_message(msg, logger=logging.getLogger('catalog_item_order_notifier')),
+            sender = f"{smtp_sender} <{smtp_from}>",
+            only_send_to = only_send_to,
+            post_warning = lambda order, reason, message: kopf.warn(order, reason=reason, message=message),
+        )
+
 @kopf.on.cleanup()
 async def on_cleanup(**_):
+    if order_notifier:
+        await order_notifier.close()
     await Babylon.on_cleanup()
     await redis_connection.close()
 
@@ -279,6 +304,49 @@ async def workshop_event(event, logger, **_):
         await handle_workshop_event(**kwargs)
     else:
         logger.warning(event)
+
+if catalog_item_order_notifications_enabled:
+    @kopf.on.event(Babylon.babylon_domain, Babylon.babylon_api_version, 'catalogitemorders')
+    async def catalog_item_order_event(event, logger, **_):
+        """Approval emails for CatalogItemOrders. Read-only: the notifier
+        never writes orders and has no permission to."""
+        order = event.get('object')
+        if event.get('type') == 'DELETED' or not order or order.get('kind') != 'CatalogItemOrder':
+            return
+        await order_notifier.handle(order)
+
+async def get_catalog_item_order(namespace, name):
+    try:
+        return await Babylon.custom_objects_api.get_namespaced_custom_object(
+            group = Babylon.babylon_domain,
+            name = name,
+            namespace = namespace,
+            plural = 'catalogitemorders',
+            version = Babylon.babylon_api_version,
+        )
+    except kubernetes_asyncio.client.rest.ApiException as e:
+        if e.status == 404:
+            return None
+        raise
+
+async def get_catalog_item_definition(namespace, name):
+    catalog_item = await CatalogItem.get(name=name, namespace=namespace)
+    return catalog_item.definition if catalog_item else None
+
+async def get_catalog_namespace_display_name(namespace):
+    catalog_namespace = await CatalogNamespace.get(namespace)
+    return catalog_namespace.display_name if catalog_namespace else None
+
+def render_mjml_template(template, template_vars):
+    mjml_template = j2env.get_template(template + '.mjml.j2').render(**template_vars)
+    result = subprocess.run(
+        ['mjml', '-i'],
+        stdout=subprocess.PIPE,
+        input=mjml_template,
+        encoding='utf-8',
+        check=True,
+    )
+    return result.stdout
 
 async def cancel_resource_claim_tasks(resource_claim, logger):
     uid = resource_claim.uid

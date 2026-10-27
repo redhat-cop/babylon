@@ -306,6 +306,23 @@ spec:
                       Must reference the current requestDigest and policyDigest.
                     type: object
                     properties:
+                      authority:
+                        description: >-
+                          Why the actor could decide: administrator (server-side role check),
+                          direct_manager or management_chain (Reporting API at decision time).
+                        type: object
+                        properties:
+                          basis:
+                            type: string
+                            enum:
+                            - administrator
+                            - direct_manager
+                            - management_chain
+                          level:
+                            description: Reporting API manager_levels field index for management_chain.
+                            type: integer
+                          source:
+                            type: string
                       comment:
                         type: string
                         maxLength: 2048
@@ -341,12 +358,30 @@ spec:
                     type: string
                     format: date-time
                   manager:
-                    description: Manager data resolution, owned by GPTEINFRA-18189.
+                    description: >-
+                      Direct manager resolution from the Reporting API, used to address the approval
+                      request email. Not an authorization record: decisions revalidate the reporting
+                      relationship when they are submitted.
                     type: object
                     properties:
-                      email:
+                      attempts:
+                        type: integer
+                      directManager:
+                        type: object
+                        properties:
+                          email:
+                            type: string
+                          name:
+                            type: string
+                      lastAttemptAt:
                         type: string
+                        format: date-time
                       message:
+                        type: string
+                      nextAttemptAt:
+                        type: string
+                        format: date-time
+                      reason:
                         type: string
                       resolvedAt:
                         type: string
@@ -355,6 +390,10 @@ spec:
                         type: string
                       state:
                         type: string
+                        enum:
+                        - Pending
+                        - Resolved
+                        - Unresolved
                   policyDigest:
                     type: string
                   requestDigest:
@@ -527,6 +566,9 @@ spec:
                       format: date-time
               observedGeneration:
                 type: integer
+              orderUrl:
+                description: Catalog page for the order, used in requester notifications.
+                type: string
               phase:
                 type: string
                 enum:

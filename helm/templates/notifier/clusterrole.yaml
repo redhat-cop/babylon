@@ -54,6 +54,16 @@ rules:
   - get
   - list
   - watch
+# Approval emails read CatalogItemOrders only. The notifier must never be able
+# to write orders or their status, so it cannot record approval decisions.
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitemorders
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - {{ .Values.resourceBroker.api.group }}
   resources:

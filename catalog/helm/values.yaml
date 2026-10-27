@@ -42,6 +42,9 @@ catalogItemOrders:
     replicaCount: 1
     # Public catalog URL used for resource url annotations and approval review links.
     catalogBaseUrl:
+    # Reporting API base URL for manager resolution; defaults to the in-cluster
+    # service the catalog API uses. The token comes from salesforceApi.secretName.
+    reportingApiUrl:
     # Defaults when a catalog item approval policy does not set them.
     approvalExpiresAfter: 72h
     retry:

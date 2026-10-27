@@ -30,6 +30,8 @@ from catalog_order_policy import (
 )
 from catalog_item_order_kube import KubeError, KubeOrderClient
 from catalog_item_order_service import CatalogItemOrderService, OrderApiError
+from catalog_item_order_approvals import ApprovalApiError, ApprovalService
+from catalog_item_order_manager import ReportingApiClient
 
 app_api_client = core_v1_api = custom_objects_api = None
 console_url = None
@@ -2017,6 +2019,125 @@ async def handle_catalog_item_order_request(request, operation, audit_event=None
             details={'phase': data.get('phase')} if isinstance(data, dict) else None,
         )
     return web.json_response(data, status=status)
+
+
+def catalog_item_order_approval_service():
+    return ApprovalService(
+        kube=KubeOrderClient(
+            app_api_client,
+            babylon_namespace=babylon_namespace,
+            system_status_configmap=system_status_configmap_name,
+        ),
+        manager_lookup=ReportingApiClient(reporting_api, reporting_api_authorization_token),
+    )
+
+
+def catalog_item_order_cross_site_problem(request):
+    """Decisions require a JSON body and, when the browser sends one, a
+    same-origin Origin header. Session tokens travel in a request header, so
+    plain cross-site form posts are already unauthenticated; these checks
+    make the requirement explicit."""
+    if request.content_type != 'application/json':
+        return catalog_item_order_error('unsupported_media_type', 'Use Content-Type: application/json', 415)
+    origin = request.headers.get('Origin')
+    if origin:
+        forwarded_host = request.headers.get('X-Forwarded-Host') or request.host
+        if urlparse(origin).netloc != forwarded_host:
+            return catalog_item_order_error('cross_site_request', 'Cross-site requests are not allowed', 403)
+    return None
+
+
+async def handle_catalog_item_order_approval_request(request, operation, audit_event=None):
+    if not catalog_item_orders_enabled:
+        raise web.HTTPNotFound()
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
+    if request.headers.get('Impersonate-User'):
+        return catalog_item_order_error(
+            'impersonation_not_supported', 'Approvals cannot be reviewed while impersonating', 400
+        )
+    uid = request.match_info.get('uid')
+    try:
+        status, data = await operation(catalog_item_order_approval_service(), session, user['metadata']['name'])
+    except ApprovalApiError as exception:
+        if audit_event:
+            audit_log(
+                f"{audit_event}_denied", user=session['user'], status=exception.status,
+                resource_type='CatalogItemOrder', resource_name=uid,
+                details={'policy_code': exception.code},
+            )
+        return catalog_item_order_error(exception.code, exception.message, exception.status)
+    except (KubeError, aiohttp.ClientError, asyncio.TimeoutError):
+        logging.exception("CatalogItemOrder approval request failed")
+        return catalog_item_order_error('order_backend_unavailable', 'Unable to process approval', 503)
+    if audit_event:
+        audit_log(
+            audit_event, user=session['user'], status=status, resource_type='CatalogItemOrder',
+            resource_name=data.get('orderId'),
+            details={
+                'uid': uid,
+                'outcome': ((data.get('approval') or {}).get('decision') or {}).get('outcome'),
+                'authority': (data.get('authority') or {}).get('basis'),
+            },
+        )
+    return web.json_response(data, status=status)
+
+
+@routes.get("/api/catalog-item-order-approvals")
+async def catalog_item_order_approval_list(request):
+    try:
+        limit = int(request.query['limit']) if 'limit' in request.query else None
+    except ValueError:
+        return catalog_item_order_error('invalid_limit', 'limit must be an integer', 400)
+
+    async def operation(service, session, user_name):
+        return 200, await service.list(
+            session=session, user_name=user_name, limit=limit,
+            continue_token=request.query.get('continue'),
+        )
+    return await handle_catalog_item_order_approval_request(request, operation)
+
+
+@routes.get("/api/catalog-item-order-approvals/{uid}")
+async def catalog_item_order_approval_review(request):
+    """Review summary. Never records a decision, so email links and link
+    scanners cannot approve or deny."""
+    async def operation(service, session, user_name):
+        return 200, await service.review(request.match_info['uid'], session=session, user_name=user_name)
+    return await handle_catalog_item_order_approval_request(request, operation)
+
+
+async def catalog_item_order_decision(request, outcome):
+    problem = catalog_item_order_cross_site_problem(request)
+    if problem:
+        return problem
+    try:
+        body = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return catalog_item_order_error('invalid_json', 'Invalid JSON request body', 400)
+    if body is None:
+        body = {}
+    if not isinstance(body, dict) or set(body) - {'comment'}:
+        return catalog_item_order_error('invalid_request', 'Body may only contain "comment"', 400)
+
+    async def operation(service, session, user_name):
+        return await service.decide(
+            request.match_info['uid'], outcome, session=session, user_name=user_name,
+            comment=body.get('comment'),
+        )
+    return await handle_catalog_item_order_approval_request(
+        request, operation, f"catalog_item_order_{outcome.lower()}",
+    )
+
+
+@routes.post("/api/catalog-item-order-approvals/{uid}/approve")
+async def catalog_item_order_approve(request):
+    return await catalog_item_order_decision(request, 'Approved')
+
+
+@routes.post("/api/catalog-item-order-approvals/{uid}/deny")
+async def catalog_item_order_deny(request):
+    return await catalog_item_order_decision(request, 'Denied')
 
 
 @routes.post("/api/catalog-item-orders")

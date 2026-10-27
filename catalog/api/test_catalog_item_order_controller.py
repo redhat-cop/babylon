@@ -33,6 +33,8 @@ from order_test_support import (
     submission,
 )
 
+MANAGER_AUTHORITY = {'basis': 'direct_manager', 'source': 'reporting-api'}
+
 BASE_URL = 'https://catalog.example.com'
 MANAGER_POLICY = {'version': 'v1', 'default': 'manager_required', 'approval': {'expires_after': '72h'}}
 LARGE_POLICY = {'version': 'v1', 'rules': {'large': {
@@ -84,8 +86,7 @@ class ControllerTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def decide(self, order, outcome='Approved', decided_by='manager', **kwargs):
         current = await self.kube.get_order(order['metadata']['namespace'], order['metadata']['name'])
-        status = record_approval_decision(
-            current, outcome=outcome, decided_by=decided_by, now=self.clock(),
+        status = record_approval_decision(current, authority=MANAGER_AUTHORITY, outcome=outcome, decided_by=decided_by, now=self.clock(),
             source='test-decision-service', **kwargs,
         )
         await self.kube.replace_order_status(current, status)
@@ -241,6 +242,7 @@ class TestApprovalGate(ControllerTestCase):
             'self approval': {'decidedBy': 'alice'},
             'after expiry': {'decidedAt': format_time(NOW + timedelta(hours=80))},
             'no source': {'source': ''},
+            'no authority': {'authority': {}},
         }
         for index, (name, override) in enumerate(cases.items()):
             with self.subTest(name):
@@ -251,6 +253,7 @@ class TestApprovalGate(ControllerTestCase):
                         'outcome': 'Approved', 'decidedBy': 'manager', 'decidedAt': format_time(self.clock()),
                         'requestDigest': order['spec']['requestDigest'],
                         'policyDigest': status['approval']['policyDigest'], 'source': 'forger',
+                        'authority': {'basis': 'direct_manager'},
                     }
                     decision.update(override)
                     status['approval']['decision'] = decision

@@ -46,6 +46,7 @@ helm template catalog/helm \
 | `ORDER_APPROVAL_EXPIRES_AFTER` | `72h` | Pending approval lifetime when the policy does not set one. |
 | `ORDER_RETRY_WINDOW` | `72h` | Retry window when the policy does not set one. |
 | `ORDER_RETRY_MAX_ATTEMPTS` | `3` | Total attempts, including the initial one, when the policy does not set it. |
+| `SALESFORCE_API` | in-cluster Reporting API | Reporting API URL for manager resolution (Helm: `catalogItemOrders.controller.reportingApiUrl`); token `SALESFORCE_AUTHORIZATION_TOKEN` from `salesforceApi.secretName`, as for the catalog API. |
 | `ORDER_RETENTION` | `30d` | Delete completed orders this long after `status.completedAt`; empty disables. Helm: `catalogItemOrders.controller.retention`. |
 | `ORDER_CONTROLLER_RESYNC_INTERVAL` | `60` | Seconds between full resyncs; also how often child resource status is checked. |
 | `WORKSHOP_FAIL_PERCENTAGE_THRESHOLD`, `SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD` | `60` | Same thresholds the workshop and self-paced lab managers use to stop provisioning. |
@@ -327,19 +328,133 @@ Limits come from the policy (`retry.window`, `retry.max_attempts`) or the contro
 
 Flow: `POST .../retry` records `status.retry`. The controller rechecks eligibility, deletes the failed attempt's resources by recorded uid (`CleaningUp`), waits until they are gone (`CleanedUp`), returns the order to `Ready`, reruns the dispatch checks and claims a new attempt with new names and a freshly resolved schedule. Eligibility is checked again at dispatch. If any check fails the retry request is dropped and recorded as `RetryRejected`; the requester must submit a new order, which is evaluated afresh. Failed resources are kept until a retry cleans them up or the requester deletes them.
 
+## Manager approval (GPTEINFRA-18189)
+
+### Manager resolution
+
+While an order is `PendingApproval`, the controller looks up the requester in the Reporting API (`GET /users/by-email/{email}`, the requester email encoded as one path segment, existing `SALESFORCE_API` URL and `SALESFORCE_AUTHORIZATION_TOKEN`). It records only what the notification needs:
+
+```yaml
+status:
+  approval:
+    manager:
+      source: reporting-api
+      state: Resolved            # Pending | Resolved | Unresolved
+      resolvedAt: "2026-10-27T10:00:00Z"
+      directManager: {email: dana.manager@example.com, name: Dana Manager}
+      attempts: 1
+```
+
+Response contract (Reporting API v1.10.3; excerpt in `catalog/api/fixtures/reporting_api/users_by_email_contract.json`):
+
+- `manager` is the direct manager as a full user object, or `null` (declared default `[]`, treated as no manager).
+- `manager_levels` is a list of records, each describing one user (`user_email`, `active`) and that user's management chain in `level_1_email` … `level_14_email`.
+
+Eligible approvers are the direct manager's email and every `level_N_email` of the requester's single active record (never the requester). This is set membership: the schema does not say whether level 1 is the top or the nearest level, and nothing depends on that. Inactive records are ignored, and more than one active record makes the chain unavailable (the direct manager still applies). Job titles, `is_manager` and array lengths are not used.
+
+Failures leave approval pending and set `state: Unresolved` with `reason`, `message` and a `ManagerResolved=False` condition:
+
+| Reason | Retried | Meaning |
+|---|---|---|
+| `ManagerLookupUnavailable` | yes | Reporting API error, timeout or HTTP status other than 200/404 |
+| `RequesterNotFound` | yes | Reporting API returned 404 |
+| `InvalidManagerData` | yes | Response did not match the contract |
+| `DirectManagerMissing` | yes | No direct manager; chain managers and administrators can still review |
+| `RequesterEmailMissing` | no | The OpenShift user name is not an email; an administrator must review |
+| `ManagerLookupNotConfigured` | no | Controller has no Reporting API client |
+
+Retries back off from 1 minute, doubling to a 30-minute cap, and never extend `approval.expiresAt`. Resolution only chooses the email recipient; it is not authorization.
+
+### Who can decide
+
+| Actor | Can decide | Authority recorded |
+|---|---|---|
+| Requester's direct manager (Reporting API, at decision time) | yes | `direct_manager` |
+| Anyone in the requester's active management chain (Reporting API, at decision time) | yes | `management_chain` with `level` |
+| Administrator (server-side role check from the session), any namespace, also during Reporting API outages | yes | `administrator` |
+| The requester, **including when the requester is an administrator** | no | — |
+| Anyone else | no | — |
+
+Self-decision is the one exception to "administrators can decide all requests": an administrator cannot approve or deny their own order, matched by user name or email. The relationship is looked up again for every decision, so a changed manager or a cached notification recipient grants nothing. If the Reporting API is unavailable, non-administrators get `503 manager_lookup_unavailable` and nothing is recorded; a 404 or malformed response grants no authority.
+
+Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Ready` or `Denied` transition and all provisioning. Approval reuse for provisioning retries is unchanged and sends no new approval request.
+
+### Approvals API (for GPTEINFRA-18190)
+
+All routes require a catalog API session, return `404` while `CATALOG_ITEM_ORDERS_ENABLED` is false, and reject `Impersonate-User`. Errors are `{"error": "<code>", "message": "..."}`. The UI review page at `/approvals/<order uid>` (the `status.approval.reviewUrl`) should call the review route; opening it never records a decision.
+
+| Route | Purpose |
+|---|---|
+| `GET /api/catalog-item-order-approvals?limit=50&continue=<token>` | Pending orders the caller may decide, oldest request first. Administrators see all pending orders. |
+| `GET /api/catalog-item-order-approvals/{uid}` | Review summary for one order, pending or already decided. |
+| `POST /api/catalog-item-order-approvals/{uid}/approve` | Record approval. Body: `{"comment": "optional, ≤ 2048 chars"}`. |
+| `POST /api/catalog-item-order-approvals/{uid}/deny` | Record denial. Same body. |
+
+List response: `{"items": [<review>], "continue": "<token, only if more>", "incomplete": false}`. `incomplete: true` means some requesters could not be checked because the Reporting API was unavailable. `limit` is 1–200.
+
+Review shape (also returned by approve and deny):
+
+```json
+{
+  "uid": "…", "orderId": "user-alice/order-…", "phase": "PendingApproval",
+  "requester": {"user": "alice@example.com", "email": "alice@example.com"},
+  "catalogItem": {"name": "tests.item.prod", "namespace": "babylon-catalog-prod", "displayName": "Test Item"},
+  "submittedAt": "…",
+  "request": {"orderType": "workshop", "quantity": 12, "durationHours": 72.0, "purpose": "…", "activity": "…",
+              "explanation": "…", "schedule": {"endAfter": "3d", "stopAfter": "4h"}},
+  "parameters": {"num_users": 25},
+  "reasons": ["Large workshops need approval."],
+  "approval": {"state": "Pending", "requestedAt": "…", "expiresAt": "…", "reviewUrl": "…",
+               "manager": {"state": "Resolved", "directManager": {"email": "…", "name": "…"}},
+               "decision": {"…": "present once decided"}},
+  "authority": {"basis": "direct_manager", "source": "reporting-api"},
+  "canDecide": true
+}
+```
+
+`parameters` omits names that look sensitive (password, secret, token, credential, private, key) and parameters whose schema uses `format: password`. Workshop access passwords are never included.
+
+| Status | Code | When |
+|---|---|---|
+| 200 | — | Decision recorded, or the same actor repeats the same decision (idempotent, also after the controller transition) |
+| 400 | `invalid_request`, `invalid_comment`, `invalid_limit`, `invalid_continue`, `invalid_json`, `impersonation_not_supported` | Malformed request |
+| 403 | `self_decision` | Caller is the requester (administrators included) |
+| 403 | `not_authorized` | Caller is not an eligible approver |
+| 403 | `cross_site_request` | `Origin` header does not match the catalog host |
+| 404 | `order_not_found` | No order with that uid |
+| 409 | `already_decided` | A different decision exists |
+| 409 | `not_pending`, `expired` | Order is no longer pending (cancelled, decided, expired) |
+| 409 | `request_changed`, `policy_changed` | Order, catalog item or approval policy changed since approval was requested |
+| 409 | `order_conflict` | Concurrent updates; reload and retry |
+| 415 | `unsupported_media_type` | Decision body is not `application/json` |
+| 503 | `manager_lookup_unavailable` | Reporting API unavailable for a non-administrator |
+
+Decisions are written with a `resourceVersion` precondition and re-read and revalidated on conflict, so concurrent approve/deny and cancel/expiry races have exactly one outcome. Session tokens travel in the `Authentication` request header, which cross-site forms cannot send; decisions additionally require a JSON body and a same-origin `Origin` when present.
+
+### Approval emails
+
+The notifier operator watches CatalogItemOrders when `CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED=true` (Helm: `notifier.catalogItemOrders.enabled`, or `catalogItemOrders.enabled` in `notifier/helm`). It only reads orders; its RBAC is `get`/`list`/`watch` on `catalogitemorders`, with no access to status, so it cannot affect approval.
+
+| Event | Recipient | Template | When |
+|---|---|---|---|
+| Approval request | Resolved direct manager | `catalog-item-order-approval-request` | Pending, undecided, unexpired, manager resolved |
+| Approved | Requester | `catalog-item-order-approved` | `approval.state: Approved` |
+| Denied | Requester | `catalog-item-order-denied` | `Denied`, or `Revoked` |
+| Expired | Requester | `catalog-item-order-expired` | `Expired` |
+
+Higher managers are not emailed; they use the same review link or the approvals list. Emails use the existing branding, MJML rendering, plain-text alternative, EmailSender, SMTP settings and `ONLY_SEND_TO`. They include the requester, catalog item, purpose and activity, explanation, order type and quantity, schedule, approval reasons, expiry and the review or order link (`status.orderUrl`, `<CATALOG_BASE_URL>/orders/<namespace>/<name>`). Untrusted values are escaped and no email contains a credential. The approved email does not claim provisioning has started.
+
+Delivery is tracked in Redis per order uid, event, approval cycle and recipient. A send takes an atomic claim (10-minute lease), re-reads the order and skips obsolete approval requests (decided, cancelled, expired), and records the key as sent only after the SMTP server accepts the message. Failures release the claim and retry in-process with exponential backoff (up to 8 attempts) without waiting for a new Kubernetes event; after that a `ApprovalNotificationFailed` warning event is posted and the next watch event tries again. Events older than 7 days are not sent, so losing Redis state does not resend old mail. Delivery is at least once: a crash after the SMTP server accepted a message but before it was recorded resends it after the lease expires.
+
+### Exemptions
+
+The exemption-provider extension point (`CatalogItemOrderController(exemptions=...)`) remains disabled: the shipped `NoApprovalExemptions` never exempts. The Reporting API provides `level_1` … `level_14` chain fields, but whether a level threshold applies to the requester or an ancestor, the numbering direction and the comparison are undefined. No AgnosticV syntax or default exists for exemptions, and missing hierarchy data never exempts an order.
+
 ## Contracts for dependent tickets
-
-### GPTEINFRA-18189: manager data, approver authorization, notifications, decisions
-
-- **Manager data.** Use Reporting API `GET /users/by-email/{email}` with the requester's email (`spec.requester.email`, present only when the OpenShift user name is an address; resolving users without one is part of this ticket) encoded as one path segment (`catalog_item_order.reporting_user_lookup_path`). The response includes `manager` and `manager_levels`; the sample shows empty arrays, so confirm their element structure and hierarchy semantics before implementing the adapter. Record the result in `status.approval.manager` (`source`, `state`, `email`, `resolvedAt`, `message`). The controller currently sets `state: Unresolved`. Missing or unavailable manager data must not approve or exempt an order.
-- **Decision.** After authenticating the approver and verifying they are the requester's manager, call `catalog_item_order.record_approval_decision(order, outcome='Approved'|'Denied', decided_by=..., decided_by_email=..., comment=..., source=..., now=...)` and write the returned status with `replace_order_status` (resourceVersion precondition). It refuses orders that are not pending, expired approvals, self-approval, conflicting second decisions and stale request digests. The decision quotes `requestDigest` and `policyDigest`; the controller ignores a decision whose digests, timing, source or approver do not check out, then performs the `Ready`/`Denied` transition. `revoke_approval` records a revocation that denies a pending order and prevents dispatch or retry reuse of an approval.
-- **Review URL.** `status.approval.reviewUrl` is `<ORDER_REVIEW_BASE_URL>/approvals/<order uid>`: a locator, not a credential. Approval must never happen on GET.
-- **Exemptions.** `CatalogItemOrderController(exemptions=...)` accepts a provider with `async find_exemption(order, evaluation)`. The shipped `NoApprovalExemptions` never exempts. Reporting-level exemption semantics are unresolved; do not enable a provider until they are defined.
-- **Trust boundary.** Only identities with `catalogitemorders/status` update (the catalog API and controller service accounts) can record decisions. There is no decision endpoint in this ticket.
 
 ### GPTEINFRA-18190: UI
 
-Submit with `POST /api/catalog-item-orders` and a client-generated idempotency key per form submission; show `phase`, `approval` (state, matched rule reasons, expiry), `blocked`, `attempts` and `retry` from the order view; follow `attempts[-1].resources` to the existing service/workshop pages. The UI path stays disabled until the feature flag is on.
+Use the [Approvals API](#approvals-api-for-gpteinfra-18190) for the review page (`/approvals/<order uid>`, linked from emails) and the manager panel. Submit with `POST /api/catalog-item-orders` and a client-generated idempotency key per form submission; show `phase`, `approval` (state, matched rule reasons, expiry), `blocked`, `attempts` and `retry` from the order view; follow `attempts[-1].resources` to the existing service/workshop pages. The UI path stays disabled until the feature flag is on.
 
 ### GPTEINFRA-18191: client migration and enforcement
 
@@ -355,4 +470,6 @@ Start with service items in a non-production stage, with the flag enabled and `c
 - Resource `demo.redhat.com/requester` annotations use the requester email when known, otherwise the user name; the UI used the namespace requester or the session email.
 - Workshop and self-paced lab provisions receive effective parameter values including defaults, as services already do, so the provisioned values are those that were evaluated.
 - Salesforce ID validation remains a UI concern; the API validates only the shape of `salesforceItems`.
+- Manager authority requires OpenShift user names that are email addresses, matching how the catalog API already identifies users to the Reporting API. Other users can only be handled by administrators.
+- Approval review by uid and the approvals list read all orders and filter in the API; this scales with the number of orders kept by retention.
 - Completed orders are deleted after 30 days and their history goes with them. Archiving approval records elsewhere (for example the reporting database) is not implemented.
