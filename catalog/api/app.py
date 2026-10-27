@@ -992,6 +992,7 @@ async def _jira_lookup_account_id(email, credentials, session):
 
 _DELIVERY_MODE_MAP = {
     "on-site": "ILT",
+    "hybrid": "ILT",
     "virtual": "VT",
     "online": "VT",
     "role": "ROLE",
@@ -1050,6 +1051,8 @@ async def create_jira_wgr_ticket(request):
         labels.append('whiteglove-multi-asset')
     if not catalog_item_names_list:
         labels.append('whiteglove-consultation')
+    if data.get('audienceType'):
+        labels.append(f"wgr-audience-{data['audienceType']}")
     short_notice = False
     event_date_str = data.get('eventDate')
     if event_date_str:
