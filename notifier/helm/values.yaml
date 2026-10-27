@@ -8,6 +8,11 @@ replicaCount: 1
 # Set onlySendTo for development to prevent accidental email delivery.
 #onlySendTo:
 
+# Approval emails for CatalogItemOrders (GPTEINFRA-18189). Requires the
+# CatalogItemOrder CRD; enable together with the catalog chart catalogItemOrders.
+catalogItemOrders:
+  enabled: false
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

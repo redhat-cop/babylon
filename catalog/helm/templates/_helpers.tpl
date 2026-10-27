@@ -238,6 +238,25 @@ Shared Cluster Manager secret name
 {{/*
 Jira secret name
 */}}
+{{/*
+CatalogItemOrder controller names
+*/}}
+{{- define "babylonCatalog.orderControllerName" -}}
+  {{- default (printf "%s-order-controller" (include "babylonCatalog.name" .)) .Values.catalogItemOrders.controller.name -}}
+{{- end -}}
+
+{{- define "babylonCatalog.orderControllerServiceAccountName" -}}
+  {{- default (include "babylonCatalog.orderControllerName" .) .Values.catalogItemOrders.controller.serviceAccount.name }}
+{{- end -}}
+
+{{- define "babylonCatalog.orderControllerSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "babylonCatalog.name" . }}
+app.kubernetes.io/component: order-controller
+  {{- if (ne .Release.Name "RELEASE-NAME") }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- end -}}
+{{- end -}}
+
 {{- define "babylonCatalog.jiraSecretName" -}}
   {{- .Values.jira.secretName | default "babylon-catalog-jira" }}
 {{- end -}}

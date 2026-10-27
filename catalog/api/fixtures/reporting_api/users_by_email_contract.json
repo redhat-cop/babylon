@@ -1,0 +1,630 @@
+{
+  "operation": {
+    "description": "Get the user information by email.",
+    "operationId": "users_get_by_email",
+    "parameters": [
+      {
+        "description": "The email address",
+        "in": "path",
+        "name": "email",
+        "required": true,
+        "schema": {
+          "description": "The email address",
+          "title": "Email",
+          "type": "string"
+        }
+      },
+      {
+        "description": "Include detailed resource information.",
+        "in": "query",
+        "name": "details",
+        "required": false,
+        "schema": {
+          "default": false,
+          "description": "Include detailed resource information.",
+          "title": "Details",
+          "type": "boolean"
+        }
+      },
+      {
+        "description": "Force an update of the user.",
+        "in": "query",
+        "name": "force_update",
+        "required": false,
+        "schema": {
+          "default": false,
+          "description": "Force an update of the user.",
+          "title": "Force Update",
+          "type": "boolean"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/api__users__v1__responses__users__User"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    },
+    "security": [
+      {
+        "PermissionDependency": []
+      }
+    ],
+    "summary": "Get user by email",
+    "tags": [
+      "Users"
+    ]
+  },
+  "path": "/users/by-email/{email}",
+  "schemas": {
+    "User": {
+      "properties": {
+        "email": {
+          "description": "Unique email",
+          "format": "email",
+          "title": "Email",
+          "type": "string"
+        },
+        "employee_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Employee number",
+          "title": "Employee Number"
+        },
+        "full_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Full name",
+          "title": "Full Name"
+        },
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "is_manager": {
+          "default": false,
+          "description": "Is the user a manager?",
+          "title": "Is Manager",
+          "type": "boolean"
+        },
+        "last_day_of_work": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last day of work",
+          "title": "Last Day Of Work"
+        },
+        "manager": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/api__users__v1__responses__users__User"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [],
+          "description": "User's manager"
+        },
+        "manager_levels": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/components/schemas/UserManagerLevel"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": [],
+          "description": "Manager levels",
+          "title": "Manager Levels"
+        },
+        "supervisor_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Supervisor's employee number",
+          "title": "Supervisor Number"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "user_group"
+      ]
+    },
+    "UserManagerLevel": {
+      "properties": {
+        "active": {
+          "default": false,
+          "description": "Indicates if the record is active",
+          "title": "Active",
+          "type": "boolean"
+        },
+        "cost_center": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The cost center associated with the user",
+          "title": "Cost Center"
+        },
+        "created_at": {
+          "description": "Creation timestamp",
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "employee_number": {
+          "description": "The employee number",
+          "title": "Employee Number",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The primary key",
+          "title": "Id"
+        },
+        "level_10_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 10",
+          "title": "Level 10 Email"
+        },
+        "level_10_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 10",
+          "title": "Level 10 Name"
+        },
+        "level_11_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 11",
+          "title": "Level 11 Email"
+        },
+        "level_11_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 11",
+          "title": "Level 11 Name"
+        },
+        "level_12_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 12",
+          "title": "Level 12 Email"
+        },
+        "level_12_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 12",
+          "title": "Level 12 Name"
+        },
+        "level_13_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 13",
+          "title": "Level 13 Email"
+        },
+        "level_13_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 13",
+          "title": "Level 13 Name"
+        },
+        "level_14_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 14",
+          "title": "Level 14 Email"
+        },
+        "level_14_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 14",
+          "title": "Level 14 Name"
+        },
+        "level_1_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 1",
+          "title": "Level 1 Email"
+        },
+        "level_1_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 1",
+          "title": "Level 1 Name"
+        },
+        "level_2_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 2",
+          "title": "Level 2 Email"
+        },
+        "level_2_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 2",
+          "title": "Level 2 Name"
+        },
+        "level_3_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 3",
+          "title": "Level 3 Email"
+        },
+        "level_3_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 3",
+          "title": "Level 3 Name"
+        },
+        "level_4_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 4",
+          "title": "Level 4 Email"
+        },
+        "level_4_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 4",
+          "title": "Level 4 Name"
+        },
+        "level_5_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 5",
+          "title": "Level 5 Email"
+        },
+        "level_5_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 5",
+          "title": "Level 5 Name"
+        },
+        "level_6_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 6",
+          "title": "Level 6 Email"
+        },
+        "level_6_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 6",
+          "title": "Level 6 Name"
+        },
+        "level_7_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 7",
+          "title": "Level 7 Email"
+        },
+        "level_7_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 7",
+          "title": "Level 7 Name"
+        },
+        "level_8_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 8",
+          "title": "Level 8 Email"
+        },
+        "level_8_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 8",
+          "title": "Level 8 Name"
+        },
+        "level_9_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Email of the manager at level 9",
+          "title": "Level 9 Email"
+        },
+        "level_9_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the manager at level 9",
+          "title": "Level 9 Name"
+        },
+        "updated_at": {
+          "description": "Last updated timestamp",
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "user_email": {
+          "description": "The email of the user",
+          "title": "User Email",
+          "type": "string"
+        },
+        "user_geo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The geographic location of the user",
+          "title": "User Geo"
+        },
+        "user_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The group the user belongs to",
+          "title": "User Group"
+        },
+        "user_id": {
+          "description": "The user ID, foreign key to users table",
+          "title": "User Id",
+          "type": "integer"
+        },
+        "user_role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The role of the user",
+          "title": "User Role"
+        }
+      },
+      "required": [
+        "user_id",
+        "user_email",
+        "employee_number",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "User Manager Level",
+      "type": "object"
+    }
+  },
+  "securitySchemes": {
+    "PermissionDependency": {
+      "in": "header",
+      "name": "Authorization",
+      "type": "apiKey"
+    }
+  },
+  "source": "Demo Platform Reporting API openapi.json",
+  "version": "v1.10.3"
+}
