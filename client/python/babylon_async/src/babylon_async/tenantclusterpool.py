@@ -181,6 +181,8 @@ class TenantClusterPool(K8sObject):
                 except BabylonApiException as err:
                     if attempt == retries:
                         raise
+                    if err.status == 404:
+                        return
                     if err.status != 422:
                         raise
                     await self.refresh()

@@ -624,6 +624,23 @@ class BabylonClient:
             provider_name=provider_name,
         )
 
+    async def delete_resource_claim(self, name:str, namespace:str) -> ResourceClaim|None:
+        """Delete ResourceClaim and return object if found.
+        Return None if already deleted."""
+        try:
+            definition = await self.delete_object(
+                group=ResourceClaim.api_group,
+                name=name,
+                namespace=namespace,
+                plural=ResourceClaim.plural,
+                version=ResourceClaim.api_version,
+            )
+            return ResourceClaim(self, definition)
+        except BabylonApiException as exception:
+            if exception.status == 404:
+                return None
+            raise
+
     async def get_resource_claim(self, name:str, namespace:str) -> ResourceClaim:
         return await ResourceClaim.get(client=self, name=name, namespace=namespace)
 
