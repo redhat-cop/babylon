@@ -973,6 +973,30 @@ async def external_item_request(request):
         url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
 
+async def _jira_lookup_account_id(email, credentials, session):
+    """Return the Jira accountId for an email address, or None if not found."""
+    async with session.get(
+        f"{jira_base_url}/rest/api/3/user/search",
+        headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/json"},
+        params={"query": email, "maxResults": 1},
+    ) as resp:
+        if resp.status != 200:
+            logging.warning(f"Jira user lookup failed for {email}: {resp.status}")
+            return None
+        results = await resp.json()
+        if results:
+            return results[0]["accountId"]
+        logging.warning(f"Jira user not found for email: {email}")
+        return None
+
+
+_DELIVERY_MODE_MAP = {
+    "on-site": "ILT",
+    "virtual": "VT",
+    "online": "VT",
+    "role": "ROLE",
+}
+
 @routes.post("/api/jira/wgr")
 async def create_jira_wgr_ticket(request):
     user = await get_proxy_user(request)
@@ -982,7 +1006,7 @@ async def create_jira_wgr_ticket(request):
 
     data = await request.json()
     display_name = data.get('displayName', 'White Glove Request')
-    requester = user['metadata']['name']
+    requester_email = request.headers.get('X-Forwarded-Email') or user['metadata']['name']
 
     catalog_item_names_list = data.get('catalogItemNames') or []
     catalog_namespace = data.get('catalogItemNamespace', '')
@@ -991,8 +1015,12 @@ async def create_jira_wgr_ticket(request):
     else:
         catalog_items_str = 'N/A (consultation)'
 
+    sf_ids_str = ''
+    if data.get('salesforceItems'):
+        sf_ids_str = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
+
     description_lines = [
-        f"Requester: {requester}",
+        f"Requester: {requester_email}",
         f"Catalog Item: {catalog_items_str}",
         f"Activity: {data.get('activity', 'N/A')}",
         f"Purpose: {data.get('purpose', 'N/A')}",
@@ -1008,9 +1036,8 @@ async def create_jira_wgr_ticket(request):
         description_lines.append(f"Event Start: {data['eventDate']}")
     if data.get('eventEndDate'):
         description_lines.append(f"Event End: {data['eventEndDate']}")
-    if data.get('salesforceItems'):
-        sf_ids = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
-        description_lines.append(f"Salesforce IDs: {sf_ids}")
+    if sf_ids_str:
+        description_lines.append(f"Salesforce IDs: {sf_ids_str}")
     if data.get('shareWith'):
         description_lines.append(f"Shared With: {', '.join(data['shareWith'])}")
     if data.get('notes'):
@@ -1023,42 +1050,71 @@ async def create_jira_wgr_ticket(request):
         labels.append('whiteglove-multi-asset')
     if not catalog_item_names_list:
         labels.append('whiteglove-consultation')
+    short_notice = False
     event_date_str = data.get('eventDate')
     if event_date_str:
         event_date = datetime.fromisoformat(event_date_str.replace('Z', '+00:00'))
         if (event_date - datetime.now(timezone.utc)).days < 14:
             labels.append('whiteglove-short-notice')
-
-    jira_payload = {
-        "fields": {
-            "project": {"key": jira_project_key},
-            "summary": f"[WGR] {display_name}",
-            "description": {
-                "type": "doc",
-                "version": 1,
-                "content": [
-                    {
-                        "type": "paragraph",
-                        "content": [{"type": "text", "text": description_text}]
-                    }
-                ]
-            },
-            "issuetype": {"name": "Task"},
-            "reporter": {"emailAddress": requester},
-            "labels": labels,
-        }
-    }
+            short_notice = True
 
     credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    headers = {
+    jira_headers = {
         "Authorization": f"Basic {credentials}",
         "Content-Type": "application/json",
     }
 
     async with aiohttp.ClientSession() as session:
+        # Look up Jira accountIds for requester and shareWith users
+        requester_account_id = await _jira_lookup_account_id(requester_email, credentials, session)
+
+        share_with_emails = data.get('shareWith') or []
+        participant_account_ids = []
+        if requester_account_id:
+            participant_account_ids.append(requester_account_id)
+        for email in share_with_emails:
+            acct = await _jira_lookup_account_id(email, credentials, session)
+            if acct:
+                participant_account_ids.append(acct)
+
+        jira_fields = {
+            "project": {"key": jira_project_key},
+            "summary": f"[WGR] {display_name}",
+            "description": {
+                "type": "doc",
+                "version": 1,
+                "content": [{"type": "paragraph", "content": [{"type": "text", "text": description_text}]}],
+            },
+            "issuetype": {"name": "Task"},
+            "labels": labels,
+            "priority": {"name": "High" if short_notice else "Medium"},
+        }
+
+        if requester_account_id:
+            jira_fields["reporter"] = {"accountId": requester_account_id}
+
+        if participant_account_ids:
+            jira_fields["customfield_10317"] = [{"accountId": a} for a in participant_account_ids]
+
+        if data.get('purpose'):
+            jira_fields["customfield_10674"] = data['purpose']
+
+        if event_date_str:
+            jira_fields["duedate"] = event_date_str[:10]  # YYYY-MM-DD
+
+        delivery_mode_raw = data.get('deliveryMode', '').lower()
+        jira_delivery_mode = _DELIVERY_MODE_MAP.get(delivery_mode_raw)
+        if jira_delivery_mode:
+            jira_fields["customfield_10951"] = [{"value": jira_delivery_mode}]
+
+        if sf_ids_str:
+            jira_fields["customfield_10933"] = sf_ids_str
+
+        jira_payload = {"fields": jira_fields}
+
         async with session.post(
             f"{jira_base_url}/rest/api/3/issue",
-            headers=headers,
+            headers=jira_headers,
             data=json.dumps(jira_payload),
         ) as resp:
             if resp.status not in (200, 201):
@@ -1070,7 +1126,7 @@ async def create_jira_wgr_ticket(request):
     ticket_key = result['key']
     ticket_url = f"{jira_base_url}/browse/{ticket_key}"
 
-    audit_log('jira_ticket_created', user=requester, details={'ticket': ticket_key, 'display_name': display_name})
+    audit_log('jira_ticket_created', user=requester_email, details={'ticket': ticket_key, 'display_name': display_name})
 
     return web.json_response({"key": ticket_key, "url": ticket_url})
 
