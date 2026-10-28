@@ -183,6 +183,7 @@ class CatalogItem(K8sObject):
                 label: value for label, value in
                 updated['metadata'].get('labels', {}).items()
                 if not label.startswith("gpte.redhat.com/")
+                and not label.startswith("demo.redhat.com/")
                 and (
                     not label.startswith("babylon.gpte.redhat.com/")
                     or label in (
