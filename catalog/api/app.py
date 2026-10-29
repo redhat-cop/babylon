@@ -154,9 +154,8 @@ async def on_startup(app):
 
 async def on_cleanup(app):
     response_cache_clean_task.cancel()
-    await response_cache_clean_task
     wgr_provision_watcher_task.cancel()
-    await wgr_provision_watcher_task
+    await asyncio.gather(response_cache_clean_task, wgr_provision_watcher_task, return_exceptions=True)
     await app_api_client.close()
 
 async def check_admin_access(api_client):
