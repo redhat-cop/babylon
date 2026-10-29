@@ -50,7 +50,6 @@ class OperatorRuntime:
     jira_base_url = os.environ.get('JIRA_BASE_URL', 'https://redhat.atlassian.net')
     jira_api_token = os.environ.get('JIRA_API_TOKEN')
     jira_user_email = os.environ.get('JIRA_USER_EMAIL')
-    catalog_url = os.environ.get('CATALOG_URL', 'https://catalog.demo.redhat.com')
 
     # Initialized on startup
     api_client = None

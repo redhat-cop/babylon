@@ -45,10 +45,6 @@ spec:
         - name: JIRA_BASE_URL
           value: {{ .Values.jira.baseUrl | quote }}
         {{- end }}
-        {{- if .Values.catalogUrl }}
-        - name: CATALOG_URL
-          value: {{ .Values.catalogUrl | quote }}
-        {{- end }}
         image: {{ include "babylon-workshop-manager.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:

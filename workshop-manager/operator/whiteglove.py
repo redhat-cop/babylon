@@ -111,8 +111,8 @@ class WhiteGloveRequest(KopfObject):
         if failed > 0 and not self.provision_failed_notified:
             lines = [
                 f"Provisioning issue: {failed} of {desired} seats failed.",
-                f"Ops view: {OperatorRuntime.catalog_url}/workshops/{self.service_namespace}/{self.service_name}",
-                f"Namespace: {OperatorRuntime.catalog_url}/services/{self.service_namespace}",
+                f"Ops view: {OperatorRuntime.workshop_base_url}/workshops/{self.service_namespace}/{self.service_name}",
+                f"Namespace: {OperatorRuntime.workshop_base_url}/services/{self.service_namespace}",
                 "Please investigate — affected attendees may need manual recovery.",
             ]
             await self._jira_comment(credentials, "\n".join(lines))
@@ -128,8 +128,8 @@ class WhiteGloveRequest(KopfObject):
             )
             lines = ["Workshop provisioned and ready."]
             if workshop_id:
-                lines.append(f"Workshop URL: {OperatorRuntime.catalog_url}/workshop/{workshop_id}")
-            lines.append(f"Namespace: {OperatorRuntime.catalog_url}/services/{self.service_namespace}")
+                lines.append(f"Workshop URL: {OperatorRuntime.workshop_base_url}/workshop/{workshop_id}")
+            lines.append(f"Namespace: {OperatorRuntime.workshop_base_url}/services/{self.service_namespace}")
             lines.append(f"Seats: {active} ready")
             stop = workshop.get('spec', {}).get('actionSchedule', {}).get('stop')
             destroy = workshop.get('spec', {}).get('lifespan', {}).get('end')

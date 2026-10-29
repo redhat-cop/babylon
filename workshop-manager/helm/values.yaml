@@ -44,8 +44,6 @@ babylon:
 
 workshopBaseUrl: ""
 
-catalogUrl: "https://catalog.demo.redhat.com"
-
 jira:
   # Name of an existing Secret with JIRA_API_TOKEN and JIRA_USER_EMAIL keys
   secretName: ""
