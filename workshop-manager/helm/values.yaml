@@ -45,11 +45,9 @@ babylon:
 workshopBaseUrl: ""
 
 jira:
-  # Name of an existing Secret with JIRA_API_TOKEN and JIRA_USER_EMAIL keys
-  secretName: ""
-  apiTokenKey: "JIRA_API_TOKEN"
-  userEmailKey: "JIRA_USER_EMAIL"
-  baseUrl: "https://redhat.atlassian.net"
+  # Sync jira_credentials from Bitwarden into a K8s Secret (same vault item as catalog)
+  deploy: true
+  secretName: babylon-workshop-manager-jira
 
 poolboy:
   domain: poolboy.gpte.redhat.com
