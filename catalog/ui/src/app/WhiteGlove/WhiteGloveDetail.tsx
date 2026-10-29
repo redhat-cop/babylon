@@ -93,7 +93,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const [selectedService, setSelectedService] = useState<string>('');
   const [isLinking, setIsLinking] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
-  const [serviceOptions, setServiceOptions] = useState<{ value: string; label: string; type: 'workshops' | 'multi-workshop' }[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<{ value: string; label: string; type: 'workshops' | 'multi-workshop'; workshopId?: string }[]>([]);
 
   const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
   const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
@@ -178,6 +178,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           value: `workshops:${w.metadata.namespace}/${w.metadata.name}`,
           label: w.spec.displayName || w.metadata.name,
           type: 'workshops',
+          workshopId: w.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`],
         });
       }
       setServiceOptions(opts);
@@ -221,6 +222,7 @@ const WhiteGloveDetailContent: React.FC = () => {
     const [type, nsName] = selectedService.split(':');
     const [svcNamespace, svcName] = nsName.split('/');
     setIsLinking(true);
+    const selectedOpt = serviceOptions.find((o) => o.value === selectedService);
     patchWhiteGloveRequest({
       namespace,
       name,
@@ -240,6 +242,23 @@ const WhiteGloveDetailContent: React.FC = () => {
         mutate(updated, false);
         closeApproveModal();
         updateLabelsForApproval();
+        const ticketId = updated.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+        if (ticketId) {
+          const base = window.location.origin;
+          const participantUrl =
+            type === 'multi-workshop'
+              ? `${base}/event/${svcName}`
+              : selectedOpt?.workshopId
+                ? `${base}/workshop/${selectedOpt.workshopId}`
+                : null;
+          const namespaceUrl = `${base}/services/${svcNamespace}`;
+          const lines = ['Workshop provisioned and linked to this request.'];
+          if (participantUrl) lines.push(`Workshop URL: ${participantUrl}`);
+          lines.push(`Namespace: ${namespaceUrl}`);
+          lines.push('Password: check your workshop welcome email.');
+          addJiraComment(ticketId, lines.join('\n')).catch(() => {});
+          updateJiraLabels(ticketId, ['whiteglove-provisioned'], []).catch(() => {});
+        }
       })
       .catch((err) => {
         console.error('Failed to link existing service:', err);
