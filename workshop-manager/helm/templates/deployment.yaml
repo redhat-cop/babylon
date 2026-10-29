@@ -29,6 +29,26 @@ spec:
         - name: WORKSHOP_BASE_URL
           value: {{ .Values.workshopBaseUrl | quote }}
         {{- end }}
+        {{- if .Values.jira.secretName }}
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.jira.secretName }}
+              key: {{ .Values.jira.apiTokenKey | default "JIRA_API_TOKEN" }}
+        - name: JIRA_USER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.jira.secretName }}
+              key: {{ .Values.jira.userEmailKey | default "JIRA_USER_EMAIL" }}
+        {{- end }}
+        {{- if .Values.jira.baseUrl }}
+        - name: JIRA_BASE_URL
+          value: {{ .Values.jira.baseUrl | quote }}
+        {{- end }}
+        {{- if .Values.catalogUrl }}
+        - name: CATALOG_URL
+          value: {{ .Values.catalogUrl | quote }}
+        {{- end }}
         image: {{ include "babylon-workshop-manager.image" . | quote }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         resources:
