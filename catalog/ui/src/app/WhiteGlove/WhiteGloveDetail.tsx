@@ -257,7 +257,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           lines.push(`Namespace: ${namespaceUrl}`);
           lines.push('Password: check your workshop welcome email.');
           addJiraComment(ticketId, lines.join('\n')).catch(() => {});
-          updateJiraLabels(ticketId, ['whiteglove-provisioned'], []).catch(() => {});
+          updateJiraLabels(ticketId, ['whiteglove-scheduled'], []).catch(() => {});
         }
       })
       .catch((err) => {

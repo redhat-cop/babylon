@@ -28,6 +28,7 @@ import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/ou
 import useSWRImmutable from 'swr/immutable';
 import useSWR from 'swr';
 import {
+  addJiraComment,
   apiFetch,
   apiPaths,
   checkCatalogItemAvailability,
@@ -40,6 +41,7 @@ import {
   patchWhiteGloveRequest,
   saveExternalItemRequest,
   silentFetcher,
+  updateJiraLabels,
 } from '@app/api';
 import type { CreateServiceRequestParameterValues } from '@app/api';
 import type {
@@ -398,6 +400,18 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
   }
 
+  function postWgrScheduledToJira(serviceNamespace: string) {
+    const ticketId = whiteGloveRequest?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+    if (!ticketId) return;
+    const base = window.location.origin;
+    const lines = ['Workshop ordered — provisioning has started.', `Namespace: ${base}/services/${serviceNamespace}`];
+    if (whiteGloveRequest.spec.eventDate) lines.push(`Event start: ${whiteGloveRequest.spec.eventDate}`);
+    if (whiteGloveRequest.spec.eventEndDate) lines.push(`Event end: ${whiteGloveRequest.spec.eventEndDate}`);
+    lines.push('Workshop URL and seat details will follow once provisioning is complete.');
+    addJiraComment(ticketId, lines.join('\n')).catch(() => {});
+    updateJiraLabels(ticketId, ['whiteglove-scheduled'], []).catch(() => {});
+  }
+
   async function submitRequest(): Promise<void> {
     if (!submitRequestEnabled) {
       throw new Error('submitRequest called when submission should be disabled!');
@@ -469,6 +483,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           selfPacedLab: selfPacedLab,
         });
         await approveWhiteGloveRequest({ name: selfPacedLab.metadata.name, namespace: selfPacedLab.metadata.namespace, type: 'selfpacedlabs' });
+        postWgrScheduledToJira(selfPacedLab.metadata.namespace);
         navigate(`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`);
       } else if (formState.workshop) {
         const {
@@ -514,6 +529,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           selectedResourcePool: formState.selectedResourcePool,
         });
         await approveWhiteGloveRequest({ name: workshop.metadata.name, namespace: workshop.metadata.namespace, type: 'workshops' });
+        postWgrScheduledToJira(workshop.metadata.namespace);
         navigate(redirectUrl);
       } else {
         const resourceClaim = await createServiceRequest({
@@ -535,6 +551,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         });
 
         await approveWhiteGloveRequest({ name: resourceClaim.metadata.name, namespace: resourceClaim.metadata.namespace, type: 'services' });
+        postWgrScheduledToJira(resourceClaim.metadata.namespace);
         navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
       }
     } catch (error: unknown) {
