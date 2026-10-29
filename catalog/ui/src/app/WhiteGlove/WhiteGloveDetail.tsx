@@ -162,7 +162,7 @@ const WhiteGloveDetailContent: React.FC = () => {
         silentFetcher(apiPaths.WORKSHOPS({ namespace: ns })) as Promise<WorkshopList | null>,
         silentFetcher(apiPaths.MULTIWORKSHOPS({ namespace: ns })) as Promise<MultiWorkshopList | null>,
       ]);
-      const opts: { value: string; label: string; type: 'workshops' | 'multi-workshop' }[] = [];
+      const opts: { value: string; label: string; type: 'workshops' | 'multi-workshop'; workshopId?: string }[] = [];
       for (const mw of multiWorkshopsRes?.items || []) {
         opts.push({
           value: `multi-workshop:${mw.metadata.namespace}/${mw.metadata.name}`,
