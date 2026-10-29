@@ -352,7 +352,7 @@ class AgnosticVComponent(K8sObject):
     @property
     def reporting_labels(self) -> Mapping[str, str]:
         """Return reporting labels, silently transforming spaces to underscore"""
-        labels = self.__meta__.get('reporting', {}).get('labels', {})
+        labels = self.__meta__.get('catalog', {}).get('reportingLabels', {})
         return {
             key.replace(' ', '_'): val.replace(' ', '_')
             for key, val in labels.items()
