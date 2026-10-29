@@ -8,3 +8,7 @@ class ClusterState(Enum):
     PENDING = 2
     # Cluster is started and should be available
     STARTED = 3
+    # Cluster is in failed state
+    FAILED = 4
+    # Cluster ResourceClaim detached after previous failure
+    DETACHED = 5

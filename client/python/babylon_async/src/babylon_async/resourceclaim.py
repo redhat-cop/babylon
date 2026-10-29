@@ -108,6 +108,14 @@ class ResourceClaim(K8sObject):
         return self.status.resource_handle.name[5:]
 
     @property
+    def is_detached(self) -> bool:
+        """Return if ResourceClaim is detatched from ResourceHandle"""
+        status = self.status
+        if status is None:
+            return False
+        return status.is_detached
+
+    @property
     def lifespan_end_datetime(self) -> datetime|None:
         """Return lifespan end if set"""
         try:
@@ -313,6 +321,16 @@ class ResourceClaim(K8sObject):
         await self.set_requested_stop_datetime(never)
         return True
 
+    async def force_autodetatch(self) -> None:
+        """Force destroy of backend components while keeping ResourceClaim around."""
+        await self.patch({
+            "spec": {
+                "autoDetatch": {
+                    "when": "true"
+                }
+            }
+        })
+
     async def get_resource_handle(self) -> ResourceHandle|None:
         """Return ResourceHandle associated with this ResourceClaim"""
         name = self.resource_handle_name
@@ -455,6 +473,14 @@ class ResourceClaimStatus:
         return self._definition.get('healthy')
 
     @property
+    def is_detached(self) -> bool:
+        """Return if ResourceClaim is detatched from ResourceHandle"""
+        resource_handle = self.resource_handle
+        if resource_handle is None:
+            return False
+        return resource_handle.is_detached
+
+    @property
     def lifespan(self) -> ResourceClaimStatusLifespan|None:
         if 'lifespan' not in self._definition:
             return None
@@ -474,7 +500,7 @@ class ResourceClaimStatus:
     def resource_handle(self) -> ResourceReference|None:
         if 'resourceHandle' not in self._definition:
             return None
-        return ResourceReference(self._definition['resourceHandle'])
+        return ResourceClaimStatusResourceHandle(self._definition['resourceHandle'])
 
     @property
     def resources(self) -> List[ResourceClaimStatusResource]|None:
@@ -590,3 +616,33 @@ class ResourceClaimStatusResource:
     @property
     def state(self) -> Mapping|None:
         return self._definition.get('state')
+
+class ResourceClaimStatusResourceHandle:
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def api_version(self) -> str:
+        return self._definition['apiVersion']
+
+    @property
+    def detached(self) -> bool|None:
+        """Return value of 'detached' from status"""
+        return self._definition.get('detached')
+
+    @property
+    def is_detached(self) -> bool:
+        """Return if ResourceClaim is detatched from ResourceHandle"""
+        return self._definition.detached or False
+
+    @property
+    def kind(self) -> str:
+        return self._definition['kind']
+
+    @property
+    def name(self) -> str:
+        return self._definition['name']
+
+    @property
+    def namespace(self) -> str|None:
+        return self._definition.get('namespace')
