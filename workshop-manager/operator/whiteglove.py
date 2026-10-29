@@ -63,16 +63,9 @@ class WhiteGloveRequest(KopfObject):
             and bool(self.jira_ticket_id)
         )
 
-    @property
-    def fully_notified(self):
-        return self.provision_notified and self.provision_failed_notified
-
     async def check_and_notify(self, logger):
         if not OperatorRuntime.jira_api_token or not OperatorRuntime.jira_user_email:
             return
-
-        # Re-fetch self to pick up any annotation changes from a prior cycle
-        await self.refresh()
 
         if self.provision_notified and self.provision_failed_notified:
             return
@@ -115,7 +108,7 @@ class WhiteGloveRequest(KopfObject):
                 f"Namespace: {OperatorRuntime.workshop_base_url}/services/{self.service_namespace}",
                 "Please investigate — affected attendees may need manual recovery.",
             ]
-            await self._jira_comment(credentials, "\n".join(lines))
+            await self._jira_comment(credentials, lines)
             await self._jira_add_label(credentials, "whiteglove-provision-failed")
             await self.merge_patch({
                 "metadata": {"annotations": {f"{OperatorRuntime.demo_domain}/provision-failed-notified": "true"}}
@@ -138,20 +131,24 @@ class WhiteGloveRequest(KopfObject):
             if destroy:
                 lines.append(f"Auto-destroy: {destroy}")
             lines.append("Password: check your workshop welcome email.")
-            await self._jira_comment(credentials, "\n".join(lines))
+            await self._jira_comment(credentials, lines)
             await self._jira_add_label(credentials, "whiteglove-provisioned")
             await self.merge_patch({
                 "metadata": {"annotations": {f"{OperatorRuntime.demo_domain}/provision-notified": "true"}}
             })
             logger.info("WGR %s/%s: posted provision-ready JSM comment", self.namespace, self.name)
 
-    async def _jira_comment(self, credentials, text):
+    async def _jira_comment(self, credentials, lines):
+        """Post a multi-line JSM comment; one ADF paragraph per line so newlines render."""
         url = f"{OperatorRuntime.jira_base_url}/rest/api/3/issue/{self.jira_ticket_id}/comment"
         payload = {
             "body": {
                 "version": 1,
                 "type": "doc",
-                "content": [{"type": "paragraph", "content": [{"type": "text", "text": text}]}],
+                "content": [
+                    {"type": "paragraph", "content": [{"type": "text", "text": line}]}
+                    for line in lines
+                ],
             }
         }
         async with aiohttp.ClientSession() as session:

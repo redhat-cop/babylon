@@ -257,6 +257,13 @@ async def white_glove_request_daemon(logger, stopped, **kwargs):
         # Allow the WGR to settle before the first check
         await asyncio.sleep(60)
         while not stopped:
+            try:
+                # Refresh each cycle so a workshop linked after daemon start is seen
+                await wgr.refresh()
+            except Exception:
+                logger.exception("WGR refresh failed for %s/%s", wgr.namespace, wgr.name)
+                await asyncio.sleep(wgr_watcher_interval)
+                continue
             if wgr.is_linked_workshop and not (wgr.provision_notified and wgr.provision_failed_notified):
                 try:
                     await wgr.check_and_notify(logger=logger)
