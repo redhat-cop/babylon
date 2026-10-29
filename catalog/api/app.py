@@ -56,6 +56,7 @@ response_cache_max_in_flight = max(
 response_cache_bytes = 0
 response_cache_miss_semaphore = asyncio.Semaphore(response_cache_max_in_flight)
 response_cache_clean_task = None
+wgr_provision_watcher_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 
@@ -118,7 +119,7 @@ async def api_proxy(method, url, headers, data=None, params=None):
         )
 
 async def on_startup(app):
-    global app_api_client, babylon_namespace, console_url, core_v1_api, custom_objects_api, redis_connection, response_cache_clean_task
+    global app_api_client, babylon_namespace, console_url, core_v1_api, custom_objects_api, redis_connection, response_cache_clean_task, wgr_provision_watcher_task
     if os.path.exists('/run/secrets/kubernetes.io/serviceaccount'):
         kubernetes_asyncio.config.load_incluster_config()
         if not babylon_namespace:
@@ -149,10 +150,13 @@ async def on_startup(app):
         )
 
     response_cache_clean_task = asyncio.create_task(response_cache_clean())
+    wgr_provision_watcher_task = asyncio.create_task(wgr_provision_watcher())
 
 async def on_cleanup(app):
     response_cache_clean_task.cancel()
     await response_cache_clean_task
+    wgr_provision_watcher_task.cancel()
+    await wgr_provision_watcher_task
     await app_api_client.close()
 
 async def check_admin_access(api_client):
@@ -2436,6 +2440,175 @@ def cache_response(cache_key, raw_data, status, response_headers):
         or response_cache_bytes > response_cache_max_bytes
     ):
         remove_cached_response(next(iter(response_cache)))
+
+
+catalog_url = os.environ.get('CATALOG_URL', 'https://catalog.demo.redhat.com')
+wgr_watcher_interval = int(os.environ.get('WGR_WATCHER_INTERVAL', 600))
+
+
+async def _jira_post(credentials, path, payload):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{jira_base_url}{path}",
+            headers={
+                'Authorization': f"Basic {credentials}",
+                'Content-Type': 'application/json',
+            },
+            data=json.dumps(payload),
+        ) as resp:
+            if not resp.ok:
+                logging.warning(f"Jira POST {path} returned {resp.status}")
+
+
+async def _jira_put(credentials, path, payload):
+    async with aiohttp.ClientSession() as session:
+        async with session.put(
+            f"{jira_base_url}{path}",
+            headers={
+                'Authorization': f"Basic {credentials}",
+                'Content-Type': 'application/json',
+            },
+            data=json.dumps(payload),
+        ) as resp:
+            if not resp.ok:
+                logging.warning(f"Jira PUT {path} returned {resp.status}")
+
+
+async def _wgr_check_one(wgr, credentials):
+    ann = wgr.get('metadata', {}).get('annotations', {})
+    jira_ticket = ann.get('demo.redhat.com/jira-ticket-id')
+    svc_type = ann.get('demo.redhat.com/service-type')
+    svc_namespace = ann.get('demo.redhat.com/service-namespace')
+    svc_name = ann.get('demo.redhat.com/service-name')
+
+    if not jira_ticket or svc_type != 'workshops' or not svc_namespace or not svc_name:
+        return
+
+    already_ready = ann.get('demo.redhat.com/provision-notified') == 'true'
+    already_failed = ann.get('demo.redhat.com/provision-failed-notified') == 'true'
+    if already_ready and already_failed:
+        return
+
+    wgr_namespace = wgr['metadata']['namespace']
+    wgr_name = wgr['metadata']['name']
+
+    try:
+        workshop = await custom_objects_api.get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=svc_namespace,
+            plural='workshops',
+            name=svc_name,
+        )
+        provision_list = await custom_objects_api.list_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=svc_namespace,
+            plural='workshopprovisions',
+            label_selector=f"babylon.gpte.redhat.com/workshop={svc_name}",
+        )
+    except Exception as exc:
+        logging.debug(f"WGR watcher: skipping {wgr_namespace}/{wgr_name}: {exc}")
+        return
+
+    provisions = provision_list.get('items', [])
+    if not provisions:
+        return
+
+    desired = sum(p.get('spec', {}).get('count', 0) for p in provisions)
+    claimed = sum(p.get('status', {}).get('resourceClaimCount', 0) for p in provisions)
+    failed = sum(p.get('status', {}).get('failedCount', 0) for p in provisions)
+
+    if failed > 0 and not already_failed:
+        lines = [
+            f"Provisioning issue: {failed} of {desired} seats failed.",
+            f"Ops view: {catalog_url}/workshops/{svc_namespace}/{svc_name}",
+            f"Namespace: {catalog_url}/services/{svc_namespace}",
+            "Please investigate — affected attendees may need manual recovery.",
+        ]
+        await _jira_post(credentials, f"/rest/api/3/issue/{jira_ticket}/comment", {
+            "body": {"version": 1, "type": "doc", "content": [
+                {"type": "paragraph", "content": [{"type": "text", "text": "\n".join(lines)}]}
+            ]},
+        })
+        await _jira_put(credentials, f"/rest/api/3/issue/{jira_ticket}", {
+            "update": {"labels": [{"add": "whiteglove-provision-failed"}]},
+        })
+        try:
+            await custom_objects_api.patch_namespaced_custom_object(
+                group='babylon.gpte.redhat.com',
+                version='v1',
+                namespace=wgr_namespace,
+                plural='whitegloverequests',
+                name=wgr_name,
+                body={"metadata": {"annotations": {"demo.redhat.com/provision-failed-notified": "true"}}},
+            )
+        except Exception as exc:
+            logging.warning(f"WGR watcher: failed to annotate {wgr_namespace}/{wgr_name}: {exc}")
+
+    elif desired > 0 and claimed >= desired and failed == 0 and not already_ready:
+        workshop_id = workshop.get('metadata', {}).get('labels', {}).get('babylon.gpte.redhat.com/workshop-id')
+        lines = ["Workshop provisioned and ready."]
+        if workshop_id:
+            lines.append(f"Workshop URL: {catalog_url}/workshop/{workshop_id}")
+        lines.append(f"Namespace: {catalog_url}/services/{svc_namespace}")
+        lines.append(f"Seats: {claimed} ready")
+        stop = workshop.get('spec', {}).get('actionSchedule', {}).get('stop')
+        destroy = workshop.get('spec', {}).get('lifespan', {}).get('end')
+        if stop:
+            lines.append(f"Auto-stop: {stop}")
+        if destroy:
+            lines.append(f"Auto-destroy: {destroy}")
+        lines.append("Password: check your workshop welcome email.")
+        await _jira_post(credentials, f"/rest/api/3/issue/{jira_ticket}/comment", {
+            "body": {"version": 1, "type": "doc", "content": [
+                {"type": "paragraph", "content": [{"type": "text", "text": "\n".join(lines)}]}
+            ]},
+        })
+        await _jira_put(credentials, f"/rest/api/3/issue/{jira_ticket}", {
+            "update": {"labels": [{"add": "whiteglove-provisioned"}]},
+        })
+        try:
+            await custom_objects_api.patch_namespaced_custom_object(
+                group='babylon.gpte.redhat.com',
+                version='v1',
+                namespace=wgr_namespace,
+                plural='whitegloverequests',
+                name=wgr_name,
+                body={"metadata": {"annotations": {"demo.redhat.com/provision-notified": "true"}}},
+            )
+        except Exception as exc:
+            logging.warning(f"WGR watcher: failed to annotate {wgr_namespace}/{wgr_name}: {exc}")
+
+
+async def wgr_provision_watcher():
+    """
+    Background loop: scan all WhiteGloveRequests linked to a workshop and post
+    JSM comments when provisioning completes or fails.  Runs every
+    WGR_WATCHER_INTERVAL seconds (default 600 / 10 min).
+    """
+    try:
+        while True:
+            if not jira_api_token or not jira_user_email:
+                await asyncio.sleep(wgr_watcher_interval)
+                continue
+            credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
+            try:
+                wgr_list = await custom_objects_api.list_cluster_custom_object(
+                    group='babylon.gpte.redhat.com',
+                    version='v1',
+                    plural='whitegloverequests',
+                )
+                for wgr in wgr_list.get('items', []):
+                    try:
+                        await _wgr_check_one(wgr, credentials)
+                    except Exception as exc:
+                        logging.exception(f"WGR watcher: error processing {wgr.get('metadata', {}).get('name')}: {exc}")
+            except Exception as exc:
+                logging.exception(f"WGR watcher: error listing WGRs: {exc}")
+            await asyncio.sleep(wgr_watcher_interval)
+    except asyncio.CancelledError:
+        return
 
 
 async def response_cache_clean():

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
@@ -11,7 +11,7 @@ import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
-import type { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, Workshop, WorkshopProvisionList, WorkshopList } from '@app/types';
+import type { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -118,79 +118,6 @@ const WhiteGloveDetailContent: React.FC = () => {
     silentFetcher,
     { refreshInterval: 30000 },
   );
-
-  const linkedSvcNamespace = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/service-namespace`];
-  const linkedSvcName = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/service-name`];
-  const linkedSvcType = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/service-type`];
-  const isLinkedWorkshop = linkedSvcType === 'workshops' && !!linkedSvcNamespace && !!linkedSvcName;
-
-  const { data: linkedWorkshop } = useSWR<Workshop>(
-    isLinkedWorkshop ? apiPaths.WORKSHOP({ namespace: linkedSvcNamespace, workshopName: linkedSvcName }) : null,
-    silentFetcher,
-    { refreshInterval: 30000 },
-  );
-
-  const { data: linkedWorkshopProvisions } = useSWR<WorkshopProvisionList>(
-    isLinkedWorkshop ? apiPaths.WORKSHOP_PROVISIONS({ workshopName: linkedSvcName, namespace: linkedSvcNamespace }) : null,
-    silentFetcher,
-    { refreshInterval: 30000 },
-  );
-
-  const provisionNotifiedRef = useRef(false);
-  const failedNotifiedRef = useRef(false);
-
-  useEffect(() => {
-    if (!jiraTicketId || !linkedWorkshop || !linkedWorkshopProvisions || !linkedSvcNamespace || !linkedSvcName) return;
-
-    const wgrAnnotations = wgr?.metadata?.annotations ?? {};
-    const alreadyNotifiedReady = wgrAnnotations[`${DEMO_DOMAIN}/provision-notified`] === 'true';
-    const alreadyNotifiedFailed = wgrAnnotations[`${DEMO_DOMAIN}/provision-failed-notified`] === 'true';
-
-    const provisions = linkedWorkshopProvisions.items ?? [];
-    if (provisions.length === 0) return;
-
-    const desired = provisions.reduce((s, p) => s + (p.spec?.count ?? 0), 0);
-    const claimed = provisions.reduce((s, p) => s + ((p.status as any)?.resourceClaimCount ?? 0), 0);
-    const failed = provisions.reduce((s, p) => s + ((p.status as any)?.failedCount ?? 0), 0);
-    const base = window.location.origin;
-
-    if (failed > 0 && !alreadyNotifiedFailed && !failedNotifiedRef.current) {
-      failedNotifiedRef.current = true;
-      const lines = [
-        `Provisioning issue: ${failed} of ${desired} seats failed.`,
-        `Ops view: ${base}/workshops/${linkedSvcNamespace}/${linkedSvcName}`,
-        `Namespace: ${base}/services/${linkedSvcNamespace}`,
-        'Please investigate — affected attendees may need manual recovery.',
-      ];
-      addJiraComment(jiraTicketId, lines.join('\n')).catch(() => {});
-      updateJiraLabels(jiraTicketId, ['whiteglove-provision-failed'], []).catch(() => {});
-      patchWhiteGloveRequest({
-        namespace,
-        name,
-        patch: { metadata: { annotations: { [`${DEMO_DOMAIN}/provision-failed-notified`]: 'true' } } },
-      }).catch(() => {});
-    }
-
-    if (desired > 0 && claimed >= desired && failed === 0 && !alreadyNotifiedReady && !provisionNotifiedRef.current) {
-      provisionNotifiedRef.current = true;
-      const workshopId = linkedWorkshop.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-      const participantUrl = workshopId ? `${base}/workshop/${workshopId}` : null;
-      const lines = ['Workshop provisioned and ready.'];
-      if (participantUrl) lines.push(`Workshop URL: ${participantUrl}`);
-      lines.push(`Namespace: ${base}/services/${linkedSvcNamespace}`);
-      lines.push(`Seats: ${claimed} ready`);
-      if (linkedWorkshop.spec?.actionSchedule?.stop) lines.push(`Auto-stop: ${linkedWorkshop.spec.actionSchedule.stop}`);
-      if (linkedWorkshop.spec?.lifespan?.end) lines.push(`Auto-destroy: ${linkedWorkshop.spec.lifespan.end}`);
-      lines.push('Password: check your workshop welcome email.');
-      addJiraComment(jiraTicketId, lines.join('\n')).catch(() => {});
-      updateJiraLabels(jiraTicketId, ['whiteglove-provisioned'], []).catch(() => {});
-      patchWhiteGloveRequest({
-        namespace,
-        name,
-        patch: { metadata: { annotations: { [`${DEMO_DOMAIN}/provision-notified`]: 'true' } } },
-      }).catch(() => {});
-    }
-  }, [linkedWorkshop, linkedWorkshopProvisions, jiraTicketId, linkedSvcNamespace, linkedSvcName, wgr, namespace, name]);
 
   useEffect(() => {
     if (!isAdmin || catalogItemsFetched || !wgr?.spec?.catalogItemNames?.length || !wgr?.spec?.catalogItemNamespace) return;
