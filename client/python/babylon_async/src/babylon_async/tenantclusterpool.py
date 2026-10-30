@@ -189,6 +189,38 @@ class TenantClusterPool(K8sObject):
                     continue
             return
 
+    async def set_cluster_resource_claim_state(self,
+        resource_claim_name:str,
+        resource_claim_state:str,
+        retries:int=10,
+    ) -> None:
+        """Set resouceClaimState of cluster in status."""
+        for attempt in range(retries+1):
+            for idx, cluster in enumerate(self.status.clusters):
+                if cluster.resource_claim_name != resource_claim_name:
+                    continue
+                # Nothing to do if state already set
+                if cluster.resource_claim_state == resource_claim_state:
+                    return
+                try:
+                    await self.patch_status([{
+                        "op": "test",
+                        "path": f"/status/clusters/{idx}/resourceClaimName",
+                        "value": resource_claim_name,
+                    }, {
+                        "op": "add",
+                        "path": f"/status/clusters/{idx}/resourceClaimState",
+                        "value": resource_claim_state,
+                    }])
+                except BabylonApiException as err:
+                    if attempt == retries:
+                        raise
+                    if err.status != 422:
+                        raise
+                    await self.refresh()
+                    continue
+            return
+
     async def set_cluster_sandbox_api_state(self,
         resource_claim_name:str,
         sandbox_api_state:str,
@@ -463,6 +495,11 @@ class TenantClusterPoolStatusCluster:
     def resource_claim_name(self) -> str:
         """ResourceClaim name used to request the cluster."""
         return self._definition['resourceClaimName']
+
+    @property
+    def resource_claim_state(self) -> str|None:
+        """ResourceClaim state synced from ResourceClaim status."""
+        return self._definition.get('resourceClaimState')
 
     @property
     def sandbox_api_state(self) -> str:

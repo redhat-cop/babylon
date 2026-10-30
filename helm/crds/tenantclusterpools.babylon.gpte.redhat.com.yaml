@@ -184,6 +184,10 @@ spec:
                       description: >-
                         ResourceClaim name used to request the cluster.
                       type: string
+                    resourceClaimState:
+                      description: >-
+                        State reported from ResouceClaim status
+                      type: string
                     sandboxApiState:
                       description: >-
                         Sandbox API state may be:
