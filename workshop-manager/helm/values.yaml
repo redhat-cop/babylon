@@ -44,6 +44,11 @@ babylon:
 
 workshopBaseUrl: ""
 
+jira:
+  # Sync jira_credentials from Bitwarden into a K8s Secret (same vault item as catalog)
+  deploy: true
+  secretName: babylon-workshop-manager-jira
+
 poolboy:
   domain: poolboy.gpte.redhat.com
 

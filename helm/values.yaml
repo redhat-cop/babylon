@@ -274,6 +274,10 @@ workshopManager:
     repository: quay.io/rhpds/babylon-workshop-manager
     pullPolicy: IfNotPresent
     tag: v0.11.5
+  jira:
+    # Sync jira_credentials from Bitwarden (same vault item as catalog)
+    deploy: true
+    secretName: babylon-workshop-manager-jira
   namespace:
     create: true
     name: babylon-workshop-manager

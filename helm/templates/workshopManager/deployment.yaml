@@ -33,6 +33,23 @@ spec:
         - name: WORKSHOP_BASE_URL
           value: {{ $workshopManager.workshopBaseUrl | quote }}
         {{- end }}
+        {{- if $workshopManager.jira.deploy }}
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ $workshopManager.jira.secretName | default "babylon-workshop-manager-jira" }}
+              key: jira-api-token
+        - name: JIRA_USER_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: {{ $workshopManager.jira.secretName | default "babylon-workshop-manager-jira" }}
+              key: jira-user-email
+        - name: JIRA_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ $workshopManager.jira.secretName | default "babylon-workshop-manager-jira" }}
+              key: jira-base-url
+        {{- end }}
         image: "{{ $workshopManager.image.repository }}:{{ $workshopManager.image.tag }}"
         imagePullPolicy: {{ $workshopManager.image.pullPolicy }}
         securityContext:

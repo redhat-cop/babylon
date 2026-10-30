@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 
 from datetime import datetime, timezone
 
@@ -13,6 +14,7 @@ from workshop import Workshop
 from workshopprovision import WorkshopProvision
 from workshopuserassignment import WorkshopUserAssignment
 from multiworkshop import MultiWorkshop
+from whiteglove import WhiteGloveRequest
 from configure_kopf_logging import configure_kopf_logging
 from infinite_relative_backoff import InfiniteRelativeBackoff
 
@@ -239,5 +241,34 @@ async def multiworkshop_daemon(logger, stopped, **kwargs):
                 return
             await multiworkshop.manage(logger=logger)
             await asyncio.sleep(30)
+    except asyncio.CancelledError:
+        pass
+
+
+wgr_watcher_interval = int(os.environ.get('WGR_WATCHER_INTERVAL', 600))
+
+@kopf.daemon(
+    WhiteGloveRequest.api_group, WhiteGloveRequest.api_version, WhiteGloveRequest.plural,
+    cancellation_timeout=1,
+)
+async def white_glove_request_daemon(logger, stopped, **kwargs):
+    wgr = WhiteGloveRequest.load(**kwargs)
+    try:
+        # Allow the WGR to settle before the first check
+        await asyncio.sleep(60)
+        while not stopped:
+            try:
+                # Refresh each cycle so a workshop linked after daemon start is seen
+                await wgr.refresh()
+            except Exception:
+                logger.exception("WGR refresh failed for %s/%s", wgr.namespace, wgr.name)
+                await asyncio.sleep(wgr_watcher_interval)
+                continue
+            if wgr.is_linked_workshop and not (wgr.provision_notified and wgr.provision_failed_notified):
+                try:
+                    await wgr.check_and_notify(logger=logger)
+                except Exception:
+                    logger.exception("WGR provision check failed for %s/%s", wgr.namespace, wgr.name)
+            await asyncio.sleep(wgr_watcher_interval)
     except asyncio.CancelledError:
         pass

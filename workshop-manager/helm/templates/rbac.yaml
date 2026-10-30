@@ -63,6 +63,7 @@ rules:
   - selfpacedlabs/status
   - selfpacedlabprovisionitems
   - selfpacedlabprovisionitems/status
+  - whitegloverequests
   verbs:
   - create
   - delete
