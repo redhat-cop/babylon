@@ -1,0 +1,68 @@
+{{- if .Values.catalogItemOrders.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "babylonCatalog.orderControllerName" . }}
+  labels:
+    {{- include "babylonCatalog.labels" . | nindent 4 }}
+rules:
+# Reconcile orders. The controller never modifies order spec. Delete is used
+# only to remove completed orders after the retention period.
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitemorders
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitemorders/status
+  verbs:
+  - get
+  - update
+# Evaluate the published approval policy and catalog item revision.
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitems
+  verbs:
+  - get
+# Provisioning resources created by the backend adapters in requester namespaces.
+# Delete is used only to clean up a failed attempt before an approved retry.
+- apiGroups:
+  - poolboy.gpte.redhat.com
+  resources:
+  - resourceclaims
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - selfpacedlabprovisionitems
+  - selfpacedlabs
+  - workshopprovisions
+  - workshops
+  verbs:
+  - create
+  - delete
+  - get
+# Recheck requester access and ordering blocks at dispatch.
+- apiGroups:
+  - user.openshift.io
+  resources:
+  - groups
+  verbs:
+  - list
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+{{- end }}

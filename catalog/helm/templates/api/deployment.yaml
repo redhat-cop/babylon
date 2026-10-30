@@ -87,6 +87,8 @@ spec:
           value: {{ include "babylonCatalog.redisName" . }}
         - name: REDIS_PORT
           value: "6379"
+        - name: CATALOG_ITEM_ORDERS_ENABLED
+          value: {{ .Values.catalogItemOrders.enabled | ternary "true" "false" | quote }}
         - name: GUNICORN_PROCESSES
           value: "{{ .Values.api.gunicorn.processes }}"
         - name: GUNICORN_THREADS
