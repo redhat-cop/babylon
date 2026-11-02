@@ -52,7 +52,12 @@ class CatalogItem(K8sObject):
         is pending delete after services are gone."""
         if not OPS_ANNOTATION in self.annotations:
             return False
-        value = json.dumps(self.annotations[OPS_ANNOTATION])
+        try:
+            value = json.loads(self.annotations[OPS_ANNOTATION])
+        except json.JSONDecodeError:
+            return False
+        if not isinstance(value, dict):
+            return False
         if not value.get('status', {}).get('id') == 'under-maintenance':
             return False
         comments = value.get('comments', [])
