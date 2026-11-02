@@ -155,7 +155,7 @@ async def resource_claim_event(body, labels, logger, namespace, **_):
             break
     else:
         # Warn if not found and not recently created
-        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds > 5:
+        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 5:
             logger.warning(
                 "%s has label indicating it belongs to %s, but does not appear in status.",
                 resource_claim,
@@ -458,7 +458,7 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
     # NOTE: Perhaps make this configurable in a future release?
     if (
         latest_creation_datetime is not None and
-        (datetime.now(timezone.utc) - latest_creation_datetime).total_seconds < 300
+        (datetime.now(timezone.utc) - latest_creation_datetime).total_seconds() < 300
     ):
         return
 
@@ -501,7 +501,7 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
 
     if resource_claim.state in ('provision-failed', 'provision-error'):
         # Delete if older than 10 minutes
-        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds > 600:
+        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 600:
             logger.info(
                 "Deleting %s %s for %s",
                 resource_claim.state,
