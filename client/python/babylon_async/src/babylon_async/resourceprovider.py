@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, List, Mapping
 
+from .anarchygovernor import AnarchyGovernor
 from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
 from .poolboy_templating import check_condition, recursive_process_template_strings
@@ -55,6 +56,28 @@ class ResourceProvider(K8sObject):
             variables=parameter_values,
             template_variables=self.vars,
         )
+
+    async def get_anarchy_governor(self) -> AnarchyGovernor|None:
+        """Get AnarchyGovernor associated to this ResourceProvider if there is one."""
+        override = self.spec.override
+        if override is None:
+            return None
+        name = override.get('spec', {}).get('governor')
+        namespace = override.get('metadata', {}).get('namespace')
+        if name is None or namespace is None:
+            return None
+        return await self.client.get_anarchy_governor(name, namespace)
+
+    async def get_catalog_item(self) -> "CatalogItem"|None:
+        """Return CatalogItem associated to ResourceProvider if there is one"""
+        status_summary_template = self.spec.status_summary_template
+        if status_summary_template is None:
+            return None
+        name = status_summary_template.catalog_item_name
+        namespace = status_summary_template.catalog_item_namespace
+        if name is None or namespace is None:
+            return None
+        return await self.client.get_catalog_item(name=name, namespace=namespace)
 
     async def get_resources(self,
         parameter_values: Mapping,
@@ -111,15 +134,29 @@ class ResourceProvider(K8sObject):
 
         return resources
 
-    async def get_linked_resource_providers(self, cache:bool=False):
-        linked_resource_providers = []
+    async def get_linked_resource_providers(self,
+        cache:bool=False,
+        parameter_values: Mapping|None=None,
+    ) -> List[ResourceProvider]:
+        """Return list of linked ResourceProvider objects.
+        If `parameter_values` dictionary is passed then when condition on linked
+        providers is checked."""
+        ret = []
         for linked_resource_provider in self.linked_resource_providers:
             resource_provider = await self.client.get_resource_provider(
                 cache=cache,
                 name=linked_resource_provider.name,
             )
-            linked_resource_providers.append(resource_provider)
-        return linked_resource_providers
+            if (
+                parameter_values is not None and
+                not linked_resource_provider.check_when(
+                    parameter_values=parameter_values,
+                    resource_provider=self,
+                )
+            ):
+                continue
+            ret.append(resource_provider)
+        return ret
 
     async def update_from_agnosticv(self,
         definition: Mapping,
@@ -184,12 +221,19 @@ class ResourceProviderSpec:
         return self._definition.get('match_ignore', [])
 
     @property
-    def override(self) -> Mapping:
-        return self._definition.get('override', {})
+    def override(self) -> Mapping|None:
+        return self._definition.get('override')
 
     @property
     def resource_name(self) -> str|None:
         return self._definition.get('resourceName')
+
+    @property
+    def status_summary_template(self) -> ResourceProviderSpecStatusSummaryTemplate|None:
+        """Return status summary template if defined."""
+        if 'statusSummaryTemplate' in self._definition:
+            return ResourceProviderSpecStatusSummaryTemplate(self._definition['statusSummaryTemplate'])
+        return None
 
     @property
     def template(self) -> ResourceProviderSpecTemplate|None:
@@ -235,7 +279,9 @@ class ResourceProviderSpecLinkedResourceProvider:
     def check_when(self,
         parameter_values: Mapping,
         resource_provider: ResourceProvider,
-    ):
+    ) -> bool:
+        """Check when condition associated with this linked component.
+        If no when condition is defined then return True."""
         if not self.when:
             return True
         return check_condition(
@@ -322,6 +368,22 @@ class ResourceProviderSpecParameterValidation:
     @property
     def openapi_v3_schema(self) -> Mapping|None:
         return self._definition.get('openAPIV3Schema')
+
+class ResourceProviderSpecStatusSummaryTemplate:
+    """Representation of statusSummaryTemplate"""
+
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def catalog_item_name(self) -> str|None:
+        """Return catalog item name if defined"""
+        return self._definition.get('catalog_item_name')
+
+    @property
+    def catalog_item_namespace(self) -> str|None:
+        """Return catalog item namespace if defined"""
+        return self._definition.get('catalog_item_namespace')
 
 class ResourceProviderSpecTemplate:
     def __init__(self, definition):

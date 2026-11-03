@@ -1370,7 +1370,8 @@ class AgnosticVComponent(K8sObject):
         self,
         cache: bool=False,
     ) -> Mapping[str, AgnosticVComponent]:
-        """Get AgnosticVComponent definitions for linked components."""
+        """Get AgnosticVComponent definitions for components referenced from
+        sandboxes as tenant clusters."""
         ret = {}
         for sandbox in self.sandboxes:
             if sandbox.tenant_cluster is None:

@@ -318,7 +318,9 @@ class WorkshopProvision(CachedKopfObject):
                 )
             raise
 
-        tenant_cluster_component_names = catalog_item.get_tenant_cluster_component_names()
+        tenant_cluster_component_names = await catalog_item.get_tenant_cluster_component_names(
+            parameter_values=self.parameters,
+        )
         if len(tenant_cluster_component_names) == 0:
             return
 
