@@ -85,15 +85,6 @@ class CatalogItem(K8sObject):
     def spec(self) -> CatalogItemSpec:
         return CatalogItemSpec(self._definition['spec'])
 
-    def get_tenant_cluster_component_names(self) -> List[str]:
-        """Return list of tenant cluster component names referenced in sandboxes"""
-        return [
-            sandbox.tenant_cluster.component_name
-            for sandbox in self.sandboxes
-            if sandbox.tenant_cluster is not None
-        ]
-
-
     async def check_resource_pool_match(self,
         resource_pool: ResourcePool,
         cache: bool=False,
@@ -155,6 +146,53 @@ class CatalogItem(K8sObject):
             cache=cache,
             name=self.name,
         )
+
+    async def get_tenant_cluster_component_names(self,
+        parameter_values:Mapping,
+        cache:bool=False,
+        _recursion_check:set|None=None
+    ) -> List[str]:
+        """Return list of tenant cluster component names referenced in sandboxes"""
+        if _recursion_check is None:
+            _recursion_check = {self.name}
+        else:
+            _recursion_check.add(self.name)
+
+        component_names = [
+            sandbox.tenant_cluster.component_name
+            for sandbox in self.sandboxes
+            if sandbox.tenant_cluster is not None
+        ]
+
+        resource_provider = await self.get_resource_provider()
+        parameter_values = {
+            **resource_provider.get_parameter_defaults(parameter_values=parameter_values),
+            **parameter_values,
+        }
+        for linked_resource_provider in resource_provider.linked_resource_providers:
+            if linked_resource_provider.name in _recursion_check:
+                continue
+            if not linked_resource_provider.check_when(
+                parameter_values=parameter_values,
+                resource_provider=resource_provider,
+            ):
+                continue
+            linked_resource_provider_obj = await self.client.get_resource_provider(
+                cache=cache,
+                name=linked_resource_provider.name,
+            )
+            linked_catalog_item = await linked_resource_provider_obj.get_catalog_item()
+            component_names.extend(
+                await linked_catalog_item.get_tenant_cluster_component_names(
+                    parameter_values={
+                        **parameter_values,
+                        **linked_resource_provider.parameter_values,
+                    },
+                    _recursion_check=_recursion_check,
+                )
+            )
+
+        return component_names
 
     async def update_from_agnosticv(self,
         definition: Mapping,
