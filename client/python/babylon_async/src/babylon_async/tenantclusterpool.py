@@ -105,6 +105,16 @@ class TenantClusterPool(K8sObject):
         """Configuration to maintain pools of provisioned tenant items."""
         return self.spec.tenant_pools or {}
 
+    @property
+    def workshop_name(self) -> str|None:
+        """Return workshop name if associated to a Workshop."""
+        return self.labels.get('babylon.gpte.redhat.com/workshop')
+
+    @property
+    def workshop_provision_name(self) -> str|None:
+        """Return workshop provision name if associated to a WorkshopProvision."""
+        return self.labels.get('babylon.gpte.redhat.com/workshop-provision')
+
     async def add_cluster_to_status(self,
         resource_claim_name:str,
         retries:int=10,
