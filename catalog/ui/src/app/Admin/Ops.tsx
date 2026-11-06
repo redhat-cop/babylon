@@ -1536,7 +1536,7 @@ const Ops: React.FC = () => {
         const seats = getSeats(ws);
         const password = ws.spec?.accessPassword ?? '';
         const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-        const wsUrl = workshopId ? `https://catalog.demo.redhat.com/workshop/${workshopId}` : '';
+        const wsUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : '';
         const stop = ws.spec?.actionSchedule?.stop;
         const destroy = ws.spec?.lifespan?.end;
         const stage = getStageFromK8sObject(ws) || '';
