@@ -325,7 +325,7 @@ class ResourceClaim(K8sObject):
         """Force destroy of backend components while keeping ResourceClaim around."""
         await self.patch({
             "spec": {
-                "autoDetatch": {
+                "autoDetach": {
                     "when": "true"
                 }
             }
@@ -633,7 +633,7 @@ class ResourceClaimStatusResourceHandle:
     @property
     def is_detached(self) -> bool:
         """Return if ResourceClaim is detatched from ResourceHandle"""
-        return self._definition.detached or False
+        return self._definition.get('detached') or False
 
     @property
     def kind(self) -> str:

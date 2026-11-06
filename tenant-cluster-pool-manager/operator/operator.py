@@ -438,7 +438,7 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
     """Manage TenantClusterPool"""
 
     # First manage current clusters...
-    (available_placement_count, cluster_count, latest_creation_datetime
+    (available_placement_count, cluster_count, failed_cluster_count, latest_creation_datetime
     ) = await manage_tenant_cluster_pool_clusters(
         tenant_cluster_pool, logger
     )
@@ -454,11 +454,18 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
     ):
         return
 
-    # Don't create a cluster if one was created within the last 5 minutes
+    # Give up provisioning clusters for a workshop if there are multiple failures
+    if (
+        tenant_cluster_pool.workshop_name is not None and
+        failed_cluster_count > 1
+    ):
+        return
+
+    # Don't create a cluster if one was created within the last 10 minutes
     # NOTE: Perhaps make this configurable in a future release?
     if (
         latest_creation_datetime is not None and
-        (datetime.now(timezone.utc) - latest_creation_datetime).total_seconds() < 300
+        (datetime.now(timezone.utc) - latest_creation_datetime).total_seconds() < 600
     ):
         return
 
@@ -500,8 +507,11 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
     )
 
     if resource_claim.state in ('provision-failed', 'provision-error'):
-        # Delete if older than 10 minutes
-        if (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 600:
+        # Delete if older than 10 minutes and not associated to a workshop
+        if (
+            resource_claim.workshop_provision_name is None and
+            (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 600
+       ):
             logger.info(
                 "Deleting %s %s for %s",
                 resource_claim.state,
@@ -511,10 +521,11 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
             await resource_claim.delete()
             await tenant_cluster_pool.remove_cluster_from_status(cluster.resource_claim_name)
             return ClusterState.DELETED, 0
+
         # Detached indicates failure detected previously after failure and
         # ResourceClaim was kept for tracking failure
         if resource_claim.is_detached:
-            return ClusterState.FAILED, 0
+            return ClusterState.DETACHED, 0
         # Log the failure state
         logger.warning(
             "Cluster %s for %s is %s!",
@@ -563,10 +574,12 @@ async def manage_tenant_cluster_pool_clusters(tenant_cluster_pool, logger) -> (i
     Return:
         - int: available placement count
         - int: cluster count
+        - int: failed cluster count
         - datetime: when most recent cluster was created
     """
     total_available_placement_count = 0
     cluster_count = 0
+    failed_cluster_count = 0
     latest_creation_datetime = None
     for cluster in tenant_cluster_pool.clusters:
         cluster_state, available_placement_count, resource_claim = await manage_tenant_cluster_pool_cluster(
@@ -578,9 +591,11 @@ async def manage_tenant_cluster_pool_clusters(tenant_cluster_pool, logger) -> (i
         # Only count clusters running on pending provision success
         if cluster_state in (ClusterState.STARTED, ClusterState.PENDING):
             cluster_count += 1
+        if cluster_state in (ClusterState.FAILED, ClusterState.DETACHED):
+            failed_cluster_count += 1
         total_available_placement_count += available_placement_count
 
-    return total_available_placement_count, cluster_count, latest_creation_datetime
+    return total_available_placement_count, cluster_count, failed_cluster_count, latest_creation_datetime
 
 async def provision_cluster_for_tenant_cluster_pool(tenant_cluster_pool, logger):
     """Provision a new cluster for TenantClusterPool"""
