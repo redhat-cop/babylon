@@ -10,7 +10,7 @@ import './status-progress.css';
 
 // 'degraded': some instances failed; 'partial': some running, the rest stopped
 export type StatusProgressPhase = phaseProps | 'degraded' | 'partial';
-export type StatusSegmentVariant = 'success' | 'success-subtle' | 'info' | 'pending' | 'neutral' | 'danger';
+export type StatusSegmentVariant = 'success' | 'success-subtle' | 'info' | 'queued' | 'pending' | 'neutral' | 'danger';
 
 export interface StatusSegment {
   key: string;

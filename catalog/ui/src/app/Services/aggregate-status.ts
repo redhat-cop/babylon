@@ -6,13 +6,13 @@ export const VARIANT_BY_PHASE: Record<phaseProps, StatusSegmentVariant> = {
   available: 'info',
   'in-progress': 'info',
   waiting: 'info',
-  queued: 'info',
+  queued: 'queued',
   scheduled: 'info',
   unknown: 'info',
   stopped: 'neutral',
   failed: 'danger',
 };
-const VARIANT_ORDER: StatusSegmentVariant[] = ['success', 'info', 'pending', 'neutral', 'danger'];
+const VARIANT_ORDER: StatusSegmentVariant[] = ['success', 'info', 'queued', 'pending', 'neutral', 'danger'];
 
 export interface AggregateStatus {
   phase: StatusProgressPhase;
@@ -49,7 +49,7 @@ export function getAggregateStatus(statuses: { phase: phaseProps; state: string 
   const countOf = (variants: StatusSegmentVariant[]) =>
     segments.filter((s) => variants.includes(s.variant)).reduce((n, s) => n + s.count, 0);
   const running = countOf(['success']);
-  const inProgress = countOf(['info', 'pending']);
+  const inProgress = countOf(['info', 'queued', 'pending']);
   const failed = countOf(['danger']);
 
   // Single state for every instance: reuse that state as headline
@@ -71,7 +71,7 @@ export function getAggregateStatus(statuses: { phase: phaseProps; state: string 
   }
   // Nothing running yet: headline with the most common state that is still progressing, else most common overall
   const lead =
-    segments.filter((s) => s.variant === 'info' || s.variant === 'pending').sort((a, b) => b.count - a.count)[0] ??
+    segments.filter((s) => ['info', 'queued', 'pending'].includes(s.variant)).sort((a, b) => b.count - a.count)[0] ??
     [...segments].sort((a, b) => b.count - a.count)[0];
   lead.hideInLegend = true;
   return { phase, label: lead.label, count: lead.count, total, segments };

@@ -81,6 +81,10 @@
 .status-progress__swatch--info {
   background-color: var(--pf-t--global--color--status--info--default);
 }
+.status-progress__segment--queued,
+.status-progress__swatch--queued {
+  background-color: var(--pf-t--global--icon--color--status--purple--default, #6753ac);
+}
 .status-progress__segment--pending,
 .status-progress__swatch--pending {
   background-image: repeating-linear-gradient(

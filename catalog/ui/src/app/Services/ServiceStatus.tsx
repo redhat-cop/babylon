@@ -91,7 +91,7 @@ export function getStatus(
   } else if (currentState === 'provisioning') {
     return { statusName: 'Provisioning', phase: 'in-progress' };
   } else if (currentState === 'start-pending') {
-    return { statusName: 'Start Pending', phase: 'in-progress' };
+    return { statusName: 'Start Pending', phase: 'queued' };
   } else if (currentState === 'started' && desiredState === 'stopped') {
     return { statusName: 'Stop Requested', phase: 'in-progress' };
   } else if (currentState === 'started' && stopTime && startTime && (stopTime < Date.now() || startTime > Date.now())) {
@@ -152,6 +152,9 @@ export function getPhaseState(__state: string) {
     case state.endsWith('-queued'):
       _phase = 'queued';
       _state = 'In Queue';
+      break;
+    case state === 'start-pending':
+      _phase = 'queued';
       break;
     case state.startsWith('waiting'):
     case state.includes('waiting to provision'):

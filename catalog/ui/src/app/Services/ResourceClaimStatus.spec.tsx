@@ -51,4 +51,10 @@ describe('ResourceClaimStatus', () => {
     expect(screen.getByText('Scheduled')).toBeInTheDocument();
     expect(screen.getByText(/Starts/)).toHaveTextContent('Starts 3 hours from now');
   });
+
+  test('start pending uses the purple queued style', () => {
+    const { container } = render(<ResourceClaimStatus resourceClaim={makeResourceClaim(['start-pending'], 'start-pending')} />);
+    expect(screen.getByText(/start pending/i)).toBeInTheDocument();
+    expect(container.querySelector('.status-progress--queued .status-progress__segment--queued')).toBeInTheDocument();
+  });
 });
