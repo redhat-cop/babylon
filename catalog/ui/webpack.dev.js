@@ -1,6 +1,5 @@
 const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
-const { stylePaths } = require('./stylePaths');
 const HOST = process.env.HOST || 'localhost';
 const PORT = process.env.PORT || '9000';
 
@@ -49,33 +48,6 @@ module.exports = merge(common('development'), {
         headers: {
           Connection: 'keep-alive',
         },
-      },
-    ],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        include: [...stylePaths],
-        use: [
-          'style-loader',
-          'css-loader',
-          {
-            loader: 'postcss-loader',
-            options: {
-              postcssOptions: {
-                plugins: [
-                  [
-                    'postcss-custom-media',
-                    {
-                      importFrom: ['./src/app/custom-media.css'],
-                    },
-                  ],
-                ],
-              },
-            },
-          },
-        ],
       },
     ],
   },
