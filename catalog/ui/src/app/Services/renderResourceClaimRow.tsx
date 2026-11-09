@@ -160,7 +160,7 @@ const renderResourceClaimRow = ({
         </Label>
       ) : null}
       {serviceAlias ? (
-        <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
+        <Label key="service-alias" tooltipDescription={<div>Your alias for this service</div>}>
           {serviceAlias}
         </Label>
       ) : null}

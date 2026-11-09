@@ -121,6 +121,7 @@ import useSandboxApi from '@app/utils/useSandboxApi';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useDebounceState from '@app/utils/useDebounceState';
+import ServiceAliasField from './ServiceAliasField';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
 import useSWRImmutable from 'swr/immutable';
@@ -494,7 +495,6 @@ const ServicesItemComponent: React.FC<{
   const [serviceAlias, setServiceAlias] = useState(
     resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`] || '',
   );
-  const debouncedServiceAlias = useDebounceState(serviceAlias, 300);
   const opsEffortAnnotation = resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   const opsEffortFromAnnotation = useMemo(() => parseInt(opsEffortAnnotation || '0', 10) || 0, [opsEffortAnnotation]);
   const [opsEffort, setOpsEffort] = useState<number>(opsEffortFromAnnotation);
@@ -602,25 +602,17 @@ const ServicesItemComponent: React.FC<{
     }
   }
 
-  useEffect(() => {
-    if (debouncedServiceAlias !== resourceClaim.metadata.annotations?.[`${DEMO_DOMAIN}/service-alias`]) {
-      patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-        metadata: {
-          annotations: {
-            [`${DEMO_DOMAIN}/service-alias`]: debouncedServiceAlias,
-          },
+  async function saveServiceAlias(alias: string) {
+    const updatedResourceClaim = await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
+      metadata: {
+        annotations: {
+          [`${DEMO_DOMAIN}/service-alias`]: alias,
         },
-      }).then((updatedResourceClaim) => {
-        mutate(updatedResourceClaim);
-      });
-    }
-  }, [
-    debouncedServiceAlias,
-    mutate,
-    resourceClaim.metadata.annotations,
-    resourceClaim.metadata.name,
-    resourceClaim.metadata.namespace,
-  ]);
+      },
+    });
+    setServiceAlias(alias);
+    mutate(updatedResourceClaim);
+  }
 
   useEffect(() => {
     setOpsEffort(opsEffortFromAnnotation);
@@ -1087,7 +1079,7 @@ const ServicesItemComponent: React.FC<{
                 </Label>
               ) : null}
               {serviceAlias && !isTenantClusterItem ? (
-                <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
+                <Label key="service-alias" tooltipDescription={<div>Your alias for this service</div>}>
                   {serviceAlias}
                 </Label>
               ) : null}
@@ -1146,26 +1138,7 @@ const ServicesItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Alias</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <div
-                          className="service-item__group-control--single"
-                          style={{ maxWidth: 300, paddingBottom: '16px' }}
-                        >
-                          <TextInput
-                            type="text"
-                            key="service-alias"
-                            id="service-alias"
-                            onChange={async (_event: unknown, value: string) => {
-                              setServiceAlias(value);
-                            }}
-                            value={serviceAlias}
-                          />
-                          <Tooltip position="right" content={<div>Alias name for the service.</div>}>
-                            <OutlinedQuestionCircleIcon
-                              aria-label="Alias name for the service."
-                              className="tooltip-icon-only"
-                            />
-                          </Tooltip>
-                        </div>
+                        <ServiceAliasField value={serviceAlias} onSave={saveServiceAlias} />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
