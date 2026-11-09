@@ -993,21 +993,96 @@ async def external_item_request(request):
         url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
 
-async def _jira_lookup_account_id(email, credentials, session):
-    """Return the Jira accountId for an email address, or None if not found."""
+async def _jira_lookup_user(email, credentials, session):
+    """Return the Jira user ({accountId, displayName, ...}) for an email address, or None.
+
+    Jira's user search is a fuzzy prefix match on display name and email, so the
+    first result is not necessarily the requester. Prefer an active Atlassian
+    (human) account whose email matches exactly; only fall back to a lone active
+    Atlassian result, which covers users whose email is hidden by their profile
+    visibility settings. App/customer accounts are never used as the reporter.
+    """
+    if not email:
+        return None
     async with session.get(
         f"{jira_base_url}/rest/api/3/user/search",
         headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/json"},
-        params={"query": email, "maxResults": 1},
+        params={"query": email, "maxResults": 10},
     ) as resp:
         if resp.status != 200:
             logging.warning(f"Jira user lookup failed for {email}: {resp.status}")
             return None
         results = await resp.json()
-        if results:
-            return results[0]["accountId"]
-        logging.warning(f"Jira user not found for email: {email}")
-        return None
+
+    candidates = [
+        u for u in (results or [])
+        if u.get('accountId') and u.get('active', True) and u.get('accountType', 'atlassian') == 'atlassian'
+    ]
+    for candidate in candidates:
+        if (candidate.get('emailAddress') or '').lower() == email.lower():
+            return candidate
+    if len(candidates) == 1 and not candidates[0].get('emailAddress'):
+        return candidates[0]
+    logging.warning(f"Jira user not found for email: {email} ({len(results or [])} fuzzy results)")
+    return None
+
+
+async def _jira_lookup_account_id(email, credentials, session):
+    """Return the Jira accountId for an email address, or None if not found."""
+    jira_user = await _jira_lookup_user(email, credentials, session)
+    return jira_user['accountId'] if jira_user else None
+
+
+# Fields that enrich a WGR ticket but must never prevent it from being created.
+# If Jira rejects any of them (e.g. the integration account lacks the
+# "Modify Reporter" permission or a field is missing from the create screen),
+# they are dropped and creation is retried.
+_JIRA_WGR_OPTIONAL_FIELDS = {
+    'reporter', 'priority', 'duedate',
+    'customfield_10317', 'customfield_10674', 'customfield_10933', 'customfield_10951',
+}
+
+
+async def _jira_create_issue(jira_fields, jira_headers, session):
+    """Create a Jira issue, dropping optional fields that Jira rejects."""
+    fields = dict(jira_fields)
+    while True:
+        async with session.post(
+            f"{jira_base_url}/rest/api/3/issue",
+            headers=jira_headers,
+            data=json.dumps({"fields": fields}),
+        ) as resp:
+            if resp.status in (200, 201):
+                return await resp.json(), fields
+            error_body = await resp.text()
+        rejected = set()
+        if resp.status == 400:
+            try:
+                rejected = set((json.loads(error_body).get('errors') or {}).keys())
+            except (ValueError, AttributeError):
+                rejected = set()
+        droppable = rejected & _JIRA_WGR_OPTIONAL_FIELDS & set(fields)
+        if not rejected or rejected - droppable:
+            logging.error(f"Jira API error ({resp.status}): {error_body}")
+            raise web.HTTPBadGateway(reason=f"Failed to create Jira ticket: {resp.status}")
+        logging.warning(f"Jira rejected optional fields {sorted(droppable)}, retrying without them: {error_body}")
+        for field in droppable:
+            fields.pop(field, None)
+
+
+def _jira_requester_paragraph(requester_email, requester_jira_user):
+    """ADF paragraph identifying the requester, with an @mention when the Jira user is known."""
+    content = [{"type": "text", "text": "Requester: ", "marks": [{"type": "strong"}]}]
+    if requester_jira_user:
+        display_name = requester_jira_user.get('displayName') or requester_email
+        content.append({
+            "type": "mention",
+            "attrs": {"id": requester_jira_user['accountId'], "text": f"@{display_name}"},
+        })
+        content.append({"type": "text", "text": f" ({requester_email})"})
+    else:
+        content.append({"type": "text", "text": requester_email})
+    return {"type": "paragraph", "content": content}
 
 
 _DELIVERY_MODE_MAP = {
@@ -1041,7 +1116,6 @@ async def create_jira_wgr_ticket(request):
         sf_ids_str = ', '.join(f"{item['type']}: {item['id']}" for item in data['salesforceItems'])
 
     description_lines = [
-        f"Requester: {requester_email}",
         f"Catalog Item: {catalog_items_str}",
         f"Activity: {data.get('activity', 'N/A')}",
         f"Purpose: {data.get('purpose', 'N/A')}",
@@ -1089,7 +1163,8 @@ async def create_jira_wgr_ticket(request):
 
     async with aiohttp.ClientSession() as session:
         # Look up Jira accountIds for requester and shareWith users
-        requester_account_id = await _jira_lookup_account_id(requester_email, credentials, session)
+        requester_jira_user = await _jira_lookup_user(requester_email, credentials, session)
+        requester_account_id = requester_jira_user['accountId'] if requester_jira_user else None
 
         share_with_emails = data.get('shareWith') or []
         participant_account_ids = []
@@ -1097,7 +1172,7 @@ async def create_jira_wgr_ticket(request):
             participant_account_ids.append(requester_account_id)
         for email in share_with_emails:
             acct = await _jira_lookup_account_id(email, credentials, session)
-            if acct:
+            if acct and acct not in participant_account_ids:
                 participant_account_ids.append(acct)
 
         jira_fields = {
@@ -1106,7 +1181,10 @@ async def create_jira_wgr_ticket(request):
             "description": {
                 "type": "doc",
                 "version": 1,
-                "content": [{"type": "paragraph", "content": [{"type": "text", "text": description_text}]}],
+                "content": [
+                    _jira_requester_paragraph(requester_email, requester_jira_user),
+                    {"type": "paragraph", "content": [{"type": "text", "text": description_text}]},
+                ],
             },
             "issuetype": {"name": "Task"},
             "labels": labels,
@@ -1133,23 +1211,16 @@ async def create_jira_wgr_ticket(request):
         if sf_ids_str:
             jira_fields["customfield_10933"] = sf_ids_str
 
-        jira_payload = {"fields": jira_fields}
-
-        async with session.post(
-            f"{jira_base_url}/rest/api/3/issue",
-            headers=jira_headers,
-            data=json.dumps(jira_payload),
-        ) as resp:
-            if resp.status not in (200, 201):
-                error_body = await resp.text()
-                logging.error(f"Jira API error ({resp.status}): {error_body}")
-                raise web.HTTPBadGateway(reason=f"Failed to create Jira ticket: {resp.status}")
-            result = await resp.json()
+        result, created_fields = await _jira_create_issue(jira_fields, jira_headers, session)
 
     ticket_key = result['key']
     ticket_url = f"{jira_base_url}/browse/{ticket_key}"
 
-    audit_log('jira_ticket_created', user=requester_email, details={'ticket': ticket_key, 'display_name': display_name})
+    audit_log('jira_ticket_created', user=requester_email, details={
+        'ticket': ticket_key,
+        'display_name': display_name,
+        'reporter_account_id': created_fields.get('reporter', {}).get('accountId'),
+    })
 
     return web.json_response({"key": ticket_key, "url": ticket_url})
 
