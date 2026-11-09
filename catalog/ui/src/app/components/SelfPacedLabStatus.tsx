@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
-import HourglassHalfIcon from '@patternfly/react-icons/dist/js/icons/hourglass-half-icon';
-import UserIcon from '@patternfly/react-icons/dist/js/icons/user-icon';
 import type { ResourceClaim } from '@app/types';
 import { BABYLON_DOMAIN } from '@app/util';
+import { InnerStatus } from '@app/Services/ServiceStatus';
+import StatusProgress from './StatusProgress';
 
 const SelfPacedLabStatus: React.FC<{
   resourceClaims?: ResourceClaim[];
@@ -34,18 +33,22 @@ const SelfPacedLabStatus: React.FC<{
     return { ready, assigned, provisioning };
   }, [resourceClaims, poolCount, assignmentLabel]);
 
+  const total = status.ready + status.assigned + status.provisioning;
+  if (total === 0) {
+    return <InnerStatus phase="in-progress" state="Initializing" />;
+  }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--xs)' }}>
-      <span style={{ color: 'var(--pf-t--global--border--color--status--success--default)' }}>
-        <CheckCircleIcon /> {status.ready} ready
-      </span>
-      <span style={{ color: 'var(--pf-t--global--border--color--status--success--default)' }}>
-        <UserIcon /> {status.assigned} assigned
-      </span>
-      <span style={{ color: 'var(--pf-t--global--icon--color--status--info--default)' }}>
-        <HourglassHalfIcon /> {status.provisioning} provisioning
-      </span>
-    </div>
+    <StatusProgress
+      phase={status.provisioning > 0 ? 'in-progress' : 'running'}
+      label="Running"
+      count={status.ready + status.assigned}
+      total={total}
+      segments={[
+        { key: 'assigned', label: 'assigned', count: status.assigned, variant: 'success' },
+        { key: 'ready', label: 'ready', count: status.ready, variant: 'success-subtle' },
+        { key: 'provisioning', label: 'provisioning', count: status.provisioning, variant: 'info' },
+      ]}
+    />
   );
 };
 

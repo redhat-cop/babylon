@@ -1,0 +1,143 @@
+.status-progress {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+  min-width: 128px;
+  max-width: 220px;
+}
+
+.status-progress__headline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+}
+
+.status-progress__label {
+  text-transform: capitalize;
+}
+
+.status-progress__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  padding: 0 var(--pf-t--global--spacer--xs);
+  border-radius: var(--pf-t--global--border--radius--pill);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.status-progress--running .status-progress__headline {
+  color: var(--pf-t--global--border--color--status--success--default);
+}
+.status-progress--degraded .status-progress__headline {
+  color: var(--pf-t--global--icon--color--status--warning--default);
+}
+.status-progress--partial .status-progress__headline svg {
+  color: var(--pf-t--global--border--color--status--success--default);
+}
+.status-progress--failed .status-progress__headline {
+  color: var(--pf-t--global--icon--color--status--danger--default);
+}
+.status-progress--waiting .status-progress__headline {
+  color: var(--pf-t--global--icon--color--status--info--default);
+}
+.status-progress--queued .status-progress__headline {
+  color: var(--pf-t--global--icon--color--status--purple--default, #6753ac);
+}
+
+.status-progress__bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  width: 100%;
+  border-radius: var(--pf-t--global--border--radius--pill);
+  overflow: hidden;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+.status-progress__bar:focus-visible {
+  outline: 2px solid var(--pf-t--global--border--color--clicked);
+  outline-offset: 2px;
+}
+
+.status-progress__segment {
+  flex-basis: 0;
+  min-width: 4px;
+  transition: flex-grow 0.4s ease;
+}
+
+.status-progress__segment--success,
+.status-progress__swatch--success {
+  background-color: var(--pf-t--global--color--status--success--default);
+}
+.status-progress__segment--success-subtle,
+.status-progress__swatch--success-subtle {
+  background-color: var(--pf-t--global--color--status--success--default);
+  opacity: 0.5;
+}
+.status-progress__segment--info,
+.status-progress__swatch--info {
+  background-color: var(--pf-t--global--color--status--info--default);
+}
+.status-progress__segment--pending,
+.status-progress__swatch--pending {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--pf-t--global--color--status--info--default) 0 2px,
+    transparent 2px 5px
+  );
+  opacity: 0.6;
+}
+.status-progress__segment--neutral,
+.status-progress__swatch--neutral {
+  background-color: var(--pf-t--global--color--nonstatus--gray--default);
+}
+.status-progress__segment--danger,
+.status-progress__swatch--danger {
+  background-color: var(--pf-t--global--color--status--danger--default);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .status-progress__segment--info {
+    animation: status-progress-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes status-progress-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.status-progress__legend {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--pf-t--global--spacer--sm);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+.status-progress__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.status-progress__swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.status-progress__tooltip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+.status-progress__tooltip li {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+}

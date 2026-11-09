@@ -20,7 +20,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import Label from '@app/components/Label';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
-import ServiceStatus from './ServiceStatus';
+import WorkshopStatus from './WorkshopStatus';
 
 const renderWorkshopRow = ({
   workshop,
@@ -104,7 +104,8 @@ const renderWorkshopRow = ({
   const guidCell = <span key="workshop-guid">-</span>;
   const clusterCell = <span key="workshop-cluster">{clusters.join(', ') || '-'}</span>;
   const resourceClaimsLoaded = workshop.resourceClaims !== undefined;
-  const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
+  const activeResourceClaims = (workshop.resourceClaims || []).filter((r) => !r.metadata.deletionTimestamp);
+  const orderedCount: number = workshop.status?.provisionCount?.ordered ?? 0;
   const statusCell = (
     <>
       {autoStartTime && autoStartTime > Date.now() ? (
@@ -113,8 +114,8 @@ const renderWorkshopRow = ({
         </span>
       ) : !resourceClaimsLoaded ? (
         <Spinner size="md" />
-      ) : activeResourceClaim ? (
-        <ServiceStatus resourceClaim={activeResourceClaim} />
+      ) : activeResourceClaims.length > 0 || orderedCount > 0 ? (
+        <WorkshopStatus resourceClaims={activeResourceClaims} expectedCount={orderedCount} />
       ) : (
         <p>...</p>
       )}

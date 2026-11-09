@@ -8,25 +8,26 @@ describe('SelfPacedLabStatus', () => {
     test('should display ready, assigned, and provisioning counts', () => {
       render(<SelfPacedLabStatus poolCount={{ ready: 5, assigned: 3, provisioning: 2 }} />);
 
+      expect(screen.getByText('Running')).toBeInTheDocument();
+      expect(screen.getByText('8/10')).toBeInTheDocument();
       expect(screen.getByText('5 ready')).toBeInTheDocument();
       expect(screen.getByText('3 assigned')).toBeInTheDocument();
       expect(screen.getByText('2 provisioning')).toBeInTheDocument();
     });
 
-    test('should default missing counts to 0', () => {
+    test('should show initializing when all counts are missing', () => {
       render(<SelfPacedLabStatus poolCount={{}} />);
 
-      expect(screen.getByText('0 ready')).toBeInTheDocument();
-      expect(screen.getByText('0 assigned')).toBeInTheDocument();
-      expect(screen.getByText('0 provisioning')).toBeInTheDocument();
+      expect(screen.getByText(/Initializing/)).toBeInTheDocument();
     });
 
     test('should handle partial poolCount', () => {
       render(<SelfPacedLabStatus poolCount={{ ready: 3 }} />);
 
       expect(screen.getByText('3 ready')).toBeInTheDocument();
-      expect(screen.getByText('0 assigned')).toBeInTheDocument();
-      expect(screen.getByText('0 provisioning')).toBeInTheDocument();
+      expect(screen.getByText('3/3')).toBeInTheDocument();
+      expect(screen.queryByText('0 assigned')).not.toBeInTheDocument();
+      expect(screen.queryByText('0 provisioning')).not.toBeInTheDocument();
     });
   });
 
@@ -63,7 +64,7 @@ describe('SelfPacedLabStatus', () => {
 
       expect(screen.getByText('1 ready')).toBeInTheDocument();
       expect(screen.getByText('2 assigned')).toBeInTheDocument();
-      expect(screen.getByText('0 provisioning')).toBeInTheDocument();
+      expect(screen.queryByText('0 provisioning')).not.toBeInTheDocument();
     });
 
     test('should count ready claims (started/stopped without assignment)', () => {
@@ -76,24 +77,20 @@ describe('SelfPacedLabStatus', () => {
       render(<SelfPacedLabStatus resourceClaims={resourceClaims} />);
 
       expect(screen.getByText('2 ready')).toBeInTheDocument();
-      expect(screen.getByText('0 assigned')).toBeInTheDocument();
       expect(screen.getByText('1 provisioning')).toBeInTheDocument();
+      expect(screen.getByText('2/3')).toBeInTheDocument();
     });
 
-    test('should show all zeros with empty resourceClaims', () => {
+    test('should show initializing with empty resourceClaims', () => {
       render(<SelfPacedLabStatus resourceClaims={[]} />);
 
-      expect(screen.getByText('0 ready')).toBeInTheDocument();
-      expect(screen.getByText('0 assigned')).toBeInTheDocument();
-      expect(screen.getByText('0 provisioning')).toBeInTheDocument();
+      expect(screen.getByText(/Initializing/)).toBeInTheDocument();
     });
 
-    test('should show all zeros when resourceClaims is undefined', () => {
+    test('should show initializing when resourceClaims is undefined', () => {
       render(<SelfPacedLabStatus />);
 
-      expect(screen.getByText('0 ready')).toBeInTheDocument();
-      expect(screen.getByText('0 assigned')).toBeInTheDocument();
-      expect(screen.getByText('0 provisioning')).toBeInTheDocument();
+      expect(screen.getByText(/Initializing/)).toBeInTheDocument();
     });
   });
 
