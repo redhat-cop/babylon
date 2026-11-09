@@ -225,8 +225,11 @@ class CatalogItem(K8sObject):
             updated['metadata']['labels'] = {
                 label: value for label, value in
                 updated['metadata'].get('labels', {}).items()
+                # Any label gpte.redhat.com/* is managed from AgV
                 if not label.startswith("gpte.redhat.com/")
+                # Any label demo.redhat.com/* is managed from AgV
                 and not label.startswith("demo.redhat.com/")
+                # Any label babylon.gpte.redhat.com/* label is managed from AgV except reporting and disabled
                 and (
                     not label.startswith("babylon.gpte.redhat.com/")
                     or label in (
