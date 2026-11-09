@@ -143,7 +143,3 @@
   align-items: center;
   gap: var(--pf-t--global--spacer--xs);
 }
-.status-progress__tooltip-title {
-  font-weight: var(--pf-t--global--font--weight--body--bold);
-  margin-bottom: var(--pf-t--global--spacer--xs);
-}

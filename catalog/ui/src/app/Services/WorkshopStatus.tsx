@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ResourceClaim } from '@app/types';
 import StatusProgress from '@app/components/StatusProgress';
-import ServiceStatus, { getResourceClaimStatus } from './ServiceStatus';
+import { getResourceClaimStatus } from './ServiceStatus';
+import ResourceClaimStatus from './ResourceClaimStatus';
 import { getAggregateStatus } from './aggregate-status';
 import type { AggregateStatus } from './aggregate-status';
 
@@ -15,7 +16,7 @@ const WorkshopStatus: React.FC<{
   expectedCount?: number;
 }> = ({ resourceClaims, expectedCount = 0 }) => {
   if (resourceClaims.length === 1 && expectedCount <= 1) {
-    return <ServiceStatus resourceClaim={resourceClaims[0]} />;
+    return <ResourceClaimStatus resourceClaim={resourceClaims[0]} />;
   }
   const { phase, label, count, total, segments } = getWorkshopAggregateStatus(resourceClaims, expectedCount);
   return <StatusProgress phase={phase} label={label} count={count} total={total} segments={segments} />;

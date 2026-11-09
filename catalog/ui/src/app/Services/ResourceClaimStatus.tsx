@@ -2,40 +2,25 @@ import React from 'react';
 import type { ResourceClaim } from '@app/types';
 import StatusProgress from '@app/components/StatusProgress';
 import ScheduledStatus from '@app/components/ScheduledStatus';
-import ServiceStatus, { getResourceClaimStatus } from './ServiceStatus';
-import { getResourceClaimComponentStatuses } from './service-utils';
-import { getAggregateStatus } from './aggregate-status';
+import { getResourceClaimStatus } from './ServiceStatus';
+import { VARIANT_BY_PHASE } from './aggregate-status';
 
 /**
- * Status of a service. Multi-component services whose components are in different states
- * (e.g. cluster running while tenants are still provisioning) show the per-component progress,
- * aligned with the workshop and self-paced lab status in the services list.
+ * Status of a service (ResourceClaim) as a single entity, in the same visual style as
+ * the workshop and self-paced lab statuses of the services list.
  */
 const ResourceClaimStatus: React.FC<{ resourceClaim: ResourceClaim }> = ({ resourceClaim }) => {
-  const overall = getResourceClaimStatus(resourceClaim);
-  const components = getResourceClaimComponentStatuses(resourceClaim);
-  const expectedCount = resourceClaim.spec.resources?.length ?? 0;
-  if (overall.phase === 'scheduled') {
+  const { phase, state, errorMessage } = getResourceClaimStatus(resourceClaim);
+  if (phase === 'scheduled') {
     return <ScheduledStatus startTime={Date.parse(resourceClaim.spec.lifespan?.start)} />;
-  }
-  // Start/stop schedules apply to the whole service, keep the service level state for them
-  const isScheduleState = overall.state === 'Waiting to Start' || overall.state === 'Waiting to Stop';
-  if (Math.max(components.length, expectedCount) <= 1 || isScheduleState) {
-    return <ServiceStatus resourceClaim={resourceClaim} />;
-  }
-  const { phase, label, count, total, segments } = getAggregateStatus(components, expectedCount);
-  if (segments.length === 1) {
-    return <ServiceStatus resourceClaim={resourceClaim} />;
   }
   return (
     <StatusProgress
       phase={phase}
-      label={label}
-      count={count}
-      total={total}
-      segments={segments}
-      unit="components"
-      errorMessage={overall.errorMessage}
+      label={state}
+      total={1}
+      segments={[{ key: 'status', label: state.toLowerCase(), count: 1, variant: VARIANT_BY_PHASE[phase] ?? 'info', hideInLegend: true }]}
+      errorMessage={errorMessage}
     />
   );
 };

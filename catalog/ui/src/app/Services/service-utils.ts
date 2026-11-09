@@ -4,7 +4,6 @@ import type {
   ResourceClaim,
   ResourceClaimSpecResource,
   ResourceClaimSpecResourceTemplate,
-  ResourceHandleResource,
 } from '@app/types';
 import parseDuration from 'parse-duration';
 import { canExecuteAction, DEMO_DOMAIN } from '@app/util';
@@ -50,45 +49,6 @@ export function getAutoTimes(resourceClaim: ResourceClaim): { startTime: number;
   return { stopTime: Math.max(...stopTimes), startTime: Math.min(...startTimes) };
 }
 
-function getResourceComponentStatus(
-  resourceClaim: ResourceClaim,
-  resource: ResourceHandleResource,
-): { phase: phaseProps; statusName: string } {
-  const resourceK8s = resource.state;
-  const currentState =
-    resourceK8s?.kind === 'AnarchySubject' ? resourceK8s?.spec?.vars?.current_state ?? '' : '';
-  const specResource = resourceClaim.spec.resources?.find((s) => s.name === resource.name);
-  const desiredState = specResource?.template?.spec?.vars?.desired_state;
-  const startTimestamp =
-    specResource?.template?.spec?.vars?.action_schedule?.start || resourceK8s?.spec?.vars?.action_schedule?.start;
-  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-  const stopTimestamp =
-    specResource?.template?.spec?.vars?.action_schedule?.stop || resourceK8s?.spec?.vars?.action_schedule?.stop;
-  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-  return getStatus(
-    currentState,
-    desiredState,
-    Date.parse(resourceClaim.metadata.creationTimestamp),
-    startTime,
-    stopTime,
-    resourceClaim,
-    resourceK8s,
-  );
-}
-
-/**
- * Status of each component of a multi-component service. Components whose resource is not an
- * AnarchySubject don't report a lifecycle state and are left out.
- */
-export function getResourceClaimComponentStatuses(resourceClaim: ResourceClaim): { phase: phaseProps; state: string }[] {
-  return (resourceClaim.status?.resources || [])
-    .filter((r) => !r.state || r.state.kind === 'AnarchySubject')
-    .map((r) => {
-      const { phase, statusName } = getResourceComponentStatus(resourceClaim, r);
-      return { phase, state: statusName };
-    });
-}
-
 export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim): {
   resource: AnarchySubject;
   template: ResourceClaimSpecResourceTemplate;
@@ -102,10 +62,33 @@ export function getMostRelevantResourceAndTemplate(resourceClaim: ResourceClaim)
   if (resources.length === 1)
     return { resource: resources[0].state, template: getSpecResourceByName(resources[0].name)?.template };
 
-  const resourcesStatus: { index: number; phase: phaseProps }[] = resources.map((resource, i) => ({
-    index: i,
-    phase: getResourceComponentStatus(resourceClaim, resource).phase,
-  }));
+  const resourcesStatus: { index: number; phase: phaseProps }[] = [];
+  for (const [i, resource] of resources.entries()) {
+    const resourceK8s = resource.state;
+    const currentState =
+      resourceK8s?.kind === 'AnarchySubject' ? resourceK8s?.spec?.vars?.current_state ?? '' : '';
+    const specResource = getSpecResourceByName(resource.name);
+    const desiredState = specResource?.template?.spec?.vars?.desired_state;
+    const startTimestamp =
+      specResource?.template?.spec?.vars?.action_schedule?.start || resourceK8s?.spec?.vars?.action_schedule?.start;
+    const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+    const stopTimestamp =
+      specResource?.template?.spec?.vars?.action_schedule?.stop || resourceK8s?.spec?.vars?.action_schedule?.stop;
+    const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+
+    resourcesStatus.push({
+      index: i,
+      phase: getStatus(
+        currentState,
+        desiredState,
+        Date.parse(resourceClaim.metadata.creationTimestamp),
+        startTime,
+        stopTime,
+        resourceClaim,
+        resourceK8s,
+      ).phase,
+    });
+  }
 
   const codeLevels = ['failed', 'stopped', 'in-progress', 'queued', 'waiting', 'available', 'running'];
   function cmp(a: { phase: phaseProps }, b: { phase: phaseProps }) {

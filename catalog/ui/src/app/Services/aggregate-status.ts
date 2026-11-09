@@ -1,7 +1,7 @@
 import type { StatusProgressPhase, StatusSegment, StatusSegmentVariant } from '@app/components/StatusProgress';
 import type { phaseProps } from './ServiceStatus';
 
-const VARIANT_BY_PHASE: Record<phaseProps, StatusSegmentVariant> = {
+export const VARIANT_BY_PHASE: Record<phaseProps, StatusSegmentVariant> = {
   running: 'success',
   available: 'info',
   'in-progress': 'info',

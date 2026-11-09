@@ -21,9 +21,9 @@ export interface StatusSegment {
 }
 
 /**
- * Aggregated status for services made of several instances (workshops, self-paced labs).
- * Renders a headline ("Running 4/10"), a segmented bar and a compact legend so a partially
- * ready environment never looks identical to a fully ready one.
+ * Status with a headline ("Running 4/10"), a segmented bar and a compact legend so a partially
+ * ready workshop or lab never looks identical to a fully ready one. With a single segment and
+ * no count it renders the status of a single service in the same visual style.
  */
 const StatusProgress: React.FC<{
   phase: StatusProgressPhase;
@@ -32,14 +32,20 @@ const StatusProgress: React.FC<{
   count?: number;
   total: number;
   segments: StatusSegment[];
-  unit?: string;
   errorMessage?: string;
   // Replaces the legend
   caption?: React.ReactNode;
-}> = ({ phase, label, count, total, segments, unit, errorMessage, caption }) => {
+}> = ({ phase, label, count, total, segments, errorMessage, caption }) => {
   const visibleSegments = segments.filter((s) => s.count > 0);
   const legend = visibleSegments.filter((s) => !s.hideInLegend);
   const summary = visibleSegments.map((s) => `${s.count} ${s.label}`).join(', ');
+  const bar = visibleSegments.map((s) => (
+    <span
+      key={s.key}
+      className={`status-progress__segment status-progress__segment--${s.variant}`}
+      style={{ flexGrow: s.count }}
+    />
+  ));
 
   return (
     <div className={`status-progress status-progress--${phase}`}>
@@ -65,34 +71,35 @@ const StatusProgress: React.FC<{
           </Tooltip>
         ) : null}
       </span>
-      <Tooltip
-        position="bottom"
-        content={
-          <ul className="status-progress__tooltip">
-            {unit ? (
-              <li className="status-progress__tooltip-title">
-                {total} {unit}
-              </li>
-            ) : null}
-            {visibleSegments.map((s) => (
-              <li key={s.key}>
-                <span className={`status-progress__swatch status-progress__swatch--${s.variant}`} />
-                <b>{s.count}</b> {s.label}
-              </li>
-            ))}
-          </ul>
-        }
-      >
-        <div className="status-progress__bar" role="img" aria-label={`${count ?? total} of ${total} ${unit ? `${unit} ` : ''}${label.toLowerCase()}: ${summary}`} tabIndex={0}>
-          {visibleSegments.map((s) => (
-            <span
-              key={s.key}
-              className={`status-progress__segment status-progress__segment--${s.variant}`}
-              style={{ flexGrow: s.count }}
-            />
-          ))}
+      {total > 1 ? (
+        <Tooltip
+          position="bottom"
+          content={
+            <ul className="status-progress__tooltip">
+              {visibleSegments.map((s) => (
+                <li key={s.key}>
+                  <span className={`status-progress__swatch status-progress__swatch--${s.variant}`} />
+                  <b>{s.count}</b> {s.label}
+                </li>
+              ))}
+            </ul>
+          }
+        >
+          <div
+            className="status-progress__bar"
+            role="img"
+            aria-label={`${count ?? total} of ${total} ${label.toLowerCase()}: ${summary}`}
+            tabIndex={0}
+          >
+            {bar}
+          </div>
+        </Tooltip>
+      ) : (
+        // Single entity: the headline already says it all
+        <div className="status-progress__bar" aria-hidden="true">
+          {bar}
         </div>
-      </Tooltip>
+      )}
       {caption ? (
         <span className="status-progress__legend">{caption}</span>
       ) : legend.length > 0 ? (
