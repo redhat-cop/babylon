@@ -52,10 +52,15 @@ export function getAggregateStatus(statuses: { phase: phaseProps; state: string 
   const inProgress = countOf(['info', 'queued', 'pending']);
   const failed = countOf(['danger']);
 
+  // The count is always "running out of total"; the headline names the state
   // Single state for every instance: reuse that state as headline
   if (segments.length === 1) {
     const [only] = segments;
-    return { phase: only.phase, label: only.phase === 'running' ? 'Running' : only.label, count: total, total, segments };
+    if (only.phase === 'running') {
+      only.hideInLegend = true;
+      return { phase: 'running', label: 'Running', count: total, total, segments };
+    }
+    return { phase: only.phase, label: only.label, count: 0, total, segments };
   }
 
   const runningSegment = segments.find((s) => s.variant === 'success');
@@ -73,6 +78,5 @@ export function getAggregateStatus(statuses: { phase: phaseProps; state: string 
   const lead =
     segments.filter((s) => ['info', 'queued', 'pending'].includes(s.variant)).sort((a, b) => b.count - a.count)[0] ??
     [...segments].sort((a, b) => b.count - a.count)[0];
-  lead.hideInLegend = true;
-  return { phase, label: lead.label, count: lead.count, total, segments };
+  return { phase: phase === 'in-progress' ? lead.phase : phase, label: lead.label, count: 0, total, segments };
 }

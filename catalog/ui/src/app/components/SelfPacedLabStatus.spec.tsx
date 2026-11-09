@@ -15,6 +15,15 @@ describe('SelfPacedLabStatus', () => {
       expect(screen.getByText('2 provisioning')).toBeInTheDocument();
     });
 
+    test('should show Provisioning 0/n when nothing is ready yet', () => {
+      render(<SelfPacedLabStatus poolCount={{ provisioning: 5 }} />);
+
+      expect(screen.getByText('Provisioning')).toBeInTheDocument();
+      expect(screen.getByText('0/5')).toBeInTheDocument();
+      expect(screen.getByText('5 provisioning')).toBeInTheDocument();
+      expect(screen.queryByText('Running')).not.toBeInTheDocument();
+    });
+
     test('should show initializing when all counts are missing', () => {
       render(<SelfPacedLabStatus poolCount={{}} />);
 

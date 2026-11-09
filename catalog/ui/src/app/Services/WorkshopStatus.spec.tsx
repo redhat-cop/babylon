@@ -39,12 +39,18 @@ describe('getWorkshopAggregateStatus', () => {
 
   test('nothing running uses the leading in-progress state', () => {
     const status = getWorkshopAggregateStatus([...many('provisioning', 7), ...many('provision-pending', 3)]);
-    expect(status).toMatchObject({ phase: 'in-progress', label: 'provisioning', count: 7, total: 10 });
+    expect(status).toMatchObject({ phase: 'queued', label: 'provisioning', count: 0, total: 10 });
   });
 
   test('mix of running and stopped is partial', () => {
     const status = getWorkshopAggregateStatus([...many('started', 2), ...many('stopped', 3)]);
     expect(status).toMatchObject({ phase: 'partial', label: 'Running', count: 2, total: 5 });
+  });
+
+  test('all provisioning shows Provisioning 0/n', () => {
+    const status = getWorkshopAggregateStatus(many('provisioning', 5));
+    expect(status).toMatchObject({ phase: 'queued', label: 'provisioning', count: 0, total: 5 });
+    expect(status.segments[0].hideInLegend).toBeFalsy();
   });
 });
 

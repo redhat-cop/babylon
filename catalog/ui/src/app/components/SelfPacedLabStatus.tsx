@@ -37,11 +37,12 @@ const SelfPacedLabStatus: React.FC<{
   if (total === 0) {
     return <InnerStatus phase="in-progress" state="Initializing" />;
   }
+  const running = status.ready + status.assigned;
   return (
     <StatusProgress
-      phase={status.provisioning > 0 ? 'in-progress' : 'running'}
-      label="Running"
-      count={status.ready + status.assigned}
+      phase={running === 0 ? 'queued' : status.provisioning > 0 ? 'in-progress' : 'running'}
+      label={running === 0 ? 'Provisioning' : 'Running'}
+      count={running}
       total={total}
       segments={[
         { key: 'assigned', label: 'assigned', count: status.assigned, variant: 'success' },
