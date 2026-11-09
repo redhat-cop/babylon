@@ -74,11 +74,6 @@
 .status-progress__swatch--success {
   background-color: var(--pf-t--global--color--status--success--default);
 }
-.status-progress__segment--success-subtle,
-.status-progress__swatch--success-subtle {
-  background-color: var(--pf-t--global--color--status--success--default);
-  opacity: 0.5;
-}
 .status-progress__segment--info,
 .status-progress__swatch--info {
   background-color: var(--pf-t--global--color--status--info--default);
