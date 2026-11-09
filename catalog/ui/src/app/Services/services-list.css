@@ -3,6 +3,13 @@
   flex-grow: 1;
 }
 
+/* Tighter column gaps so the list fits without horizontal scroll */
+.services-list .pf-v6-c-table {
+  --pf-v6-c-table--cell--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-table--cell--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(--pf-t--global--spacer--md);
+}
+
 .services-list .pf-v6-c-table thead th {
   padding-top: 0;
   padding-bottom: var(--pf-t--global--spacer--md);
