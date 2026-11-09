@@ -111,7 +111,7 @@ import ProjectSelector from '@app/components/ProjectSelector';
 import ServicesCreateWorkshop from './ServicesCreateWorkshop';
 import ServicesScheduleAction from './ServicesScheduleAction';
 import ServiceUsers from './ServiceUsers';
-import ServiceStatus from './ServiceStatus';
+import ResourceClaimStatus from './ResourceClaimStatus';
 import ServiceClusterDetails from './ServiceClusterDetails';
 import ServiceItemStatus from './ServiceItemStatus';
 import InfoTab from './InfoTab';
@@ -1358,7 +1358,7 @@ const ServicesItemComponent: React.FC<{
                   <DescriptionListGroup>
                     <DescriptionListTerm>Status</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ServiceStatus resourceClaim={resourceClaim} />
+                      <ResourceClaimStatus resourceClaim={resourceClaim} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 

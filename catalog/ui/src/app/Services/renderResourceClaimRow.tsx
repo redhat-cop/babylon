@@ -18,7 +18,7 @@ import {
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { getAutoStopTime, isResourceClaimLocked } from './service-utils';
-import ServiceStatus from './ServiceStatus';
+import ResourceClaimStatus from './ResourceClaimStatus';
 import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { Link } from 'react-router-dom';
@@ -170,7 +170,7 @@ const renderResourceClaimRow = ({
   const statusCell = (
     // Status
     <React.Fragment key="resource-claim-status">
-      <ServiceStatus resourceClaim={resourceClaim} />
+      <ResourceClaimStatus resourceClaim={resourceClaim} />
     </React.Fragment>
   );
   const createdAtCell = (
