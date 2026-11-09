@@ -4,12 +4,20 @@ const CopyPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
 const { IgnorePlugin } = require('webpack');
+const { stylePaths } = require('./stylePaths');
 
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
 module.exports = () => {
   return {
+    // Native CSS replaces css-loader, style-loader and mini-css-extract-plugin.
+    // Forced on because the postcss-loader rule below matches `.css` files.
+    experiments: {
+      css: true,
+    },
+    // Equivalent of mini-css-extract-plugin's `ignoreOrder: true`.
+    ignoreWarnings: [/Conflicting order/],
     optimization: {
       sideEffects: true,
       usedExports: true,
@@ -20,6 +28,28 @@ module.exports = () => {
           // These URLs locate Node-only data directories, not browser assets.
           test: /[\\/]@asciidoctor[\\/]core[\\/]build[\\/]browser[\\/]index\.js$/,
           parser: { url: false },
+        },
+        {
+          test: /\.css$/,
+          include: [...stylePaths],
+          type: 'css/auto',
+          use: [
+            {
+              loader: 'postcss-loader',
+              options: {
+                postcssOptions: {
+                  plugins: [
+                    [
+                      'postcss-custom-media',
+                      {
+                        importFrom: ['./src/app/custom-media.css'],
+                      },
+                    ],
+                  ],
+                },
+              },
+            },
+          ],
         },
         {
           test: /\.(js|jsx|tsx|ts)$/,
@@ -35,11 +65,7 @@ module.exports = () => {
           // only process SVG modules with this loader if they live under a 'bgimages' directory
           // this is primarily useful when applying a CSS background using an SVG
           include: (input) => input.indexOf(BG_IMAGES_DIRNAME) > -1 || input.indexOf('components') > -1,
-          use: {
-            loader: 'svg-url-loader',
-            options: {},
-          },
-          type: 'javascript/auto',
+          type: 'asset/inline',
         },
         {
           test: /\.svg$/,
@@ -50,10 +76,11 @@ module.exports = () => {
             input.indexOf('fonts') === -1 &&
             input.indexOf('pficon') === -1 &&
             input.indexOf('components') === -1,
-          use: {
-            loader: 'raw-loader',
-            options: {},
-          },
+          oneOf: [
+            // Referenced from CSS `url()`: emit as a file
+            { dependency: 'url', type: 'asset/resource' },
+            { type: 'asset/source' },
+          ],
         },
         {
           test: /\.(jpg|jpeg|png|gif)$/i,
@@ -70,16 +97,13 @@ module.exports = () => {
               'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'
             ),
           ],
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                limit: 5000,
-                outputPath: 'images',
-                name: '[name].[ext]',
-              },
-            },
-          ],
+          type: 'asset',
+          parser: {
+            dataUrlCondition: { maxSize: 5000 },
+          },
+          generator: {
+            filename: 'images/[name][ext]',
+          },
         },
       ],
     },

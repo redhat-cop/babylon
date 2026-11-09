@@ -150,7 +150,7 @@ if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeli
 import './admin.css';
 import './ops.css';
 import './Ops/timeline.css';
-import '!style-loader!css-loader!react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 interface OpsAlert {
   key: number;
