@@ -27,7 +27,7 @@ describe('ResourceClaimStatus', () => {
     expect(screen.queryByText(/\d+\/\d+/)).not.toBeInTheDocument();
     expect(screen.queryByText('2 provisioning')).not.toBeInTheDocument();
     expect(container.querySelectorAll('.status-progress__segment')).toHaveLength(1);
-    expect(container.querySelector('.status-progress__segment--info')).toBeInTheDocument();
+    expect(container.querySelector('.status-progress__segment--queued')).toBeInTheDocument();
   });
 
   test('running service renders a full success bar', () => {
@@ -52,9 +52,13 @@ describe('ResourceClaimStatus', () => {
     expect(screen.getByText(/Starts/)).toHaveTextContent('Starts 3 hours from now');
   });
 
-  test('start pending uses the purple queued style', () => {
-    const { container } = render(<ResourceClaimStatus resourceClaim={makeResourceClaim(['start-pending'], 'start-pending')} />);
-    expect(screen.getByText(/start pending/i)).toBeInTheDocument();
+  test.each([
+    ['start-pending', /start pending/i],
+    ['provision-pending', /provision pending/i],
+    ['provisioning', /provisioning/i],
+  ])('%s uses the purple queued style', (state, text) => {
+    const { container } = render(<ResourceClaimStatus resourceClaim={makeResourceClaim([state], state)} />);
+    expect(screen.getByText(text)).toBeInTheDocument();
     expect(container.querySelector('.status-progress--queued .status-progress__segment--queued')).toBeInTheDocument();
   });
 });

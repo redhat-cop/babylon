@@ -104,7 +104,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .status-progress__segment--info {
+  .status-progress__segment--info,
+  .status-progress__segment--queued {
     animation: status-progress-pulse 1.6s ease-in-out infinite;
   }
 }

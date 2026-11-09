@@ -46,7 +46,7 @@ const SelfPacedLabStatus: React.FC<{
       segments={[
         { key: 'assigned', label: 'assigned', count: status.assigned, variant: 'success' },
         { key: 'ready', label: 'ready', count: status.ready, variant: 'success-subtle' },
-        { key: 'provisioning', label: 'provisioning', count: status.provisioning, variant: 'info' },
+        { key: 'provisioning', label: 'provisioning', count: status.provisioning, variant: 'queued' },
       ]}
     />
   );
