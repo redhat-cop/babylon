@@ -73,7 +73,7 @@ const renderWorkshopRow = ({
 
   // Add columns
   const nameCell = (
-    <>
+    <div key="workshop-name-cell" className="services-list__name">
       <Link
         key="workshop-name"
         to={
@@ -99,7 +99,7 @@ const renderWorkshopRow = ({
         </Label>
       ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}
-    </>
+    </div>
   );
   const guidCell = <span key="workshop-guid">-</span>;
   const clusterCell = <span key="workshop-cluster">{clusters.join(', ') || '-'}</span>;

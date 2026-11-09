@@ -136,7 +136,7 @@ const renderResourceClaimRow = ({
 
   const nameCell = (
     // Name
-    <React.Fragment key="resource-claim-name">
+    <div key="resource-claim-name" className="services-list__name">
       <Link
         key="resource-claim-name__link"
         to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
@@ -165,7 +165,7 @@ const renderResourceClaimRow = ({
         </Label>
       ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="resource-claim-name__console" resource={resourceClaim} /> : null}
-    </React.Fragment>
+    </div>
   );
   const statusCell = (
     // Status

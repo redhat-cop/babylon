@@ -47,7 +47,7 @@ const renderSelfPacedLabRow = ({
   ].sort();
 
   const nameCell = (
-    <>
+    <div key="selfpacedlab-name-cell" className="services-list__name">
       <Link
         key="selfpacedlab-name"
         to={`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`}
@@ -64,7 +64,7 @@ const renderSelfPacedLabRow = ({
         Self-Paced Lab
       </Label>
       {isAdmin ? <OpenshiftConsoleLink key="selfpacedlab-name__console" resource={selfPacedLab} /> : null}
-    </>
+    </div>
   );
   const guidCell = <span key="selfpacedlab-guid">-</span>;
   const clusterCell = <span key="selfpacedlab-cluster">{clusters.join(', ') || '-'}</span>;
