@@ -1196,6 +1196,13 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListGroup>
                   ) : null}
 
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Status</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ResourceClaimStatus resourceClaim={resourceClaim} />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+
                   {startTime && startTime > Date.now() ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start</DescriptionListTerm>
@@ -1325,13 +1332,6 @@ const ServicesItemComponent: React.FC<{
                       ) : (
                         'No data available'
                       )}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Status</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <ResourceClaimStatus resourceClaim={resourceClaim} />
                     </DescriptionListDescription>
                   </DescriptionListGroup>
 
