@@ -5,6 +5,7 @@
 }
 
 .workshop-detail-status__group {
+  min-width: 10rem;
   display: flex;
   flex-direction: column;
   gap: var(--pf-t--global--spacer--xs);
