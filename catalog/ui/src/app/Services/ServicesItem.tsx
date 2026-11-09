@@ -1135,7 +1135,7 @@ const ServicesItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   {!isTenantClusterItem ? (
-                    <DescriptionListGroup>
+                    <DescriptionListGroup className="service-alias-field__group">
                       <DescriptionListTerm>Alias</DescriptionListTerm>
                       <DescriptionListDescription>
                         <ServiceAliasField value={serviceAlias} onSave={saveServiceAlias} />

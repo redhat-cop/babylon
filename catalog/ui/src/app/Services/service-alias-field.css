@@ -3,7 +3,11 @@
   flex-direction: column;
   gap: var(--pf-t--global--spacer--xs);
   max-width: 300px;
-  padding-bottom: var(--pf-t--global--spacer--md);
+}
+
+/* Line the "Alias" term up with the input text, not with the input + hint block */
+.services-item__body .pf-v6-c-description-list__group.service-alias-field__group {
+  align-items: baseline;
 }
 
 .service-alias-field__control {
