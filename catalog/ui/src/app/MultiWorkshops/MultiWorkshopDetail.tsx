@@ -51,8 +51,8 @@ import Label from '@app/components/Label';
 import ActivityPurposeSelector from '@app/components/ActivityPurposeSelector';
 import SalesforceItemsField from '@app/components/SalesforceItemsField';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import WorkshopStatus from '@app/Services/WorkshopStatus';
+import ScheduledStatus from '@app/components/ScheduledStatus';
 import { getWorkshopLifespan } from '@app/Workshops/workshops-utils';
 import { DateTimePickerModalDialog, DateTimePickerButton } from '@app/components/DateTimePickerModal';
 import { getBrowserTimezone } from '@app/components/timezones';
@@ -105,10 +105,10 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; w
   if (isScheduled) {
     return (
       <>
-        <span className="services-item__status--scheduled" key="scheduled">
-          <CheckCircleIcon key="scheduled-icon" /> Scheduled
-        </span>
-        {hasStatus ? <WorkshopStatus resourceClaims={activeResourceClaims} expectedCount={orderedCount} /> : null}
+        <ScheduledStatus startTime={autoStartTime} total={Math.max(orderedCount, 1)} />
+        {activeResourceClaims.length > 0 ? (
+          <WorkshopStatus resourceClaims={activeResourceClaims} expectedCount={orderedCount} />
+        ) : null}
       </>
     );
   }

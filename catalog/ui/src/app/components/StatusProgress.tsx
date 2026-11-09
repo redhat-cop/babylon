@@ -2,6 +2,7 @@ import React from 'react';
 import { Tooltip } from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import OutlinedCalendarAltIcon from '@patternfly/react-icons/dist/js/icons/outlined-calendar-alt-icon';
 import { StatusIcon } from '@app/Services/ServiceStatus';
 import type { phaseProps } from '@app/Services/ServiceStatus';
 
@@ -27,12 +28,15 @@ export interface StatusSegment {
 const StatusProgress: React.FC<{
   phase: StatusProgressPhase;
   label: string;
-  count: number;
+  // Omit to hide the "count/total" pill
+  count?: number;
   total: number;
   segments: StatusSegment[];
   unit?: string;
   errorMessage?: string;
-}> = ({ phase, label, count, total, segments, unit, errorMessage }) => {
+  // Replaces the legend
+  caption?: React.ReactNode;
+}> = ({ phase, label, count, total, segments, unit, errorMessage, caption }) => {
   const visibleSegments = segments.filter((s) => s.count > 0);
   const legend = visibleSegments.filter((s) => !s.hideInLegend);
   const summary = visibleSegments.map((s) => `${s.count} ${s.label}`).join(', ');
@@ -44,13 +48,17 @@ const StatusProgress: React.FC<{
           <ExclamationTriangleIcon />
         ) : phase === 'partial' ? (
           <CheckCircleIcon />
+        ) : phase === 'scheduled' ? (
+          <OutlinedCalendarAltIcon />
         ) : (
           <StatusIcon phase={phase} />
         )}
         <span className="status-progress__label">{label}</span>
-        <span className="status-progress__count">
-          {count}/{total}
-        </span>
+        {count !== undefined ? (
+          <span className="status-progress__count">
+            {count}/{total}
+          </span>
+        ) : null}
         {errorMessage ? (
           <Tooltip position="right" content={errorMessage}>
             <ExclamationTriangleIcon aria-label="Error message" className="tooltip-icon-only" />
@@ -75,7 +83,7 @@ const StatusProgress: React.FC<{
           </ul>
         }
       >
-        <div className="status-progress__bar" role="img" aria-label={`${count} of ${total} ${unit ? `${unit} ` : ''}${label.toLowerCase()}: ${summary}`} tabIndex={0}>
+        <div className="status-progress__bar" role="img" aria-label={`${count ?? total} of ${total} ${unit ? `${unit} ` : ''}${label.toLowerCase()}: ${summary}`} tabIndex={0}>
           {visibleSegments.map((s) => (
             <span
               key={s.key}
@@ -85,7 +93,9 @@ const StatusProgress: React.FC<{
           ))}
         </div>
       </Tooltip>
-      {legend.length > 0 ? (
+      {caption ? (
+        <span className="status-progress__legend">{caption}</span>
+      ) : legend.length > 0 ? (
         <span className="status-progress__legend">
           {legend.map((s) => (
             <span key={s.key} className="status-progress__legend-item">

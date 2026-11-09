@@ -40,7 +40,8 @@
 .status-progress--failed .status-progress__headline {
   color: var(--pf-t--global--icon--color--status--danger--default);
 }
-.status-progress--waiting .status-progress__headline {
+.status-progress--waiting .status-progress__headline,
+.status-progress--scheduled .status-progress__headline {
   color: var(--pf-t--global--icon--color--status--info--default);
 }
 .status-progress--queued .status-progress__headline {

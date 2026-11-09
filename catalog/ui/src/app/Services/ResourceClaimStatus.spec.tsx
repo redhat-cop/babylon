@@ -45,4 +45,13 @@ describe('ResourceClaimStatus', () => {
     expect(screen.getByText(/provisioning/i)).toBeInTheDocument();
     expect(screen.queryByText('0/1')).not.toBeInTheDocument();
   });
+
+  test('scheduled service shows the scheduled status with start time', () => {
+    const resourceClaim = makeResourceClaim(['started']);
+    resourceClaim.spec.lifespan = { start: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString() };
+    resourceClaim.status = undefined;
+    render(<ResourceClaimStatus resourceClaim={resourceClaim} />);
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getByText(/Starts/)).toHaveTextContent('Starts 3 hours from now');
+  });
 });

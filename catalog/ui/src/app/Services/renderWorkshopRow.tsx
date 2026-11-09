@@ -16,10 +16,10 @@ import {
   getWorkshopLifespan,
   isWorkshopLocked,
 } from '@app/Workshops/workshops-utils';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import Label from '@app/components/Label';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
+import ScheduledStatus from '@app/components/ScheduledStatus';
 import WorkshopStatus from './WorkshopStatus';
 
 const renderWorkshopRow = ({
@@ -109,9 +109,7 @@ const renderWorkshopRow = ({
   const statusCell = (
     <>
       {autoStartTime && autoStartTime > Date.now() ? (
-        <span className="services-item__status--scheduled" key="scheduled">
-          <CheckCircleIcon key="scheduled-icon" /> Scheduled
-        </span>
+        <ScheduledStatus startTime={autoStartTime} total={Math.max(orderedCount, 1)} />
       ) : !resourceClaimsLoaded ? (
         <Spinner size="md" />
       ) : activeResourceClaims.length > 0 || orderedCount > 0 ? (
