@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import RenderedContent from '@app/components/RenderedContent';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import type { MessageTemplate, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
 import { DEMO_DOMAIN } from '@app/util';
 import { Content, ContentVariants, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, Divider, MenuToggle, Select, SelectList, SelectOption, Stack, StackItem } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import WorkshopStatus from './WorkshopStatus';
+import WorkshopDetailStatus from './WorkshopDetailStatus';
 import { createAsciiDocAttributes } from '@app/Services/service-utils';
 import {
   checkWorkshopCanStop,
@@ -106,22 +105,12 @@ const WorkshopInfoTab: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Status</DescriptionListTerm>
             <DescriptionListDescription>
-              {autoStartTime && autoStartTime > now ? (
-                <>
-                  <span className="services-item__status--scheduled" key="scheduled">
-                    <CheckCircleIcon key="scheduled-icon" /> Scheduled
-                  </span>
-                  {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
-                  {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
-                </>
-              ) : resourceClaims.length > 0 || clusterResourceClaims.length > 0 ? (
-                <>
-                  {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
-                  {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
-                </>
-              ) : (
-                <p>...</p>
-              )}
+              <WorkshopDetailStatus
+                resourceClaims={resourceClaims}
+                clusterResourceClaims={clusterResourceClaims}
+                expectedCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)}
+                autoStartTime={autoStartTime}
+              />
             </DescriptionListDescription>
           </DescriptionListGroup>
 

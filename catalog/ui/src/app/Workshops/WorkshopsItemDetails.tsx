@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, FormGroup, Button, NumberInput, Popover, Label, LabelGroup, Alert, TextInput } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import {
@@ -39,7 +38,7 @@ import {
   isWorkshopStarted,
 } from './workshops-utils';
 import type { ModalState } from './WorkshopsItem';
-import WorkshopStatus from './WorkshopStatus';
+import WorkshopDetailStatus from './WorkshopDetailStatus';
 import ServiceClusterDetails from '@app/Services/ServiceClusterDetails';
 import useSWR, { useSWRConfig } from 'swr';
 import CurrencyAmount from '@app/components/CurrencyAmount';
@@ -421,22 +420,12 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListGroup>
           <DescriptionListTerm>Status</DescriptionListTerm>
           <DescriptionListDescription>
-            {autoStartTime && autoStartTime > Date.now() ? (
-              <>
-                <span className="services-item__status--scheduled" key="scheduled">
-                  <CheckCircleIcon key="scheduled-icon" /> Scheduled
-                </span>
-                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
-                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
-              </>
-            ) : resourceClaims.length > 0 || clusterResourceClaims.length > 0 ? (
-              <>
-                {resourceClaims.length > 0 ? <WorkshopStatus resourceClaims={resourceClaims} totalCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)} /> : null}
-                {clusterResourceClaims.length > 0 ? <WorkshopStatus resourceClaims={clusterResourceClaims} label="Clusters" /> : null}
-              </>
-            ) : (
-              <p>...</p>
-            )}
+            <WorkshopDetailStatus
+              resourceClaims={resourceClaims}
+              clusterResourceClaims={clusterResourceClaims}
+              expectedCount={workshopProvisions.reduce((sum, wp) => sum + (wp.spec.count || 0), 0)}
+              autoStartTime={autoStartTime}
+            />
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : null}

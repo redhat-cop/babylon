@@ -14,7 +14,8 @@ export function getWorkshopAggregateStatus(resourceClaims: ResourceClaim[], expe
 const WorkshopStatus: React.FC<{
   resourceClaims: ResourceClaim[];
   expectedCount?: number;
-}> = ({ resourceClaims, expectedCount = 0 }) => {
+}> = ({ resourceClaims: allResourceClaims, expectedCount = 0 }) => {
+  const resourceClaims = allResourceClaims.filter((rc) => !rc.metadata.deletionTimestamp);
   if (resourceClaims.length === 1 && expectedCount <= 1) {
     return <ResourceClaimStatus resourceClaim={resourceClaims[0]} />;
   }
