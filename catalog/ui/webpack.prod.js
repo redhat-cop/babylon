@@ -4,17 +4,15 @@ const { stylePaths } = require('./stylePaths');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MinimizerPlugin = require('minimizer-webpack-plugin');
 const { cssMinify } = require('webpack').css;
-const TerserJSPlugin = require('terser-webpack-plugin');
 
 module.exports = merge(common('production'), {
   mode: 'production',
   devtool: 'source-map',
   optimization: {
     minimizer: [
-      new TerserJSPlugin({}),
       new MinimizerPlugin({
-        test: /\.css(\?.*)?$/i,
-        minify: { implementation: cssMinify },
+        test: /\.(?:[cm]?js|css)(\?.*)?$/i,
+        minify: [{ implementation: MinimizerPlugin.terserMinify }, { implementation: cssMinify }],
       }),
     ],
   },
