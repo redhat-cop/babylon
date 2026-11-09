@@ -16,11 +16,11 @@ import {
   getWorkshopLifespan,
   isWorkshopLocked,
 } from '@app/Workshops/workshops-utils';
-import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import Label from '@app/components/Label';
 import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
-import ServiceStatus from './ServiceStatus';
+import ScheduledStatus from '@app/components/ScheduledStatus';
+import WorkshopStatus from './WorkshopStatus';
 
 const renderWorkshopRow = ({
   workshop,
@@ -73,7 +73,7 @@ const renderWorkshopRow = ({
 
   // Add columns
   const nameCell = (
-    <>
+    <div key="workshop-name-cell" className="services-list__name">
       <Link
         key="workshop-name"
         to={
@@ -99,22 +99,21 @@ const renderWorkshopRow = ({
         </Label>
       ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="workshop-name__console" resource={workshop} /> : null}
-    </>
+    </div>
   );
   const guidCell = <span key="workshop-guid">-</span>;
   const clusterCell = <span key="workshop-cluster">{clusters.join(', ') || '-'}</span>;
   const resourceClaimsLoaded = workshop.resourceClaims !== undefined;
-  const activeResourceClaim = workshop.resourceClaims?.find((r) => !r.metadata.deletionTimestamp);
+  const activeResourceClaims = (workshop.resourceClaims || []).filter((r) => !r.metadata.deletionTimestamp);
+  const orderedCount: number = workshop.status?.provisionCount?.ordered ?? 0;
   const statusCell = (
     <>
       {autoStartTime && autoStartTime > Date.now() ? (
-        <span className="services-item__status--scheduled" key="scheduled">
-          <CheckCircleIcon key="scheduled-icon" /> Scheduled
-        </span>
+        <ScheduledStatus startTime={autoStartTime} total={Math.max(orderedCount, 1)} />
       ) : !resourceClaimsLoaded ? (
         <Spinner size="md" />
-      ) : activeResourceClaim ? (
-        <ServiceStatus resourceClaim={activeResourceClaim} />
+      ) : activeResourceClaims.length > 0 || orderedCount > 0 ? (
+        <WorkshopStatus resourceClaims={activeResourceClaims} expectedCount={orderedCount} />
       ) : (
         <p>...</p>
       )}

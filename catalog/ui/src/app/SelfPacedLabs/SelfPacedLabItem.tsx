@@ -74,6 +74,7 @@ import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import PatientNumberInput from '@app/components/PatientNumberInput';
 import ResourceClaimDeleteModal from '@app/components/ResourceClaimDeleteModal';
 import SelfPacedLabStatus from '@app/components/SelfPacedLabStatus';
+import ScheduledStatus from '@app/components/ScheduledStatus';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
@@ -610,7 +611,7 @@ const SelfPacedLabItemComponent: React.FC<{
                   <DescriptionListTerm>Status</DescriptionListTerm>
                   <DescriptionListDescription>
                     {autoStartTime && autoStartTime > Date.now() ? (
-                      <span className="services-item__status--scheduled">Scheduled</span>
+                      <ScheduledStatus startTime={autoStartTime} />
                     ) : selfPacedLab.status?.poolCount ? (
                       <SelfPacedLabStatus poolCount={selfPacedLab.status.poolCount} />
                     ) : (

@@ -10,7 +10,7 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import ServiceStatus from './ServiceStatus';
+import ResourceClaimStatus from './ResourceClaimStatus';
 import {
   createAsciiDocAttributes,
   getAutoStopTime,
@@ -87,7 +87,7 @@ const InfoTab: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Status:</DescriptionListTerm>
             <DescriptionListDescription>
-              <ServiceStatus resourceClaim={resourceClaim} />
+              <ResourceClaimStatus resourceClaim={resourceClaim} />
             </DescriptionListDescription>
           </DescriptionListGroup>
 

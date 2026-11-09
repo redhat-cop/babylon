@@ -18,7 +18,7 @@ import {
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import { getAutoStopTime, isResourceClaimLocked } from './service-utils';
-import ServiceStatus from './ServiceStatus';
+import ResourceClaimStatus from './ResourceClaimStatus';
 import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import { Link } from 'react-router-dom';
@@ -136,7 +136,7 @@ const renderResourceClaimRow = ({
 
   const nameCell = (
     // Name
-    <React.Fragment key="resource-claim-name">
+    <div key="resource-claim-name" className="services-list__name">
       <Link
         key="resource-claim-name__link"
         to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
@@ -160,17 +160,17 @@ const renderResourceClaimRow = ({
         </Label>
       ) : null}
       {serviceAlias ? (
-        <Label key="service-alias" tooltipDescription={<div>Alias name for the service</div>}>
+        <Label key="service-alias" tooltipDescription={<div>Your alias for this service</div>}>
           {serviceAlias}
         </Label>
       ) : null}
       {isAdmin ? <OpenshiftConsoleLink key="resource-claim-name__console" resource={resourceClaim} /> : null}
-    </React.Fragment>
+    </div>
   );
   const statusCell = (
     // Status
     <React.Fragment key="resource-claim-status">
-      <ServiceStatus resourceClaim={resourceClaim} />
+      <ResourceClaimStatus resourceClaim={resourceClaim} />
     </React.Fragment>
   );
   const createdAtCell = (

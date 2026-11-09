@@ -1,0 +1,29 @@
+.service-alias-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--xs);
+  max-width: 300px;
+}
+
+/* Line the "Alias" term up with the input text, not with the input + hint block */
+.services-item__body .pf-v6-c-description-list__group.service-alias-field__group {
+  align-items: baseline;
+}
+
+.service-alias-field__control {
+  position: relative;
+}
+
+/* Sits just outside the input so it doesn't shift the layout */
+.service-alias-field__saved {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + var(--pf-t--global--spacer--sm));
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--icon--color--status--success--default);
+}

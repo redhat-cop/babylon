@@ -87,11 +87,11 @@ export function getStatus(
   } else if (currentState === 'provision-queued') {
     return { statusName: 'In Queue', phase: 'queued' };
   } else if (currentState === 'provision-pending') {
-    return { statusName: 'Provision Pending', phase: 'in-progress' };
+    return { statusName: 'Provision Pending', phase: 'queued' };
   } else if (currentState === 'provisioning') {
-    return { statusName: 'Provisioning', phase: 'in-progress' };
+    return { statusName: 'Provisioning', phase: 'queued' };
   } else if (currentState === 'start-pending') {
-    return { statusName: 'Start Pending', phase: 'in-progress' };
+    return { statusName: 'Start Pending', phase: 'queued' };
   } else if (currentState === 'started' && desiredState === 'stopped') {
     return { statusName: 'Stop Requested', phase: 'in-progress' };
   } else if (currentState === 'started' && stopTime && startTime && (stopTime < Date.now() || startTime > Date.now())) {
@@ -117,7 +117,7 @@ export function getStatus(
   }
 }
 
-const Icon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
+export const StatusIcon: React.FC<{ phase: phaseProps }> = ({ phase }) => {
   switch (phase) {
     case 'unknown':
       return <QuestionCircleIcon />;
@@ -153,6 +153,11 @@ export function getPhaseState(__state: string) {
       _phase = 'queued';
       _state = 'In Queue';
       break;
+    case state === 'start-pending':
+    case state === 'provision-pending':
+    case state === 'provisioning':
+      _phase = 'queued';
+      break;
     case state.startsWith('waiting'):
     case state.includes('waiting to provision'):
       _phase = 'waiting';
@@ -162,7 +167,6 @@ export function getPhaseState(__state: string) {
     case state.endsWith('-requested'):
     case state === 'new':
     case state === 'available':
-    case state === 'provisioning':
     case state === 'requesting':
     case state === 'initializing':
     case state === 'stopping':
@@ -184,14 +188,14 @@ export function getPhaseState(__state: string) {
   }
   return { phase: _phase, state: _state };
 }
-const ServiceStatus: React.FC<{
-  resourceClaim: ResourceClaim;
-}> = ({ resourceClaim }) => {
-  // Calculate all needed values from resourceClaim
+export function getResourceClaimStatus(resourceClaim: ResourceClaim): {
+  phase: phaseProps;
+  state: string;
+  errorMessage?: string;
+} {
   const creationTime = Date.parse(resourceClaim.metadata.creationTimestamp);
   const { resource, template: resourceTemplate } = getMostRelevantResourceAndTemplate(resourceClaim);
   const summary = resourceClaim.status?.summary;
-  const errorMessage = summary?.error_message;
   const currentState =
     resource?.kind === 'AnarchySubject' ? resource?.spec?.vars?.current_state ?? '' : '';
 
@@ -199,43 +203,50 @@ const ServiceStatus: React.FC<{
   const scheduledStartTime = getScheduledStartTimestamp(resourceClaim);
   const scheduledStopTime = getScheduledStopTimestamp(resourceClaim);
   const now = Date.now();
-  
+
   // Waiting to Stop: scheduled stop time is in the PAST but service still running
   if (scheduledStopTime && scheduledStopTime < now && (currentState === 'started' || currentState === 'running')) {
-    return <InnerStatus phase="waiting" state="Waiting to Stop" />;
+    return { phase: 'waiting', state: 'Waiting to Stop' };
   }
-  
+
   // Waiting to Start: scheduled start time is in the PAST but service still stopped
   // BUT only if stop timestamp is not in the past (service lifecycle not complete)
   if (scheduledStartTime && scheduledStartTime < now && (currentState === 'stopped' || !currentState)) {
     if (!scheduledStopTime || scheduledStopTime > now) {
-      return <InnerStatus phase="waiting" state="Waiting to Start" />;
+      return { phase: 'waiting', state: 'Waiting to Start' };
     }
   }
 
   if (summary) {
-    const { phase: _phase, state: _state } = getPhaseState(summary.state);
-    return <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-      <InnerStatus phase={_phase} state={_state} />
-      {errorMessage && <Tooltip position="right" content={errorMessage}>
-        <ExclamationTriangleIcon
-          aria-label="Error message"
-          className="tooltip-icon-only"
-        />
-      </Tooltip>}
-    </div>;
+    return { ...getPhaseState(summary.state), errorMessage: summary.error_message };
   }
   if (new Date(resourceClaim.spec.lifespan?.start).getTime() > new Date().getTime()) {
-    return <InnerStatus phase="scheduled" state="scheduled" />;
+    return { phase: 'scheduled', state: 'scheduled' };
   }
   const desiredState = resourceTemplate?.spec?.vars?.desired_state;
 
   if (typeof resource === 'undefined') {
-    return <InnerStatus phase="waiting" state="Waiting to Provision" />;
+    return { phase: 'waiting', state: 'Waiting to Provision' };
   }
   const { statusName, phase } = getStatus(currentState, desiredState, creationTime, null, null, resourceClaim, resource);
+  return { phase, state: statusName };
+}
 
-  return <InnerStatus phase={phase} state={statusName} />;
+const ServiceStatus: React.FC<{
+  resourceClaim: ResourceClaim;
+}> = ({ resourceClaim }) => {
+  const { phase, state, errorMessage } = getResourceClaimStatus(resourceClaim);
+  if (!errorMessage) {
+    return <InnerStatus phase={phase} state={state} />;
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
+      <InnerStatus phase={phase} state={state} />
+      <Tooltip position="right" content={errorMessage}>
+        <ExclamationTriangleIcon aria-label="Error message" className="tooltip-icon-only" />
+      </Tooltip>
+    </div>
+  );
 };
 
 export const InnerStatus: React.FC<{
@@ -244,7 +255,7 @@ export const InnerStatus: React.FC<{
 }> = ({ phase, state }) => {
   return (
     <span className={`service-status--${phase}`} style={{ textTransform: 'capitalize' }}>
-      <Icon phase={phase} /> {state}
+      <StatusIcon phase={phase} /> {state}
     </span>
   );
 };

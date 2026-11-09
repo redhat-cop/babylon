@@ -3,6 +3,13 @@
   flex-grow: 1;
 }
 
+/* Tighter column gaps so the list fits without horizontal scroll */
+.services-list .pf-v6-c-table {
+  --pf-v6-c-table--cell--PaddingInlineStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-table--cell--PaddingInlineEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(--pf-t--global--spacer--md);
+}
+
 .services-list .pf-v6-c-table thead th {
   padding-top: 0;
   padding-bottom: var(--pf-t--global--spacer--md);
@@ -60,4 +67,12 @@
 .services-list__topbar.pf-v6-c-page__main-section .pf-c-dropdown__menu .pf-c-dropdown__menu-item {
   padding-bottom: var(--pf-t--global--spacer--sm);
   padding-top: var(--pf-t--global--spacer--sm);
+}
+
+/* Name, badges and console link wrap independently, so long names never force the table wider */
+.services-list__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: var(--pf-t--global--spacer--xs);
 }
