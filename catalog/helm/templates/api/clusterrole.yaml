@@ -74,3 +74,23 @@ rules:
   verbs:
   - get
   - list
+{{- if .Values.catalogItemOrders.enabled }}
+# CatalogItemOrders are created and read with the API service account after
+# session ownership checks. Status updates implement cancel and retry requests
+# with resourceVersion preconditions. The API never updates order spec.
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitemorders
+  verbs:
+  - create
+  - get
+  - list
+- apiGroups:
+  - babylon.gpte.redhat.com
+  resources:
+  - catalogitemorders/status
+  verbs:
+  - get
+  - update
+{{- end }}

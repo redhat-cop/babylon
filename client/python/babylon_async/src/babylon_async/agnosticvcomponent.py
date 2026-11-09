@@ -6,6 +6,7 @@ import json
 from typing import List, Mapping
 from weakref import ref, ReferenceType
 
+from .approval_policy import compile_approval_policy
 from .exceptions import BabylonComponentDefinitionException
 from .k8s_object import K8sObject
 from .agnosticvrepo import AgnosticVRepo
@@ -103,6 +104,30 @@ class AgnosticVComponent(K8sObject):
     def asset_uuid(self) -> str|None:
         """Return asset uuid"""
         return self.__meta__.get('asset_uuid')
+
+    @property
+    def catalog_approval_policy(self) -> Mapping|None:
+        """Return published approval policy for CatalogItem spec.approvalPolicy.
+
+        Returns None when `__meta__.catalog.approval_policy` is absent, which
+        preserves existing no-approval behavior. A present but invalid policy,
+        including an explicit null, is published with `state: Invalid` so that
+        ordering blocks instead of silently ignoring the requirement."""
+        catalog_meta = self.__meta__.get('catalog', {})
+        if 'approval_policy' not in catalog_meta:
+            return None
+        source = {
+            "agnosticvRepo": self.agnosticv_repo_name,
+            "path": self.path,
+        }
+        git_hash = (self.last_update or {}).get('git', {}).get('hash')
+        if git_hash:
+            source['gitCommit'] = git_hash
+        return compile_approval_policy(
+            catalog_meta['approval_policy'],
+            parameter_specs=self.catalog_parameters or [],
+            source=source,
+        )
 
     @property
     def catalog_category(self) -> str:
@@ -767,6 +792,10 @@ class AgnosticVComponent(K8sObject):
 
         if self.catalog_support_link:
             definition['spec']['supportLink'] = self.catalog_support_link
+
+        approval_policy = self.catalog_approval_policy
+        if approval_policy is not None:
+            definition['spec']['approvalPolicy'] = approval_policy
 
         if self.catalog_external_url:
             definition['spec']['externalUrl'] = self.catalog_external_url

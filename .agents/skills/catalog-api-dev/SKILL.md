@@ -48,6 +48,7 @@ Then start the UI (`pnpm run start:dev` in `catalog/ui`) — it proxies `/api`, 
 | `SANDBOX_API` | No | Sandbox API URL |
 | `LOGGING_LEVEL` | No | Default `INFO` |
 | `SESSION_LIFETIME` | No | Session TTL in seconds (default 600) |
+| `CATALOG_ITEM_ORDERS_ENABLED` | No | `true` enables `/api/catalog-item-orders` (default `false`); see `docs/Catalog_Item_Orders.md` |
 
 ## Auth in development
 
@@ -65,12 +66,14 @@ In production, the API impersonates users via session headers.
 | `/auth/session` | Session management | Current user, roles, namespaces |
 | `/auth/cli-redirect` | CLI auth redirect | |
 | `/api/*` | BFF endpoints | Ratings, incidents, Salesforce, workshops, system status |
+| `/api/catalog-item-orders` | CatalogItemOrder | Opt-in order submit/get/list/cancel/retry (`catalog_item_order_service.py`) |
 | `/apis/*` | K8s proxy | CRDs (catalogitems, workshops, resourceclaims, etc.) |
 
 Key files:
 - `app.py` — routes, auth, K8s proxy, startup/shutdown
 - `hotfix.py` — `HotfixKubeApiClient` wrapper
 - `config.py` — gunicorn settings (production)
+- `catalog_item_order*.py`, `approval_policy.py` — CatalogItemOrder model, adapters, controller and policy evaluator (`approval_policy.py` is vendored from the client library; keep identical)
 
 ## Adding endpoints
 
