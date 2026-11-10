@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import asyncio
-import base64
 import copy
 import gzip
 import json
@@ -42,10 +41,18 @@ sandbox_api = os.environ.get('SANDBOX_API', 'http://sandbox-api.babylon-sandbox-
 sandbox_api_authorization_token = os.environ.get('SANDBOX_AUTHORIZATION_TOKEN')
 shared_cluster_manager_token = os.environ.get('SHARED_CLUSTER_MANAGER_TOKEN')
 reporting_api_authorization_token = os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')
+# Jira/Confluence are accessed as an Atlassian service account using OAuth 2.0
+# client credentials. API calls go through the api.atlassian.com gateway
+# (scoped by cloud id); jira_base_url is only used to build browse links.
 jira_base_url = os.environ.get('JIRA_BASE_URL', 'https://redhat.atlassian.net')
-jira_api_token = os.environ.get('JIRA_API_TOKEN')
-jira_user_email = os.environ.get('JIRA_USER_EMAIL')
+jira_client_id = os.environ.get('JIRA_CLIENT_ID')
+jira_client_secret = os.environ.get('JIRA_CLIENT_SECRET')
+jira_cloud_id = os.environ.get('JIRA_CLOUD_ID')
 jira_project_key = os.environ.get('JIRA_PROJECT_KEY', 'RHDPSPPT')
+atlassian_api_url = os.environ.get('ATLASSIAN_API_URL', 'https://api.atlassian.com')
+atlassian_token_url = os.environ.get('ATLASSIAN_TOKEN_URL', 'https://auth.atlassian.com/oauth/token')
+jira_oauth_token = {'access_token': None, 'expires_at': 0}
+jira_oauth_token_lock = asyncio.Lock()
 response_cache = {}
 response_cache_clean_interval = int(os.environ.get('RESPONSE_CACHE_CLEAN_INTERVAL', 60))
 response_cache_max_entries = int(os.environ.get('RESPONSE_CACHE_MAX_ENTRIES', 1000))
@@ -993,7 +1000,49 @@ async def external_item_request(request):
         url=f"{reporting_api}/external_item/{quote(asset_uuid, safe='')}/request",
     )
 
-async def _jira_lookup_user(email, credentials, session):
+def jira_configured():
+    return bool(jira_client_id and jira_client_secret and jira_cloud_id)
+
+
+def jira_api_url(path):
+    return f"{atlassian_api_url}/ex/jira/{jira_cloud_id}{path}"
+
+
+def confluence_api_url(path):
+    return f"{atlassian_api_url}/ex/confluence/{jira_cloud_id}{path}"
+
+
+async def _jira_access_token(session):
+    """Return a cached service-account access token, fetching a new one shortly before expiry."""
+    async with jira_oauth_token_lock:
+        if jira_oauth_token['access_token'] and time.time() < jira_oauth_token['expires_at']:
+            return jira_oauth_token['access_token']
+        async with session.post(
+            atlassian_token_url,
+            json={
+                "grant_type": "client_credentials",
+                "client_id": jira_client_id,
+                "client_secret": jira_client_secret,
+            },
+        ) as resp:
+            if resp.status != 200:
+                logging.error(f"Atlassian OAuth token request failed ({resp.status}): {await resp.text()}")
+                raise web.HTTPBadGateway(reason="Failed to authenticate with Atlassian")
+            data = await resp.json()
+        jira_oauth_token['access_token'] = data['access_token']
+        jira_oauth_token['expires_at'] = time.time() + int(data.get('expires_in', 3600)) - 60
+        return jira_oauth_token['access_token']
+
+
+async def jira_auth_headers(session):
+    return {
+        "Authorization": f"Bearer {await _jira_access_token(session)}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+
+async def _jira_lookup_user(email, jira_headers, session):
     """Return the Jira user ({accountId, displayName, ...}) for an email address, or None.
 
     Jira's user search is a fuzzy prefix match on display name and email, so the
@@ -1005,8 +1054,8 @@ async def _jira_lookup_user(email, credentials, session):
     if not email:
         return None
     async with session.get(
-        f"{jira_base_url}/rest/api/3/user/search",
-        headers={"Authorization": f"Basic {credentials}", "Content-Type": "application/json"},
+        jira_api_url("/rest/api/3/user/search"),
+        headers=jira_headers,
         params={"query": email, "maxResults": 10},
     ) as resp:
         if resp.status != 200:
@@ -1027,9 +1076,9 @@ async def _jira_lookup_user(email, credentials, session):
     return None
 
 
-async def _jira_lookup_account_id(email, credentials, session):
+async def _jira_lookup_account_id(email, jira_headers, session):
     """Return the Jira accountId for an email address, or None if not found."""
-    jira_user = await _jira_lookup_user(email, credentials, session)
+    jira_user = await _jira_lookup_user(email, jira_headers, session)
     return jira_user['accountId'] if jira_user else None
 
 
@@ -1048,7 +1097,7 @@ async def _jira_create_issue(jira_fields, jira_headers, session):
     fields = dict(jira_fields)
     while True:
         async with session.post(
-            f"{jira_base_url}/rest/api/3/issue",
+            jira_api_url("/rest/api/3/issue"),
             headers=jira_headers,
             data=json.dumps({"fields": fields}),
         ) as resp:
@@ -1097,7 +1146,7 @@ _DELIVERY_MODE_MAP = {
 async def create_jira_wgr_ticket(request):
     user = await get_proxy_user(request)
 
-    if not jira_api_token or not jira_user_email:
+    if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
     data = await request.json()
@@ -1155,15 +1204,10 @@ async def create_jira_wgr_ticket(request):
             labels.append('whiteglove-short-notice')
             short_notice = True
 
-    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    jira_headers = {
-        "Authorization": f"Basic {credentials}",
-        "Content-Type": "application/json",
-    }
-
     async with aiohttp.ClientSession() as session:
+        jira_headers = await jira_auth_headers(session)
         # Look up Jira accountIds for requester and shareWith users
-        requester_jira_user = await _jira_lookup_user(requester_email, credentials, session)
+        requester_jira_user = await _jira_lookup_user(requester_email, jira_headers, session)
         requester_account_id = requester_jira_user['accountId'] if requester_jira_user else None
 
         share_with_emails = data.get('shareWith') or []
@@ -1171,7 +1215,7 @@ async def create_jira_wgr_ticket(request):
         if requester_account_id:
             participant_account_ids.append(requester_account_id)
         for email in share_with_emails:
-            acct = await _jira_lookup_account_id(email, credentials, session)
+            acct = await _jira_lookup_account_id(email, jira_headers, session)
             if acct and acct not in participant_account_ids:
                 participant_account_ids.append(acct)
 
@@ -1228,21 +1272,17 @@ async def create_jira_wgr_ticket(request):
 async def get_jira_issue_details(request):
     await get_proxy_user(request)
 
-    if not jira_api_token or not jira_user_email:
+    if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
     issue_key = request.match_info.get('issue_key')
     if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
         raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
 
-    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-    }
-
     async with aiohttp.ClientSession() as http_session:
+        headers = await jira_auth_headers(http_session)
         async with http_session.get(
-            f"{jira_base_url}/rest/api/3/issue/{issue_key}?fields=assignee,status",
+            jira_api_url(f"/rest/api/3/issue/{issue_key}?fields=assignee,status"),
             headers=headers,
         ) as issue_resp:
             if issue_resp.status == 404:
@@ -1254,7 +1294,7 @@ async def get_jira_issue_details(request):
             issue_data = await issue_resp.json()
 
         async with http_session.get(
-            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment?orderBy=-created",
+            jira_api_url(f"/rest/api/3/issue/{issue_key}/comment?orderBy=-created"),
             headers=headers,
         ) as comments_resp:
             if comments_resp.status != 200:
@@ -1302,7 +1342,7 @@ async def add_jira_issue_comment(request):
         raise web.HTTPForbidden(reason="Admin access required")
     user_email = request.headers.get('X-Forwarded-Email', user.get('metadata', {}).get('name', 'unknown'))
 
-    if not jira_api_token or not jira_user_email:
+    if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
     issue_key = request.match_info.get('issue_key')
@@ -1327,15 +1367,10 @@ async def add_jira_issue_comment(request):
         }
     }
 
-    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-        "Content-Type": "application/json",
-    }
-
     async with aiohttp.ClientSession() as http_session:
+        headers = await jira_auth_headers(http_session)
         async with http_session.post(
-            f"{jira_base_url}/rest/api/3/issue/{issue_key}/comment",
+            jira_api_url(f"/rest/api/3/issue/{issue_key}/comment"),
             headers=headers,
             data=json.dumps(jira_body),
         ) as resp:
@@ -1355,7 +1390,7 @@ async def update_jira_issue_labels(request):
     if not session.get('admin'):
         raise web.HTTPForbidden(reason="Admin access required")
 
-    if not jira_api_token or not jira_user_email:
+    if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
     issue_key = request.match_info.get('issue_key')
@@ -1377,15 +1412,10 @@ async def update_jira_issue_labels(request):
     if not update_ops:
         return web.json_response({"ok": True})
 
-    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-        "Content-Type": "application/json",
-    }
-
     async with aiohttp.ClientSession() as http_session:
+        headers = await jira_auth_headers(http_session)
         async with http_session.put(
-            f"{jira_base_url}/rest/api/3/issue/{issue_key}",
+            jira_api_url(f"/rest/api/3/issue/{issue_key}"),
             headers=headers,
             data=json.dumps({"update": {"labels": update_ops}}),
         ) as resp:
@@ -1415,19 +1445,15 @@ def confluence_page_content(data):
 async def get_whats_new(request):
     await get_proxy_user(request)
 
-    if not jira_api_token or not jira_user_email:
+    if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Confluence integration is not configured")
 
-    credentials = base64.b64encode(f"{jira_user_email}:{jira_api_token}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-        "Accept": "application/json",
-    }
-
     async with aiohttp.ClientSession() as http_session:
+        headers = await jira_auth_headers(http_session)
+
         async def fetch_content(path, params):
             async with http_session.get(
-                f"{jira_base_url}{path}", headers=headers, params=params,
+                confluence_api_url(path), headers=headers, params=params,
             ) as resp:
                 if resp.status == 404:
                     raise web.HTTPNotFound(reason="What's New page not found")

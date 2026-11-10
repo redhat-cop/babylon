@@ -50,16 +50,21 @@ spec:
             secretKeyRef:
               name: sandbox-api-shared-cluster-manager
               key: shared-cluster-manager-token
-        - name: JIRA_API_TOKEN
+        - name: JIRA_CLIENT_ID
           valueFrom:
             secretKeyRef:
               name: babylon-catalog-jira
-              key: jira-api-token
-        - name: JIRA_USER_EMAIL
+              key: jira-client-id
+        - name: JIRA_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: babylon-catalog-jira
-              key: jira-user-email
+              key: jira-client-secret
+        - name: JIRA_CLOUD_ID
+          valueFrom:
+            secretKeyRef:
+              name: babylon-catalog-jira
+              key: jira-cloud-id
         - name: JIRA_BASE_URL
           valueFrom:
             secretKeyRef:

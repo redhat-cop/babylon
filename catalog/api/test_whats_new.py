@@ -30,8 +30,10 @@ class WhatsNewTests(unittest.IsolatedAsyncioTestCase):
         client.__aenter__ = AsyncMock(return_value=http)
         with patch.object(catalog_app, 'get_proxy_user', AsyncMock(return_value={})), \
              patch.object(catalog_app, 'get_user_session', AsyncMock(return_value={'admin': admin})), \
-             patch.object(catalog_app, 'jira_api_token', 'test-token'), \
-             patch.object(catalog_app, 'jira_user_email', 'test@example.com'), \
+             patch.object(catalog_app, 'jira_client_id', 'client-id'), \
+             patch.object(catalog_app, 'jira_client_secret', 'client-secret'), \
+             patch.object(catalog_app, 'jira_cloud_id', 'cloud-id'), \
+             patch.object(catalog_app, '_jira_access_token', AsyncMock(return_value='oauth-token')), \
              patch.object(catalog_app.aiohttp, 'ClientSession', return_value=client):
             response = await catalog_app.get_whats_new(MagicMock())
         return json.loads(response.text), http.get.call_args_list
