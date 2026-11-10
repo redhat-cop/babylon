@@ -24,6 +24,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import SelectableTable from '@app/components/SelectableTable';
 import TimeInterval from '@app/components/TimeInterval';
 import ServiceStatus from '@app/Services/ServiceStatus';
+import { getResourceClaimClusters } from '@app/Services/service-utils';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import useSession from '@app/utils/useSession';
@@ -41,7 +42,15 @@ const WorkshopsItemServices: React.FC<{
   showModal: (modalState: ModalState) => void;
   setSelectedResourceClaims: (resourceClaims: ResourceClaim[]) => void;
   userAssignments: WorkshopUserAssignment[];
-}> = ({ showModal, workshopProvisions, resourceClaims, setSelectedResourceClaims, userAssignments }) => {
+  isClusterTenantWorkshop?: boolean;
+}> = ({
+  showModal,
+  workshopProvisions,
+  resourceClaims,
+  setSelectedResourceClaims,
+  userAssignments,
+  isClusterTenantWorkshop = false,
+}) => {
   const [selectedUids, setSelectedUids] = useState<string[]>([]);
   const { isAdmin } = useSession().getSession();
   const [isOpen, setIsOpen] = useState(false);
@@ -149,9 +158,11 @@ const WorkshopsItemServices: React.FC<{
             const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
             const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
             const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
-            const cluster = resources
-              .find((r) => r?.kind === 'AnarchySubject')
-              ?.spec?.vars?.job_vars?.sandbox_openshift_cluster;
+            // Tenants of a tenant-cluster workshop are placed on the workshop clusters, which are listed
+            // in the Clusters tab, so only show the cluster for regular instances (consistent with
+            // getWorkshopClusterResourceClaims).
+            const cluster =
+              isAdmin && !isClusterTenantWorkshop ? getResourceClaimClusters([resourceClaim]).join(', ') : null;
             const actionHandlers = {
               restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
               delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
@@ -221,10 +232,9 @@ const WorkshopsItemServices: React.FC<{
                   <p>-</p>
                 )}
                 {cluster ? (
-                  <>
-                    <br />
-                    <small style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>{cluster}</small>
-                  </>
+                  <div className="workshops-item-services__cluster">
+                    <small>{cluster}</small>
+                  </div>
                 ) : null}
               </>,
 

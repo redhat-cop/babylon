@@ -732,6 +732,7 @@ const WorkshopsItemComponent: React.FC<{
                 resourceClaims={instanceResourceClaims}
                 workshopProvisions={workshopProvisions}
                 userAssignments={userAssigmentsList?.items || []}
+                isClusterTenantWorkshop={isClusterTenantWorkshop}
               />
             ) : null}
           </Tab>

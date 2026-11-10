@@ -17,7 +17,7 @@ import {
 } from '@app/util';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
-import { getAutoStopTime, isResourceClaimLocked } from './service-utils';
+import { getAutoStopTime, getResourceClaimClusters, isResourceClaimLocked } from './service-utils';
 import ResourceClaimStatus from './ResourceClaimStatus';
 import TimeInterval from '@app/components/TimeInterval';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
@@ -47,9 +47,7 @@ const renderResourceClaimRow = ({
   const resourceHandle = resourceClaim.status?.resourceHandle;
   const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
   const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
-  const cluster = resources
-    .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
-    .find((value) => value);
+  const cluster = getResourceClaimClusters([resourceClaim]).join(', ');
   const workshopName = resourceClaim.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const isPartOfSelfPacedLab = isResourceClaimPartOfSelfPacedLab(resourceClaim);

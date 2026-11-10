@@ -21,6 +21,7 @@ import PlayIcon from '@patternfly/react-icons/dist/js/icons/play-icon';
 import StopIcon from '@patternfly/react-icons/dist/js/icons/stop-icon';
 import ScheduledStatus from '@app/components/ScheduledStatus';
 import WorkshopStatus from './WorkshopStatus';
+import { getResourceClaimClusters } from './service-utils';
 
 const renderWorkshopRow = ({
   workshop,
@@ -50,15 +51,7 @@ const renderWorkshopRow = ({
   const resources = workshop.resourceClaims
     ? workshop.resourceClaims.flatMap((r) => r.status?.resources || []).map((r) => r.state)
     : [];
-  const clusters = [
-    ...new Set(
-      getWorkshopClusterResourceClaims(workshop.resourceClaims)
-        .flatMap((r) => r.status?.resources || [])
-        .map((r) => r.state)
-        .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
-        .filter((cluster): cluster is string => Boolean(cluster)),
-    ),
-  ].sort();
+  const clusters = getResourceClaimClusters(getWorkshopClusterResourceClaims(workshop.resourceClaims));
   if (resources.find((r) => r?.kind === 'AnarchySubject')) {
     actionHandlers['runtime'] = () => showModal({ action: 'stop', modal: 'scheduleAction', workshop });
     actionHandlers['start'] = () => showModal({ action: 'start', modal: 'action', workshop });
