@@ -95,8 +95,8 @@ importers:
         specifier: ^0.57.0
         version: 0.57.0
       parse-duration:
-        specifier: ^2.1.10
-        version: 2.1.10
+        specifier: ^2.1.11
+        version: 2.1.11
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -4343,8 +4343,8 @@ packages:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
 
-  parse-duration@2.1.10:
-    resolution: {integrity: sha512-l72x6XU6zWWOWfdyobeINOjxDSydA0Gm+Q51PJMtWZmXVnQXXWzFv51r6EiFE+WnjZPUsshIMOU4iONDL8A68Q==}
+  parse-duration@2.1.11:
+    resolution: {integrity: sha512-Z1Njr25ZXSDXdN6u5s2rtnn4khB/Yc+/p0kWhJFnvCWJhDsf5hAv7AO0xMa/nF7uafwwi2JxIp6TGx9CTX4diQ==}
 
   parse-json@5.2.0:
     resolution: {integrity: sha512-ayCKvm/phCGxOkYRSCM82iDwct8/EonSEgCSxWxD7ve6jHggsFl4fZVQBPRNgQoKiuV/odhFrGzQXZwbifC8Rg==}
@@ -10284,7 +10284,7 @@ snapshots:
     dependencies:
       callsites: 3.1.0
 
-  parse-duration@2.1.10: {}
+  parse-duration@2.1.11: {}
 
   parse-json@5.2.0:
     dependencies:
