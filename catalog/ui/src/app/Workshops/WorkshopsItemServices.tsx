@@ -149,6 +149,9 @@ const WorkshopsItemServices: React.FC<{
             const resourceHandle: K8sObjectReference = resourceClaim.status?.resourceHandle;
             const guid = resourceHandle?.name ? resourceHandle.name.replace(/^guid-/, '') : null;
             const resources = (resourceClaim.status?.resources || []).map((r) => r.state);
+            const cluster = resources
+              .find((r) => r?.kind === 'AnarchySubject')
+              ?.spec?.vars?.job_vars?.sandbox_openshift_cluster;
             const actionHandlers = {
               restart: () => showModal({ action: 'restartService', resourceClaims: [resourceClaim] }),
               delete: () => showModal({ action: 'deleteService', resourceClaims: [resourceClaim] }),
@@ -217,6 +220,12 @@ const WorkshopsItemServices: React.FC<{
                 ) : (
                   <p>-</p>
                 )}
+                {cluster ? (
+                  <>
+                    <br />
+                    <small style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>{cluster}</small>
+                  </>
+                ) : null}
               </>,
 
               // Status
