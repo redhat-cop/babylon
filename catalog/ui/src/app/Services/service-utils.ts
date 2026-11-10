@@ -202,3 +202,19 @@ export function createAsciiDocAttributes(varsObj: object, separator = '--'): obj
   }
   return setAttributesFromObj(varsObj);
 }
+
+/**
+ * Unique, sorted list of sandbox OpenShift clusters referenced by the AnarchySubjects of the given ResourceClaims.
+ */
+export function getResourceClaimClusters(resourceClaims: ResourceClaim[] = []): string[] {
+  return [
+    ...new Set(
+      resourceClaims
+        .flatMap((resourceClaim) => resourceClaim.status?.resources || [])
+        .map(({ state }) =>
+          state?.kind === 'AnarchySubject' ? state.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined,
+        )
+        .filter((cluster): cluster is string => Boolean(cluster)),
+    ),
+  ].sort();
+}

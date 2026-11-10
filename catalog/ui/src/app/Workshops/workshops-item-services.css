@@ -1,3 +1,7 @@
 .workshops-item-services__actions .pf-v6-c-button.pf-m-plain {
   margin: 0 0 0 0 !important;
 }
+
+.workshops-item-services__cluster {
+  color: var(--pf-t--global--text--color--subtle);
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { DescriptionListDescription, DescriptionListGroup, DescriptionListTerm } from '@patternfly/react-core';
 import type { ResourceClaim } from '@app/types';
+import { getResourceClaimClusters } from './service-utils';
 
 const ServiceClusterDetails: React.FC<{
   isAdmin: boolean;
@@ -8,16 +9,7 @@ const ServiceClusterDetails: React.FC<{
 }> = ({ isAdmin, resourceClaims = [] }) => {
   if (!isAdmin) return null;
 
-  const clusters = [
-    ...new Set(
-      resourceClaims
-        .flatMap((claim) => claim.status?.resources || [])
-        .map(({ state }) =>
-          state?.kind === 'AnarchySubject' ? state.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined,
-        )
-        .filter((cluster): cluster is string => Boolean(cluster)),
-    ),
-  ].sort();
+  const clusters = getResourceClaimClusters(resourceClaims);
 
   if (clusters.length === 0) return null;
 

@@ -10,6 +10,7 @@ import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
 import SelfPacedLabStatus from '@app/components/SelfPacedLabStatus';
 import ScheduledStatus from '@app/components/ScheduledStatus';
+import { getResourceClaimClusters } from './service-utils';
 
 const renderSelfPacedLabRow = ({
   selfPacedLab,
@@ -37,14 +38,7 @@ const renderSelfPacedLabRow = ({
   const autoDestroyTime = selfPacedLab.spec.lifespan?.end ? Date.parse(selfPacedLab.spec.lifespan.end) : null;
 
   const poolCount = selfPacedLab.status?.poolCount;
-  const resources = (selfPacedLab.resourceClaims || []).flatMap((r) => r.status?.resources || []).map((r) => r.state);
-  const clusters = [
-    ...new Set(
-      resources
-        .map((r) => (r?.kind === 'AnarchySubject' ? r.spec?.vars?.job_vars?.sandbox_openshift_cluster : undefined))
-        .filter((cluster): cluster is string => Boolean(cluster)),
-    ),
-  ].sort();
+  const clusters = getResourceClaimClusters(selfPacedLab.resourceClaims);
 
   const nameCell = (
     <div key="selfpacedlab-name-cell" className="services-list__name">
