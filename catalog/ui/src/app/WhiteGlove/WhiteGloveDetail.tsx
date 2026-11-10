@@ -12,7 +12,7 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
 import type { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
+import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem, WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES } from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
@@ -132,7 +132,9 @@ const WhiteGloveDetailContent: React.FC = () => {
     });
   }, [isAdmin, wgr, catalogItemsFetched]);
 
-  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const defaultCatalogNamespace = catalogNamespaces?.find(
+    (ns) => !WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES.includes(ns.name),
+  )?.name;
   const { data: defaultCatalogItems } = useSWRImmutable(
     selectedCatalogItems.length === 0 && defaultCatalogNamespace
       ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 })
@@ -892,6 +894,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           title="Select Catalog Item"
           defaultMultiSelect={false}
           catalogItemsFilter={catalogItemsFilter}
+          excludedCatalogNamespaces={WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES}
         />
       )}
 

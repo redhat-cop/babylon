@@ -9,7 +9,7 @@ import { apiPaths, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGl
 import type { BlockedDateRange } from '@app/api';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import type { CatalogItem, SalesforceItem } from '@app/types';
-import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem } from '@app/util';
+import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem, WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES } from '@app/util';
 import { getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
@@ -66,7 +66,9 @@ const WhiteGloveCreateContent: React.FC = () => {
 
   const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
 
-  const defaultCatalogNamespace = catalogNamespaces?.[0]?.name;
+  const defaultCatalogNamespace = catalogNamespaces?.find(
+    (ns) => !WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES.includes(ns.name),
+  )?.name;
   const { data: defaultCatalogItems } = useSWRImmutable(
     defaultCatalogNamespace ? apiPaths.CATALOG_ITEMS({ namespace: defaultCatalogNamespace, limit: 1 }) : null,
     silentFetcher,
@@ -497,6 +499,7 @@ const WhiteGloveCreateContent: React.FC = () => {
         title="Select Catalog Item for White Glove Request"
         defaultMultiSelect={false}
         catalogItemsFilter={catalogItemsFilter}
+        excludedCatalogNamespaces={WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES}
       />
 
       <DateTimePickerModalDialog
