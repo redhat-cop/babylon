@@ -2,6 +2,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 import json
+import logging
 
 from typing import List, Mapping
 from weakref import ref, ReferenceType
@@ -18,6 +19,8 @@ from .resourcereference import ResourceReference
 from .tenantclusterpool import TenantClusterPool
 
 CATALOG_ACTION_NAMES = ('destroy', 'provision', 'start', 'status', 'stop')
+
+logger = logging.getLogger(__name__)
 
 class AgnosticVComponent(K8sObject):
     api_group = "gpte.redhat.com"
@@ -1159,12 +1162,50 @@ class AgnosticVComponent(K8sObject):
                 linked_resource_provider['when'] = linked_component.when
             definition['spec'].setdefault('linkedResourceProviders', []).append(linked_resource_provider)
 
-            if self.deployer_type:
+        # Propagate provision data from linked components to job_vars.
+        # Targets are collected grouped by job_vars var before writing:
+        # job_vars is a dict, so per-component writes made the last writer
+        # win even when that component was skipped by its `when` condition,
+        # erasing the values propagated by the component that did run.
+        if self.deployer_type:
+            propagate_provision_data_targets = {}
+            for idx, linked_component in enumerate(self.linked_components):
                 for item in linked_component.propagate_provision_data:
+                    propagate_provision_data_targets.setdefault(item.var, []).append(
+                        (idx, linked_component, item)
+                    )
+
+            for var, writers in propagate_provision_data_targets.items():
+                if len(writers) == 1:
+                    idx, _linked_component, item = writers[0]
                     if item.name:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '.' + item.name + '|default(omit)|object}}'
+                        definition['spec']['override']['spec']['vars']['job_vars'][var] = '{{provision_data_' + str(idx) + '.' + item.name + '|default(omit)|object}}'
                     else:
-                        definition['spec']['override']['spec']['vars']['job_vars'][item.var] = '{{provision_data_' + str(idx) + '|default(omit)|object}}'
+                        definition['spec']['override']['spec']['vars']['job_vars'][var] = '{{provision_data_' + str(idx) + '|default(omit)|object}}'
+                    continue
+
+                logger.warning(
+                    "%s: linked components %s propagate provision data to the same job_vars var '%s': last running wins; use distinct targets if you need both values",
+                    self.name,
+                    ", ".join(linked_component.name for _idx, linked_component, _item in writers),
+                    var,
+                )
+                # Multiple writers: emit one conditional expression testing
+                # each writer's current_state, later components first, so
+                # that the last listed component which actually started
+                # provides the value. Skipped providers leave current_state_N
+                # undefined at render time, so the default('') guard keeps
+                # strict rendering from failing. If no writer started, the
+                # key drops via omit and the job fails loudly, the same as a
+                # single missing writer today.
+                branches = [
+                    'provision_data_' + str(idx) + ('.' + item.name if item.name else '')
+                    + "|default(omit) if (current_state_" + str(idx) + "|default('')) == 'started'"
+                    for idx, _linked_component, item in reversed(writers)
+                ]
+                definition['spec']['override']['spec']['vars']['job_vars'][var] = (
+                    "{{ (" + " else ".join(branches) + " else omit) | object }}"
+                )
 
         if self.catalog_parameters:
             open_api_schema_job_vars = definition['spec']['validation']['openAPIV3Schema']['properties']['spec']['properties']['vars']['properties']['job_vars'] if self.deployer_type is not None else None
