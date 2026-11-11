@@ -222,6 +222,7 @@ export const CUSTOM_LABELS: {
     | 'STAGE'
     | 'DISABLED'
     | 'USE_CASE'
+    | 'SALES_PLAY'
     | 'BRAND_EVENT'
     | 'MULTI_ASSET']: {
     key: string;
@@ -242,6 +243,7 @@ export const CUSTOM_LABELS: {
   MULTI_ASSET: { key: 'Multi_Asset', weight: 0, domain: BABYLON_DOMAIN },
   BRAND_EVENT: { key: 'Brand_Event', weight: 0, domain: BABYLON_DOMAIN },
   USE_CASE: { key: 'Use_Case', weight: 0, domain: BABYLON_DOMAIN },
+  SALES_PLAY: { key: 'Sales_Play', weight: 0, domain: BABYLON_DOMAIN },
 };
 export const HIDDEN_LABELS = [
   'userCatalogItem',
@@ -256,7 +258,7 @@ export const HIDDEN_LABELS = [
   CUSTOM_LABELS.SLA.key,
   CUSTOM_LABELS.RATING.key,
   CUSTOM_LABELS.PROVIDER.key,
-  'Sales_Play',
+  CUSTOM_LABELS.SALES_PLAY.key,
 ];
 export const HIDDEN_LABELS_DETAIL_VIEW = [
   'userCatalogItem',
