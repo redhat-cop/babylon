@@ -204,6 +204,8 @@ interface CatalogItemSelectorModalProps {
   singleSelect?: boolean;
   defaultMultiSelect?: boolean;
   catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
+  /** Catalog namespace names to hide from the catalog dropdown and exclude from fetching */
+  excludedCatalogNamespaces?: string[];
 }
 
 // Fetch catalog items from multiple namespaces
@@ -228,12 +230,11 @@ const CategorySelectorContent: React.FC<{
   onSelect: (categories: string[]) => void;
   selected: string[];
   catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
-}> = ({ selectedCatalogNamespace, onSelect, selected, catalogItemsFilter }) => {
-  const { catalogNamespaces } = useSession().getSession();
-  const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
+  catalogNamespaceNames: string[];
+}> = ({ selectedCatalogNamespace, onSelect, selected, catalogItemsFilter, catalogNamespaceNames }) => {
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
-    `catalog-items-${selectedCatalogNamespace || 'all-catalogs'}`,
+    `catalog-items-${selectedCatalogNamespace || `all-catalogs:${catalogNamespaceNames.join(',')}`}`,
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
@@ -259,6 +260,7 @@ const CatalogItemsContent: React.FC<{
   selectedItems: Map<string, CatalogItem>;
   onToggleItem: (catalogItem: CatalogItem, isSelected: boolean) => void;
   catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
+  catalogNamespaceNames: string[];
 }> = ({
   searchValue,
   selectedCatalogNamespace,
@@ -268,12 +270,11 @@ const CatalogItemsContent: React.FC<{
   selectedItems,
   onToggleItem,
   catalogItemsFilter,
+  catalogNamespaceNames,
 }) => {
-  const { catalogNamespaces } = useSession().getSession();
-  const catalogNamespaceNames = catalogNamespaces.map((ns) => ns.name);
 
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
-    `catalog-items-${selectedCatalogNamespace || 'all-catalogs'}`,
+    `catalog-items-${selectedCatalogNamespace || `all-catalogs:${catalogNamespaceNames.join(',')}`}`,
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
@@ -403,6 +404,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   singleSelect = false,
   defaultMultiSelect,
   catalogItemsFilter,
+  excludedCatalogNamespaces,
 }) => {
   const [searchValue, setSearchValue] = useState('');
   const [selectedCatalogNamespace, setSelectedCatalogNamespace] = useState<string | null>(null);
@@ -410,7 +412,15 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(defaultMultiSelect ?? !singleSelect);
   const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
-  const { catalogNamespaces } = useSession().getSession();
+  const { catalogNamespaces: sessionCatalogNamespaces } = useSession().getSession();
+  const catalogNamespaces = useMemo(
+    () =>
+      excludedCatalogNamespaces?.length
+        ? sessionCatalogNamespaces.filter((ns) => !excludedCatalogNamespaces.includes(ns.name))
+        : sessionCatalogNamespaces,
+    [sessionCatalogNamespaces, excludedCatalogNamespaces],
+  );
+  const catalogNamespaceNames = useMemo(() => catalogNamespaces.map((ns) => ns.name), [catalogNamespaces]);
 
   const handleItemSelect = useCallback(
     (catalogItem: CatalogItem) => {
@@ -541,6 +551,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 onSelect={setSelectedCategories}
                 selected={selectedCategories}
                 catalogItemsFilter={catalogItemsFilter}
+                catalogNamespaceNames={catalogNamespaceNames}
               />
             </Suspense>
           ) : null}
@@ -567,6 +578,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
                 selectedItems={selectedItems}
                 onToggleItem={handleToggleItem}
                 catalogItemsFilter={catalogItemsFilter}
+                catalogNamespaceNames={catalogNamespaceNames}
               />
             </Suspense>
           ) : null}

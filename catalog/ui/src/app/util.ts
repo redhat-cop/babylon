@@ -371,6 +371,9 @@ export function stripHtml(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
+// Catalog namespaces that must not be offered when selecting catalog items for a White Glove request
+export const WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES = ['babylon-catalog-dev', 'babylon-catalog-test'];
+
 export function getWhiteGloved(d?: ResourceClaim | Workshop): boolean {
   if (!d || !d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`]) return false;
   return d.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
