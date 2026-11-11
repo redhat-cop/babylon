@@ -3,7 +3,7 @@
 export const DEFAULT_SOUNDCHECK_URL =
   'https://showroom-soundcheck-dev.apps.ocpv-infra01.dal12.infra.demo.redhat.com';
 
-/** Terminal statuses — stop light polling once reached. */
+/** Terminal statuses — stop polling / close SSE once reached. */
 export const SOUNDCHECK_TERMINAL = new Set(['completed', 'failed']);
 
 export type SoundcheckSessionStatus = 'pending' | 'running' | 'completed' | 'failed' | string;
@@ -221,6 +221,116 @@ export async function pollSoundcheckSession(
     }
   }
   return last;
+}
+
+// Raw target shape from SSE payload (matches backend TargetPublic).
+type _SSETarget = { label: string; url: string; status: string; error_message: string | null };
+
+function _snapshotFromSSEData(
+  baseUrl: string | undefined | null,
+  data: {
+    session_id?: string;
+    status?: string;
+    targets?: _SSETarget[];
+    session?: { completed_at?: string | null; name?: string };
+  },
+): SoundcheckSessionSnapshot {
+  const id = data.session_id || '';
+  const href = id ? buildSoundcheckSessionUrl(baseUrl, id) : '';
+  const targets = data.targets ?? [];
+  const failedTargets: SoundcheckTargetSummary[] = targets
+    .filter((t) => t.status === 'unhealthy' || t.status === 'error')
+    .map((t) => ({ label: t.label, url: t.url, status: t.status, errorMessage: t.error_message, sessionHref: href }));
+  return {
+    sessionId: id,
+    status: (data.status || 'pending') as SoundcheckSessionStatus,
+    name: data.session?.name,
+    completedAt: data.session?.completed_at,
+    totalTargets: targets.length > 0 ? targets.length : undefined,
+    failedTargets: targets.length > 0 ? failedTargets : undefined,
+  };
+}
+
+/**
+ * Subscribe to live session progress via SSE (`GET /api/sessions/{id}/stream`).
+ * Returns a cleanup function; also closes on `signal` abort.
+ *
+ * Falls back gracefully if EventSource is blocked (CORS/offline) — `onError` fires once
+ * and the caller can fall back to `fetchSoundcheckSession` for a one-shot status check.
+ */
+export function connectSoundcheckSSE(
+  baseUrl: string | undefined | null,
+  sessionId: string,
+  opts: {
+    onUpdate?: (snap: SoundcheckSessionSnapshot) => void;
+    onComplete?: (snap: SoundcheckSessionSnapshot) => void;
+    onError?: (err: Event) => void;
+    signal?: AbortSignal;
+  },
+): () => void {
+  if (!sessionId) return () => {};
+  const url = `${soundcheckApiRoot(baseUrl)}/sessions/${encodeURIComponent(sessionId)}/stream`;
+
+  let es: EventSource | null = null;
+  let closed = false;
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    es?.close();
+  };
+
+  try {
+    es = new EventSource(url);
+
+    const handleMsg = (terminal: boolean) => (e: MessageEvent) => {
+      if (closed) return;
+      try {
+        const data = JSON.parse(e.data as string) as {
+          session_id?: string;
+          status?: string;
+          targets?: _SSETarget[];
+          session?: { completed_at?: string | null; name?: string };
+        };
+        const snap = _snapshotFromSSEData(baseUrl, data);
+        if (terminal) {
+          close();
+          opts.onComplete?.(snap);
+        } else {
+          opts.onUpdate?.(snap);
+        }
+      } catch { /* ignore parse errors */ }
+    };
+
+    es.addEventListener('session_update', handleMsg(false) as EventListener);
+    es.addEventListener('session_complete', handleMsg(true) as EventListener);
+    if (opts.onError) es.onerror = opts.onError;
+  } catch {
+    // EventSource constructor threw (non-browser env, test, etc.) — no-op
+  }
+
+  opts.signal?.addEventListener('abort', close, { once: true });
+  return close;
+}
+
+/**
+ * Clone an existing session and start fresh checks against the same targets.
+ * Returns the new session_id.
+ */
+export async function cloneSoundcheckSession(
+  baseUrl: string | undefined | null,
+  sessionId: string,
+  opts?: { signal?: AbortSignal },
+): Promise<string> {
+  if (!sessionId) throw new Error('sessionId is required');
+  const resp = await fetch(
+    `${soundcheckApiRoot(baseUrl)}/sessions/${encodeURIComponent(sessionId)}/clone`,
+    { method: 'POST', signal: opts?.signal, credentials: 'omit' },
+  );
+  if (!resp.ok) throw new Error(`Soundcheck clone ${resp.status}`);
+  const body = (await resp.json()) as { session_id?: string };
+  if (!body?.session_id) throw new Error('Soundcheck clone returned no session_id');
+  return body.session_id;
 }
 
 /** TTL for per-row last-check cache (DB lookup only — does not start new checks). */
