@@ -106,29 +106,27 @@ const WorkshopCard: React.FC<WorkshopCardProps> = ({ asset, isAvailable }) => {
   );
 };
 
-const FILTER_THRESHOLD = 6;
-
-const ProductFamilyFilter: React.FC<{
-  productFamilies: string[];
-  selectedFamilies: Set<string>;
-  onToggle: (family: string) => void;
-  assetCountByFamily: Map<string, number>;
-}> = ({ productFamilies, selectedFamilies, onToggle, assetCountByFamily }) => {
+const PlatformFilter: React.FC<{
+  platforms: string[];
+  selectedPlatforms: Set<string>;
+  onToggle: (platform: string) => void;
+  assetCountByPlatform: Map<string, number>;
+}> = ({ platforms, selectedPlatforms, onToggle, assetCountByPlatform }) => {
   return (
     <div className="mwl-filter-bar">
-      <span className="mwl-filter-bar__title">Product Family</span>
+      <span className="mwl-filter-bar__title">Platform</span>
       <ul className="mwl-filter-bar__list">
-        {productFamilies.map((family) => (
-          <li key={family} className="mwl-filter-bar__item">
+        {platforms.map((platform) => (
+          <li key={platform} className="mwl-filter-bar__item">
             <label className="mwl-filter-bar__label">
               <input
                 type="checkbox"
                 className="mwl-filter-bar__checkbox"
-                checked={selectedFamilies.has(family)}
-                onChange={() => onToggle(family)}
+                checked={selectedPlatforms.has(platform)}
+                onChange={() => onToggle(platform)}
               />
-              <span className="mwl-filter-bar__text">{formatString(family)}</span>
-              <span className="mwl-filter-bar__count">{assetCountByFamily.get(family) ?? 0}</span>
+              <span className="mwl-filter-bar__text">{formatString(platform)}</span>
+              <span className="mwl-filter-bar__count">{assetCountByPlatform.get(platform) ?? 0}</span>
             </label>
           </li>
         ))}
@@ -179,37 +177,35 @@ const MultiWorkshopLandingComponent: React.FC<{
   const displayName = multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
   const assets = multiworkshop.spec.assets || [];
 
-  const [selectedFamilies, setSelectedFamilies] = useState<Set<string>>(new Set());
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
 
-  const showFilter = assets.length >= FILTER_THRESHOLD;
-
-  const { productFamilies, assetCountByFamily } = useMemo(() => {
+  const { platforms, assetCountByPlatform } = useMemo(() => {
     const countMap = new Map<string, number>();
     for (const asset of assets) {
-      if (asset.productFamily) {
-        countMap.set(asset.productFamily, (countMap.get(asset.productFamily) ?? 0) + 1);
+      if (asset.platform) {
+        countMap.set(asset.platform, (countMap.get(asset.platform) ?? 0) + 1);
       }
     }
-    const families = Array.from(countMap.keys()).sort((a, b) => a.localeCompare(b));
-    return { productFamilies: families, assetCountByFamily: countMap };
+    const platformList = Array.from(countMap.keys()).sort((a, b) => a.localeCompare(b));
+    return { platforms: platformList, assetCountByPlatform: countMap };
   }, [assets]);
 
-  const hasFilterableContent = showFilter && productFamilies.length > 1;
+  const hasFilterableContent = platforms.length > 1;
 
   const filteredAssets = useMemo(() => {
-    if (selectedFamilies.size === 0) return assets;
+    if (selectedPlatforms.size === 0) return assets;
     return assets.filter(
-      (asset) => asset.productFamily && selectedFamilies.has(asset.productFamily),
+      (asset) => asset.platform && selectedPlatforms.has(asset.platform),
     );
-  }, [assets, selectedFamilies]);
+  }, [assets, selectedPlatforms]);
 
-  const handleToggleFamily = (family: string) => {
-    setSelectedFamilies((prev) => {
+  const handleTogglePlatform = (platform: string) => {
+    setSelectedPlatforms((prev) => {
       const next = new Set(prev);
-      if (next.has(family)) {
-        next.delete(family);
+      if (next.has(platform)) {
+        next.delete(platform);
       } else {
-        next.add(family);
+        next.add(platform);
       }
       return next;
     });
@@ -273,11 +269,11 @@ const MultiWorkshopLandingComponent: React.FC<{
           ) : (
             <div className="mwl-cards-layout">
               {hasFilterableContent && (
-                <ProductFamilyFilter
-                  productFamilies={productFamilies}
-                  selectedFamilies={selectedFamilies}
-                  onToggle={handleToggleFamily}
-                  assetCountByFamily={assetCountByFamily}
+                <PlatformFilter
+                  platforms={platforms}
+                  selectedPlatforms={selectedPlatforms}
+                  onToggle={handleTogglePlatform}
+                  assetCountByPlatform={assetCountByPlatform}
                 />
               )}
               <div className="demo-card-grid">

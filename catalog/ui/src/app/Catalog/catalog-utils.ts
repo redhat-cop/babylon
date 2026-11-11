@@ -255,6 +255,8 @@ export const HIDDEN_LABELS = [
   CUSTOM_LABELS.PRODUCT.key,
   CUSTOM_LABELS.SLA.key,
   CUSTOM_LABELS.RATING.key,
+  CUSTOM_LABELS.PROVIDER.key,
+  'Sales_Play',
 ];
 export const HIDDEN_LABELS_DETAIL_VIEW = [
   'userCatalogItem',
