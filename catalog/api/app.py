@@ -1581,12 +1581,9 @@ async def public_multiworkshop_get(request):
                             name=catalog_item_name
                         )
                         catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
-                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
-                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
-                        if product_family:
-                            asset['productFamily'] = product_family
-                        if product:
-                            asset['product'] = product
+                        platform = catalog_item_labels.get('babylon.gpte.redhat.com/Platform')
+                        if platform:
+                            asset['platform'] = platform
                     except Exception as e:
                         logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
                 continue
@@ -1622,12 +1619,9 @@ async def public_multiworkshop_get(request):
                             name=catalog_item_name
                         )
                         catalog_item_labels = catalog_item.get('metadata', {}).get('labels', {})
-                        product_family = catalog_item_labels.get('babylon.gpte.redhat.com/Product_Family')
-                        product = catalog_item_labels.get('babylon.gpte.redhat.com/Product')
-                        if product_family:
-                            asset['productFamily'] = product_family
-                        if product:
-                            asset['product'] = product
+                        platform = catalog_item_labels.get('babylon.gpte.redhat.com/Platform')
+                        if platform:
+                            asset['platform'] = platform
                     except Exception as e:
                         logging.error(f"Error fetching catalogItem {catalog_item_namespace}/{catalog_item_name}: {e}")
             except Exception as e:

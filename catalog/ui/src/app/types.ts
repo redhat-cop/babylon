@@ -858,8 +858,7 @@ export interface MultiWorkshopAsset {
   workshopId?: string;
   url?: string; // For external workshops
   type?: 'Workshop' | 'external' | 'SelfPacedLab'; // Asset type
-  productFamily?: string;
-  product?: string;
+  platform?: string;
 }
 
 export type Session = {

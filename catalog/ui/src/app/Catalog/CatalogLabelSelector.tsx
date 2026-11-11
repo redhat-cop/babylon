@@ -125,14 +125,11 @@ const CatalogLabelSelector: React.FC<{
     [onSelect, selected],
   );
 
-  const featuredLabels = ['sales_play'];
   const lastLabels = [CUSTOM_LABELS.RATING.key];
 
   const labelsSorted = Object.entries(labels).sort(([a], [b]) => {
     if (lastLabels.includes(a)) return 1;
     if (lastLabels.includes(b)) return -1;
-    if (featuredLabels.includes(a)) return -1;
-    if (featuredLabels.includes(b)) return 1;
     if (a < b) return -1;
     if (a > b) return 1;
     return 0;

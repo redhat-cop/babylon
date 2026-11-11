@@ -444,24 +444,8 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
           weight: 5,
         },
         {
-          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Sales_Play'],
-          weight: 3,
-        },
-        {
           name: ['spec', 'description', 'safe'],
           weight: 3,
-        },
-        {
-          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Provider'],
-          weight: 2.5,
-        },
-        {
-          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product'],
-          weight: 1,
-        },
-        {
-          name: ['metadata', 'labels', 'babylon.gpte.redhat.com/Product_Family'],
-          weight: 0.5,
         },
       ],
     };
