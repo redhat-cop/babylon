@@ -120,6 +120,9 @@ import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops
 import {
   buildSoundcheckCheckUrl,
   buildSoundcheckSessionUrl,
+  cloneSoundcheckSession,
+  connectSoundcheckSSE,
+  fetchSoundcheckSession,
   fetchWorkshopCheckStatuses,
   idsNeedingStatusFetch,
   invalidateStatusCache,
@@ -127,11 +130,12 @@ import {
   mergeStatusCache,
   normalizeSoundcheckBase,
   normalizeWorkshopIds,
-  pollSoundcheckSession,
+  SOUNDCHECK_TERMINAL,
   soundcheckStatusLabelColor,
   worstSoundcheckStatus,
   type SoundcheckSessionStatus,
   type SoundcheckStatusCache,
+  type SoundcheckTargetSummary,
   type WorkshopCheckStatusEntry,
 } from '@app/Admin/Ops/soundcheck';
 import {
@@ -467,6 +471,8 @@ const Ops: React.FC = () => {
     workshopCount: number;
     mode: 'api' | 'deeplink';
     error?: string;
+    totalTargets?: number;
+    failedTargets?: SoundcheckTargetSummary[];
   } | null>(null);
   const soundcheckAbortRef = useRef<AbortController | null>(null);
   /** Opt-in per-row last-check column — off by default so scrolling is free. */
@@ -474,6 +480,8 @@ const Ops: React.FC = () => {
   const [scStatusCache, setScStatusCache] = useState<SoundcheckStatusCache>({});
   const [scStatusLoading, setScStatusLoading] = useState(false);
   const [scStatusRefresh, setScStatusRefresh] = useState(0);
+  /** Per-row re-run loading state: workshopId → true while SSE in flight. */
+  const [scRowLoading, setScRowLoading] = useState<Record<string, boolean>>({});
   const scStatusCacheRef = useRef<SoundcheckStatusCache>({});
   scStatusCacheRef.current = scStatusCache;
 
@@ -1925,6 +1933,42 @@ const Ops: React.FC = () => {
     [scStatusCache],
   );
 
+  /** Re-run Soundcheck for a single workshop row. Clones the existing session if available. */
+  const handleSingleSoundcheck = useCallback(async (workshopId: string, existingSessionId?: string) => {
+    if (scRowLoading[workshopId]) return;
+    setScRowLoading((prev) => ({ ...prev, [workshopId]: true }));
+    setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
+    try {
+      let newSessionId: string;
+      if (existingSessionId) {
+        newSessionId = await cloneSoundcheckSession(soundcheckBase, existingSessionId);
+      } else {
+        const result = await kickoffSoundcheck(soundcheckBase, [workshopId], { openWindow: false });
+        if (!result.sessionId) {
+          window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        newSessionId = result.sessionId;
+      }
+      const ac = new AbortController();
+      connectSoundcheckSSE(soundcheckBase, newSessionId, {
+        signal: ac.signal,
+        onComplete: () => {
+          setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
+          setScStatusRefresh((n) => n + 1);
+          setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
+          ac.abort();
+        },
+        onError: () => {
+          setScStatusRefresh((n) => n + 1);
+          setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
+        },
+      });
+    } catch {
+      setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
+    }
+  }, [soundcheckBase, scRowLoading]);
+
   const renderSoundcheckCell = useCallback(
     (workshopIds: string[]) => {
       if (!showSoundcheckCol) return null;
@@ -1943,20 +1987,42 @@ const Ops: React.FC = () => {
         setWorkshopView('soundcheck');
       };
 
+      const primaryId = ids[0];
+      const rowLoading = primaryId ? scRowLoading[primaryId] : false;
+
+      const rerunBtn = primaryId ? (
+        <Tooltip content={rowLoading ? 'Soundcheck running…' : 'Re-run Soundcheck for this workshop'}>
+          <button
+            type="button"
+            className="ops-ws-link pf-v5-u-p-0"
+            style={{ background: 'none', border: 'none', cursor: rowLoading ? 'default' : 'pointer', opacity: rowLoading ? 0.5 : 1 }}
+            onClick={(e) => { e.stopPropagation(); void handleSingleSoundcheck(primaryId, worst?.session_id); }}
+            disabled={rowLoading}
+            aria-label="Re-run Soundcheck"
+          >
+            {rowLoading
+              ? <InProgressIcon style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--color--status--info--default)' }} />
+              : <RedoIcon style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
+            }
+          </button>
+        </Tooltip>
+      ) : null;
+
       if (!worst) {
         return (
           <td>
-            {ids[0] ? (
-              <Tooltip content="Open Soundcheck for this workshop (embedded view; use link icon for new tab)">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {primaryId ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Tooltip content="Open Soundcheck for this workshop (embedded view; use link icon for new tab)">
                   <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
-                    <Label isCompact color="grey">check</Label>
+                    <Label isCompact color={rowLoading ? 'blue' : 'grey'}>{rowLoading ? 'running' : 'check'}</Label>
                   </button>
-                  <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
-                    <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
-                  </a>
-                </span>
-              </Tooltip>
+                </Tooltip>
+                {rerunBtn}
+                <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
+                  <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
+                </a>
+              </span>
             ) : (
               <span className="ops-muted">{scStatusLoading ? '…' : '—'}</span>
             )}
@@ -1968,10 +2034,11 @@ const Ops: React.FC = () => {
           <Tooltip content={`Last Soundcheck · ${worst.status} · click to open embedded, link icon for new tab`}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
-                <Label isCompact color={soundcheckStatusLabelColor(worst.status)}>
-                  {worst.status}
+                <Label isCompact color={rowLoading ? 'blue' : soundcheckStatusLabelColor(worst.status)}>
+                  {rowLoading ? 'running' : worst.status}
                 </Label>
               </button>
+              {rerunBtn}
               <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
                 <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
               </a>
@@ -1980,7 +2047,7 @@ const Ops: React.FC = () => {
         </td>
       );
     },
-    [showSoundcheckCol, getCachedScStatus, soundcheckBase, scStatusLoading],
+    [showSoundcheckCol, getCachedScStatus, soundcheckBase, scStatusLoading, scRowLoading, handleSingleSoundcheck],
   );
 
   const getTimelineSoundcheckBadge = useCallback(
@@ -2070,25 +2137,51 @@ const Ops: React.FC = () => {
       );
 
       if (result.mode === 'api' && result.sessionId) {
-        // Light poll of the shared session only (not per-row refresh).
-        void pollSoundcheckSession(soundcheckBase, result.sessionId, {
-          signal: ac.signal,
-          onUpdate: (snap) => {
-            setSoundcheckRun((prev) =>
-              prev
-                ? { ...prev, status: snap.status, sessionUrl: result.sessionUrl }
-                : prev,
-            );
-          },
-        }).then((final) => {
-          if (!final || ac.signal.aborted) return;
-          setScStatusCache((prev) => invalidateStatusCache(prev, ids));
-          setScStatusRefresh((n) => n + 1);
-          if (final.status === 'completed') {
-            addAlert(AlertVariant.success, `Soundcheck completed for ${ids.length} workshop(s)`);
-          } else if (final.status === 'failed') {
-            addAlert(AlertVariant.danger, 'Soundcheck session reported failed');
+        type _Snap = { status: string; totalTargets?: number; failedTargets?: SoundcheckTargetSummary[] };
+        const onSessionSnap = (snap: _Snap, terminal: boolean) => {
+          if (ac.signal.aborted) return;
+          setSoundcheckRun((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: snap.status as SoundcheckSessionStatus,
+                  sessionUrl: result.sessionUrl,
+                  ...(snap.totalTargets != null
+                    ? { totalTargets: snap.totalTargets, failedTargets: snap.failedTargets }
+                    : {}),
+                }
+              : prev,
+          );
+          if (terminal) {
+            setScStatusCache((prev) => invalidateStatusCache(prev, ids));
+            setScStatusRefresh((n) => n + 1);
+            if (snap.status === 'completed') {
+              const failCount = snap.failedTargets?.length ?? 0;
+              addAlert(
+                failCount > 0 ? AlertVariant.warning : AlertVariant.success,
+                failCount > 0
+                  ? `Soundcheck completed — ${failCount} of ${snap.totalTargets} target(s) unhealthy`
+                  : `Soundcheck completed for ${ids.length} workshop(s)`,
+              );
+            } else if (snap.status === 'failed') {
+              addAlert(AlertVariant.danger, 'Soundcheck session reported failed');
+            }
           }
+        };
+
+        // SSE for real-time per-target progress; falls back to a one-shot fetch on error.
+        connectSoundcheckSSE(soundcheckBase, result.sessionId, {
+          signal: ac.signal,
+          onUpdate: (snap) => onSessionSnap(snap, false),
+          onComplete: (snap) => onSessionSnap(snap, true),
+          onError: () => {
+            // SSE unavailable (CORS/network) — do one final fetch to surface terminal state.
+            void fetchSoundcheckSession(soundcheckBase, result.sessionId, { signal: ac.signal })
+              .then((snap) => {
+                if (SOUNDCHECK_TERMINAL.has(snap.status)) onSessionSnap(snap, true);
+              })
+              .catch(() => {});
+          },
         });
       }
     } catch (err) {
@@ -2804,13 +2897,56 @@ const Ops: React.FC = () => {
                       )}
                     </div>
                     {soundcheckRun && (
-                      <p className={`ops-soundcheck-status ops-soundcheck-status--${soundcheckRun.status}`}>
-                        {soundcheckRun.error
-                          ? soundcheckRun.error
-                          : soundcheckRun.status === 'opened'
-                            ? `Opened deep-link for ${soundcheckRun.workshopCount} workshop(s)`
-                            : `Session ${soundcheckRun.status} · ${soundcheckRun.mode}`}
-                      </p>
+                      <div className={`ops-soundcheck-status ops-soundcheck-status--${soundcheckRun.status}`}>
+                        {soundcheckRun.error ? (
+                          <p style={{ margin: 0 }}>{soundcheckRun.error}</p>
+                        ) : soundcheckRun.status === 'opened' ? (
+                          <p style={{ margin: 0 }}>Opened deep-link for {soundcheckRun.workshopCount} workshop(s)</p>
+                        ) : (
+                          <>
+                            <div className="ops-soundcheck-counts">
+                              {soundcheckRun.totalTargets != null ? (
+                                <>
+                                  <Label
+                                    isCompact
+                                    color={(soundcheckRun.failedTargets?.length ?? 0) > 0 ? 'red' : 'green'}
+                                  >
+                                    {soundcheckRun.failedTargets?.length ?? 0} failed
+                                  </Label>
+                                  <Label isCompact color="grey">
+                                    {soundcheckRun.totalTargets} targets
+                                  </Label>
+                                </>
+                              ) : null}
+                              <span className="ops-muted">
+                                Session {soundcheckRun.status} · {soundcheckRun.mode}
+                                {soundcheckRun.status === 'running' || soundcheckRun.status === 'pending'
+                                  ? <> · <Label isCompact color="blue">Live</Label></>
+                                  : null}
+                              </span>
+                            </div>
+                            {(soundcheckRun.failedTargets?.length ?? 0) > 0 && (
+                              <ul className="ops-soundcheck-alerts">
+                                {soundcheckRun.failedTargets!.map((t, i) => (
+                                  <li key={i}>
+                                    <strong>{t.label}</strong>
+                                    {t.errorMessage ? <span className="ops-muted"> — {t.errorMessage}</span> : null}
+                                    {' '}
+                                    <a
+                                      href={t.sessionHref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="ops-ws-link"
+                                    >
+                                      Open <ExternalLinkAltIcon style={{ fontSize: '0.75em', verticalAlign: 'middle' }} />
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
                   </CardBody>
                 </Card>
