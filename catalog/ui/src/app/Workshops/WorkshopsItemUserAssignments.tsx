@@ -30,6 +30,8 @@ const WorkshopsItemUserAssignments: React.FC<{
   const [bulkUserAssignmentModalIsOpen, setBulkUserAssignmentModalIsOpen] = useState(false);
   const haveUserNames = (userAssignments || []).find((ua) => ua.spec.userName) ? true : false;
   const resourceClaimNames = [...new Set((userAssignments || []).map((ua) => ua.spec.resourceClaimName))];
+  const totalSeats = (userAssignments || []).length;
+  const assignedSeats = (userAssignments || []).filter((ua) => ua.spec.assignment?.email).length;
 
   function openBulkUserAssignmentModal() {
     setBulkUserAssignmentMessage('');
@@ -114,6 +116,20 @@ const WorkshopsItemUserAssignments: React.FC<{
         onClose={() => setBulkUserAssignmentModalIsOpen(false)}
         onConfirm={(emails) => bulkAssignUsers(emails)}
       />
+      <DescriptionList
+        isHorizontal
+        isCompact
+        key="users-summary"
+        aria-label="User seats summary"
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <DescriptionListGroup>
+          <DescriptionListTerm>Assigned</DescriptionListTerm>
+          <DescriptionListDescription data-testid="users-seats-assigned">
+            {assignedSeats} / {totalSeats}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
       <Table key="users-table">
         <Thead>
           <Tr>
