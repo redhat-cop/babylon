@@ -1429,6 +1429,8 @@ async def update_jira_issue_labels(request):
 
 
 confluence_page_id = os.environ.get('CONFLUENCE_WHATS_NEW_PAGE_ID', '479821972')
+if not confluence_page_id.isdigit():
+    raise ValueError("CONFLUENCE_WHATS_NEW_PAGE_ID must be a numeric Confluence page id")
 
 def confluence_page_content(data):
     return {
@@ -1451,45 +1453,40 @@ async def get_whats_new(request):
     async with aiohttp.ClientSession() as http_session:
         headers = await jira_auth_headers(http_session)
 
-        async def fetch_content(path, params):
-            async with http_session.get(
-                confluence_api_url(path), headers=headers, params=params,
-            ) as resp:
-                if resp.status == 404:
-                    raise web.HTTPNotFound(reason="What's New page not found")
-                if resp.status != 200:
-                    logging.error("Confluence API error (%s)", resp.status)
-                    raise web.HTTPBadGateway(reason=f"Failed to fetch What's New content: {resp.status}")
-                return await resp.json()
+        # The v1 content endpoints are removed for OAuth (2LO) apps and the v2
+        # page endpoints need read:page:confluence, so fetch the page and its
+        # children through CQL search, which works with read:content-details.
+        async def search(cql):
+            results = []
+            params = {"cql": cql, "expand": "body.view,version,history", "limit": "100"}
+            seen_cursors = set()
+            while True:
+                async with http_session.get(
+                    confluence_api_url("/wiki/rest/api/content/search"), headers=headers, params=params,
+                ) as resp:
+                    if resp.status != 200:
+                        logging.error("Confluence API error (%s)", resp.status)
+                        raise web.HTTPBadGateway(reason=f"Failed to fetch What's New content: {resp.status}")
+                    data = await resp.json()
+                results.extend(data.get("results", []))
+                next_link = data.get("_links", {}).get("next")
+                if not next_link:
+                    return results
+                # Only reuse the cursor, never send credentials to a returned URL.
+                cursor = parse_qs(urlparse(next_link).query).get("cursor", [None])[0]
+                if not cursor or cursor in seen_cursors:
+                    raise web.HTTPBadGateway(reason="Invalid Confluence pagination")
+                seen_cursors.add(cursor)
+                params = {**params, "cursor": cursor}
 
-        async def fetch_page(page_id):
-            data = await fetch_content(
-                f"/wiki/rest/api/content/{quote(str(page_id), safe='')}",
-                {"expand": "body.view,version,title,history"},
-            )
-            return confluence_page_content(data)
-
-        content = await fetch_page(confluence_page_id)
-        content["children"] = []
-        params = {"limit": "100"}
-        seen_cursors = set()
-        while True:
-            children = await fetch_content(
-                f"/wiki/api/v2/pages/{quote(confluence_page_id, safe='')}/direct-children",
-                params,
-            )
-            for child in children.get("results", []):
-                if child.get("type") == "page":
-                    content["children"].append(await fetch_page(child["id"]))
-            next_link = children.get("_links", {}).get("next")
-            if not next_link:
-                break
-            # Only reuse the cursor, never send credentials to a returned URL.
-            cursor = parse_qs(urlparse(next_link).query).get("cursor", [None])[0]
-            if not cursor or cursor in seen_cursors:
-                raise web.HTTPBadGateway(reason="Invalid Confluence pagination")
-            seen_cursors.add(cursor)
-            params = {"limit": "100", "cursor": cursor}
+        pages = await search(f"id={confluence_page_id}")
+        if not pages:
+            raise web.HTTPNotFound(reason="What's New page not found")
+        content = confluence_page_content(pages[0])
+        content["children"] = [
+            confluence_page_content(child)
+            for child in await search(f"parent={confluence_page_id} and type=page")
+        ]
 
     def creation_timestamp(page):
         try:
