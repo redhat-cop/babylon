@@ -302,24 +302,30 @@ class ResourceClaim(K8sObject):
             logger.info(f"Extending lifetime of {self} to {lifespan_end_ts}")
 
             # Override lifespan in ResourceHandle to allow extension required by ResourceClaim
-            if self.resource_handle_name and self.resource_handle_namespace:
-                await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
-                    group = self.api_group,
-                    name = self.resource_handle_name,
-                    namespace = self.resource_handle_namespace,
-                    plural = "resourcehandles",
-                    version = self.api_version,
-                    _content_type = 'application/merge-patch+json',
-                    body = {
-                        "spec": {
-                            "lifespan": {
-                                "end": lifespan_end_ts,
-                                "maximum": f"{lifespan_maximum_days}d",
-                                "relativeMaximum": f"{lifespan_relative_maximum_days}d"
+            if not self.is_detached and self.resource_handle_name and self.resource_handle_namespace:
+                try:
+                    await OperatorRuntime.custom_objects_api.patch_namespaced_custom_object(
+                        group = self.api_group,
+                        name = self.resource_handle_name,
+                        namespace = self.resource_handle_namespace,
+                        plural = "resourcehandles",
+                        version = self.api_version,
+                        _content_type = 'application/merge-patch+json',
+                        body = {
+                            "spec": {
+                                "lifespan": {
+                                    "end": lifespan_end_ts,
+                                    "maximum": f"{lifespan_maximum_days}d",
+                                    "relativeMaximum": f"{lifespan_relative_maximum_days}d"
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                except k8sApiException as exception:
+                    if exception.status == 404:
+                        logger.warning("%s ResourceHandle %s not found", self, self.resource_handle_name)
+                        return
+                    raise
 
             resource_claim_patch = {
                 "spec": {
