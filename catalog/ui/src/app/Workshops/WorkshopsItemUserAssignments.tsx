@@ -22,6 +22,12 @@ import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 
+export function getUserSeatsLabel(userAssignments: WorkshopUserAssignment[] = []): string {
+  if (userAssignments.length === 0) return 'Users';
+  const assigned = userAssignments.filter((ua) => ua.spec.assignment?.email).length;
+  return `Users (${assigned}/${userAssignments.length})`;
+}
+
 const WorkshopsItemUserAssignments: React.FC<{
   onUserAssignmentsUpdate: (userAssignments: WorkshopUserAssignment[]) => void;
   userAssignments: WorkshopUserAssignment[];

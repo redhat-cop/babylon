@@ -578,7 +578,7 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>Workshop Users Assigned</DescriptionListTerm>
         {workshopUserAssignments ? (
           <DescriptionListDescription>
-            {workshopUserAssignments.filter((item) => item.spec.assignment).length} / {workshopUserAssignments.length}
+            {workshopUserAssignments.filter((item) => item.spec.assignment?.email).length} / {workshopUserAssignments.length}
           </DescriptionListDescription>
         ) : (
           <DescriptionListDescription>-</DescriptionListDescription>
