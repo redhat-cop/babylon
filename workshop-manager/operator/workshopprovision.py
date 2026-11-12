@@ -389,8 +389,9 @@ class WorkshopProvision(CachedKopfObject):
                 self.count / shared_tenant_cluster_pool.sandbox_host.max_placements
             )
             definition['spec']['maxClusters'] = cluster_count
+            # Initialize with zeros and only handle scaling in management loop.
             definition['spec']['minAvailableSandboxPlacements'] = 0
-            definition['spec']['minClusters'] = cluster_count
+            definition['spec']['minClusters'] = 0
 
             # Discard any tenantPools as they are not used for workshops
             definition['spec'].pop('tenantPools', None)
@@ -667,28 +668,34 @@ class WorkshopProvision(CachedKopfObject):
                 )
                 continue
 
-            # Scale up TenantClusterPool if needed
-            cluster_count = ceil(self.count / tenant_cluster_pool.sandbox_host.max_placements)
+            # Only deal with scaling after lifespan start
             if (
-                tenant_cluster_pool.min_clusters < cluster_count or
-                tenant_cluster_pool.max_clusters < cluster_count
+                not self.lifespan_start or
+                self.lifespan_start < datetime.now(timezone.utc)
             ):
-                logger.info("Scaling %s to %s clusters", tenant_cluster_pool, cluster_count)
-                await tenant_cluster_pool.patch({
-                    "spec": {
-                        "maxClusters": cluster_count,
-                        "minClusters": cluster_count,
-                    }
-                })
+                # Scale up TenantClusterPool if needed
+                cluster_count = ceil(self.count / tenant_cluster_pool.sandbox_host.max_placements)
+                if (
+                    tenant_cluster_pool.min_clusters < cluster_count or
+                    tenant_cluster_pool.max_clusters < cluster_count
+                ):
+                    logger.info("Scaling %s to %s clusters", tenant_cluster_pool, cluster_count)
+                    await tenant_cluster_pool.patch({
+                        "spec": {
+                            "maxClusters": cluster_count,
+                            "minClusters": cluster_count,
+                        }
+                    })
 
             # Super simple capacity logic!
             # Just loop over clusters and status and add max_placements capacity if available.
             # Actually checking the sandbox api would produce race conditions and is unnecessarily
             # complicated because the TenantClusterPool is dedicated to this WorkshopProvision.
             capacity = 0
-            for cluster in tenant_cluster_pool.status.clusters:
-                if cluster.sandbox_api_state == 'available':
-                    capacity += tenant_cluster_pool.sandbox_host.max_placements
+            if tenant_cluster_pool.status.clusters is not None:
+                for cluster in tenant_cluster_pool.status.clusters:
+                    if cluster.sandbox_api_state == 'available':
+                        capacity += tenant_cluster_pool.sandbox_host.max_placements
 
             # Probably WorkshopProvisions will only have a single TenantClusterPool, so this
             # may never come up, but if there are multiple then this would mean that each
