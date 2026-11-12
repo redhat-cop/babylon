@@ -38,13 +38,41 @@ class JiraWgrTests(unittest.IsolatedAsyncioTestCase):
         request.headers = {'X-Forwarded-Email': REQUESTER}
         request.json = AsyncMock(return_value=body or {'displayName': 'Summit'})
         with patch.object(catalog_app, 'get_proxy_user', AsyncMock(return_value={'metadata': {'name': REQUESTER}})), \
-             patch.object(catalog_app, 'jira_api_token', 'test-token'), \
-             patch.object(catalog_app, 'jira_user_email', 'bot@example.com'), \
+             patch.object(catalog_app, 'jira_client_id', 'client-id'), \
+             patch.object(catalog_app, 'jira_client_secret', 'client-secret'), \
+             patch.object(catalog_app, 'jira_cloud_id', 'cloud-id'), \
+             patch.object(catalog_app, '_jira_access_token', AsyncMock(return_value='oauth-token')), \
              patch.object(catalog_app, 'audit_log', MagicMock()), \
              patch.object(catalog_app.aiohttp, 'ClientSession', return_value=client):
             response = await catalog_app.create_jira_wgr_ticket(request)
         posted = [json.loads(c.kwargs['data'])['fields'] for c in http.post.call_args_list]
+        self.http = http
         return json.loads(response.text), posted
+
+    async def test_uses_oauth_bearer_via_api_gateway(self):
+        await self.create_ticket([[jira_user('jane', REQUESTER)]], [(201, {'key': 'RHDPSPPT-1'})])
+        search, create = self.http.get.call_args, self.http.post.call_args
+        self.assertEqual(search.args[0], 'https://api.atlassian.com/ex/jira/cloud-id/rest/api/3/user/search')
+        self.assertEqual(create.args[0], 'https://api.atlassian.com/ex/jira/cloud-id/rest/api/3/issue')
+        self.assertEqual(create.kwargs['headers']['Authorization'], 'Bearer oauth-token')
+
+    async def test_access_token_is_cached_until_expiry(self):
+        session = MagicMock()
+        session.post.side_effect = [ctx(200, {'access_token': 'tok-1', 'expires_in': 3600})]
+        with patch.object(catalog_app, 'jira_oauth_token', {'access_token': None, 'expires_at': 0}), \
+             patch.object(catalog_app, 'jira_client_id', 'client-id'), \
+             patch.object(catalog_app, 'jira_client_secret', 'client-secret'):
+            self.assertEqual(await catalog_app._jira_access_token(session), 'tok-1')
+            self.assertEqual(await catalog_app._jira_access_token(session), 'tok-1')
+        self.assertEqual(session.post.call_count, 1)
+        self.assertEqual(session.post.call_args.kwargs['json']['grant_type'], 'client_credentials')
+
+    async def test_token_failure_returns_bad_gateway(self):
+        session = MagicMock()
+        session.post.side_effect = [ctx(401, {'error': 'access_denied'})]
+        with patch.object(catalog_app, 'jira_oauth_token', {'access_token': None, 'expires_at': 0}):
+            with self.assertRaises(web.HTTPBadGateway):
+                await catalog_app._jira_access_token(session)
 
     async def test_reporter_uses_exact_email_match_not_first_fuzzy_result(self):
         _, posted = await self.create_ticket(

@@ -57,16 +57,21 @@ spec:
               name: {{ include "babylonCatalog.sharedClusterManagerSecretName" . }}
               key: shared-cluster-manager-token
         {{- if .Values.jira.deploy }}
-        - name: JIRA_API_TOKEN
+        - name: JIRA_CLIENT_ID
           valueFrom:
             secretKeyRef:
               name: {{ include "babylonCatalog.jiraSecretName" . }}
-              key: jira-api-token
-        - name: JIRA_USER_EMAIL
+              key: jira-client-id
+        - name: JIRA_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
               name: {{ include "babylonCatalog.jiraSecretName" . }}
-              key: jira-user-email
+              key: jira-client-secret
+        - name: JIRA_CLOUD_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "babylonCatalog.jiraSecretName" . }}
+              key: jira-cloud-id
         - name: JIRA_BASE_URL
           valueFrom:
             secretKeyRef:
