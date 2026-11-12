@@ -64,7 +64,7 @@ import WorkshopsItemDetails from './WorkshopsItemDetails';
 import WorkshopsItemProvisioning from './WorkshopsItemProvisioning';
 import WorkshopsItemClusters from './WorkshopsItemClusters';
 import WorkshopsItemServices from './WorkshopsItemServices';
-import WorkshopsItemUserAssignments from './WorkshopsItemUserAssignments';
+import WorkshopsItemUserAssignments, { getUserSeatsLabel } from './WorkshopsItemUserAssignments';
 import WorkshopScheduleAction from './WorkshopScheduleAction';
 import WorkshopInfoTab, { getWorkshopInfoMessageTemplate } from './WorkshopInfoTab';
 import {
@@ -736,7 +736,7 @@ const WorkshopsItemComponent: React.FC<{
               />
             ) : null}
           </Tab>
-          <Tab eventKey="users" title={<TabTitleText>Users</TabTitleText>}>
+          <Tab eventKey="users" title={<TabTitleText>{getUserSeatsLabel(userAssigmentsList?.items)}</TabTitleText>}>
             {activeTab === 'users' ? (
               <WorkshopsItemUserAssignments
                 userAssignments={userAssigmentsList?.items || []}

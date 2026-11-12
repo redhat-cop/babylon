@@ -100,7 +100,7 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import WorkshopsItemDetails from '@app/Workshops/WorkshopsItemDetails';
-import WorkshopsItemUserAssignments from '@app/Workshops/WorkshopsItemUserAssignments';
+import WorkshopsItemUserAssignments, { getUserSeatsLabel } from '@app/Workshops/WorkshopsItemUserAssignments';
 import AutoStopDestroy from '@app/components/AutoStopDestroy';
 import Label from '@app/components/Label';
 import { getAutoStopTime, getInfoMessageTemplate, getStartTime, isResourceClaimLocked } from './service-utils';
@@ -1697,7 +1697,11 @@ const ServicesItemComponent: React.FC<{
               </Tab>
             ) : null}
             {workshopName && !isPartOfWorkshop && !isTenantClusterItem ? (
-              <Tab eventKey="users" key="users" title={<TabTitleText>Users</TabTitleText>}>
+              <Tab
+                eventKey="users"
+                key="users"
+                title={<TabTitleText>{getUserSeatsLabel(userAssigmentsList?.items)}</TabTitleText>}
+              >
                 {activeTab === 'users' ? (
                   <WorkshopsItemUserAssignments
                     onUserAssignmentsUpdate={mutateUserAssigments}
