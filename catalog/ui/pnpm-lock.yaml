@@ -83,8 +83,8 @@ importers:
         specifier: ^5.0.7
         version: 5.0.7
       lexical:
-        specifier: ^0.52.0
-        version: 0.52.0(typescript@6.0.3)
+        specifier: ^0.53.0
+        version: 0.53.0(typescript@6.0.3)
       lodash.throttle:
         specifier: ^4.1.1
         version: 4.1.1
@@ -1530,6 +1530,14 @@ packages:
 
   '@lexical/internal@0.52.0':
     resolution: {integrity: sha512-Y7jKqeh4Irf/FwNmAqHIk3b05HpMsHv2RyWPQ8+M7FAdEbT9N2mksjc8ZUZ3tHqDMi7FNiLkjZN/DwbdekUb1g==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/internal@0.53.0':
+    resolution: {integrity: sha512-ORSbMXwae0X1SeSsqywx9Lw0Bf8/rJNZzKdQp6uMVGGwgM6Ul+cCAjsKYlG7cnhJILJwYoi2a5+ZK4Y+KFAxlg==}
     peerDependencies:
       typescript: '>=5.2'
     peerDependenciesMeta:
@@ -3921,6 +3929,14 @@ packages:
 
   lexical@0.52.0:
     resolution: {integrity: sha512-mePejqwCDaW0GR89IoofJTTlk/EiwwlGhbs1D8qOx/Iw6ieG5D3nh7PSPLv0Csia0UC58HpuV91DilJjqeAWSw==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  lexical@0.53.0:
+    resolution: {integrity: sha512-yAJJJsIkkfKVemlxC+akk1hJR+P7Zqzch+uTAJ1Wqq6H0o0TkjjaxCyaELd8M9OzWX07f9WOU6RJSyutcVewUw==}
     peerDependencies:
       typescript: '>=5.2'
     peerDependenciesMeta:
@@ -7015,6 +7031,10 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
+  '@lexical/internal@0.53.0(typescript@6.0.3)':
+    optionalDependencies:
+      typescript: 6.0.3
+
   '@lexical/link@0.52.0(typescript@6.0.3)':
     dependencies:
       '@lexical/a11y': 0.52.0(typescript@6.0.3)
@@ -9911,6 +9931,12 @@ snapshots:
   lexical@0.52.0(typescript@6.0.3):
     dependencies:
       '@lexical/internal': 0.52.0(typescript@6.0.3)
+    optionalDependencies:
+      typescript: 6.0.3
+
+  lexical@0.53.0(typescript@6.0.3):
+    dependencies:
+      '@lexical/internal': 0.53.0(typescript@6.0.3)
     optionalDependencies:
       typescript: 6.0.3
 
