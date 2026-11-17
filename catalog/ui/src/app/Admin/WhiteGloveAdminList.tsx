@@ -46,9 +46,15 @@ function statusIcon(state: string) {
   }
 }
 
-const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
+const JiraAssigneeCell: React.FC<{ jiraTicketId: string; wgr: WhiteGloveRequest; fallback: string }> = ({
+  jiraTicketId,
+  wgr,
+  fallback,
+}) => {
   const { data } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    jiraTicketId
+      ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId, namespace: wgr.metadata.namespace, name: wgr.metadata.name })
+      : null,
     silentFetcher,
     { refreshInterval: 30000 },
   );
@@ -277,7 +283,7 @@ const WhiteGloveAdminListContent: React.FC = () => {
                     <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                   </Td>
                   <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
-                    <JiraAssigneeCell jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]} fallback={ann[`${DEMO_DOMAIN}/assignee`]} />
+                    <JiraAssigneeCell jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]} wgr={wgr} fallback={ann[`${DEMO_DOMAIN}/assignee`]} />
                   </Td>
                   <Td dataLabel="Jira">
                     {ann[`${DEMO_DOMAIN}/jira-ticket-id`] ? (
