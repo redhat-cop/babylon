@@ -26,8 +26,17 @@ def jira_user(account_id, email=None, name='Jane Doe', account_type='atlassian',
     return user
 
 
+def stored_wgr(spec, annotations=None):
+    metadata = {'namespace': 'user-jdoe', 'name': 'wgr-1', 'resourceVersion': '42'}
+    if annotations is not None:
+        metadata['annotations'] = annotations
+    return {'metadata': metadata, 'spec': spec}
+
+
 class JiraWgrTests(unittest.IsolatedAsyncioTestCase):
-    async def create_ticket(self, search_results, post_responses, body=None):
+    async def create_ticket(self, search_results, post_responses, body=None, wgr=None, get_error=None,
+                            patch_errors=None, request_body=None):
+        """Call POST /api/jira/wgr; `body` is the stored WGR spec the ticket is built from."""
         http = MagicMock()
         http.get.side_effect = [ctx(200, r) for r in search_results]
         http.post.side_effect = [ctx(status, payload) for status, payload in post_responses]
@@ -36,18 +45,92 @@ class JiraWgrTests(unittest.IsolatedAsyncioTestCase):
         client.__aexit__ = AsyncMock(return_value=False)
         request = MagicMock()
         request.headers = {'X-Forwarded-Email': REQUESTER}
-        request.json = AsyncMock(return_value=body or {'displayName': 'Summit'})
+        request.json = AsyncMock(return_value=request_body if request_body is not None
+                                 else {'namespace': 'user-jdoe', 'name': 'wgr-1'})
+        k8s = MagicMock()
+        k8s.get_namespaced_custom_object = AsyncMock(
+            side_effect=get_error, return_value=wgr or stored_wgr(body or {'displayName': 'Summit'}, {}))
+        k8s.patch_namespaced_custom_object = AsyncMock(side_effect=patch_errors)
+        api_client = MagicMock(close=AsyncMock())
+        session = {'user': REQUESTER, 'groups': []}
+        self.http, self.k8s = http, k8s
         with patch.object(catalog_app, 'get_proxy_user', AsyncMock(return_value={'metadata': {'name': REQUESTER}})), \
+             patch.object(catalog_app, 'get_user_session', AsyncMock(return_value=session)), \
              patch.object(catalog_app, 'jira_client_id', 'client-id'), \
              patch.object(catalog_app, 'jira_client_secret', 'client-secret'), \
              patch.object(catalog_app, 'jira_cloud_id', 'cloud-id'), \
              patch.object(catalog_app, '_jira_access_token', AsyncMock(return_value='oauth-token')), \
              patch.object(catalog_app, 'audit_log', MagicMock()), \
+             patch.object(catalog_app, 'proxy_api_client', MagicMock(return_value=api_client)), \
+             patch.object(catalog_app.kubernetes_asyncio.client, 'CustomObjectsApi', MagicMock(return_value=k8s)), \
              patch.object(catalog_app.aiohttp, 'ClientSession', return_value=client):
             response = await catalog_app.create_jira_wgr_ticket(request)
         posted = [json.loads(c.kwargs['data'])['fields'] for c in http.post.call_args_list]
-        self.http = http
         return json.loads(response.text), posted
+
+    def patches(self):
+        return [c.kwargs['body'] for c in self.k8s.patch_namespaced_custom_object.call_args_list]
+
+    async def test_ticket_is_built_from_stored_wgr_and_recorded_on_it(self):
+        result, posted = await self.create_ticket(
+            [[jira_user('jane', REQUESTER)]], [(201, {'key': 'RHDPSPPT-9'})],
+            body={'displayName': 'Stored Name'},
+            request_body={'namespace': 'user-jdoe', 'name': 'wgr-1', 'displayName': 'Injected'},
+        )
+        self.assertEqual(result['key'], 'RHDPSPPT-9')
+        self.assertEqual(posted[0]['summary'], '[WGR] Stored Name')
+        get_kwargs = self.k8s.get_namespaced_custom_object.call_args.kwargs
+        self.assertEqual((get_kwargs['namespace'], get_kwargs['name'], get_kwargs['plural']),
+                         ('user-jdoe', 'wgr-1', 'whitegloverequests'))
+        claim, record = self.patches()
+        self.assertEqual(claim[0], {'op': 'test', 'path': '/metadata/resourceVersion', 'value': '42'})
+        self.assertEqual(claim[1]['path'], '/metadata/annotations/demo.redhat.com~1jira-ticket-requested-at')
+        self.assertEqual(record[0], {'op': 'add', 'path': '/metadata/annotations/demo.redhat.com~1jira-ticket-id',
+                                     'value': 'RHDPSPPT-9'})
+
+    async def test_missing_wgr_reference_is_rejected(self):
+        with self.assertRaises(web.HTTPBadRequest):
+            await self.create_ticket([], [], request_body={'displayName': 'Summit'})
+        self.http.post.assert_not_called()
+
+    async def test_wgr_user_cannot_access_is_forbidden(self):
+        denied = catalog_app.kubernetes_asyncio.client.exceptions.ApiException(status=403)
+        with self.assertRaises(web.HTTPForbidden):
+            await self.create_ticket([], [], get_error=denied)
+        self.http.post.assert_not_called()
+        self.k8s.patch_namespaced_custom_object.assert_not_called()
+
+    async def test_wgr_with_existing_ticket_is_conflict(self):
+        wgr = stored_wgr({'displayName': 'Summit'}, {'demo.redhat.com/jira-ticket-id': 'RHDPSPPT-1'})
+        with self.assertRaises(web.HTTPConflict):
+            await self.create_ticket([], [], wgr=wgr)
+        self.http.post.assert_not_called()
+
+    async def test_wgr_with_pending_claim_is_conflict(self):
+        wgr = stored_wgr({'displayName': 'Summit'}, {'demo.redhat.com/jira-ticket-requested-at': 'x'})
+        with self.assertRaises(web.HTTPConflict):
+            await self.create_ticket([], [], wgr=wgr)
+        self.http.post.assert_not_called()
+
+    async def test_concurrent_claim_loses_race(self):
+        stale = catalog_app.kubernetes_asyncio.client.exceptions.ApiException(status=422)
+        with self.assertRaises(web.HTTPConflict):
+            await self.create_ticket([], [], patch_errors=[stale])
+        self.http.post.assert_not_called()
+
+    async def test_wgr_without_annotations_gets_annotation_map(self):
+        await self.create_ticket([[jira_user('jane', REQUESTER)]], [(201, {'key': 'RHDPSPPT-9'})],
+                                 wgr=stored_wgr({'displayName': 'Summit'}))
+        claim = self.patches()[0]
+        self.assertEqual(claim[1]['path'], '/metadata/annotations')
+        self.assertIn('demo.redhat.com/jira-ticket-requested-at', claim[1]['value'])
+
+    async def test_claim_is_released_when_jira_fails(self):
+        with self.assertRaises(web.HTTPBadGateway):
+            await self.create_ticket([[jira_user('jane', REQUESTER)]], [(400, {'errors': {'summary': 'required'}})])
+        self.assertEqual(self.patches()[-1], [
+            {'op': 'remove', 'path': '/metadata/annotations/demo.redhat.com~1jira-ticket-requested-at'},
+        ])
 
     async def test_uses_oauth_bearer_via_api_gateway(self):
         await self.create_ticket([[jira_user('jane', REQUESTER)]], [(201, {'key': 'RHDPSPPT-1'})])

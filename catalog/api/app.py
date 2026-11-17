@@ -1142,14 +1142,123 @@ _DELIVERY_MODE_MAP = {
     "role": "ROLE",
 }
 
+_WGR_JIRA_TICKET_ID_ANNOTATION = 'demo.redhat.com/jira-ticket-id'
+_WGR_JIRA_TICKET_URL_ANNOTATION = 'demo.redhat.com/jira-ticket-url'
+_WGR_JIRA_TICKET_CLAIM_ANNOTATION = 'demo.redhat.com/jira-ticket-requested-at'
+
+
+def _annotation_patch_path(key):
+    return '/metadata/annotations/' + key.replace('~', '~0').replace('/', '~1')
+
+
+async def _claim_wgr_for_jira_ticket(request, session):
+    """Fetch the caller's WhiteGloveRequest and atomically mark it as having a ticket requested.
+
+    The WGR is read and patched with the caller's impersonated credentials, so
+    Kubernetes RBAC decides whether they own it. A WGR may only ever get one
+    ticket: if it already has a ticket or a pending claim the request is refused,
+    and the claim patch is conditioned on resourceVersion so concurrent calls
+    cannot both succeed.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise web.HTTPBadRequest(reason="Invalid JSON body")
+    namespace = body.get('namespace') if isinstance(body, dict) else None
+    name = body.get('name') if isinstance(body, dict) else None
+    if not isinstance(namespace, str) or not isinstance(name, str) or not namespace or not name:
+        raise web.HTTPBadRequest(reason="namespace and name of the WhiteGloveRequest are required")
+
+    api_client = proxy_api_client(session)
+    custom_api = kubernetes_asyncio.client.CustomObjectsApi(api_client)
+    try:
+        try:
+            wgr = await custom_api.get_namespaced_custom_object(
+                group='babylon.gpte.redhat.com', version='v1', namespace=namespace,
+                plural='whitegloverequests', name=name,
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status in (401, 403, 404):
+                raise web.HTTPForbidden(reason="Access to this WhiteGloveRequest is not permitted")
+            raise
+
+        metadata = wgr.get('metadata', {})
+        annotations = metadata.get('annotations') or {}
+        if annotations.get(_WGR_JIRA_TICKET_ID_ANNOTATION) or annotations.get(_WGR_JIRA_TICKET_CLAIM_ANNOTATION):
+            raise web.HTTPConflict(reason="A Jira ticket has already been requested for this WhiteGloveRequest")
+
+        claimed_at = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        patch = [{"op": "test", "path": "/metadata/resourceVersion", "value": metadata.get('resourceVersion')}]
+        if 'annotations' in metadata and metadata['annotations'] is not None:
+            patch.append({"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_CLAIM_ANNOTATION), "value": claimed_at})
+        else:
+            patch.append({"op": "add", "path": "/metadata/annotations", "value": {_WGR_JIRA_TICKET_CLAIM_ANNOTATION: claimed_at}})
+        try:
+            await custom_api.patch_namespaced_custom_object(
+                group='babylon.gpte.redhat.com', version='v1', namespace=namespace,
+                plural='whitegloverequests', name=name, body=patch,
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status in (409, 422):
+                raise web.HTTPConflict(reason="A Jira ticket has already been requested for this WhiteGloveRequest")
+            if exception.status in (401, 403, 404):
+                raise web.HTTPForbidden(reason="Access to this WhiteGloveRequest is not permitted")
+            raise
+    finally:
+        await api_client.close()
+    return wgr
+
+
+async def _patch_wgr_annotations(session, wgr, ops):
+    api_client = proxy_api_client(session)
+    try:
+        await kubernetes_asyncio.client.CustomObjectsApi(api_client).patch_namespaced_custom_object(
+            group='babylon.gpte.redhat.com', version='v1', namespace=wgr['metadata']['namespace'],
+            plural='whitegloverequests', name=wgr['metadata']['name'], body=ops,
+        )
+    finally:
+        await api_client.close()
+
+
 @routes.post("/api/jira/wgr")
 async def create_jira_wgr_ticket(request):
+    """Create the Jira ticket for one of the caller's WhiteGloveRequests.
+
+    The ticket content comes from the stored WGR spec, not the request body,
+    and each WGR can only get a single ticket.
+    """
     user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
 
     if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
-    data = await request.json()
+    wgr = await _claim_wgr_for_jira_ticket(request, session)
+    try:
+        ticket_key, ticket_url = await _create_jira_wgr_ticket(request, user, wgr)
+    except BaseException:
+        try:
+            await _patch_wgr_annotations(session, wgr, [
+                {"op": "remove", "path": _annotation_patch_path(_WGR_JIRA_TICKET_CLAIM_ANNOTATION)},
+            ])
+        except Exception:
+            logging.exception(f"Failed to release Jira ticket claim on WGR {wgr['metadata']['namespace']}/{wgr['metadata']['name']}")
+        raise
+
+    try:
+        await _patch_wgr_annotations(session, wgr, [
+            {"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_ID_ANNOTATION), "value": ticket_key},
+            {"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_URL_ANNOTATION), "value": ticket_url},
+        ])
+    except Exception:
+        # The ticket exists; the claim annotation stays so no duplicate is created.
+        logging.exception(f"Failed to record Jira ticket {ticket_key} on WGR {wgr['metadata']['namespace']}/{wgr['metadata']['name']}")
+
+    return web.json_response({"key": ticket_key, "url": ticket_url})
+
+
+async def _create_jira_wgr_ticket(request, user, wgr):
+    data = wgr.get('spec') or {}
     display_name = data.get('displayName', 'White Glove Request')
     requester_email = request.headers.get('X-Forwarded-Email') or user['metadata']['name']
 
@@ -1247,7 +1356,7 @@ async def create_jira_wgr_ticket(request):
         if event_date_str:
             jira_fields["duedate"] = event_date_str[:10]  # YYYY-MM-DD
 
-        delivery_mode_raw = data.get('deliveryMode', '').lower()
+        delivery_mode_raw = (data.get('deliveryMode') or '').lower()
         jira_delivery_mode = _DELIVERY_MODE_MAP.get(delivery_mode_raw)
         if jira_delivery_mode:
             jira_fields["customfield_10951"] = [{"value": jira_delivery_mode}]
@@ -1263,10 +1372,11 @@ async def create_jira_wgr_ticket(request):
     audit_log('jira_ticket_created', user=requester_email, details={
         'ticket': ticket_key,
         'display_name': display_name,
+        'wgr': f"{wgr['metadata']['namespace']}/{wgr['metadata']['name']}",
         'reporter_account_id': created_fields.get('reporter', {}).get('accountId'),
     })
 
-    return web.json_response({"key": ticket_key, "url": ticket_url})
+    return ticket_key, ticket_url
 
 async def _authorize_jira_issue_read(request, session, issue_key):
     """Ensure the session user may read issue_key.
