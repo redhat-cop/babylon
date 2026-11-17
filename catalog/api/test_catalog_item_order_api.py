@@ -67,7 +67,6 @@ class OrderApiTestCase(unittest.IsolatedAsyncioTestCase):
             ('get_proxy_user', get_proxy_user),
             ('get_user_session', get_user_session),
             ('catalog_item_order_service', service),
-            ('catalog_item_orders_enabled', True),
         ):
             patcher = patch.object(catalog_app, target, value)
             patcher.start()
@@ -98,12 +97,6 @@ class OrderApiTestCase(unittest.IsolatedAsyncioTestCase):
 
 
 class TestSubmit(OrderApiTestCase):
-    async def test_disabled_by_default(self):
-        with patch.object(catalog_app, 'catalog_item_orders_enabled', False):
-            status, _ = await self.submit()
-        self.assertEqual(status, 404)
-        self.assertEqual(self.kube.orders, {})
-
     async def test_submit_derives_identity_from_session(self):
         status, data = await self.call(
             'POST', ORDERS, body=submission(), headers={'X-Forwarded-Email': 'alice@example.com'},

@@ -30,13 +30,10 @@ api:
   serviceAccount:
     name: # default use api component name
 
-# CatalogItemOrder approval workflow (GPTEINFRA-18188). Opt-in: keep disabled until
-# approval decisions (GPTEINFRA-18189), UI (GPTEINFRA-18190) and enforcement on legacy
-# and direct provisioning paths (GPTEINFRA-18191) are deployed. Enabling this does not
-# make legacy ResourceClaim/Workshop creation enforce approval policies.
+# CatalogItemOrder approval workflow (GPTEINFRA-18188). The order API and controller
+# are always deployed. Legacy ResourceClaim/Workshop creation does not enforce approval
+# policies until GPTEINFRA-18191.
 catalogItemOrders:
-  # Enables /api/catalog-item-orders endpoints, API RBAC and the order controller.
-  enabled: false
   controller:
     name: # default use chart name + '-order-controller'
     replicaCount: 1

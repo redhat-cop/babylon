@@ -48,7 +48,6 @@ Then start the UI (`pnpm run start:dev` in `catalog/ui`) — it proxies `/api`, 
 | `SANDBOX_API` | No | Sandbox API URL |
 | `LOGGING_LEVEL` | No | Default `INFO` |
 | `SESSION_LIFETIME` | No | Session TTL in seconds (default 600) |
-| `CATALOG_ITEM_ORDERS_ENABLED` | No | `true` enables `/api/catalog-item-orders` (default `false`); see `docs/Catalog_Item_Orders.md` |
 
 ## Auth in development
 

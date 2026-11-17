@@ -70,7 +70,6 @@ session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
 # CatalogItemOrder endpoints are opt-in until approval decisions (GPTEINFRA-18189),
 # UI (GPTEINFRA-18190) and enforcement on direct paths (GPTEINFRA-18191) land.
-catalog_item_orders_enabled = os.environ.get('CATALOG_ITEM_ORDERS_ENABLED', 'false').lower() == 'true'
 
 logging.basicConfig(level=os.environ.get('LOGGING_LEVEL', 'INFO'))
 
@@ -2133,8 +2132,6 @@ async def handle_catalog_item_order_request(request, operation, audit_event=None
 
     Identity is derived from the session; admin impersonation headers are
     rejected because orders record the authenticated requester."""
-    if not catalog_item_orders_enabled:
-        raise web.HTTPNotFound()
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
     if request.headers.get('Impersonate-User'):

@@ -1,4 +1,3 @@
-{{- if .Values.catalogItemOrders.enabled }}
 {{- $controller := .Values.catalogItemOrders.controller }}
 apiVersion: apps/v1
 kind: Deployment
@@ -60,4 +59,3 @@ spec:
             drop:
             - ALL
           runAsNonRoot: true
-{{- end }}

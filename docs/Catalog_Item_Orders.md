@@ -1,6 +1,6 @@
 # Catalog item orders and approval policies
 
-Status: implemented behind an opt-in flag (GPTEINFRA-18188). Disabled by default.
+Status: implemented (GPTEINFRA-18188). Always enabled; there is no feature flag.
 
 `CatalogItemOrder` is a durable order created by the catalog API before provisioning. A controller evaluates the catalog item's approval policy and creates provisioning resources only when approval is satisfied or not required. Pending orders create no ResourceClaim, Workshop, WorkshopProvision, SelfPacedLab or SelfPacedLabProvisionItem, so they never allocate pooled environments.
 
@@ -29,15 +29,14 @@ The controller is a separate Deployment (`babylon-catalog-order-controller`) tha
 
 The controller uses a list/watch loop with a periodic resync (default 60 s) instead of kopf, so that every status write can use a `resourceVersion` precondition. Multiple replicas are safe, but one is the default.
 
-## Enabling
+## Deployment
 
 ```bash
 helm template catalog/helm \
-  --set catalogItemOrders.enabled=true \
   --set catalogItemOrders.controller.catalogBaseUrl=https://catalog.example.com
 ```
 
-`catalogItemOrders.enabled` sets `CATALOG_ITEM_ORDERS_ENABLED=true` on the API, adds API RBAC, and deploys the controller. The `CatalogItemOrder` CRD ships with the main `helm` chart. Deploy the agnosticv-operator with client library `python-client-library-v0.3.10` or later before relying on `approvalPolicy`; an older operator does not publish the field.
+The catalog chart always deploys the order controller and grants the API its order RBAC; there is no feature flag. The `CatalogItemOrder` CRD ships with the main `helm` chart, so deploy it before or with the catalog chart. Deploy the agnosticv-operator with client library `python-client-library-v0.3.10` or later before relying on `approvalPolicy`; an older operator does not publish the field.
 
 | Controller environment | Default | Meaning |
 |---|---|---|
@@ -202,7 +201,7 @@ The controller revalidates the published policy and its digest, so a hand-edited
 
 ## Order API
 
-All endpoints require a catalog API session and return `404` while `CATALOG_ITEM_ORDERS_ENABLED` is false. Identity comes from the session; admin impersonation headers are rejected. Errors are `{"error": "<code>", "message": "..."}`.
+All endpoints require a catalog API session. Identity comes from the session; admin impersonation headers are rejected. Errors are `{"error": "<code>", "message": "..."}`.
 
 | Endpoint | Result |
 |---|---|
@@ -339,7 +338,7 @@ Flow: `POST .../retry` records `status.retry`. The controller rechecks eligibili
 
 ### GPTEINFRA-18190: UI
 
-Submit with `POST /api/catalog-item-orders` and a client-generated idempotency key per form submission; show `phase`, `approval` (state, matched rule reasons, expiry), `blocked`, `attempts` and `retry` from the order view; follow `attempts[-1].resources` to the existing service/workshop pages. The UI path stays disabled until the feature flag is on.
+Submit with `POST /api/catalog-item-orders` and a client-generated idempotency key per form submission; show `phase`, `approval` (state, matched rule reasons, expiry), `blocked`, `attempts` and `retry` from the order view; follow `attempts[-1].resources` to the existing service/workshop pages.
 
 ### GPTEINFRA-18191: client migration and enforcement
 
@@ -347,7 +346,7 @@ Approval is enforced only for orders submitted through this API. Legacy UI submi
 
 ### GPTEINFRA-18192: pilot
 
-Start with service items in a non-production stage, with the flag enabled and `catalogBaseUrl` set, after 18189 can record decisions.
+Start by setting `approval_policy` on service items in a non-production stage, with `catalogBaseUrl` set, after 18189 can record decisions.
 
 ## Known limitations
 

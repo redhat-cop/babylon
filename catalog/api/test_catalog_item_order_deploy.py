@@ -197,18 +197,17 @@ def order_rules(role):
 
 @unittest.skipUnless(HELM, 'helm is not installed')
 class TestHelm(unittest.TestCase):
-    def test_disabled_by_default(self):
+    def test_always_deployed_without_a_flag(self):
         docs = helm_template('catalog/helm')
-        self.assertEqual([d for d in docs if 'order-controller' in d['metadata']['name']], [])
-        api_role = find(docs, 'ClusterRole', 'babylon-catalog-api')[0]
-        self.assertEqual(order_rules(api_role), {})
+        self.assertTrue(find(docs, 'Deployment', 'babylon-catalog-order-controller'))
+        self.assertTrue(order_rules(find(docs, 'ClusterRole', 'babylon-catalog-api')[0]))
         api = find(docs, 'Deployment', 'babylon-catalog-api')[0]
-        env = {e['name']: e.get('value') for e in api['spec']['template']['spec']['containers'][0]['env']}
-        self.assertEqual(env['CATALOG_ITEM_ORDERS_ENABLED'], 'false')
+        env = {e['name'] for e in api['spec']['template']['spec']['containers'][0]['env']}
+        self.assertNotIn('CATALOG_ITEM_ORDERS_ENABLED', env)
 
-    def test_enabled_renders_controller_with_least_privilege(self):
+    def test_renders_controller_with_least_privilege(self):
         docs = helm_template(
-            'catalog/helm', '--set', 'catalogItemOrders.enabled=true',
+            'catalog/helm',
             '--set', 'catalogItemOrders.controller.catalogBaseUrl=https://catalog.example.com',
             '--set', 'catalogItemOrders.controller.retry.maxAttempts=2',
         )
@@ -244,8 +243,6 @@ class TestHelm(unittest.TestCase):
         self.assertEqual(env['ORDER_RETRY_MAX_ATTEMPTS'], '2')
         self.assertEqual(env['ORDER_RETENTION'], '30d')
         self.assertFalse(container['securityContext']['allowPrivilegeEscalation'])
-        api_env = {e['name']: e.get('value') for e in api['spec']['template']['spec']['containers'][0]['env']}
-        self.assertEqual(api_env['CATALOG_ITEM_ORDERS_ENABLED'], 'true')
 
     def test_main_chart_crd_and_user_roles(self):
         docs = helm_template('helm', '--include-crds', '--set', 'environmentLevel=dev')

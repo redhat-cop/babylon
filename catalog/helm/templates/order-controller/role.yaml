@@ -1,4 +1,3 @@
-{{- if .Values.catalogItemOrders.enabled }}
 # Read the system status ConfigMap holding ordering blocks in the catalog namespace.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -32,4 +31,3 @@ subjects:
 - kind: ServiceAccount
   name: {{ include "babylonCatalog.orderControllerServiceAccountName" . }}
   namespace: {{ include "babylonCatalog.namespaceName" . }}
-{{- end }}
