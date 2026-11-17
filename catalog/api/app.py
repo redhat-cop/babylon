@@ -2192,8 +2192,6 @@ def catalog_item_order_cross_site_problem(request):
 
 
 async def handle_catalog_item_order_approval_request(request, operation, audit_event=None):
-    if not catalog_item_orders_enabled:
-        raise web.HTTPNotFound()
     user = await get_proxy_user(request)
     session = await get_user_session(request, user)
     if request.headers.get('Impersonate-User'):

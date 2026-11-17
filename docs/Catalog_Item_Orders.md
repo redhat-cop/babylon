@@ -382,7 +382,7 @@ Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user n
 
 ### Approvals API (for GPTEINFRA-18190)
 
-All routes require a catalog API session, return `404` while `CATALOG_ITEM_ORDERS_ENABLED` is false, and reject `Impersonate-User`. Errors are `{"error": "<code>", "message": "..."}`. The UI review page at `/approvals/<order uid>` (the `status.approval.reviewUrl`) should call the review route; opening it never records a decision.
+All routes require a catalog API session and reject `Impersonate-User`. Errors are `{"error": "<code>", "message": "..."}`. The UI review page at `/approvals/<order uid>` (the `status.approval.reviewUrl`) should call the review route; opening it never records a decision.
 
 | Route | Purpose |
 |---|---|
@@ -434,7 +434,7 @@ Decisions are written with a `resourceVersion` precondition and re-read and reva
 
 ### Approval emails
 
-The notifier operator watches CatalogItemOrders when `CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED=true` (Helm: `notifier.catalogItemOrders.enabled`, or `catalogItemOrders.enabled` in `notifier/helm`). It only reads orders; its RBAC is `get`/`list`/`watch` on `catalogitemorders`, with no access to status, so it cannot affect approval.
+The notifier operator always watches CatalogItemOrders; there is no switch, so deploy it with the CRD. Use `ONLY_SEND_TO` to restrict recipients in non-production environments. It only reads orders; its RBAC is `get`/`list`/`watch` on `catalogitemorders`, with no access to status, so it cannot affect approval.
 
 | Event | Recipient | Template | When |
 |---|---|---|---|

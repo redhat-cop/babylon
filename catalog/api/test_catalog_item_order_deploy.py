@@ -247,7 +247,7 @@ class TestHelm(unittest.TestCase):
 
     def test_controller_gets_reporting_api_credentials(self):
         docs = helm_template(
-            'catalog/helm', '--set', 'catalogItemOrders.enabled=true',
+            'catalog/helm',
             '--set', 'catalogItemOrders.controller.reportingApiUrl=http://reporting.test',
         )
         container = find(docs, 'Deployment', 'babylon-catalog-order-controller')[0]['spec']['template']['spec']['containers'][0]
@@ -257,14 +257,14 @@ class TestHelm(unittest.TestCase):
 
     def test_notifier_reads_orders_but_cannot_write_them(self):
         notifier_values = [
-            '--set', 'notifier.deploy=true', '--set', 'notifier.catalogItemOrders.enabled=true',
+            '--set', 'notifier.deploy=true',
             '--set', 'notifier.redis.persistentVolumeClaim.name=redis', '--set', 'notifier.smtp.from=a@example.com',
             '--set', 'notifier.smtp.sender=x', '--set', 'notifier.smtp.host=smtp', '--set', 'notifier.smtp.port=25',
         ]
         main = helm_template('helm', '--set', 'environmentLevel=dev', *notifier_values)
         standalone = helm_template(
             'notifier/helm', '--set', 'smtp.sender=x', '--set', 'smtp.from=a@example.com',
-            '--set', 'smtp.host=smtp', '--set', 'catalogItemOrders.enabled=true',
+            '--set', 'smtp.host=smtp',
         )
         for chart, docs in (('helm', main), ('notifier/helm', standalone)):
             with self.subTest(chart=chart):
@@ -277,12 +277,8 @@ class TestHelm(unittest.TestCase):
                     rules.update(order_rules(role))
                 self.assertEqual(rules, {'catalogitemorders': ['get', 'list', 'watch']})
                 deployment = [d for d in find(docs, 'Deployment') if 'notifier' in d['metadata']['name'] and 'redis' not in d['metadata']['name']][0]
-                env = {e['name']: e.get('value') for e in deployment['spec']['template']['spec']['containers'][0]['env']}
-                self.assertEqual(env['CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED'], 'true')
-        default = helm_template('helm', '--set', 'environmentLevel=dev', *notifier_values[:2], *notifier_values[4:])
-        deployment = [d for d in find(default, 'Deployment') if d['metadata']['name'] == 'babylon-notifier'][0]
-        env = {e['name']: e.get('value') for e in deployment['spec']['template']['spec']['containers'][0]['env']}
-        self.assertEqual(env['CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED'], 'false')
+                env = {e['name'] for e in deployment['spec']['template']['spec']['containers'][0]['env']}
+                self.assertNotIn('CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED', env, 'approval emails have no switch')
 
     def test_main_chart_crd_and_user_roles(self):
         docs = helm_template('helm', '--include-crds', '--set', 'environmentLevel=dev')

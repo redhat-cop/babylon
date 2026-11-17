@@ -85,7 +85,6 @@ class ApprovalTestCase(unittest.IsolatedAsyncioTestCase):
             ('get_proxy_user', get_proxy_user),
             ('get_user_session', get_user_session),
             ('catalog_item_order_approval_service', lambda: ApprovalService(self.kube, self.lookup, clock=self.clock)),
-            ('catalog_item_orders_enabled', True),
             ('audit_log', lambda *args, **kwargs: None),
         ):
             patcher = patch.object(catalog_app, target, value)
@@ -426,11 +425,6 @@ class TestReviewAndList(ApprovalTestCase):
         for query, code in (('limit=0', 'invalid_limit'), ('limit=x', 'invalid_limit'), ('continue=%%%', 'invalid_continue')):
             status, data = await self.call('GET', f"{APPROVALS}?{query}")
             self.assertEqual((status, data['error']), (400, code))
-
-    async def test_disabled_feature_returns_404(self):
-        with patch.object(catalog_app, 'catalog_item_orders_enabled', False):
-            status, _ = await self.call('GET', APPROVALS)
-        self.assertEqual(status, 404)
 
 
 class TestCachedLookup(unittest.IsolatedAsyncioTestCase):

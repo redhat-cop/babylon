@@ -50,10 +50,7 @@ smtp_tls_key = os.environ.get('SMTP_TLS_KEY', None)
 smtp_tls_key_file = os.environ.get('SMTP_TLS_KEY_FILE', None)
 smtp_tls_validate_certs = os.environ.get('SMTP_TLS_VALIDATE_CERTS', 'true') != 'false'
 
-# CatalogItemOrder approval emails (GPTEINFRA-18189). Opt-in, like the order API.
-catalog_item_order_notifications_enabled = (
-    os.environ.get('CATALOG_ITEM_ORDER_NOTIFICATIONS_ENABLED', 'false').lower() == 'true'
-)
+# CatalogItemOrder approval emails (GPTEINFRA-18189), set up at startup.
 order_notifier = None
 
 ### Development/Test variables
@@ -154,20 +151,19 @@ async def configure(settings: kopf.OperatorSettings, **_):
         decode_responses=True,
     )
 
-    if catalog_item_order_notifications_enabled:
-        global order_notifier
-        order_notifier = OrderNotifier(
-            redis = redis_connection,
-            get_order = get_catalog_item_order,
-            get_catalog_item = get_catalog_item_definition,
-            get_catalog_namespace_display_name = get_catalog_namespace_display_name,
-            render_html = render_mjml_template,
-            html_to_text = html2text,
-            send = lambda msg: send_email_message(msg, logger=logging.getLogger('catalog_item_order_notifier')),
-            sender = f"{smtp_sender} <{smtp_from}>",
-            only_send_to = only_send_to,
-            post_warning = lambda order, reason, message: kopf.warn(order, reason=reason, message=message),
-        )
+    global order_notifier
+    order_notifier = OrderNotifier(
+        redis = redis_connection,
+        get_order = get_catalog_item_order,
+        get_catalog_item = get_catalog_item_definition,
+        get_catalog_namespace_display_name = get_catalog_namespace_display_name,
+        render_html = render_mjml_template,
+        html_to_text = html2text,
+        send = lambda msg: send_email_message(msg, logger=logging.getLogger('catalog_item_order_notifier')),
+        sender = f"{smtp_sender} <{smtp_from}>",
+        only_send_to = only_send_to,
+        post_warning = lambda order, reason, message: kopf.warn(order, reason=reason, message=message),
+    )
 
 @kopf.on.cleanup()
 async def on_cleanup(**_):
@@ -305,15 +301,14 @@ async def workshop_event(event, logger, **_):
     else:
         logger.warning(event)
 
-if catalog_item_order_notifications_enabled:
-    @kopf.on.event(Babylon.babylon_domain, Babylon.babylon_api_version, 'catalogitemorders')
-    async def catalog_item_order_event(event, logger, **_):
-        """Approval emails for CatalogItemOrders. Read-only: the notifier
-        never writes orders and has no permission to."""
-        order = event.get('object')
-        if event.get('type') == 'DELETED' or not order or order.get('kind') != 'CatalogItemOrder':
-            return
-        await order_notifier.handle(order)
+@kopf.on.event(Babylon.babylon_domain, Babylon.babylon_api_version, 'catalogitemorders')
+async def catalog_item_order_event(event, logger, **_):
+    """Approval emails for CatalogItemOrders. Read-only: the notifier
+    never writes orders and has no permission to."""
+    order = event.get('object')
+    if event.get('type') == 'DELETED' or not order or order.get('kind') != 'CatalogItemOrder':
+        return
+    await order_notifier.handle(order)
 
 async def get_catalog_item_order(namespace, name):
     try:
