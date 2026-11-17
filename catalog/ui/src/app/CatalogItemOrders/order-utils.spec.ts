@@ -176,7 +176,6 @@ describe('getOrderStatus', () => {
   test('maps every terminal and blocked state', () => {
     const cases: [Partial<CatalogItemOrder>, string][] = [
       [{ phase: 'Failed', attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'boom' } }] }, 'failed'],
-      [{ phase: 'Failed', retryRequest: { requestedAt: '2026-11-17T11:00:00Z' } }, 'retrying'],
       [{ phase: 'Denied', approval: { state: 'Denied', decision: { outcome: 'Denied', decidedBy: 'mgr' } } }, 'denied'],
       [{ phase: 'Expired' }, 'expired'],
       [{ phase: 'Cancelled' }, 'cancelled'],
@@ -190,12 +189,11 @@ describe('getOrderStatus', () => {
 });
 
 describe('isOrderActive', () => {
-  test('refreshes pending and in-progress orders, and failed orders only while a retry is underway', () => {
+  test('refreshes pending and in-progress orders but not finished or failed ones', () => {
     expect(isOrderActive(order({ phase: 'PendingApproval' }))).toBe(true);
     expect(isOrderActive(order({ phase: 'Provisioning' }))).toBe(true);
     expect(isOrderActive(order({ phase: 'Provisioned' }))).toBe(false);
     expect(isOrderActive(order({ phase: 'Failed' }))).toBe(false);
-    expect(isOrderActive(order({ phase: 'Failed', retryRequest: { requestedAt: 'x' } }))).toBe(true);
   });
 });
 

@@ -75,15 +75,6 @@ export type OrderAttempt = {
   failure?: { reason?: string; message?: string; retryable?: boolean };
 };
 
-export type OrderRetry = {
-  eligible: boolean;
-  reason?: string;
-  message?: string;
-  attemptsUsed?: number;
-  maxAttempts?: number;
-  deadline?: string;
-};
-
 export type OrderCancel = { allowed: boolean; code?: string; message?: string };
 
 export type OrderBlocked = {
@@ -131,8 +122,6 @@ export type CatalogItemOrder = {
   orderUrl?: string | null;
   attempts: OrderAttempt[];
   history?: { event: string; timestamp?: string; phase?: string; actor?: string; message?: string }[];
-  retry?: OrderRetry;
-  retryRequest?: { requestedAt?: string; requestedBy?: string } | null;
   cancel?: OrderCancel;
 };
 

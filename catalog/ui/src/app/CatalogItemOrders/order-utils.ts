@@ -229,7 +229,7 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
     case 'Provisioned':
       return { kind: 'provisioned', label: 'Provisioned', tone: 'success', description: 'Provisioning completed successfully.' };
     case 'Failed':
-      if (order.retryRequest || (attempt && (attempt.state === 'CleaningUp' || attempt.state === 'CleanedUp'))) {
+      if (attempt && (attempt.state === 'CleaningUp' || attempt.state === 'CleanedUp')) {
         return {
           kind: 'retrying',
           label: 'Retrying',
@@ -286,11 +286,11 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
 }
 
 /** Orders that can still change on their own; their views refresh automatically. */
-export function isOrderActive(order: Pick<CatalogItemOrder, 'phase' | 'retryRequest' | 'attempts'>): boolean {
+export function isOrderActive(order: Pick<CatalogItemOrder, 'phase' | 'attempts'>): boolean {
   if (TERMINAL_PHASES.includes(order.phase)) return false;
   if (order.phase === 'Failed') {
     const state = latestAttempt(order)?.state;
-    return Boolean(order.retryRequest) || state === 'CleaningUp' || state === 'CleanedUp';
+    return state === 'CleaningUp' || state === 'CleanedUp';
   }
   return true;
 }

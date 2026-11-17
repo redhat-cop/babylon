@@ -3,7 +3,7 @@ import fetchMock from 'jest-fetch-mock';
 import { createMemoryHistory } from 'history';
 import { Route, Routes } from 'react-router-dom';
 import { SWRConfig } from 'swr';
-import { render, screen, waitFor, fireEvent, generateSession } from '@app/utils/test-utils';
+import { render, screen, fireEvent, generateSession } from '@app/utils/test-utils';
 import OrderDetail from './OrderDetail';
 import { PENDING_APPROVAL_MESSAGE } from './order-utils';
 import type { CatalogItemOrder } from './types';
@@ -38,7 +38,6 @@ function makeOrder(overrides: Partial<CatalogItemOrder> = {}): CatalogItemOrder 
     policy: { matchedRules: [{ id: 'large', reason: 'Large orders need approval.' }] },
     attempts: [],
     cancel: { allowed: true },
-    retry: { eligible: false, reason: 'NotFailed', message: 'Order has not failed' },
     ...overrides,
   };
 }
@@ -134,34 +133,20 @@ describe('OrderDetail', () => {
     expect(posts()).toHaveLength(1);
   });
 
-  test('an eligible failure offers a retry with the remaining attempts and deadline', async () => {
-    const failed = makeOrder({
-      phase: 'Failed',
-      approval: { state: 'Approved' },
-      cancel: { allowed: false, code: 'dispatch_started' },
-      attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'Provisioning failed', retryable: true } }],
-      retry: { eligible: true, attemptsUsed: 1, maxAttempts: 3, deadline: '2099-11-20T10:00:00Z' },
-    });
-    orderResponses = [failed];
-    postHandler = (url) => {
-      expect(url).toBe(`${ORDER_PATH}/retry`);
-      const retried = { ...failed, retryRequest: { requestedAt: '2026-11-17T12:00:00Z' } };
-      orderResponses = [retried];
-      return { status: 202, body: retried };
-    };
+  test('a failed order shows the failure without retry or new-order actions', async () => {
+    orderResponses = [
+      makeOrder({
+        phase: 'Failed',
+        approval: { state: 'Approved' },
+        cancel: { allowed: false, code: 'dispatch_started' },
+        attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'Provisioning failed: no capacity', retryable: true } }],
+      }),
+    ];
     await renderOrder();
-    expect(await screen.findByText(/2 of 3 attempts left/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry provisioning' }));
-    const dialogButtons = await screen.findAllByRole('button', { name: 'Retry provisioning' });
-    fireEvent.click(dialogButtons[dialogButtons.length - 1]);
-
-    expect(await screen.findByText('Cleaning up the previous attempt before provisioning again.')).toBeInTheDocument();
-    expect(posts()).toHaveLength(1);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry provisioning' })).not.toBeInTheDocument());
-    expect(screen.getByRole('link', { name: 'Place a new order' })).toHaveAttribute(
-      'href',
-      '/catalog/babylon-catalog-test/order/tests.item.prod',
-    );
+    expect(await screen.findAllByText('Provisioning failed: no capacity')).not.toHaveLength(0);
+    expect(screen.queryByRole('button', { name: /Retry/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Place a new order' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel order' })).not.toBeInTheDocument();
   });
 
   test('approved but not provisioned never shows success', async () => {

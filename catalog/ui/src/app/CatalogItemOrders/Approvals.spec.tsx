@@ -117,6 +117,24 @@ describe('approval review (email links)', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument());
   });
 
+  test('denying keeps an optional comment for the requester', async () => {
+    handler = (url, init) => {
+      if (init.method === 'POST') {
+        expect(url.pathname).toBe('/api/catalog-item-order-approvals/uid-1/deny');
+        expect(JSON.parse(init.body as string)).toEqual({ comment: 'Use the shared environment' });
+        return { status: 200, body: makeReview({ canDecide: false, approval: { state: 'Pending', decision: { outcome: 'Denied' } } }) };
+      }
+      return { status: 200, body: makeReview() };
+    };
+    await renderAt('/approvals/uid-1');
+    fireEvent.click(await screen.findByRole('button', { name: 'Deny' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Comment (optional)'), { target: { value: 'Use the shared environment' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Deny' }));
+    expect(await screen.findByText('Request denied')).toBeInTheDocument();
+    expect(calls('POST')).toHaveLength(1);
+  });
+
   test('a conflicting decision reloads the request instead of replaying the decision', async () => {
     let decided = false;
     handler = (url, init) => {

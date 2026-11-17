@@ -26,7 +26,7 @@ import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import LoadingSection from '@app/components/LoadingSection';
 import NotFound from '@app/components/NotFound';
-import { cancelCatalogItemOrder, orderFetcher, retryCatalogItemOrder, toOrderApiError } from './catalog-item-order-api';
+import { cancelCatalogItemOrder, orderFetcher, toOrderApiError } from './catalog-item-order-api';
 import type { OrderApiError } from './catalog-item-order-api';
 import type { CatalogItemOrder } from './types';
 import {
@@ -122,7 +122,7 @@ const ApprovalDetails: React.FC<{ order: CatalogItemOrder }> = ({ order }) => {
 };
 
 const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ namespace, name }) => {
-  const [modal, setModal] = useState<'cancel' | 'retry' | null>(null);
+  const [modal, setModal] = useState<'cancel' | null>(null);
   const [actionError, setActionError] = useState<ActionError | null>(null);
   const { authUser } = useSession().getSession();
   const { data: order, error, isLoading, mutate } = useSWR<CatalogItemOrder, OrderApiError>(
@@ -148,19 +148,15 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
 
   const status = getOrderStatus(order);
   const links = orderResourceLinks(order);
-  const retry = order.retry;
   const canCancel = order.cancel?.allowed === true;
-  // Hide Retry while an earlier retry request is waiting for the controller.
-  const canRetry = retry?.eligible === true && !order.retryRequest;
   const quantity = orderQuantity(order);
   const parameters = safeParameters(order.request?.parameters);
   const scheduleRows = describeSchedule(effectiveSchedule(order));
-  const finished = ['Provisioned', 'Denied', 'Expired', 'Cancelled', 'Failed', 'Blocked'].includes(order.phase);
 
-  async function runAction(action: 'cancel' | 'retry') {
+  async function cancelOrder() {
     setActionError(null);
     try {
-      const updated = action === 'cancel' ? await cancelCatalogItemOrder(order) : await retryCatalogItemOrder(order);
+      const updated = await cancelCatalogItemOrder(order);
       await mutate(updated, { revalidate: true });
       setModal(null);
     } catch (thrown) {
@@ -169,7 +165,7 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
       // The order changed under us (for example provisioning started); show its current state.
       await mutate();
       setActionError({
-        title: apiError.status === 409 ? orderErrorTitle(apiError.code) : action === 'cancel' ? 'Cancel failed' : 'Retry failed',
+        title: apiError.status === 409 ? orderErrorTitle(apiError.code) : 'Cancel failed',
         message: apiError.message,
         variant: apiError.status === 409 ? 'warning' : 'danger',
       });
@@ -183,21 +179,10 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
         title="Cancel this order?"
         confirmLabel="Cancel order"
         confirmVariant="danger"
-        onConfirm={() => runAction('cancel')}
+        onConfirm={() => cancelOrder()}
         onClose={() => setModal(null)}
       >
         <p>The order stops and no environment is created. To get this item later, place a new order.</p>
-      </ConfirmActionModal>
-      <ConfirmActionModal
-        isOpen={modal === 'retry'}
-        title="Retry provisioning?"
-        confirmLabel="Retry provisioning"
-        onConfirm={() => runAction('retry')}
-        onClose={() => setModal(null)}
-      >
-        <p>
-          The failed attempt is cleaned up and the same request is provisioned again, reusing the existing approval.
-        </p>
       </ConfirmActionModal>
 
       <PageSection hasBodyWrapper={false}>
@@ -248,13 +233,6 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
         </Alert>
 
         <ActionList style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          {canRetry ? (
-            <ActionListItem>
-              <Button variant="primary" onClick={() => setModal('retry')}>
-                Retry provisioning
-              </Button>
-            </ActionListItem>
-          ) : null}
           {canCancel ? (
             <ActionListItem>
               <Button variant="secondary" isDanger onClick={() => setModal('cancel')}>
@@ -262,33 +240,7 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
               </Button>
             </ActionListItem>
           ) : null}
-          {finished ? (
-            <ActionListItem>
-              <Link
-                to={`/catalog/${encodeURIComponent(order.catalogItem.namespace)}/order/${encodeURIComponent(order.catalogItem.name)}`}
-              >
-                Place a new order
-              </Link>
-            </ActionListItem>
-          ) : null}
         </ActionList>
-        {canRetry ? (
-          <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            {retry.maxAttempts
-              ? `${Math.max(retry.maxAttempts - (retry.attemptsUsed || 0), 0)} of ${retry.maxAttempts} attempts left`
-              : null}
-            {retry.deadline ? (
-              <>
-                {retry.maxAttempts ? '; ' : ''}retry before <OrderTime value={retry.deadline} />
-              </>
-            ) : null}
-            .
-          </p>
-        ) : order.phase === 'Failed' && retry && !retry.eligible && !order.retryRequest ? (
-          <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            {retry.message || 'This order cannot be retried.'} Place a new order to try again; it is evaluated afresh.
-          </p>
-        ) : null}
       </PageSection>
 
       <PageSection hasBodyWrapper={false}>

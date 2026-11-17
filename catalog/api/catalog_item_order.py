@@ -1077,8 +1077,6 @@ def order_view(order, now=None):
             for attempt in status.get('attempts', [])
         ],
         'history': status.get('history', []),
-        # A retry the requester asked for that the controller has not picked up yet.
-        'retryRequest': status.get('retry'),
         'statusUrl': f"/api/catalog-item-orders/{metadata.get('namespace')}/{metadata.get('name')}",
     }
     if now is not None:

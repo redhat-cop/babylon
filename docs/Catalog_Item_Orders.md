@@ -242,7 +242,6 @@ The order view (submit, get, list, cancel, retry) also carries fields for the UI
 
 - `cancel`: `{"allowed": true}` or `{"allowed": false, "code": "dispatch_started" | "order_finished", "message": "..."}`, computed by the same rule the cancel endpoint enforces. It is advisory; the endpoint re-checks with a `resourceVersion` precondition.
 - `retry`: retry eligibility (`eligible`, `reason`, `message`, `attemptsUsed`, `maxAttempts`, `deadline`).
-- `retryRequest`: the requester's pending retry request (`requestedAt`, `requestedBy`) until the controller picks it up, otherwise `null`.
 
 ## CatalogItemOrder resource
 
@@ -475,7 +474,7 @@ Implemented in `catalog/ui/src/app/CatalogItemOrders/`, always on.
 | Route | Page |
 |---|---|
 | `/orders` | Orders section of My Services (Services / Orders tabs). Lists the requester's orders, refreshing every 8 s while any order is active. |
-| `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`): status, approval reason, manager, expiry, review link, schedule, parameters, attempts, history; Cancel when `cancel.allowed`, Retry provisioning when `retry.eligible`, links to the service, workshop or lab page once its resource exists. |
+| `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`): status, approval reason, manager, expiry, review link, schedule, parameters, attempts, history; Cancel when `cancel.allowed`, and links to the service, workshop or lab page once its resource exists. The UI offers no retry. |
 | `/approvals`, `/approvals/<uid>` | Manager panel and review page (`status.approval.reviewUrl`). Opening a link only reads the review; Approve and Deny need a confirmation with an optional comment. |
 | `/admin/approvals`, `/admin/approvals/<uid>` | Administrator view, sharing the list and review components, with a Pending / Decided / All filter. |
 

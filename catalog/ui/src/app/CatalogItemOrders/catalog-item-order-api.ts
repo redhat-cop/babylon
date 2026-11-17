@@ -139,10 +139,6 @@ export function cancelCatalogItemOrder(order: { namespace: string; name: string 
   return requestJson<CatalogItemOrder>(`${apiPaths.CATALOG_ITEM_ORDER(order)}/cancel`, { method: 'POST', body: {} });
 }
 
-export function retryCatalogItemOrder(order: { namespace: string; name: string }): Promise<CatalogItemOrder> {
-  return requestJson<CatalogItemOrder>(`${apiPaths.CATALOG_ITEM_ORDER(order)}/retry`, { method: 'POST', body: {} });
-}
-
 /**
  * Record an approval decision. Never retried automatically: on a conflict the
  * caller reloads the request and the user decides again if it is still pending.
