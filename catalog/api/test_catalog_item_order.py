@@ -188,7 +188,7 @@ class TestBuildOrder(unittest.TestCase):
             ('metadata', {'name': 'x'}),
             ('spec', {}),
             ('approval', {'state': 'Approved'}),
-            ('status', {'phase': 'Ready'}),
+            ('status', {'phase': 'Approved'}),
         ):
             with self.subTest(field):
                 with self.assertRaises(OrderValidationError):
@@ -383,7 +383,7 @@ class TestDecisionContract(unittest.TestCase):
 
 class TestCancel(unittest.TestCase):
     def test_cancel_before_dispatch(self):
-        for phase in (None, 'Submitted', 'PendingApproval', 'Ready', 'Blocked'):
+        for phase in (None, 'Submitted', 'PendingApproval', 'Approved', 'Blocked'):
             with self.subTest(phase=phase):
                 order = as_created(build(), status={'phase': phase} if phase else None)
                 self.assertEqual(order_view(order, NOW)['cancel'], {'allowed': True})
@@ -393,9 +393,9 @@ class TestCancel(unittest.TestCase):
 
     def test_cancel_after_dispatch_or_terminal_conflicts(self):
         for status in (
-            {'phase': 'Creating', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
+            {'phase': 'Approved', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
             {'phase': 'Blocked', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
-            {'phase': 'Fulfilled', 'attempts': [{'number': 1, 'state': 'Created'}]},
+            {'phase': 'Approved', 'attempts': [{'number': 1, 'state': 'Created'}]},
             {'phase': 'Cancelled'},
             {'phase': 'Denied'},
         ):
@@ -410,7 +410,7 @@ class TestCancel(unittest.TestCase):
 
 class TestOrderView(unittest.TestCase):
     def test_view_hides_planned_names_until_created(self):
-        order = as_created(build(), status={'phase': 'Creating', 'attempts': [{
+        order = as_created(build(), status={'phase': 'Approved', 'attempts': [{
             'number': 1, 'state': 'Dispatching',
             'resources': [
                 {'apiVersion': 'v1', 'kind': 'Workshop', 'namespace': 'n', 'name': 'planned-1', 'uid': 'u1'},

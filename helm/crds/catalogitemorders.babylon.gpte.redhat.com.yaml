@@ -554,14 +554,12 @@ spec:
               phase:
                 type: string
                 enum:
+                - Approved
                 - Blocked
                 - Cancelled
-                - Creating
                 - Denied
                 - Expired
-                - Fulfilled
                 - PendingApproval
-                - Ready
                 - Submitted
               policy:
                 description: Policy evaluation result and snapshot of the policy used.

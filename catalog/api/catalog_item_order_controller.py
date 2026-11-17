@@ -42,9 +42,7 @@ from catalog_item_order import (
     PHASE_DENIED,
     PHASE_EXPIRED,
     PHASE_PENDING_APPROVAL,
-    PHASE_CREATING,
-    PHASE_FULFILLED,
-    PHASE_READY,
+    PHASE_APPROVED,
     PHASE_SUBMITTED,
     PLURAL,
     TERMINAL_PHASES,
@@ -54,6 +52,7 @@ from catalog_item_order import (
     generate_name_suffix,
     order_attempts,
     order_completed,
+    resources_created,
     order_id,
     order_phase,
     parse_time,
@@ -186,8 +185,7 @@ class CatalogItemOrderController:
         handler = {
             PHASE_SUBMITTED: self._submitted,
             PHASE_PENDING_APPROVAL: self._pending_approval,
-            PHASE_READY: self._ready,
-            PHASE_CREATING: self._creating,
+            PHASE_APPROVED: self._approved,
             PHASE_BLOCKED: self._blocked,
         }.get(phase)
         if handler is None:
@@ -394,7 +392,7 @@ class CatalogItemOrderController:
             }
         status['approval'] = approval
         set_condition(status, 'ApprovalSatisfied', 'True', 'NotRequired', '', now)
-        return self._transition(order, status, PHASE_READY, 'ApprovalNotRequired', now)
+        return self._transition(order, status, PHASE_APPROVED, 'ApprovalNotRequired', now)
 
     def _decision_problem(self, order, approval, decision):
         if decision.get('outcome') not in DECISION_OUTCOMES:
@@ -445,7 +443,7 @@ class CatalogItemOrderController:
                 approval['state'] = APPROVAL_APPROVED
                 approval['satisfiedAt'] = decision['decidedAt']
                 set_condition(status, 'ApprovalSatisfied', 'True', 'Approved', f"Approved by {decision['decidedBy']}", now)
-                return self._transition(order, status, PHASE_READY, 'Approved', now, f"Approved by {decision['decidedBy']}")
+                return self._transition(order, status, PHASE_APPROVED, 'Approved', now, f"Approved by {decision['decidedBy']}")
             if decision_problem is None:
                 approval['state'] = APPROVAL_DENIED
                 set_condition(status, 'ApprovalSatisfied', 'False', 'Denied', f"Denied by {decision['decidedBy']}", now)
@@ -566,9 +564,9 @@ class CatalogItemOrderController:
             for key in ('approval', 'policy'):
                 status.pop(key, None)
             return self._transition(order, status, PHASE_SUBMITTED, 'Reevaluating', now, message)
-        return self._block(order, status, reason, message, now, recoverable, PHASE_READY)
+        return self._block(order, status, reason, message, now, recoverable, PHASE_APPROVED)
 
-    async def _ready(self, order, status, now):
+    async def _claim_dispatch(self, order, status, now):
         problem = await self._dispatch_problem(order, status, now)
         attempts = list(status.get('attempts') or [])
         if problem:
@@ -587,13 +585,13 @@ class CatalogItemOrderController:
         set_condition(status, 'Dispatched', 'False', 'Dispatching', f"Attempt {number} creating resources", now)
         # Planned names are not exposed until the resources exist.
         return self._transition(
-            order, status, PHASE_CREATING, 'DispatchStarted', now,
+            order, status, PHASE_APPROVED, 'DispatchStarted', now,
             f"Attempt {number}: " + ', '.join(ref['kind'] for ref in resources),
         )
 
     def _creation_pending(self, status, reason, message, now):
-        """Creation could not complete; keep the order Creating and try again on
-        the next reconcile. Returns None when nothing changed, to avoid churn."""
+        """Creation could not complete; the order stays Approved and creation is
+        tried again on the next reconcile. Returns None when nothing changed."""
         message = f"{message[:1000]}; retrying"
         current = next((c for c in status.get('conditions') or [] if c.get('type') == 'Dispatched'), {})
         if current.get('reason') == reason and current.get('message') == message:
@@ -602,11 +600,16 @@ class CatalogItemOrderController:
         self._history(status, 'CreationRetrying', now, message)
         return status
 
-    async def _creating(self, order, status, now):
+    async def _approved(self, order, status, now):
+        """Create the service, workshop or lab; nothing to do once they exist."""
+        if resources_created(order):
+            return None
         attempts = status.get('attempts') or []
         attempt = attempts[-1] if attempts else None
-        if attempt is None or attempt.get('state') != ATTEMPT_DISPATCHING:
-            return self._block(order, status, 'InconsistentState', 'Creating order has no active attempt', now)
+        if attempt is None:
+            return await self._claim_dispatch(order, status, now)
+        if attempt.get('state') != ATTEMPT_DISPATCHING:
+            return self._block(order, status, 'InconsistentState', f"Unexpected attempt state {attempt.get('state')!r}", now)
         return await self._dispatch_resources(order, status, attempt, now)
 
     async def _dispatch_resources(self, order, status, attempt, now):
@@ -665,21 +668,24 @@ class CatalogItemOrderController:
         attempt['state'] = ATTEMPT_CREATED
         attempt['createdAt'] = format_time(now)
         set_condition(status, 'Dispatched', 'True', 'ResourcesCreated', '', now)
-        return self._transition(
-            order, status, PHASE_FULFILLED, 'Fulfilled', now,
+        # The order is complete: it stays Approved and links to the resources.
+        status['completedAt'] = format_time(now)
+        self._history(
+            status, 'ResourcesCreated', now,
             ', '.join(f"{ref['kind']} {ref['name']}" for ref in attempt['resources']),
         )
+        return status
 
     async def _blocked(self, order, status, now):
         blocked = status.get('blocked') or {}
         resume_phase = blocked.get('resumePhase')
-        if not blocked.get('recoverable') or resume_phase not in (PHASE_SUBMITTED, PHASE_READY):
+        if not blocked.get('recoverable') or resume_phase not in (PHASE_SUBMITTED, PHASE_APPROVED):
             return None
         resumed = copy.deepcopy(order)
         resumed_status = resumed.setdefault('status', {})
         resumed_status['phase'] = resume_phase
         resumed_status.pop('blocked', None)
-        handler = self._submitted if resume_phase == PHASE_SUBMITTED else self._ready
+        handler = self._submitted if resume_phase == PHASE_SUBMITTED else self._approved
         new_status = await handler(resumed, copy.deepcopy(resumed_status), now)
         if new_status is None:
             return None
@@ -700,6 +706,8 @@ def order_needs_reconcile(order):
         return False
     if phase == PHASE_BLOCKED:
         return bool((status.get('blocked') or {}).get('recoverable'))
+    if phase == PHASE_APPROVED:
+        return not resources_created(order)
     return True
 
 

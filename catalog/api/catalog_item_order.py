@@ -43,17 +43,15 @@ UNSUPPORTED_ORDER_TYPES = {
 
 PHASE_SUBMITTED = 'Submitted'
 PHASE_PENDING_APPROVAL = 'PendingApproval'
-PHASE_READY = 'Ready'
-# Approved (or approval not required) and creating the provisioning resources.
-# Creation is retried until it succeeds; the order does not follow provisioning.
-PHASE_CREATING = 'Creating'
-# Resources created. Provisioning progress lives on the resources themselves.
-PHASE_FULFILLED = 'Fulfilled'
+# Approved, or approval not required. The controller creates the service,
+# workshop or lab (retrying creation errors); once they exist the order is
+# complete and links to them. The order does not follow provisioning.
+PHASE_APPROVED = 'Approved'
 PHASE_DENIED = 'Denied'
 PHASE_EXPIRED = 'Expired'
 PHASE_CANCELLED = 'Cancelled'
 PHASE_BLOCKED = 'Blocked'
-TERMINAL_PHASES = (PHASE_FULFILLED, PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
+TERMINAL_PHASES = (PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
 
 APPROVAL_NOT_REQUIRED = 'NotRequired'
 APPROVAL_PENDING = 'Pending'
@@ -785,13 +783,21 @@ def active_attempt(order):
     return None
 
 
+def resources_created(order):
+    """True once the order's service, workshop or lab exists."""
+    attempts = order_attempts(order)
+    return bool(attempts) and attempts[-1].get('state') == ATTEMPT_CREATED
+
+
 def order_completed(order):
-    """True once an order needs no further controller work: terminal phases
-    and non-recoverable blocks."""
+    """True once an order needs no further controller work: terminal phases,
+    approved orders whose resources exist, and non-recoverable blocks."""
     status = order.get('status') or {}
     phase = order_phase(order)
     if phase in TERMINAL_PHASES:
         return True
+    if phase == PHASE_APPROVED:
+        return resources_created(order)
     if phase == PHASE_BLOCKED:
         return not (status.get('blocked') or {}).get('recoverable')
     return False
@@ -832,8 +838,10 @@ def cancel_problem(order):
     phase = order_phase(order)
     if phase in TERMINAL_PHASES:
         return 'order_finished', f"Order is already {phase}"
-    if order_attempts(order) or phase == PHASE_CREATING:
-        return 'dispatch_started', 'Resources are being created; manage or delete them instead'
+    if resources_created(order):
+        return 'order_finished', 'The service was already created; manage or delete it instead'
+    if order_attempts(order):
+        return 'dispatch_started', 'The service is being created; manage or delete it instead'
     return None
 
 

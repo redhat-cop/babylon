@@ -164,7 +164,7 @@ class TestOrderSchemaValidation(unittest.IsolatedAsyncioTestCase):
             key='key-schema-plain', catalogItem={'namespace': 'babylon-catalog-prod', 'name': 'tests.plain.prod'}))
         await controller.reconcile(order['metadata']['namespace'], order['metadata']['name'])
         current = await kube.get_order(order['metadata']['namespace'], order['metadata']['name'])
-        self.assertEqual(current['status']['phase'], 'Fulfilled')
+        self.assertEqual(current['status']['phase'], 'Approved')
         self.assertEqual(current['status']['attempts'][0]['state'], 'Created')
         self.assertEqual(validation_problems(current, ORDER_SCHEMA), [])
 

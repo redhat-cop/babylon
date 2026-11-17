@@ -103,15 +103,15 @@ describe('OrderDetail', () => {
   });
 
   test('cancel is only offered when the backend allows it', async () => {
-    orderResponses = [makeOrder({ phase: 'Creating', approval: { state: 'Approved' }, cancel: { allowed: false, code: 'dispatch_started' } })];
+    orderResponses = [makeOrder({ phase: 'Approved', approval: { state: 'Approved' }, cancel: { allowed: false, code: 'dispatch_started' } })];
     await renderOrder();
-    await screen.findByText(/Your service is being created/);
+    await screen.findAllByText('Approved');
     expect(screen.queryByRole('button', { name: 'Cancel order' })).not.toBeInTheDocument();
   });
 
   test('a cancellation that races with creation shows the current state instead of an error', async () => {
     const fulfilled = makeOrder({
-      phase: 'Fulfilled',
+      phase: 'Approved',
       approval: { state: 'Approved', decision: { outcome: 'Approved', decidedBy: 'dana', decidedByEmail: 'dana@example.com' } },
       cancel: { allowed: false, code: 'order_finished' },
       attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'user-test-redhat-com', name: 'tests.item.prod-1a2b3c4d', uid: 'rc-1' }] }],
@@ -136,7 +136,7 @@ describe('OrderDetail', () => {
   test('an approved order shows who approved it and links to the created service', async () => {
     orderResponses = [
       makeOrder({
-        phase: 'Fulfilled',
+        phase: 'Approved',
         approval: { state: 'Approved', decision: { outcome: 'Approved', decidedBy: 'dana', decidedByEmail: 'dana@example.com' } },
         cancel: { allowed: false, code: 'order_finished' },
         attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'Workshop', namespace: 'user-test-redhat-com', name: 'tests.item.prod-1a2b3c4d', uid: 'w-1' }] }],

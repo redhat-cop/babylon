@@ -157,19 +157,13 @@ describe('getOrderStatus', () => {
 
   test('an approved order says who approved it, without tracking provisioning', () => {
     const approval = { state: 'Approved' as const, decision: { outcome: 'Approved' as const, decidedBy: 'dana', decidedByEmail: 'dana@example.com' } };
-    const fulfilled = getOrderStatus(order({ phase: 'Fulfilled', approval }));
-    expect(fulfilled).toMatchObject({ kind: 'approved', label: 'Approved' });
-    expect(fulfilled.description).toMatch(/^Approved by dana@example.com\./);
-    expect(fulfilled.description).not.toMatch(/provisioned/i);
-    const creating = getOrderStatus(order({ phase: 'Creating', approval }));
-    expect(creating).toMatchObject({ kind: 'creating', label: 'Approved' });
-    expect(creating.description).toMatch(/being created/);
+    const approved = getOrderStatus(order({ phase: 'Approved', approval }));
+    expect(approved).toEqual({ kind: 'approved', label: 'Approved', tone: 'success', description: 'Approved by dana@example.com.' });
     expect(approvedBy(order({ approval }))).toBe('dana@example.com');
   });
 
   test('maps every terminal and blocked state', () => {
     const cases: [Partial<CatalogItemOrder>, string][] = [
-      [{ phase: 'Fulfilled', approval: { state: 'NotRequired' } }, 'created'],
       [{ phase: 'Denied', approval: { state: 'Denied', decision: { outcome: 'Denied', decidedBy: 'mgr' } } }, 'denied'],
       [{ phase: 'Expired' }, 'expired'],
       [{ phase: 'Cancelled' }, 'cancelled'],
@@ -183,10 +177,15 @@ describe('getOrderStatus', () => {
 });
 
 describe('isOrderActive', () => {
-  test('refreshes orders until they are finished', () => {
+  test('refreshes orders until they are finished or link to their service', () => {
     expect(isOrderActive(order({ phase: 'PendingApproval' }))).toBe(true);
-    expect(isOrderActive(order({ phase: 'Creating' }))).toBe(true);
-    expect(isOrderActive(order({ phase: 'Fulfilled' }))).toBe(false);
+    expect(isOrderActive(order({ phase: 'Approved' }))).toBe(true);
+    expect(
+      isOrderActive(order({
+        phase: 'Approved',
+        attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'ns', name: 'rc', uid: 'u' }] }],
+      })),
+    ).toBe(false);
     expect(isOrderActive(order({ phase: 'Denied' }))).toBe(false);
   });
 });

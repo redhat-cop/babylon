@@ -6,9 +6,7 @@ export type CatalogItemOrderType = 'service' | 'workshop' | 'selfPacedLab';
 export type CatalogItemOrderPhase =
   | 'Submitted'
   | 'PendingApproval'
-  | 'Ready'
-  | 'Creating'
-  | 'Fulfilled'
+  | 'Approved'
   | 'Denied'
   | 'Expired'
   | 'Cancelled'

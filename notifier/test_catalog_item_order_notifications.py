@@ -85,7 +85,7 @@ def decided(order, state, phase, **extra):
 def approved_order():
     order = pending_order()
     decision = {'outcome': 'Approved', 'decidedBy': 'dana.manager@example.com', 'decidedAt': ts(), 'comment': 'OK'}
-    return decided(order, 'Approved', 'Fulfilled', decision=decision, satisfiedAt=ts())
+    return decided(order, 'Approved', 'Approved', decision=decision, satisfiedAt=ts())
 
 
 class FakeRedis:
@@ -146,9 +146,9 @@ class TestNotificationsFor(unittest.TestCase):
                                  [(event, 'alice@example.com')])
 
     def test_not_required_and_old_events_send_nothing(self):
-        not_required = decided(pending_order(), 'NotRequired', 'Fulfilled')
+        not_required = decided(pending_order(), 'NotRequired', 'Approved')
         self.assertEqual(notifications_for(not_required, now=NOW), [])
-        exempt = decided(pending_order(), 'NotRequired', 'Fulfilled', exemption={
+        exempt = decided(pending_order(), 'NotRequired', 'Approved', exemption={
             'source': 'reporting-api-manager-level', 'reason': 'Requester is a manager at level 5',
         })
         self.assertEqual(notifications_for(exempt, now=NOW), [], 'manager-exempt orders send no email')
@@ -158,7 +158,7 @@ class TestNotificationsFor(unittest.TestCase):
         order = approved_order()
         first = notifications_for(order, now=NOW)
         progressed = copy.deepcopy(order)
-        progressed['status']['phase'] = 'Fulfilled'
+        progressed['status']['phase'] = 'Approved'
         progressed['status']['attempts'] = [{'number': 1, 'state': 'Created'}]
         self.assertEqual(notifications_for(progressed, now=NOW + timedelta(hours=1)), first)
 
@@ -218,7 +218,7 @@ class TestTemplates(unittest.TestCase):
 
     def test_existing_templates_still_render(self):
         base_vars = {
-            'service_status': 'Ready', 'service_display_name': 'svc', 'catalog_namespace': {'display_name': 'Cat'},
+            'service_status': 'Approved', 'service_display_name': 'svc', 'catalog_namespace': {'display_name': 'Cat'},
             'service_url': 'https://catalog.example.com/services/ns/svc', 'workshop_name': 'w', 'workshop_id': 'id',
             'retirement_timestamp': None, 'catalog_item': Mock(display_name='x'),
             'stop_timestamp': None, 'survey_link': None, 'have_attachments': False,

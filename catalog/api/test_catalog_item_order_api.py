@@ -150,7 +150,7 @@ class TestSubmit(OrderApiTestCase):
         for field, value in (
             ('requester', {'user': 'bob'}),
             ('approval', {'state': 'Approved'}),
-            ('status', {'phase': 'Ready'}),
+            ('status', {'phase': 'Approved'}),
             ('spec', {'provider': {'name': 'x'}}),
             ('metadata', {'name': 'mine'}),
         ):

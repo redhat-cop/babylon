@@ -14,7 +14,7 @@ export const PENDING_APPROVAL_MESSAGE = 'Your order is waiting for manager appro
 // Parameters the API sets from dedicated fields; sending them as parameters is rejected.
 const RESERVED_PARAMETERS = ['purpose', 'purpose_activity', 'purpose_explanation', 'salesforce_id'];
 
-const TERMINAL_PHASES = ['Fulfilled', 'Denied', 'Expired', 'Cancelled'];
+const TERMINAL_PHASES = ['Denied', 'Expired', 'Cancelled'];
 
 export type OrderFormInput = {
   catalogItem: CatalogItem;
@@ -144,9 +144,7 @@ export function buildOrderSubmission(input: OrderFormInput): Omit<CatalogItemOrd
 export type OrderStatusKind =
   | 'submitted'
   | 'pendingApproval'
-  | 'creating'
   | 'approved'
-  | 'created'
   | 'denied'
   | 'expired'
   | 'cancelled'
@@ -188,28 +186,12 @@ export function getOrderStatus(order: CatalogItemOrder): OrderStatus {
   switch (order.phase) {
     case 'PendingApproval':
       return { kind: 'pendingApproval', label: 'Waiting for approval', tone: 'warning', description: PENDING_APPROVAL_MESSAGE };
-    case 'Ready':
-    case 'Creating':
+    case 'Approved':
       return {
-        kind: 'creating',
-        label: approval.state === 'Approved' ? 'Approved' : 'Creating',
-        tone: approval.state === 'Approved' ? 'success' : 'info',
-        description: `${approvedText ? `${approvedText} ` : ''}Your service is being created.`,
-      };
-    case 'Fulfilled':
-      if (approval.state === 'Approved') {
-        return {
-          kind: 'approved',
-          label: 'Approved',
-          tone: 'success',
-          description: `${approvedText} Your service has been created; its page shows provisioning progress.`,
-        };
-      }
-      return {
-        kind: 'created',
-        label: 'Created',
+        kind: 'approved',
+        label: 'Approved',
         tone: 'success',
-        description: 'Your service has been created; its page shows provisioning progress.',
+        description: approvedText || 'No approval was needed.',
       };
     case 'Denied': {
       const decision = approval.decision;
@@ -255,7 +237,10 @@ export function getOrderStatus(order: CatalogItemOrder): OrderStatus {
 
 /** Orders that can still change on their own; their views refresh automatically. */
 export function isOrderActive(order: Pick<CatalogItemOrder, 'phase' | 'attempts'>): boolean {
-  return !TERMINAL_PHASES.includes(order.phase);
+  if (TERMINAL_PHASES.includes(order.phase)) return false;
+  // Approved orders refresh until the link to the created service appears.
+  if (order.phase === 'Approved') return orderResourceLinks(order).length === 0;
+  return true;
 }
 
 const RESOURCE_PAGES: Record<string, { path: string; label: string }> = {
