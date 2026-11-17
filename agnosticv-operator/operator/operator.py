@@ -206,7 +206,9 @@ async def manage_agnosticv_component(agnosticv_component: AgnosticVComponent, lo
         logger
     )
     resource_provider = await manage_resource_provider(
-        agnosticv_component, logger
+        agnosticv_component,
+        linked_agnosticv_components,
+        logger
     )
     tenant_cluster_pool = await manage_tenant_cluster_pool(
         agnosticv_component,
@@ -335,9 +337,13 @@ async def manage_catalog_item(
     return catalog_item
 
 async def manage_resource_provider(
-    agnosticv_component: AgnosticVComponent, logger
+    agnosticv_component: AgnosticVComponent,
+    linked_agnosticv_components: List[AgnosticVComponent],
+    logger
 ) -> ResourceProvider|None:
-    resource_provider_definition = agnosticv_component.get_resource_provider_definition()
+    resource_provider_definition = agnosticv_component.get_resource_provider_definition(
+        linked_agnosticv_components=linked_agnosticv_components,
+    )
     if resource_provider_definition is None:
         return None
     resource_provider_name = resource_provider_definition['metadata']['name']
