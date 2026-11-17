@@ -54,7 +54,7 @@ const OrderPlacing: React.FC = () => {
           <EmptyStateBody aria-live="polite">
             {slow
               ? 'This is taking longer than usual. Your service will appear in My Services as soon as it is created, and this page will open it automatically.'
-              : 'We are checking whether your order needs manager approval. You will be taken to your service, or to your order if it needs approval.'}
+              : 'You will be taken to your service, or to your order if it needs approval.'}
           </EmptyStateBody>
           {error && error.status !== 404 ? (
             <Alert variant="warning" isInline isPlain title="The order status could not be checked; retrying." />
