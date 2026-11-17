@@ -9,6 +9,10 @@ const Dashboard = React.lazy(() => import('@app/Dashboard'));
 const CatalogRedirections = React.lazy(() => import('@app/Catalog/CatalogRedirections'));
 const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'));
 const Services = React.lazy(() => import('@app/Services/Services'));
+const OrdersList = React.lazy(() => import('@app/CatalogItemOrders/OrdersList'));
+const OrderDetail = React.lazy(() => import('@app/CatalogItemOrders/OrderDetail'));
+const ManagerApprovals = React.lazy(() => import('@app/CatalogItemOrders/ApprovalsPage'));
+const AdminApprovals = React.lazy(() => import('@app/CatalogItemOrders/AdminApprovals'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
 const WorkshopsList = React.lazy(() => import('@app/Admin/Workshops'));
 const SelfPacedLabsList = React.lazy(() => import('@app/Admin/SelfPacedLabs'));
@@ -102,6 +106,40 @@ const appRoutes: IAppRoute[] = [
     component: Services,
     path: '/services',
     title: 'Babylon | My Services',
+  },
+  // Catalog item orders (GPTEINFRA-18190). The pages render NotFound unless the
+  // session reports catalogItemOrdersEnabled.
+  {
+    component: OrderDetail,
+    path: '/orders/:namespace/:name',
+    title: 'Babylon | Order',
+  },
+  {
+    component: OrdersList,
+    path: '/orders',
+    title: 'Babylon | My Orders',
+  },
+  {
+    component: ManagerApprovals,
+    path: '/approvals/:orderUid',
+    title: 'Babylon | Approval request',
+  },
+  {
+    component: ManagerApprovals,
+    path: '/approvals',
+    title: 'Babylon | Approvals',
+  },
+  {
+    component: AdminApprovals,
+    path: '/admin/approvals/:orderUid',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
+  },
+  {
+    component: AdminApprovals,
+    path: '/admin/approvals',
+    title: 'Babylon | Admin',
+    accessControl: 'admin',
   },
   {
     component: Activity,

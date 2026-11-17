@@ -48,6 +48,7 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import ProjectSelector from '@app/components/ProjectSelector';
+import MyServicesTabs from '@app/CatalogItemOrders/MyServicesTabs';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
@@ -245,7 +246,7 @@ const ServicesList: React.FC<{
 }> = ({ serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, catalogItemOrdersEnabled } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const hasSearch = searchParams.has('search');
@@ -667,6 +668,9 @@ const ServicesList: React.FC<{
           workshop={modalState.workshop}
         />
       </Modal>
+      {catalogItemOrdersEnabled ? (
+        <MyServicesTabs active="services" servicesPath={`/services/${serviceNamespaceName}`} />
+      ) : null}
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
           <ProjectSelector

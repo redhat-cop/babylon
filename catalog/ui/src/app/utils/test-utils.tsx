@@ -72,7 +72,20 @@ export const generateSession = ({
   } as UserNamespace,
   roles = [],
   groups = [],
+  catalogItemOrdersEnabled = false,
+  isImpersonating = false,
+}: {
+  email?: string;
+  isAdmin?: boolean;
+  serviceNamespaces?: ServiceNamespace[];
+  userNamespace?: UserNamespace;
+  roles?: string[];
+  groups?: string[];
+  catalogItemOrdersEnabled?: boolean;
+  isImpersonating?: boolean;
 }) => ({
+  catalogItemOrdersEnabled,
+  isImpersonating,
   email,
   isAdmin,
   catalogNamespaces: [

@@ -1084,7 +1084,11 @@ function fetchApiSession() {
       if (count > 2) {
         window.location.href = '/oauth/sign_out';
       } else {
-        window.location.href = '/?n=' + new Date().getTime() + '&count=' + count + 1;
+        // Retry on the same page so deep links (for example approval review links
+        // from emails) are not lost while the session is re-established.
+        urlParams.set('n', String(new Date().getTime()));
+        urlParams.set('count', String(count + 1));
+        window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
       }
     });
   return window.sessionPromiseInstance;
@@ -3044,6 +3048,27 @@ export const apiPaths = {
     const queryString = params.toString();
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   },
+  CATALOG_ITEM_ORDERS: () => '/api/catalog-item-orders',
+  CATALOG_ITEM_ORDER: ({ namespace, name }: { namespace: string; name: string }) =>
+    `/api/catalog-item-orders/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+  CATALOG_ITEM_ORDER_APPROVALS: ({
+    state,
+    limit,
+    continueToken,
+  }: {
+    state?: 'pending' | 'decided' | 'all';
+    limit?: number;
+    continueToken?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (state) params.set('state', state);
+    if (limit) params.set('limit', String(limit));
+    if (continueToken) params.set('continue', continueToken);
+    const query = params.toString();
+    return `/api/catalog-item-order-approvals${query ? `?${query}` : ''}`;
+  },
+  CATALOG_ITEM_ORDER_APPROVAL: ({ uid }: { uid: string }) =>
+    `/api/catalog-item-order-approvals/${encodeURIComponent(uid)}`,
   SYSTEM_STATUS: () => `/api/system/status`,
   TENANT_CLUSTER_POOL: ({ namespace, tenantClusterPoolName }: { namespace: string; tenantClusterPoolName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/tenantclusterpools/${tenantClusterPoolName}`,

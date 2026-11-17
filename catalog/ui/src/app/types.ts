@@ -875,6 +875,8 @@ export type Session = {
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
+  // Server-side CATALOG_ITEM_ORDERS_ENABLED; absent on older catalog APIs.
+  catalogItemOrdersEnabled?: boolean;
 };
 export type CostTracker = {
   lastRequest: string;
@@ -895,6 +897,10 @@ export type IAppRoute = {
 
 export type ResourceType =
   | 'CATALOG_ITEM'
+  | 'CATALOG_ITEM_ORDERS'
+  | 'CATALOG_ITEM_ORDER'
+  | 'CATALOG_ITEM_ORDER_APPROVALS'
+  | 'CATALOG_ITEM_ORDER_APPROVAL'
   | 'ASSET_METRICS'
   | 'CATALOG_ITEMS'
   | 'CATALOG_ITEM_INCIDENTS'

@@ -238,6 +238,14 @@ Rules:
 - `orderType` must be `service`, `workshop` or `selfPacedLab`. These are rejected before any lookup or resource creation: `multiWorkshop`, `multiuserServiceWorkshop`, `externalUrl` (and any catalog item with `externalUrl`), `whiteGloveRequest`. Workshop and self-paced lab orders are rejected for items with `workshopUiDisabled`.
 - Responses never include workshop access passwords.
 
+The order view (submit, get, list, cancel, retry) also carries fields for the UI:
+
+- `cancel`: `{"allowed": true}` or `{"allowed": false, "code": "dispatch_started" | "order_finished", "message": "..."}`, computed by the same rule the cancel endpoint enforces. It is advisory; the endpoint re-checks with a `resourceVersion` precondition.
+- `retry`: retry eligibility (`eligible`, `reason`, `message`, `attemptsUsed`, `maxAttempts`, `deadline`).
+- `retryRequest`: the requester's pending retry request (`requestedAt`, `requestedBy`) until the controller picks it up, otherwise `null`.
+
+`GET /auth/session` and `GET /auth/users/{user}` return `catalogItemOrdersEnabled`, the value of `CATALOG_ITEM_ORDERS_ENABLED`, so the UI can tell a disabled feature from a failing one.
+
 ## CatalogItemOrder resource
 
 `spec` is immutable and server-derived: requester (user, uid, and email when the OpenShift user name is an address; request headers are not trusted for this), catalog item reference with uid, resourceVersion and a digest of provisioning-relevant fields (`materialDigest`), order type, normalized request with effective defaults, `submittedAt`, idempotency key digest, submission digest and `requestDigest`. Immutability is enforced by a `self == oldSelf` validation rule and, for fields that rule cannot see (`request.parameters`), by the controller blocking any order whose `metadata.generation` is not 1 or whose `requestDigest` does not match.
@@ -386,12 +394,12 @@ All routes require a catalog API session and reject `Impersonate-User`. Errors a
 
 | Route | Purpose |
 |---|---|
-| `GET /api/catalog-item-order-approvals?limit=50&continue=<token>` | Pending orders the caller may decide, oldest request first. Administrators see all pending orders. |
+| `GET /api/catalog-item-order-approvals?state=pending&limit=50&continue=<token>` | Approval requests the caller may review. `state` is `pending` (default; undecided requests, oldest first), `decided` (no longer pending: approved, denied, expired, revoked or cancelled) or `all` (newest first). Orders that never required approval are not listed. Administrators see every request. |
 | `GET /api/catalog-item-order-approvals/{uid}` | Review summary for one order, pending or already decided. |
 | `POST /api/catalog-item-order-approvals/{uid}/approve` | Record approval. Body: `{"comment": "optional, ≤ 2048 chars"}`. |
 | `POST /api/catalog-item-order-approvals/{uid}/deny` | Record denial. Same body. |
 
-List response: `{"items": [<review>], "continue": "<token, only if more>", "incomplete": false}`. `incomplete: true` means some requesters could not be checked because the Reporting API was unavailable. `limit` is 1–200.
+List response: `{"items": [<review>], "continue": "<token, only if more>", "incomplete": false}`. `incomplete: true` means some requesters could not be checked because the Reporting API was unavailable. `limit` is 1–200; an unknown `state` returns `400 invalid_state`. `canDecide` is false once `approval.expiresAt` has passed, even before the controller marks the order `Expired`.
 
 Review shape (also returned by approve and deny):
 
@@ -464,7 +472,24 @@ Level numbering comes from live data; the Reporting API schema does not define i
 
 ### GPTEINFRA-18190: UI
 
-Use the [Approvals API](#approvals-api-for-gpteinfra-18190) for the review page (`/approvals/<order uid>`, linked from emails) and the manager panel. Submit with `POST /api/catalog-item-orders` and a client-generated idempotency key per form submission; show `phase`, `approval` (state, matched rule reasons, expiry), `blocked`, `attempts` and `retry` from the order view; follow `attempts[-1].resources` to the existing service/workshop pages.
+Implemented in `catalog/ui/src/app/CatalogItemOrders/`. Everything is gated on `catalogItemOrdersEnabled` from the session; when it is false or absent (older API), the UI behaves exactly as before.
+
+| Route | Page |
+|---|---|
+| `/orders` | Orders section of My Services (Services / Orders tabs). Lists the requester's orders, refreshing every 8 s while any order is active. |
+| `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`): status, approval reason, manager, expiry, review link, schedule, parameters, attempts, history; Cancel when `cancel.allowed`, Retry provisioning when `retry.eligible`, links to the service, workshop or lab page once its resource exists. |
+| `/approvals`, `/approvals/<uid>` | Manager panel and review page (`status.approval.reviewUrl`). Opening a link only reads the review; Approve and Deny need a confirmation with an optional comment. |
+| `/admin/approvals`, `/admin/approvals/<uid>` | Administrator view, sharing the list and review components, with a Pending / Decided / All filter. |
+
+Behavior:
+
+- **Submission.** With the flag on, the catalog order form submits one `CatalogItemOrder` and opens its order page; it never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
+- **Unsupported requests** (external URL items, white glove requests, impersonation) are explained in the form and the Order button is disabled. Reorder on services and workshops opens the order form for the same item, which is a new order evaluated afresh; converting a multi-user service into a workshop is disabled with an explanation.
+- **Errors.** Backend `error`/`message` are shown as returned; a 403 is not treated as a disabled account. Stale approval decisions (`already_decided`, `not_pending`, `expired`, `request_changed`, `policy_changed`, `order_conflict`) reload the request instead of replaying the decision; `manager_lookup_unavailable` is shown as temporary.
+- **Identity.** Order and approval SWR keys include the signed-in user, so cached privileged data is never shown to another identity. Approval authority always comes from the API; the UI never uses the displayed or impersonated email.
+- **Deep links.** oauth-proxy returns unauthenticated users to the requested URL after login, and the session retry in `api.ts` now stays on the current path instead of redirecting to `/`.
+
+Not covered here (GPTEINFRA-18191): MultiWorkshop creation, white glove fulfilment, and other clients still create resources directly.
 
 ### GPTEINFRA-18191: client migration and enforcement
 

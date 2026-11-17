@@ -88,6 +88,7 @@ import {
 } from '@app/reorder-utils';
 import useSWRImmutable from 'swr/immutable';
 import parseDuration from 'parse-duration';
+import { newOrderPath } from '@app/CatalogItemOrders/order-utils';
 
 import './workshops-item.css';
 
@@ -115,7 +116,8 @@ const WorkshopsItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { mutate } = useSWRConfig();
-  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email, catalogItemOrdersEnabled } =
+    useSession().getSession();
   const [modalState, setModalState] = useState<ModalState>({});
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
@@ -650,7 +652,9 @@ const WorkshopsItemComponent: React.FC<{
                     ? () => showModal({ action: 'stopServices', resourceClaims: instanceResourceClaims })
                     : null,
                   reorder: canReorderWorkshop(workshop, catalogItem, workshopProvision, groups, isAdmin)
-                    ? () => openModalReorder()
+                    ? catalogItemOrdersEnabled
+                      ? () => navigate(newOrderPath(catalogItem))
+                      : () => openModalReorder()
                     : null,
                 }}
                 canManageCollaborators={canManageCollaborators}

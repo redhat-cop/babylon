@@ -53,3 +53,30 @@ it('shows the badge and opens the newest page once before returning to the paren
   expect(link).toHaveAttribute('href', '/whats-new');
   expect(localStorage.getItem('whats-new-read:nav-user')).toBe('latest');
 });
+
+describe('catalog item order navigation', () => {
+  function renderWithOrders(catalogItemOrdersEnabled: boolean, isAdmin = false, path = '/orders') {
+    (useSession as jest.Mock).mockReturnValue({
+      getSession: () => ({ isAdmin, userInterface: 'rhpds', email: 'nav-user', userNamespace: { name: 'test' }, catalogItemOrdersEnabled }),
+    });
+    return render(<MemoryRouter initialEntries={[path]}><Navigation /></MemoryRouter>);
+  }
+
+  it('hides Approvals and Order Approvals while the feature is disabled', () => {
+    renderWithOrders(false, true);
+    expect(screen.queryByRole('link', { name: 'Approvals' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Order Approvals' })).not.toBeInTheDocument();
+  });
+
+  it('offers Approvals to every user and highlights My Services for orders', () => {
+    renderWithOrders(true);
+    expect(screen.getByRole('link', { name: 'Approvals' })).toHaveAttribute('href', '/approvals');
+    expect(screen.getByRole('link', { name: 'My Services' })).toHaveClass('pf-m-current');
+    expect(screen.queryByRole('link', { name: 'Order Approvals' })).not.toBeInTheDocument();
+  });
+
+  it('adds the admin view for administrators', () => {
+    renderWithOrders(true, true, '/admin/approvals');
+    expect(screen.getByRole('link', { name: 'Order Approvals' })).toHaveAttribute('href', '/admin/approvals');
+  });
+});

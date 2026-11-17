@@ -24,7 +24,7 @@ const ExactNavLink = ({ children, to, className, ...props }: LinkProps) => {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled, white_glove_enabled } = useInterfaceConfig();
-  const { isAdmin, userNamespace, userInterface, email } = useSession().getSession();
+  const { isAdmin, userNamespace, userInterface, email, catalogItemOrdersEnabled } = useSession().getSession();
 
   const whatsNewEnabled = isAdmin && userInterface !== 'rhdp-partners';
   const { data: whatsNew } = useWhatsNew(whatsNewEnabled);
@@ -99,6 +99,7 @@ const Navigation: React.FC = () => {
         to={`/services/${userNamespace.name}`}
         className={
           location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+          (catalogItemOrdersEnabled && locationStartsWith('/orders')) ||
           location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
           location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
             ? 'pf-m-current'
@@ -106,6 +107,16 @@ const Navigation: React.FC = () => {
         }
       >
         My Services
+      </NavLink>
+    </NavItem>
+  ) : null;
+
+  // Anyone can be a manager, so the panel is offered to every user; the API
+  // returns only the requests the signed-in user is authorized to review.
+  const approvalsNavigation = catalogItemOrdersEnabled ? (
+    <NavItem>
+      <NavLink to="/approvals" className={locationStartsWith('/approvals') ? 'pf-m-current' : ''}>
+        Approvals
       </NavLink>
     </NavItem>
   ) : null;
@@ -245,6 +256,13 @@ const Navigation: React.FC = () => {
           Multi-Workshops
         </ExactNavLink>
       </NavItem>
+      {catalogItemOrdersEnabled ? (
+        <NavItem>
+          <ExactNavLink className={locationStartsWith('/admin/approvals') ? 'pf-m-current' : ''} to="/admin/approvals">
+            Order Approvals
+          </ExactNavLink>
+        </NavItem>
+      ) : null}
       <NavItem>
         <ExactNavLink
           className={locationStartsWith('/admin/system-status') ? 'pf-m-current' : ''}
@@ -268,6 +286,7 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
+        {approvalsNavigation}
         {activityNavigation}
         {multiWorkshopNavigation}
         {whiteGloveNavigation}
