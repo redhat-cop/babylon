@@ -301,6 +301,54 @@ class TestApprovalGate(ControllerTestCase):
         self.assertEqual(order['status']['approval']['state'], 'NotRequired')
         self.assertEqual(order['status']['approval']['exemption']['source'], 'test')
 
+    async def test_manager_exemption_skips_approval_only_for_senior_managers(self):
+        from test_catalog_item_order_manager import LIVE_DETAILS, StaticResolver, senior_manager_response
+        from catalog_item_order_manager import LOOKUP_UNAVAILABLE, ManagerExemptions, ManagerLookupError
+        cases = (
+            ('level 5 manager', senior_manager_response(5), 'Ready'),
+            ('level 6 employee', LIVE_DETAILS, 'PendingApproval'),
+            ('lookup unavailable', ManagerLookupError(LOOKUP_UNAVAILABLE, 'down'), 'PendingApproval'),
+        )
+        for name, result, phase in cases:
+            with self.subTest(name):
+                self.kube = FakeKube()
+                grant_default_access(self.kube)
+                resolver = StaticResolver(result)
+                controller = CatalogItemOrderController(
+                    self.kube, self.config, clock=self.clock,
+                    exemptions=ManagerExemptions(resolver, 5), manager_resolver=resolver,
+                )
+                order = await self.reconcile(await self.submit(self.add_item(raw_policy=MANAGER_POLICY)), controller)
+                approval = order['status']['approval']
+                if phase == 'Ready':
+                    self.assertIn(order['status']['phase'], ('Ready', 'Provisioning'))
+                    self.assertEqual(approval['state'], 'NotRequired')
+                    self.assertEqual(approval['exemption']['source'], 'reporting-api-manager-level')
+                else:
+                    self.assertEqual(order['status']['phase'], phase)
+                    self.assertNotIn('exemption', approval)
+                    self.assertFalse(self.claims())
+
+    async def test_exemption_is_not_consulted_when_no_approval_is_required(self):
+        class Exempt:
+            calls = 0
+
+            async def find_exemption(self, order, evaluation):
+                Exempt.calls += 1
+                return {'source': 'test', 'reason': 'test'}
+        controller = CatalogItemOrderController(self.kube, self.config, clock=self.clock, exemptions=Exempt())
+        order = await self.reconcile(await self.submit(self.add_item()), controller)
+        self.assertNotIn('exemption', order['status']['approval'])
+        self.assertEqual(Exempt.calls, 0)
+
+    def test_manager_exemption_config(self):
+        self.assertIsNone(ControllerConfig.from_env({}).manager_exemption_max_level)
+        self.assertIsNone(ControllerConfig.from_env({'ORDER_MANAGER_EXEMPTION_MAX_LEVEL': ''}).manager_exemption_max_level)
+        self.assertEqual(ControllerConfig.from_env({'ORDER_MANAGER_EXEMPTION_MAX_LEVEL': '5'}).manager_exemption_max_level, 5)
+        for bad in ('0', '15'):
+            with self.subTest(bad), self.assertRaises(ValueError):
+                ControllerConfig.from_env({'ORDER_MANAGER_EXEMPTION_MAX_LEVEL': bad})
+
 
 class TestPolicyFailuresBlock(ControllerTestCase):
     async def test_invalid_policy_blocks_then_recovers_with_fresh_evaluation(self):

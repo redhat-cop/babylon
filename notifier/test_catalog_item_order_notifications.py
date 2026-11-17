@@ -148,6 +148,10 @@ class TestNotificationsFor(unittest.TestCase):
     def test_not_required_and_old_events_send_nothing(self):
         not_required = decided(pending_order(), 'NotRequired', 'Provisioning')
         self.assertEqual(notifications_for(not_required, now=NOW), [])
+        exempt = decided(pending_order(), 'NotRequired', 'Provisioning', exemption={
+            'source': 'reporting-api-manager-level', 'reason': 'Requester is a manager at level 5',
+        })
+        self.assertEqual(notifications_for(exempt, now=NOW), [], 'manager-exempt orders send no email')
         self.assertEqual(notifications_for(approved_order(), now=NOW + timedelta(days=8)), [])
 
     def test_provisioning_retry_does_not_create_new_events(self):

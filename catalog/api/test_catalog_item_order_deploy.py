@@ -242,6 +242,7 @@ class TestHelm(unittest.TestCase):
         self.assertEqual(env['CATALOG_BASE_URL'], 'https://catalog.example.com')
         self.assertEqual(env['ORDER_RETRY_MAX_ATTEMPTS'], '2')
         self.assertEqual(env['ORDER_RETENTION'], '30d')
+        self.assertEqual(env['ORDER_MANAGER_EXEMPTION_MAX_LEVEL'], '5')
         self.assertFalse(container['securityContext']['allowPrivilegeEscalation'])
 
     def test_controller_gets_reporting_api_credentials(self):

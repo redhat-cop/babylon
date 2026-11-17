@@ -53,6 +53,11 @@ catalogItemOrders:
     # permanently blocked) this long after completion. Orders that can still be
     # retried or whose provisioning resources still exist are kept. Empty disables.
     retention: 30d
+    # Orders from requesters the Reporting API marks as managers (is_manager)
+    # at this level or above in their own management chain skip manager
+    # approval. Level 1 is the top of the organization. Lookup failures and
+    # missing data never exempt. Empty disables.
+    managerExemptionMaxLevel: 5
     resyncInterval: 60
     workers: 4
     resources:

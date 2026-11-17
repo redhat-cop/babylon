@@ -449,7 +449,16 @@ Delivery is tracked in Redis per order uid, event, approval cycle and recipient.
 
 ### Exemptions
 
-The exemption-provider extension point (`CatalogItemOrderController(exemptions=...)`) remains disabled: the shipped `NoApprovalExemptions` never exempts. The Reporting API provides `level_1` … `level_14` chain fields, Live data numbers them from the top of the organization (`level_1`) down to the user, but the schema does not guarantee this, and whether a level threshold applies to the requester or an ancestor, and the comparison, are undefined. No AgnosticV syntax or default exists for exemptions, and missing hierarchy data never exempts an order.
+Requesters who are senior managers skip manager approval. When a policy requires approval from `requester_manager`, the controller looks up the requester (the same `?details=true` call used for manager resolution) and exempts the order only if:
+
+- the Reporting API marks the requester `is_manager: true`, and
+- the requester's own email appears exactly once in their single active `manager_levels` record, at level `catalogItemOrders.controller.managerExemptionMaxLevel` (default `5`) or above. Level 1 is the top of the organization, so "above" means a lower number.
+
+For example, a manager at level 5 is exempt, and an employee at level 6, or a manager at level 6, still needs approval.
+
+The check runs once, when the policy is evaluated. A lookup failure, a missing or repeated requester level, or more than one active record never exempts: the order goes to `PendingApproval` as usual. An exempt order records `status.approval.state: NotRequired` with `status.approval.exemption` (`source: reporting-api-manager-level` and a reason naming the level), so it can be audited. Set `managerExemptionMaxLevel` empty to disable exemptions (`ORDER_MANAGER_EXEMPTION_MAX_LEVEL` in the controller). Exemptions are global, not per catalog item, and there is no AgnosticV syntax for them.
+
+Level numbering comes from live data; the Reporting API schema does not define it.
 
 ## Contracts for dependent tickets
 

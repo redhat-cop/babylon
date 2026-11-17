@@ -13,6 +13,8 @@ from catalog_item_order_manager import (
     LOOKUP_NOT_FOUND,
     LOOKUP_UNAVAILABLE,
     MAX_MANAGER_LEVEL,
+    ManagerData,
+    ManagerExemptions,
     ManagerLookupError,
     ReportingApiClient,
     parse_manager_data,
@@ -193,6 +195,93 @@ class TestLiveResponseShape(unittest.TestCase):
         self.assertEqual(data.authority_for('dana.manager@example.com'), (BASIS_DIRECT_MANAGER, None))
         self.assertEqual(data.authority_for('ceo.example@example.com'), (BASIS_MANAGEMENT_CHAIN, 1))
         self.assertIsNone(data.authority_for('alice@example.com'))
+
+
+def senior_manager_response(level=5, is_manager=True):
+    """LIVE_DETAILS reshaped so the requester sits at `level` of their own chain."""
+    user = copy.deepcopy(LIVE_DETAILS)
+    user['is_manager'] = is_manager
+    record = user['manager_levels'][0]
+    chain = [record[f'level_{n}_email'] for n in range(1, 15) if record[f'level_{n}_email']][:-1]
+    chain = chain[:level - 1]
+    for n in range(1, 15):
+        record[f'level_{n}_email'] = (chain + ['alice@example.com'])[n - 1] if n <= level else None
+    user['manager'] = {**user['manager'], 'email': chain[-1]} if chain else None
+    return user
+
+
+class TestRequesterLevel(unittest.TestCase):
+    def test_live_requester_level_and_flag(self):
+        data = parse_manager_data('alice@example.com', LIVE_DETAILS)
+        self.assertEqual(data.requester_level, 6)
+        self.assertFalse(data.requester_is_manager)
+        data = parse_manager_data('alice@example.com', senior_manager_response(5))
+        self.assertEqual(data.requester_level, 5)
+        self.assertTrue(data.requester_is_manager)
+        self.assertNotIn('alice@example.com', data.chain)
+
+    def test_ambiguous_or_missing_level_gives_none(self):
+        repeated = copy.deepcopy(LIVE_DETAILS)
+        repeated['manager_levels'][0]['level_7_email'] = 'alice@example.com'
+        missing = copy.deepcopy(LIVE_DETAILS)
+        missing['manager_levels'][0]['level_6_email'] = None
+        truthy = {**LIVE_DETAILS, 'is_manager': 'true'}
+        self.assertIsNone(parse_manager_data('alice@example.com', repeated).requester_level)
+        self.assertIsNone(parse_manager_data('alice@example.com', missing).requester_level)
+        self.assertFalse(parse_manager_data('alice@example.com', truthy).requester_is_manager)
+
+
+class StaticResolver:
+    def __init__(self, result):
+        self.result = result
+        self.calls = []
+
+    async def get_manager_data(self, email):
+        self.calls.append(email)
+        if isinstance(self.result, BaseException):
+            raise self.result
+        return parse_manager_data(email, self.result)
+
+
+ORDER = {'spec': {'requester': {'user': 'alice@example.com', 'email': 'alice@example.com'}}}
+
+
+class TestManagerExemptions(unittest.IsolatedAsyncioTestCase):
+    async def exemption(self, result, max_level=5, order=ORDER):
+        return await ManagerExemptions(StaticResolver(result), max_level).find_exemption(order, {})
+
+    async def test_senior_managers_are_exempt(self):
+        for level in (1, 4, 5):
+            with self.subTest(level=level):
+                exemption = await self.exemption(senior_manager_response(level))
+                self.assertEqual(exemption['source'], 'reporting-api-manager-level')
+                self.assertIn(f'level {level}', exemption['reason'])
+
+    async def test_others_are_not_exempt(self):
+        cases = {
+            'level 6 manager': senior_manager_response(6),
+            'level 5 non-manager': senior_manager_response(5, is_manager=False),
+            'live requester (level 6, not a manager)': LIVE_DETAILS,
+            'default response without details': {**LIVE_DEFAULT, 'is_manager': True},
+            'two active records': {**senior_manager_response(5), 'manager_levels': senior_manager_response(5)['manager_levels'] * 2},
+            'lookup unavailable': ManagerLookupError(LOOKUP_UNAVAILABLE, 'down'),
+            'requester not found': ManagerLookupError(LOOKUP_NOT_FOUND, 'missing'),
+            'unexpected error': RuntimeError('boom'),
+        }
+        for name, result in cases.items():
+            with self.subTest(name):
+                self.assertIsNone(await self.exemption(result))
+
+    async def test_requester_without_email_is_not_looked_up(self):
+        resolver = StaticResolver(senior_manager_response(1))
+        order = {'spec': {'requester': {'user': 'alice'}}}
+        self.assertIsNone(await ManagerExemptions(resolver, 5).find_exemption(order, {}))
+        self.assertEqual(resolver.calls, [])
+
+    def test_max_level_is_validated(self):
+        for level in (0, 15, '5', None):
+            with self.subTest(level=level), self.assertRaises(ValueError):
+                ManagerExemptions(StaticResolver(None), level)
 
 
 class TestReportingApiClient(unittest.IsolatedAsyncioTestCase):

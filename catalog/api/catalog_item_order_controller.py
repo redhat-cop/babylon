@@ -80,6 +80,8 @@ from catalog_item_order_adapters import (
 from catalog_item_order_kube import KubeConflictError, KubeError, KubeOrderClient
 from catalog_item_order_manager import (
     AUTHORITY_BASES,
+    MAX_MANAGER_LEVEL,
+    ManagerExemptions,
     ManagerLookupError,
     ReportingApiClient,
     normalize_email,
@@ -110,8 +112,13 @@ class ControllerConfig:
     self_paced_lab_fail_threshold: int = 60
     # Delete completed orders this long after completion; None disables.
     retention: str | None = '30d'
+    # Exempt managers at this chain level or above (1 is the top); None disables.
+    manager_exemption_max_level: int | None = None
 
     def __post_init__(self):
+        level = self.manager_exemption_max_level
+        if level is not None and not 1 <= level <= MAX_MANAGER_LEVEL:
+            raise ValueError(f"manager_exemption_max_level must be between 1 and {MAX_MANAGER_LEVEL}")
         if self.review_base_url is None:
             self.review_base_url = self.catalog_base_url
         if self.retention is not None and not parse_duration(self.retention):
@@ -138,14 +145,16 @@ class ControllerConfig:
             workshop_fail_threshold=int(environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60)),
             self_paced_lab_fail_threshold=int(environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60)),
             retention=environ.get('ORDER_RETENTION', '30d') or None,
+            manager_exemption_max_level=int(environ['ORDER_MANAGER_EXEMPTION_MAX_LEVEL'])
+            if environ.get('ORDER_MANAGER_EXEMPTION_MAX_LEVEL') else None,
         )
 
 
 class NoApprovalExemptions:
     """Extension point for approval exemptions.
 
-    Reporting-level exemption semantics are unresolved (GPTEINFRA-18189), so
-    the shipped provider never exempts. A provider must return None unless an
+    Used when the manager exemption is not configured; see
+    catalog_item_order_manager.ManagerExemptions. A provider must return None unless an
     approved exemption source positively grants one; missing or unavailable
     manager data must never produce an exemption. A returned dict
     ({source, reason}) is recorded in status.approval.exemption."""
@@ -371,13 +380,14 @@ class CatalogItemOrderController:
             return self._block(order, status, reason, message, now, True, PHASE_SUBMITTED)
         set_condition(status, 'PolicyEvaluated', 'True', evaluation['state'], '', now)
 
-        exemption = None
-        if evaluation['approvalRequired']:
-            exemption = await self.exemptions.find_exemption(order, evaluation)
         approval = {
             'requestDigest': spec['requestDigest'],
             'approver': ((published or {}).get('approval') or {}).get('approver', 'requester_manager'),
         }
+        exemption = None
+        # Exemptions replace manager approval only; other approvers are never skipped.
+        if evaluation['approvalRequired'] and approval['approver'] == 'requester_manager':
+            exemption = await self.exemptions.find_exemption(order, evaluation)
         if evaluation['policyDigest']:
             approval['policyDigest'] = evaluation['policyDigest']
 
@@ -899,9 +909,13 @@ async def main():
         reporting_api = os.environ.get(
             'SALESFORCE_API', 'http://reporting-api.demo-reporting.svc.cluster.local:8080'
         )
+        manager_resolver = ReportingApiClient(reporting_api, os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN'))
+        exemptions = None
+        if config.manager_exemption_max_level is not None:
+            exemptions = ManagerExemptions(manager_resolver, config.manager_exemption_max_level)
+            logger.info("Manager approval exemption enabled at level %d or above", config.manager_exemption_max_level)
         controller = CatalogItemOrderController(
-            kube, config,
-            manager_resolver=ReportingApiClient(reporting_api, os.environ.get('SALESFORCE_AUTHORIZATION_TOKEN')),
+            kube, config, exemptions=exemptions, manager_resolver=manager_resolver,
         )
         logger.info("Starting CatalogItemOrder controller")
         await run(controller, kube, config)

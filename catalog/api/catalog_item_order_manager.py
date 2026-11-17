@@ -20,12 +20,15 @@ data never grants authority.
 """
 
 import asyncio
+import logging
 import re
 from dataclasses import dataclass, field
 
 import aiohttp
 
 from catalog_item_order import reporting_user_lookup_path
+
+logger = logging.getLogger('catalog_item_order_manager')
 
 MAX_MANAGER_LEVEL = 14
 _LEVEL_EMAIL_RE = re.compile(r'^level_(\d+)_email$')
@@ -71,6 +74,10 @@ class ManagerData:
     # Management chain emails mapped to the level field they appeared in.
     chain: dict = field(default_factory=dict)
     chain_available: bool = False
+    # Requester facts used only for the manager exemption, never for authority.
+    requester_is_manager: bool = False
+    # The level field holding the requester's own email in their active record.
+    requester_level: int | None = None
 
     def authority_for(self, email):
         """Return (basis, level) for email, or None if not an eligible approver."""
@@ -120,6 +127,7 @@ def parse_manager_data(requester_email, user):
         and normalize_email(record.get('user_email')) == requester_email
     ]
     chain = {}
+    own_levels = []
     chain_available = len(active) == 1
     if chain_available:
         for key, value in active[0].items():
@@ -127,7 +135,9 @@ def parse_manager_data(requester_email, user):
             if not match or not 1 <= int(match.group(1)) <= MAX_MANAGER_LEVEL:
                 continue
             email = normalize_email(value)
-            if email and email != requester_email:
+            if email == requester_email:
+                own_levels.append(int(match.group(1)))
+            elif email:
                 chain.setdefault(email, int(match.group(1)))
     return ManagerData(
         requester_email=requester_email,
@@ -135,7 +145,49 @@ def parse_manager_data(requester_email, user):
         direct_manager_name=direct_name,
         chain=chain,
         chain_available=chain_available,
+        requester_is_manager=user.get('is_manager') is True,
+        # Ambiguous (repeated) or missing positions give no level.
+        requester_level=own_levels[0] if len(own_levels) == 1 else None,
     )
+
+
+class ManagerExemptions:
+    """Exempt orders from manager approval when the requester is a senior manager.
+
+    Exempts only when a successful Reporting API lookup shows the requester has
+    `is_manager: true` and holds level `max_level` or above in their own active
+    management chain (level 1 is the top of the organization, so above means a
+    lower number). Lookup failures, missing or ambiguous data never exempt."""
+
+    SOURCE = 'reporting-api-manager-level'
+
+    def __init__(self, resolver, max_level):
+        if not isinstance(max_level, int) or not 1 <= max_level <= MAX_MANAGER_LEVEL:
+            raise ValueError(f"max_level must be between 1 and {MAX_MANAGER_LEVEL}")
+        self.resolver = resolver
+        self.max_level = max_level
+
+    async def find_exemption(self, order, evaluation):
+        email = normalize_email(((order.get('spec') or {}).get('requester') or {}).get('email'))
+        if email is None:
+            return None
+        try:
+            data = await self.resolver.get_manager_data(email)
+        except ManagerLookupError as exception:
+            logger.info("No manager exemption for %s: %s", email, exception.reason)
+            return None
+        except Exception:
+            logger.exception("Manager exemption lookup failed for %s", email)
+            return None
+        level = data.requester_level
+        if not (data.chain_available and data.requester_is_manager and level is not None):
+            return None
+        if level > self.max_level:
+            return None
+        return {
+            'source': self.SOURCE,
+            'reason': f"Requester is a manager at level {level} (exempt at level {self.max_level} or above)",
+        }
 
 
 class ReportingApiClient:
