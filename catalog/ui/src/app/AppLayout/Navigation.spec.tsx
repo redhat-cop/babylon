@@ -62,10 +62,16 @@ describe('catalog item order navigation', () => {
     return render(<MemoryRouter initialEntries={[path]}><Navigation /></MemoryRouter>);
   }
 
-  it('offers Approvals to every user and highlights My Services for orders', () => {
+  it('lists Orders under My Services and offers Approvals to every user', () => {
     renderAt('/orders');
     expect(screen.getByRole('link', { name: 'Approvals' })).toHaveAttribute('href', '/approvals');
-    expect(screen.getByRole('link', { name: 'My Services' })).toHaveClass('pf-m-current');
+    const orders = screen.getByRole('link', { name: 'Orders' });
+    expect(orders).toHaveAttribute('href', '/orders');
+    expect(orders).toHaveClass('pf-m-current');
+    expect(screen.getByRole('link', { name: 'Services' })).toHaveAttribute('href', '/services/test');
+    expect(screen.getByRole('link', { name: 'Services' })).not.toHaveClass('pf-m-current');
+    // Orders sits inside the My Services group.
+    expect(screen.getByRole('button', { name: 'My Services' }).closest('li')).toContainElement(orders);
     expect(screen.queryByRole('link', { name: 'Order Approvals' })).not.toBeInTheDocument();
   });
 

@@ -473,7 +473,7 @@ Implemented in `catalog/ui/src/app/CatalogItemOrders/`, always on.
 
 | Route | Page |
 |---|---|
-| `/orders` | Orders section of My Services (Services / Orders tabs). Lists the requester's orders, refreshing every 8 s while any order is active. |
+| `/orders` | My Services → Orders in the navigation (My Services is a group with Services and Orders). Lists the requester's orders, refreshing every 8 s while any order is active. |
 | `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`): status, approval reason, manager, expiry, review link, schedule, parameters, attempts, history; Cancel when `cancel.allowed`, and links to the service, workshop or lab page once its resource exists. The UI offers no retry. |
 | `/approvals`, `/approvals/<uid>` | Manager panel and review page (`status.approval.reviewUrl`). Opening a link only reads the review; Approve and Deny need a confirmation with an optional comment. |
 | `/admin/approvals`, `/admin/approvals/<uid>` | Administrator view, sharing the list and review components, with a Pending / Decided / All filter. |

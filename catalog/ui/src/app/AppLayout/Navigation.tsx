@@ -94,21 +94,27 @@ const Navigation: React.FC = () => {
   );
 
   const serviceNavigation = userNamespace ? (
-    <NavItem>
-      <NavLink
-        to={`/services/${userNamespace.name}`}
-        className={
-          location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-          locationStartsWith('/orders') ||
-          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
-          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
-            ? 'pf-m-current'
-            : ''
-        }
-      >
-        My Services
-      </NavLink>
-    </NavItem>
+    <NavExpandable title="My Services" isExpanded={true}>
+      <NavItem>
+        <NavLink
+          to={`/services/${userNamespace.name}`}
+          className={
+            location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+            location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+            location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+              ? 'pf-m-current'
+              : ''
+          }
+        >
+          Services
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink to="/orders" className={locationStartsWith('/orders') ? 'pf-m-current' : ''}>
+          Orders
+        </NavLink>
+      </NavItem>
+    </NavExpandable>
   ) : null;
 
   // Anyone can be a manager, so the panel is offered to every user; the API

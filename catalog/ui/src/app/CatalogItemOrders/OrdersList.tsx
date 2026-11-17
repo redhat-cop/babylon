@@ -27,7 +27,6 @@ import { getOrderStatus, isOrderActive, orderTypeLabel } from './order-utils';
 import OrderStatusLabel from './OrderStatusLabel';
 import OrderTime from './OrderTime';
 import CatalogItemName from './CatalogItemName';
-import MyServicesTabs from './MyServicesTabs';
 
 export const ACTIVE_REFRESH_MS = 8000;
 const IDLE_REFRESH_MS = 60000;
@@ -75,7 +74,7 @@ export const OrdersTable: React.FC<{ orders: CatalogItemOrder[] }> = ({ orders }
 );
 
 const OrdersList: React.FC = () => {
-  const { userNamespace, authUser } = useSession().getSession();
+  const { authUser } = useSession().getSession();
   const { data, error, isLoading, mutate } = useSWR<CatalogItemOrderList, OrderApiError>(
     [apiPaths.CATALOG_ITEM_ORDERS(), authUser],
     ([path]: [string, string]) => orderFetcher<CatalogItemOrderList>(path),
@@ -90,7 +89,6 @@ const OrdersList: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
-      <MyServicesTabs active="orders" servicesPath={userNamespace ? `/services/${userNamespace.name}` : '/services'} />
       <PageSection hasBodyWrapper={false}>
         <Split hasGutter>
           <SplitItem isFilled>

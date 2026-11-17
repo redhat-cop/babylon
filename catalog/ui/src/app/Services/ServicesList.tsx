@@ -48,7 +48,6 @@ import Modal, { useModal } from '@app/Modal/Modal';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import ProjectSelector from '@app/components/ProjectSelector';
-import MyServicesTabs from '@app/CatalogItemOrders/MyServicesTabs';
 import ServicesAction from './ServicesAction';
 import ServiceActions from './ServiceActions';
 import ServicesScheduleAction from './ServicesScheduleAction';
@@ -668,7 +667,6 @@ const ServicesList: React.FC<{
           workshop={modalState.workshop}
         />
       </Modal>
-      <MyServicesTabs active="services" servicesPath={`/services/${serviceNamespaceName}`} />
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
           <ProjectSelector
