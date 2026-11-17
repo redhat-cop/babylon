@@ -22,8 +22,11 @@ import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-ta
 import type { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
+// Mirrors the API: searches must be specific, so short terms are not sent.
+const SFDC_SEARCH_MIN_LENGTH = 3;
+
 async function fetchAccounts(accountValue: string, sfdcType: SfdcType): Promise<SalesforceAccount[]> {
-  if (!sfdcType) return [];
+  if (!sfdcType || accountValue.trim().length < SFDC_SEARCH_MIN_LENGTH) return [];
   const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
   return acc.items;
 }
@@ -152,7 +155,7 @@ const SearchSalesforceId: React.FC<{
               <InputGroupItem isFill>
                 <SearchInput
                   value={accountValue}
-                  placeholder={selectedAccount?.name || 'Search'}
+                  placeholder={selectedAccount?.name || `Search (at least ${SFDC_SEARCH_MIN_LENGTH} characters)`}
                   onChange={(_event, value) => setAccountValue(value)}
                   aria-labelledby="pf-v6-context-selector-search-button-id-1"
                 />
