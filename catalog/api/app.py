@@ -726,32 +726,83 @@ async def create_support(request):
         url=f"{admin_api}/api/admin/v1/workshop/support",
     )
 
+# Salesforce search is meant for picking a specific account/campaign/project
+# while ordering, not for browsing the CRM. Searches must be specific
+# (minimum length, no wildcard characters) and results are capped.
+SFDC_SALES_TYPES = ('campaign', 'project', 'opportunity')
+SFDC_SEARCH_MIN_LENGTH = int(os.environ.get('SFDC_SEARCH_MIN_LENGTH', 3))
+SFDC_SEARCH_MAX_LENGTH = 100
+SFDC_SEARCH_MAX_RESULTS = int(os.environ.get('SFDC_SEARCH_MAX_RESULTS', 25))
+SFDC_SEARCH_DISALLOWED_CHARS = re.compile(r"[%_*?\\'\"]")
+SFDC_ACCOUNT_ID_RE = re.compile(r'^[A-Za-z0-9]{1,40}$')
+
+
+def sfdc_sales_type(request, required=False):
+    sales_type = request.query.get('sales_type')
+    if not sales_type:
+        if required:
+            raise web.HTTPBadRequest(reason="sales_type is required")
+        return None
+    if sales_type not in SFDC_SALES_TYPES:
+        raise web.HTTPBadRequest(reason="Invalid sales_type")
+    return sales_type
+
+
+def sfdc_search_value(value):
+    """Return the normalized search term, or None if it is too broad to send upstream."""
+    value = (value or '').strip()
+    if len(value) > SFDC_SEARCH_MAX_LENGTH:
+        raise web.HTTPBadRequest(reason="Search value is too long")
+    if SFDC_SEARCH_DISALLOWED_CHARS.search(value):
+        return None
+    if len(value) < SFDC_SEARCH_MIN_LENGTH:
+        return None
+    return value
+
+
 @routes.get("/api/salesforce/accounts")
 async def list_sfdc_accounts(request):
-    await get_proxy_user(request)
+    user = await get_proxy_user(request)
+    sales_type = sfdc_sales_type(request, required=True)
+    value = sfdc_search_value(request.query.get("value"))
+    if value is None:
+        return web.json_response({"items": []})
+
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    params = {}
-    salesType = request.query.get("sales_type")
-    accountValue = request.query.get("value")
-    if salesType:
-        params["sales_type"] = salesType
-    params["value"] = accountValue if accountValue else "''"
-    return await api_proxy(
-        headers=headers,
-        method="GET",
-        url=f"{reporting_api}/search/accounts?{urlencode(params)}",
-    )
+    params = {"sales_type": sales_type, "value": value}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            f"{reporting_api}/search/accounts?{urlencode(params)}",
+            headers=headers,
+            allow_redirects=False,
+        ) as resp:
+            if resp.status != 200:
+                logging.warning(f"Salesforce account search failed ({resp.status})")
+                raise web.HTTPBadGateway(reason=f"Salesforce search failed: {resp.status}")
+            data = await resp.json()
+
+    items = data.get('items') if isinstance(data, dict) else None
+    if not isinstance(items, list):
+        items = []
+    audit_log('sfdc_account_search', user=user['metadata']['name'], details={
+        'sales_type': sales_type,
+        'results': len(items),
+    })
+    return web.json_response({"items": items[:SFDC_SEARCH_MAX_RESULTS]})
+
 @routes.get("/api/salesforce/accounts/{account_id}")
-async def list_sfdc_accounts(request):
+async def list_sfdc_account_items(request):
     await get_proxy_user(request)
     account_id = request.match_info.get('account_id')
+    if not SFDC_ACCOUNT_ID_RE.match(account_id or ''):
+        raise web.HTTPBadRequest(reason="Invalid Salesforce account id")
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
     params = {"account_id": account_id}
-    salesType = request.query.get("sales_type")
+    salesType = sfdc_sales_type(request)
     if salesType:
         params["sales_type"] = salesType
     return await api_proxy(
@@ -768,7 +819,7 @@ async def salesforce_id_validation(request):
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
     params = {"salesforce_id": salesforce_id}
-    salesType = request.query.get("sales_type")
+    salesType = sfdc_sales_type(request)
     if salesType:
         params["sales_type"] = salesType
     return await api_proxy(
