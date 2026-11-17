@@ -30,6 +30,8 @@ def fixture(name):
 CONTRACT = fixture('users_by_email_contract.json')
 USER = fixture('user_with_hierarchy.json')
 NO_MANAGER = fixture('user_without_manager.json')
+LIVE_DEFAULT = fixture('live_user_by_email.json')
+LIVE_DETAILS = fixture('live_user_by_email_details.json')
 
 
 class TestContract(unittest.TestCase):
@@ -163,12 +165,42 @@ def client(responses, calls):
     )
 
 
+class TestLiveResponseShape(unittest.TestCase):
+    """Sanitized copies of real Reporting API responses (observed 2026-11-17)."""
+
+    def test_default_response_has_no_relationships(self):
+        # Why the client must request details=true: the default response has
+        # a supervisor_number but no manager data, which parses as no manager.
+        self.assertIsNotNone(LIVE_DEFAULT['supervisor_number'])
+        data = parse_manager_data('alice@example.com', LIVE_DEFAULT)
+        self.assertIsNone(data.direct_manager_email)
+        self.assertFalse(data.chain_available)
+
+    def test_details_response_resolves_manager_and_chain(self):
+        data = parse_manager_data('alice@example.com', LIVE_DETAILS)
+        self.assertEqual(data.direct_manager_email, 'dana.manager@example.com')
+        self.assertEqual(data.direct_manager_name, 'Dana Manager')
+        self.assertTrue(data.chain_available)
+        # level_1 is the top of the organization; the requester is the deepest
+        # filled level and never becomes an approver of their own order.
+        self.assertEqual(data.chain, {
+            'ceo.example@example.com': 1,
+            'evp.example@example.com': 2,
+            'vp.example@example.com': 3,
+            'director.example@example.com': 4,
+            'dana.manager@example.com': 5,
+        })
+        self.assertEqual(data.authority_for('dana.manager@example.com'), (BASIS_DIRECT_MANAGER, None))
+        self.assertEqual(data.authority_for('ceo.example@example.com'), (BASIS_MANAGEMENT_CHAIN, 1))
+        self.assertIsNone(data.authority_for('alice@example.com'))
+
+
 class TestReportingApiClient(unittest.IsolatedAsyncioTestCase):
     async def test_lookup_encodes_email_and_uses_existing_auth(self):
         calls = []
         data = await client([FakeResponse(200, USER)], calls).get_manager_data('alice@example.com')
         self.assertEqual(data.direct_manager_email, 'dana.manager@example.com')
-        self.assertEqual(calls, [('http://reporting/users/by-email/alice%40example.com', {'Authorization': 'Bearer secret-token'})])
+        self.assertEqual(calls, [('http://reporting/users/by-email/alice%40example.com?details=true', {'Authorization': 'Bearer secret-token'})])
 
     async def test_failures_are_classified_and_retried(self):
         cases = (

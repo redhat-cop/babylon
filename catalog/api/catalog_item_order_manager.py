@@ -1,7 +1,8 @@
 """Manager resolution and approval authority for CatalogItemOrders (GPTEINFRA-18189).
 
-Manager data comes from Reporting API `GET /users/by-email/{email}`. The
-response contract (Reporting API v1.10.3, see
+Manager data comes from Reporting API `GET /users/by-email/{email}?details=true`
+(without `details` the relationship fields come back empty). The response
+contract (Reporting API v1.10.3, see
 fixtures/reporting_api/users_by_email_contract.json):
 
 - `manager`: the direct manager as a full User object, or null. The declared
@@ -12,8 +13,9 @@ fixtures/reporting_api/users_by_email_contract.json):
 
 Authority is set membership: the direct manager's email, or any
 `level_N_email` in the requester's single active record. The schema does not
-define whether level 1 is the top or the nearest level, so no decision here
-depends on level order or on the number of levels. Ambiguous or malformed
+define level order (live data has level 1 at the top of the organization and
+the user at the deepest filled level), so no decision here depends on level
+order or on the number of levels. Ambiguous or malformed
 data never grants authority.
 """
 

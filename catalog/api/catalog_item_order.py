@@ -171,8 +171,10 @@ def order_name(requester_uid, namespace, idempotency_key):
 def reporting_user_lookup_path(email):
     """Reporting API manager-data lookup path for GPTEINFRA-18189.
 
-    The authenticated requester email is encoded as one path segment."""
-    return '/users/by-email/' + quote(email, safe='')
+    The authenticated requester email is encoded as one path segment.
+    `details=true` is required: without it the Reporting API returns `manager`,
+    `manager_levels` and `reports` empty even for users who have a manager."""
+    return '/users/by-email/' + quote(email, safe='') + '?details=true'
 
 
 def sanitize_name(name, preserve_dots=False):

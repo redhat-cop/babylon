@@ -317,7 +317,7 @@ class TestNamesAndDigests(unittest.TestCase):
         self.assertIsNotNone(verify_order_integrity(regenerated))
 
     def test_reporting_user_lookup_path_encodes_email_as_one_segment(self):
-        self.assertEqual(reporting_user_lookup_path('a+b/c@example.com'), '/users/by-email/a%2Bb%2Fc%40example.com')
+        self.assertEqual(reporting_user_lookup_path('a+b/c@example.com'), '/users/by-email/a%2Bb%2Fc%40example.com?details=true')
 
 
 def pending_order(expires_in=timedelta(hours=72)):

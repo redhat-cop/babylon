@@ -331,7 +331,7 @@ Flow: `POST .../retry` records `status.retry`. The controller rechecks eligibili
 
 ### Manager resolution
 
-While an order is `PendingApproval`, the controller looks up the requester in the Reporting API (`GET /users/by-email/{email}`, the requester email encoded as one path segment, existing `SALESFORCE_API` URL and `SALESFORCE_AUTHORIZATION_TOKEN`). It records only what the notification needs:
+While an order is `PendingApproval`, the controller looks up the requester in the Reporting API (`GET /users/by-email/{email}?details=true`, the requester email encoded as one path segment, existing `SALESFORCE_API` URL and `SALESFORCE_AUTHORIZATION_TOKEN`). It records only what the notification needs:
 
 ```yaml
 status:
@@ -348,8 +348,10 @@ Response contract (Reporting API v1.10.3; excerpt in `catalog/api/fixtures/repor
 
 - `manager` is the direct manager as a full user object, or `null` (declared default `[]`, treated as no manager).
 - `manager_levels` is a list of records, each describing one user (`user_email`, `active`) and that user's management chain in `level_1_email` … `level_14_email`.
+- `details=true` is required. Without it, the live API returns `manager`, `manager_levels` and `reports` empty even when `supervisor_number` shows the user has a manager (observed 2026-11-17; sanitized copies of both responses are in `catalog/api/fixtures/reporting_api/live_user_by_email*.json`).
+- In live data, `level_1` is the top of the organization, the levels descend toward the user, and the deepest filled level is the user themselves. Unused levels are `null`.
 
-Eligible approvers are the direct manager's email and every `level_N_email` of the requester's single active record (never the requester). This is set membership: the schema does not say whether level 1 is the top or the nearest level, and nothing depends on that. Inactive records are ignored, and more than one active record makes the chain unavailable (the direct manager still applies). Job titles, `is_manager` and array lengths are not used.
+Eligible approvers are the direct manager's email and every `level_N_email` of the requester's single active record (never the requester). This is set membership and does not depend on level order, which the schema does not define (live data has level 1 at the top). Because the chain reaches the top of the organization, every manager above the requester is eligible. Inactive records are ignored, and more than one active record makes the chain unavailable (the direct manager still applies). Job titles, `is_manager` and array lengths are not used.
 
 Failures leave approval pending and set `state: Unresolved` with `reason`, `message` and a `ManagerResolved=False` condition:
 
@@ -447,7 +449,7 @@ Delivery is tracked in Redis per order uid, event, approval cycle and recipient.
 
 ### Exemptions
 
-The exemption-provider extension point (`CatalogItemOrderController(exemptions=...)`) remains disabled: the shipped `NoApprovalExemptions` never exempts. The Reporting API provides `level_1` … `level_14` chain fields, but whether a level threshold applies to the requester or an ancestor, the numbering direction and the comparison are undefined. No AgnosticV syntax or default exists for exemptions, and missing hierarchy data never exempts an order.
+The exemption-provider extension point (`CatalogItemOrderController(exemptions=...)`) remains disabled: the shipped `NoApprovalExemptions` never exempts. The Reporting API provides `level_1` … `level_14` chain fields, Live data numbers them from the top of the organization (`level_1`) down to the user, but the schema does not guarantee this, and whether a level threshold applies to the requester or an ancestor, and the comparison, are undefined. No AgnosticV syntax or default exists for exemptions, and missing hierarchy data never exempts an order.
 
 ## Contracts for dependent tickets
 
