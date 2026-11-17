@@ -56,7 +56,10 @@ Examples:
 
 		password := workshopAccessPassword
 		if password == "" {
-			password = api.GeneratePassword(8)
+			password, err = api.GeneratePassword(8)
+			if err != nil {
+				return err
+			}
 		}
 
 		workshop, err := apiClient.CreateWorkshop(
