@@ -147,9 +147,9 @@ const ApprovalReview: React.FC<{ uid: string; scope: ApprovalsScope }> = ({ uid,
           ? {
               variant: 'success',
               title: 'Request approved',
-              message: 'The requester is notified. Provisioning starts automatically; it has not started yet.',
+              message: 'The requester is notified and the service is created automatically.',
             }
-          : { variant: 'success', title: 'Request denied', message: 'The requester is notified. Nothing is provisioned.' },
+          : { variant: 'success', title: 'Request denied', message: 'The requester is notified. Nothing is created.' },
       );
     } catch (thrown) {
       const apiError = await toOrderApiError(thrown);
@@ -177,8 +177,8 @@ const ApprovalReview: React.FC<{ uid: string; scope: ApprovalsScope }> = ({ uid,
         onClose={() => setModal(null)}
       >
         <p>
-          The order for <strong>{review.catalogItem.displayName || review.catalogItem.name}</strong> from{' '}
-          <strong>{review.requester.email || review.requester.user}</strong> will be provisioned.
+          The service for <strong>{review.catalogItem.displayName || review.catalogItem.name}</strong> requested by{' '}
+          <strong>{review.requester.email || review.requester.user}</strong> will be created.
         </p>
       </ConfirmActionModal>
       <ConfirmActionModal
@@ -190,7 +190,7 @@ const ApprovalReview: React.FC<{ uid: string; scope: ApprovalsScope }> = ({ uid,
         onConfirm={(comment) => decide('deny', comment)}
         onClose={() => setModal(null)}
       >
-        <p>Nothing will be provisioned, and the requester will have to place a new order.</p>
+        <p>Nothing will be created, and the requester will have to place a new order.</p>
       </ConfirmActionModal>
 
       <PageSection hasBodyWrapper={false}>

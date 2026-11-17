@@ -90,7 +90,7 @@ describe('approval review (email links)', () => {
     expect(calls('POST')).toHaveLength(0);
   });
 
-  test('approving with a comment posts once and shows that provisioning has not started', async () => {
+  test('approving with a comment posts once and confirms the service will be created', async () => {
     handler = (url, init) => {
       if (init.method === 'POST') {
         expect(url.pathname).toBe('/api/catalog-item-order-approvals/uid-1/approve');
@@ -112,7 +112,7 @@ describe('approval review (email links)', () => {
     fireEvent.click(confirm);
 
     expect(await screen.findByText('Request approved')).toBeInTheDocument();
-    expect(screen.getByText(/it has not started yet/)).toBeInTheDocument();
+    expect(screen.getByText(/the service is created automatically/)).toBeInTheDocument();
     expect(calls('POST')).toHaveLength(1);
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument());
   });

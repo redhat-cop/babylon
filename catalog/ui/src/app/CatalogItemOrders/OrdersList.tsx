@@ -32,12 +32,13 @@ export const ACTIVE_REFRESH_MS = 8000;
 const IDLE_REFRESH_MS = 60000;
 
 /**
- * Orders shown to the requester: those that needed approval. Orders that need
- * no approval go straight to the created service and have no order page.
+ * Orders shown to the requester: those for which manager approval was
+ * requested. Orders that need no approval (or are still being evaluated) go
+ * straight to the created service and never show up here.
  */
 export function visibleOrders(orders: CatalogItemOrder[]): CatalogItemOrder[] {
   return orders
-    .filter((order) => order.approval?.state !== 'NotRequired')
+    .filter((order) => Boolean(order.approval?.requestedAt))
     .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
 }
 

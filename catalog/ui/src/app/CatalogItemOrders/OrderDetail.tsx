@@ -232,15 +232,15 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
           ) : null}
         </Alert>
 
-        <ActionList style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          {canCancel ? (
+        {canCancel ? (
+          <ActionList style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
             <ActionListItem>
               <Button variant="secondary" isDanger onClick={() => setModal('cancel')}>
                 Cancel order
               </Button>
             </ActionListItem>
-          ) : null}
-        </ActionList>
+          </ActionList>
+        ) : null}
       </PageSection>
 
       <PageSection hasBodyWrapper={false}>

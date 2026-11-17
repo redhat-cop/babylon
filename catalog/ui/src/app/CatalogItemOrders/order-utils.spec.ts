@@ -235,12 +235,13 @@ test('newOrderPath opens the order form for the same catalog item', () => {
 });
 
 describe('visibleOrders', () => {
-  test('lists only orders that needed approval, newest first', () => {
+  test('lists only orders for which approval was requested, newest first', () => {
     const { visibleOrders } = jest.requireActual('./OrdersList');
     const orders = [
-      order({ uid: 'a', submittedAt: '2026-11-15T00:00:00Z', approval: { state: 'Approved' } }),
+      order({ uid: 'a', submittedAt: '2026-11-15T00:00:00Z', approval: { state: 'Approved', requestedAt: 'x' } }),
       order({ uid: 'b', submittedAt: '2026-11-17T00:00:00Z', approval: { state: 'NotRequired' } }),
-      order({ uid: 'c', submittedAt: '2026-11-16T00:00:00Z', approval: { state: 'Pending' } }),
+      order({ uid: 'c', submittedAt: '2026-11-16T00:00:00Z', approval: { state: 'Pending', requestedAt: 'x' } }),
+      order({ uid: 'd', submittedAt: '2026-11-18T00:00:00Z', phase: 'Submitted' }),
     ];
     expect(visibleOrders(orders).map((o: CatalogItemOrder) => o.uid)).toEqual(['c', 'a']);
   });
