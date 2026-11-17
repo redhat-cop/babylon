@@ -5,11 +5,11 @@ import { Alert, Breadcrumb, BreadcrumbItem, Button, Checkbox, Form, FormGroup, L
 import type { MenuToggleElement } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
-import { apiPaths, createWhiteGloveRequest, createJiraTicketForWgr, patchWhiteGloveRequest, silentFetcher } from '@app/api';
+import { apiPaths, createWhiteGloveRequest, createJiraTicketForWgr, silentFetcher } from '@app/api';
 import type { BlockedDateRange } from '@app/api';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import type { CatalogItem, SalesforceItem } from '@app/types';
-import { DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem, WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES } from '@app/util';
+import { displayName, getPurposeOptsFromCatalogItem, WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES } from '@app/util';
 import { getSLA, SLAs } from '@app/Catalog/catalog-utils';
 import CatalogItemIcon from '@app/Catalog/CatalogItemIcon';
 import CatalogItemSelectorModal from '@app/components/CatalogItemSelectorModal';
@@ -146,19 +146,7 @@ const WhiteGloveCreateContent: React.FC = () => {
       });
 
       try {
-        const jiraTicket = await createJiraTicketForWgr(wgrData);
-        await patchWhiteGloveRequest({
-          name: result.metadata.name,
-          namespace: result.metadata.namespace,
-          patch: {
-            metadata: {
-              annotations: {
-                [`${DEMO_DOMAIN}/jira-ticket-id`]: jiraTicket.key,
-                [`${DEMO_DOMAIN}/jira-ticket-url`]: jiraTicket.url,
-              },
-            },
-          },
-        });
+        await createJiraTicketForWgr({ namespace: result.metadata.namespace, name: result.metadata.name });
       } catch (jiraError) {
         console.warn('Failed to create Jira ticket for WGR:', jiraError);
       }

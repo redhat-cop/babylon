@@ -1656,26 +1656,15 @@ export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
   return await deleteK8sObject(wgr);
 }
 
-export async function createJiraTicketForWgr(data: {
-  displayName: string;
-  catalogItemNames?: string[];
-  catalogItemNamespace?: string;
-  activity?: string;
-  purpose?: string;
-  explanation?: string;
-  numberOfUsers?: number;
-  eventDate?: string;
-  eventEndDate?: string;
-  notes?: string;
-  salesforceItems?: Array<{ id: string; type: string }>;
-  shareWith?: string[];
-  deliveryMode?: string;
-  audienceType?: string;
-}): Promise<{ key: string; url: string }> {
+/**
+ * Create the Jira ticket for an existing WhiteGloveRequest. The API builds the ticket
+ * from the stored WGR and records the ticket id/url annotations on it.
+ */
+export async function createJiraTicketForWgr(wgr: { namespace: string; name: string }): Promise<{ key: string; url: string }> {
   const response = await apiFetch('/api/jira/wgr', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ namespace: wgr.namespace, name: wgr.name }),
   });
   return response.json();
 }
