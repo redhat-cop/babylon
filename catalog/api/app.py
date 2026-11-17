@@ -1268,9 +1268,47 @@ async def create_jira_wgr_ticket(request):
 
     return web.json_response({"key": ticket_key, "url": ticket_url})
 
+async def _authorize_jira_issue_read(request, session, issue_key):
+    """Ensure the session user may read issue_key.
+
+    The Jira integration uses a service account that can read every ticket in
+    the project, so the API must enforce access itself. Admins may read any
+    ticket. Anyone else must name the WhiteGloveRequest that references the
+    ticket; it is fetched as that user, so Kubernetes RBAC decides whether they
+    own it, and its jira-ticket-id annotation must match issue_key.
+    """
+    if session.get('admin'):
+        return
+
+    namespace = request.query.get('namespace')
+    name = request.query.get('name')
+    if not namespace or not name:
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+
+    api_client = proxy_api_client(session)
+    try:
+        wgr = await kubernetes_asyncio.client.CustomObjectsApi(api_client).get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='whitegloverequests',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status in (401, 403, 404):
+            raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+        raise
+    finally:
+        await api_client.close()
+
+    annotations = wgr.get('metadata', {}).get('annotations') or {}
+    if annotations.get('demo.redhat.com/jira-ticket-id') != issue_key:
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+
 @routes.get("/api/jira/issue/{issue_key}")
 async def get_jira_issue_details(request):
-    await get_proxy_user(request)
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
 
     if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
@@ -1278,6 +1316,10 @@ async def get_jira_issue_details(request):
     issue_key = request.match_info.get('issue_key')
     if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
         raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+    if not issue_key.startswith(f"{jira_project_key}-"):
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+
+    await _authorize_jira_issue_read(request, session, issue_key)
 
     async with aiohttp.ClientSession() as http_session:
         headers = await jira_auth_headers(http_session)
@@ -1309,7 +1351,6 @@ async def get_jira_issue_details(request):
     if assignee_field:
         assignee = {
             "displayName": assignee_field.get('displayName'),
-            "emailAddress": assignee_field.get('emailAddress'),
         }
 
     comments = []

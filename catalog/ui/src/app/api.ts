@@ -2843,7 +2843,8 @@ export const apiPaths = {
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
   WHATS_NEW: () => `/api/whats-new`,
-  JIRA_ISSUE: ({ issueKey }: { issueKey: string }) => `/api/jira/issue/${issueKey}`,
+  JIRA_ISSUE: ({ issueKey, namespace, name }: { issueKey: string; namespace: string; name: string }) =>
+    `/api/jira/issue/${issueKey}?namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
   WHITE_GLOVE_REQUEST: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/whitegloverequests/${name}`,
   WHITE_GLOVE_REQUESTS: ({

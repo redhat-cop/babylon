@@ -126,3 +126,81 @@ class JiraWgrTests(unittest.IsolatedAsyncioTestCase):
             body={'displayName': 'Summit', 'shareWith': [REQUESTER, 'bob@redhat.com']},
         )
         self.assertEqual(posted[0]['customfield_10317'], [{'accountId': 'jane'}, {'accountId': 'bob'}])
+
+
+ISSUE = {'fields': {
+    'assignee': {'displayName': 'Agent Smith', 'emailAddress': 'agent@redhat.com'},
+    'status': {'name': 'Open'},
+}}
+COMMENTS = {'comments': [{'author': {'displayName': 'Agent Smith'},
+                          'body': {'content': [{'content': [{'type': 'text', 'text': 'hi'}]}]}}]}
+
+
+def wgr(ticket):
+    return {'metadata': {'annotations': {'demo.redhat.com/jira-ticket-id': ticket}}}
+
+
+class JiraIssueReadAuthorizationTests(unittest.IsolatedAsyncioTestCase):
+    async def get_issue(self, issue_key, query=None, admin=False, wgr_result=None):
+        http = MagicMock()
+        http.get.side_effect = [ctx(200, ISSUE), ctx(200, COMMENTS)]
+        client = MagicMock()
+        client.__aenter__ = AsyncMock(return_value=http)
+        client.__aexit__ = AsyncMock(return_value=False)
+        request = MagicMock()
+        request.match_info = {'issue_key': issue_key}
+        request.query = query or {}
+        k8s = MagicMock()
+        if isinstance(wgr_result, Exception):
+            k8s.get_namespaced_custom_object = AsyncMock(side_effect=wgr_result)
+        else:
+            k8s.get_namespaced_custom_object = AsyncMock(return_value=wgr_result)
+        api_client = MagicMock(close=AsyncMock())
+        session = {'user': REQUESTER, 'groups': [], 'admin': admin}
+        self.http, self.k8s = http, k8s
+        with patch.object(catalog_app, 'get_proxy_user', AsyncMock(return_value={'metadata': {'name': REQUESTER}})), \
+             patch.object(catalog_app, 'get_user_session', AsyncMock(return_value=session)), \
+             patch.object(catalog_app, 'jira_client_id', 'client-id'), \
+             patch.object(catalog_app, 'jira_client_secret', 'client-secret'), \
+             patch.object(catalog_app, 'jira_cloud_id', 'cloud-id'), \
+             patch.object(catalog_app, 'jira_project_key', 'RHDPSPPT'), \
+             patch.object(catalog_app, '_jira_access_token', AsyncMock(return_value='oauth-token')), \
+             patch.object(catalog_app, 'proxy_api_client', MagicMock(return_value=api_client)), \
+             patch.object(catalog_app.kubernetes_asyncio.client, 'CustomObjectsApi', MagicMock(return_value=k8s)), \
+             patch.object(catalog_app.aiohttp, 'ClientSession', return_value=client):
+            response = await catalog_app.get_jira_issue_details(request)
+        return json.loads(response.text)
+
+    async def test_owner_can_read_ticket_referenced_by_their_wgr(self):
+        result = await self.get_issue('RHDPSPPT-5', {'namespace': 'user-jdoe', 'name': 'wgr-1'},
+                                      wgr_result=wgr('RHDPSPPT-5'))
+        self.assertEqual(result['status'], 'Open')
+        self.assertEqual(result['assignee'], {'displayName': 'Agent Smith'})
+        self.assertEqual(self.k8s.get_namespaced_custom_object.call_args.kwargs['namespace'], 'user-jdoe')
+
+    async def test_non_admin_without_wgr_reference_is_forbidden(self):
+        with self.assertRaises(web.HTTPForbidden):
+            await self.get_issue('RHDPSPPT-5')
+        self.http.get.assert_not_called()
+
+    async def test_wgr_for_different_ticket_is_forbidden(self):
+        with self.assertRaises(web.HTTPForbidden):
+            await self.get_issue('RHDPSPPT-6', {'namespace': 'user-jdoe', 'name': 'wgr-1'},
+                                 wgr_result=wgr('RHDPSPPT-5'))
+        self.http.get.assert_not_called()
+
+    async def test_wgr_user_cannot_access_is_forbidden(self):
+        denied = catalog_app.kubernetes_asyncio.client.exceptions.ApiException(status=403)
+        with self.assertRaises(web.HTTPForbidden):
+            await self.get_issue('RHDPSPPT-5', {'namespace': 'user-other', 'name': 'wgr-9'}, wgr_result=denied)
+        self.http.get.assert_not_called()
+
+    async def test_admin_can_read_any_project_ticket(self):
+        result = await self.get_issue('RHDPSPPT-7', admin=True)
+        self.assertEqual(result['key'], 'RHDPSPPT-7')
+        self.k8s.get_namespaced_custom_object.assert_not_called()
+
+    async def test_ticket_outside_project_is_forbidden_even_for_admin(self):
+        with self.assertRaises(web.HTTPForbidden):
+            await self.get_issue('OTHER-1', admin=True)
+        self.http.get.assert_not_called()

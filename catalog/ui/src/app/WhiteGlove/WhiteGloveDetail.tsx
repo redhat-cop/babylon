@@ -114,7 +114,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const jiraTicketId = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
 
   const { data: jiraData } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    jiraTicketId && namespace && name ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId, namespace, name }) : null,
     silentFetcher,
     { refreshInterval: 30000 },
   );

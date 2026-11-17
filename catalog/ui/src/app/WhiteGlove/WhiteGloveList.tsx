@@ -69,9 +69,15 @@ function statusLabel(state: string): string {
   }
 }
 
-const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
+const JiraAssigneeCell: React.FC<{ jiraTicketId: string; wgr: WhiteGloveRequest; fallback: string }> = ({
+  jiraTicketId,
+  wgr,
+  fallback,
+}) => {
   const { data } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    jiraTicketId
+      ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId, namespace: wgr.metadata.namespace, name: wgr.metadata.name })
+      : null,
     silentFetcher,
     { refreshInterval: 30000 },
   );
@@ -226,7 +232,7 @@ const WhiteGloveListContent: React.FC = () => {
                       <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                     </Td>
                     <Td>
-                      <JiraAssigneeCell jiraTicketId={jiraTicketId} fallback={assignee} />
+                      <JiraAssigneeCell jiraTicketId={jiraTicketId} wgr={wgr} fallback={assignee} />
                     </Td>
                     <Td>
                       {jiraTicketUrl ? (
