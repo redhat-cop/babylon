@@ -14,7 +14,7 @@ export const PENDING_APPROVAL_MESSAGE = 'Your order is waiting for manager appro
 // Parameters the API sets from dedicated fields; sending them as parameters is rejected.
 const RESERVED_PARAMETERS = ['purpose', 'purpose_activity', 'purpose_explanation', 'salesforce_id'];
 
-const TERMINAL_PHASES = ['Provisioned', 'Denied', 'Expired', 'Cancelled'];
+const TERMINAL_PHASES = ['Provisioned', 'Failed', 'Denied', 'Expired', 'Cancelled'];
 
 export type OrderFormInput = {
   catalogItem: CatalogItem;
@@ -147,7 +147,6 @@ export type OrderStatusKind =
   | 'starting'
   | 'scheduled'
   | 'provisioning'
-  | 'retrying'
   | 'provisioned'
   | 'failed'
   | 'denied'
@@ -209,14 +208,6 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
       };
     }
     case 'Provisioning':
-      if (attempt && (attempt.state === 'CleaningUp' || attempt.state === 'CleanedUp')) {
-        return {
-          kind: 'retrying',
-          label: 'Retrying',
-          tone: 'info',
-          description: 'Cleaning up the previous attempt before provisioning again.',
-        };
-      }
       if (inFuture(start, now)) {
         return {
           kind: 'scheduled',
@@ -229,14 +220,6 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
     case 'Provisioned':
       return { kind: 'provisioned', label: 'Provisioned', tone: 'success', description: 'Provisioning completed successfully.' };
     case 'Failed':
-      if (attempt && (attempt.state === 'CleaningUp' || attempt.state === 'CleanedUp')) {
-        return {
-          kind: 'retrying',
-          label: 'Retrying',
-          tone: 'info',
-          description: 'Cleaning up the previous attempt before provisioning again.',
-        };
-      }
       return {
         kind: 'failed',
         label: 'Provisioning failed',
@@ -287,12 +270,7 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
 
 /** Orders that can still change on their own; their views refresh automatically. */
 export function isOrderActive(order: Pick<CatalogItemOrder, 'phase' | 'attempts'>): boolean {
-  if (TERMINAL_PHASES.includes(order.phase)) return false;
-  if (order.phase === 'Failed') {
-    const state = latestAttempt(order)?.state;
-    return state === 'CleaningUp' || state === 'CleanedUp';
-  }
-  return true;
+  return !TERMINAL_PHASES.includes(order.phase);
 }
 
 const RESOURCE_PAGES: Record<string, { path: string; label: string }> = {

@@ -10,7 +10,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 import app as catalog_app
 from approval_policy import compile_approval_policy
-from catalog_item_order import cancel_order, format_time, request_retry
+from catalog_item_order import cancel_order, format_time
 from catalog_item_order_approvals import ApprovalService, CachedManagerLookup
 from catalog_item_order_controller import CatalogItemOrderController, ControllerConfig
 from catalog_item_order_manager import (
@@ -336,23 +336,6 @@ class TestDecisions(ApprovalTestCase):
         status, data = await self.call('POST', path, body={}, headers={'Impersonate-User': 'alice'}, user='admin@example.com')
         self.assertEqual((status, data['error']), (400, 'impersonation_not_supported'))
         self.assertNotIn('decision', self.current(order)['status']['approval'])
-
-    async def test_retry_reuses_approval_without_new_request(self):
-        order = await self.pending_order()
-        await self.decide(order)
-        order = await self.reconcile(order)
-        requested_at = order['status']['approval']['requestedAt']
-        ref = order['status']['attempts'][0]['resources'][0]
-        self.kube.set_resource_status('ResourceClaim', ref['namespace'], ref['name'], complete_claim_status('provision-failed'))
-        order = await self.reconcile(order)
-        lookups_before_retry = len(self.lookup.calls)
-        await self.kube.replace_order_status(order, request_retry(order, 'alice', self.clock()))
-        order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
-        self.assertEqual(order['status']['approval']['state'], 'Approved')
-        self.assertEqual(order['status']['approval']['requestedAt'], requested_at)
-        self.assertEqual(len(self.lookup.calls), lookups_before_retry, 'no new manager resolution or approval request')
-
 
 class TestReviewAndList(ApprovalTestCase):
     async def test_review_is_authenticated_sanitized_and_never_decides(self):

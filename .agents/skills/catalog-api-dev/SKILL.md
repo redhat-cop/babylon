@@ -65,7 +65,7 @@ In production, the API impersonates users via session headers.
 | `/auth/session` | Session management | Current user, roles, namespaces |
 | `/auth/cli-redirect` | CLI auth redirect | |
 | `/api/*` | BFF endpoints | Ratings, incidents, Salesforce, workshops, system status |
-| `/api/catalog-item-orders` | CatalogItemOrder | Opt-in order submit/get/list/cancel/retry (`catalog_item_order_service.py`) |
+| `/api/catalog-item-orders` | CatalogItemOrder | Order submit/get/list/cancel (`catalog_item_order_service.py`) |
 | `/apis/*` | K8s proxy | CRDs (catalogitems, workshops, resourceclaims, etc.) |
 
 Key files:

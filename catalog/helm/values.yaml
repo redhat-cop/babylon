@@ -44,11 +44,6 @@ catalogItemOrders:
     reportingApiUrl:
     # Defaults when a catalog item approval policy does not set them.
     approvalExpiresAfter: 72h
-    retry:
-      # Window measured from the time approval was satisfied.
-      window: 72h
-      # Total provisioning attempts, including the initial attempt.
-      maxAttempts: 3
     # Delete completed orders (provisioned, failed, denied, expired, cancelled or
     # permanently blocked) this long after completion. Orders that can still be
     # retried or whose provisioning resources still exist are kept. Empty disables.

@@ -12,10 +12,10 @@ Status: implemented (GPTEINFRA-18188). Always enabled; there is no feature flag.
 |---|---|---|
 | Policy compiler and evaluator | `client/python/babylon_async/src/babylon_async/approval_policy.py`, vendored byte-for-byte as `catalog/api/approval_policy.py` | Validates AgnosticV policy, publishes it, evaluates it. Standard library only; never evaluates code or templates. |
 | Policy publication | `AgnosticVComponent.get_catalog_item_definition` (client library, used by agnosticv-operator) | Publishes `__meta__.catalog.approval_policy` to `CatalogItem.spec.approvalPolicy`. |
-| Order model | `catalog/api/catalog_item_order.py` | Request normalization, digests, resource naming, schedule resolution, cancel/retry rules, approval decision contract. |
+| Order model | `catalog/api/catalog_item_order.py` | Request normalization, digests, resource naming, schedule resolution, cancel rules, approval decision contract. |
 | Provisioning adapters | `catalog/api/catalog_item_order_adapters.py` | Server-side equivalents of the UI resource construction in `catalog/ui/src/app/api.ts`. |
-| Order API | `catalog/api/catalog_item_order_service.py`, routes in `catalog/api/app.py` | Authenticated submit, get, list, cancel, retry. |
-| Controller | `catalog/api/catalog_item_order_controller.py` | Reconciliation, dispatch, monitoring, retries. |
+| Order API | `catalog/api/catalog_item_order_service.py`, routes in `catalog/api/app.py` | Authenticated submit, get, list, cancel. |
+| Controller | `catalog/api/catalog_item_order_controller.py` | Reconciliation, dispatch, monitoring. |
 | CRDs | `helm/crds/catalogitemorders.babylon.gpte.redhat.com.yaml`, `approvalPolicy` in `helm/crds/catalogitems.babylon.gpte.redhat.com.yaml` | Schema, immutability, status subresource. |
 | Deployment | `catalog/helm/templates/order-controller/`, `catalog/helm/templates/api/` | Controller Deployment, service accounts, RBAC. |
 
@@ -43,8 +43,6 @@ The catalog chart always deploys the order controller and grants the API its ord
 | `CATALOG_BASE_URL` | unset | Catalog URL for `babylon.gpte.redhat.com/url` annotations and review links. |
 | `ORDER_REVIEW_BASE_URL` | `CATALOG_BASE_URL` | Base of `status.approval.reviewUrl` (`<base>/approvals/<order uid>`). |
 | `ORDER_APPROVAL_EXPIRES_AFTER` | `72h` | Pending approval lifetime when the policy does not set one. |
-| `ORDER_RETRY_WINDOW` | `72h` | Retry window when the policy does not set one. |
-| `ORDER_RETRY_MAX_ATTEMPTS` | `3` | Total attempts, including the initial one, when the policy does not set it. |
 | `SALESFORCE_API` | in-cluster Reporting API | Reporting API URL for manager resolution (Helm: `catalogItemOrders.controller.reportingApiUrl`); token `SALESFORCE_AUTHORIZATION_TOKEN` from `salesforceApi.secretName`, as for the catalog API. |
 | `ORDER_RETENTION` | `30d` | Delete completed orders this long after `status.completedAt`; empty disables. Helm: `catalogItemOrders.controller.retention`. |
 | `ORDER_CONTROLLER_RESYNC_INTERVAL` | `60` | Seconds between full resyncs; also how often child resource status is checked. |
@@ -64,9 +62,6 @@ __meta__:
       approval:
         approver: requester_manager    # only supported approver
         expires_after: 72h             # 1h to 30d
-      retry:
-        window: 72h                    # 0 to 30d, measured from approval
-        max_attempts: 3                # 1 to 10, including the initial attempt
       rules:
         <rule_id>:                     # ^[a-z0-9]([a-z0-9_-]{0,61}[a-z0-9])?$, "default" is reserved
           when: <condition>
@@ -108,7 +103,7 @@ Typing is strict: no string-to-number coercion, and booleans are not numbers. A 
 
 - Every enabled rule is evaluated. Any match, or `default: manager_required`, requires one manager approval; all matched reasons are recorded.
 - A policy that is invalid, uses an unsupported version, operator or field, references a parameter the item does not define, or fails at runtime because of an input type **blocks the order** with the error. It never allows provisioning.
-- The published policy has a digest of its semantic content (provenance excluded). Digests treat whole-number floats as integers, because Kubernetes returns a stored `48.0` as `48`. The order records the digest and a snapshot. A different digest at decision, dispatch or retry time prevents reuse of the earlier evaluation.
+- The published policy has a digest of its semantic content (provenance excluded). Digests treat whole-number floats as integers, because Kubernetes returns a stored `48.0` as `48`. The order records the digest and a snapshot. A different digest at decision or dispatch time prevents reuse of the earlier evaluation.
 - Form JavaScript conditions on parameters (`formDisableCondition`, `formHideCondition`, `formRequireCondition`, `validation`) are not evaluated by the backend.
 
 ### Merge safety
@@ -163,19 +158,6 @@ approval_policy:
       reason: GPU environments require manager approval.
 ```
 
-Approval reuse for retries:
-
-```yaml
-approval_policy:
-  version: v1
-  default: manager_required
-  approval:
-    expires_after: 72h
-  retry:
-    window: 72h        # retries allowed until 72 hours after the approval decision
-    max_attempts: 3    # the initial attempt plus two retries
-```
-
 ### Published form
 
 `CatalogItem.spec.approvalPolicy` uses camelCase keys and a sorted rule list:
@@ -190,7 +172,6 @@ spec:
     source: {agnosticvRepo: agnosticv, path: tests/item/prod.yaml, gitCommit: 1a2b3c}
     default: not_required
     approval: {approver: requester_manager, expiresAfter: 72h}
-    retry: {window: 72h, maxAttempts: 3}
     rules:
     - id: gpu
       when: {field: parameters.gpu_enabled, op: eq, value: true}
@@ -210,7 +191,6 @@ All endpoints require a catalog API session. Identity comes from the session; ad
 | `GET /api/catalog-item-orders[?namespace=]` | Requester's orders (admins may list a namespace) |
 | `GET /api/catalog-item-orders/{namespace}/{name}` | Order view; `404` if not the requester's |
 | `POST /api/catalog-item-orders/{namespace}/{name}/cancel` | `200` cancelled; `409 dispatch_started` once an attempt exists |
-| `POST /api/catalog-item-orders/{namespace}/{name}/retry` | `202` retry accepted; `409` with the ineligibility reason |
 
 ```json
 POST /api/catalog-item-orders
@@ -238,10 +218,9 @@ Rules:
 - `orderType` must be `service`, `workshop` or `selfPacedLab`. These are rejected before any lookup or resource creation: `multiWorkshop`, `multiuserServiceWorkshop`, `externalUrl` (and any catalog item with `externalUrl`), `whiteGloveRequest`. Workshop and self-paced lab orders are rejected for items with `workshopUiDisabled`.
 - Responses never include workshop access passwords.
 
-The order view (submit, get, list, cancel, retry) also carries fields for the UI:
+The order view (submit, get, list, cancel) also carries a field for the UI:
 
 - `cancel`: `{"allowed": true}` or `{"allowed": false, "code": "dispatch_started" | "order_finished", "message": "..."}`, computed by the same rule the cancel endpoint enforces. It is advisory; the endpoint re-checks with a `resourceVersion` precondition.
-- `retry`: retry eligibility (`eligible`, `reason`, `message`, `attemptsUsed`, `maxAttempts`, `deadline`).
 
 ## CatalogItemOrder resource
 
@@ -251,19 +230,18 @@ Users have no RBAC on `catalogitemorders`; the catalog API proxy also rejects wr
 
 ### Retention
 
-The controller sets `status.completedAt` when an order completes: `Provisioned`, `Denied`, `Expired`, `Cancelled`, `Failed`, or `Blocked` without automatic recovery. A retry clears it. On each resync the controller deletes orders whose `completedAt` is older than `ORDER_RETENTION` (default `30d`), except:
+The controller sets `status.completedAt` when an order completes: `Provisioned`, `Denied`, `Expired`, `Cancelled`, `Failed`, or `Blocked` without automatic recovery. On each resync the controller deletes orders whose `completedAt` is older than `ORDER_RETENTION` (default `30d`), except:
 
 - pending or in-progress orders, including recoverable blocks, which are never deleted;
-- failed orders that are still eligible for a retry;
 - orders with any recorded provisioning resource still present (matched by uid), so the order outlives the environment it authorized and is deleted on a later resync after that environment is gone.
 
-Deletion uses uid and resourceVersion preconditions, so an order updated after it was read (for example by a retry request) is not deleted. Completed orders without `completedAt` get it set on the next resync, and the retention clock starts then. Deleting the namespace also deletes its orders.
+Deletion uses uid and resourceVersion preconditions, so an order updated after it was read (for example by a cancellation) is not deleted. Completed orders without `completedAt` get it set on the next resync, and the retention clock starts then. Deleting the namespace also deletes its orders.
 
 ### Lifecycle
 
 ```text
 Submitted ─┬─> PendingApproval ─┬─> Ready ─> Provisioning ─┬─> Provisioned
-           │                    ├─> Denied                 └─> Failed ─(retry)─> Ready
+           │                    ├─> Denied                 └─> Failed
            │                    └─> Expired
            ├─> Ready (approval not required)
            └─> Blocked
@@ -277,7 +255,7 @@ Submitted, PendingApproval, Ready, Blocked (before any attempt) ─(cancel)─> 
 | `Ready` | Approved or approval not required; the controller rechecks restrictions before dispatch. |
 | `Provisioning` | An attempt was claimed. Its resources are created (`Dispatching`) and monitored (`Provisioning`). |
 | `Provisioned` | All resources for the attempt reported successful provisioning. Terminal for the order. |
-| `Failed` | Controller-verified failure of the latest attempt. May be retried within limits. |
+| `Failed` | Controller-verified failure of the attempt. Terminal; submit a new order to try again. |
 | `Denied` | Decision was denial, or approval was revoked while pending. Terminal. |
 | `Expired` | No decision before expiry. Terminal. |
 | `Cancelled` | Cancelled by the requester before dispatch. Terminal. |
@@ -291,7 +269,7 @@ Submitted, PendingApproval, Ready, Blocked (before any attempt) ─(cancel)─> 
 
 When a policy changes before dispatch of an order that needed no approval, the order is re-evaluated from `Submitted`, because no approval exists that could be reused.
 
-Conditions: `PolicyEvaluated`, `ApprovalSatisfied`, `Dispatched`, `Provisioned`, `RetryAllowed`, `Ready`. `status.history` keeps the last 50 events with actor and timestamp; `status.attempts` keeps every attempt with its resources and failure. Both survive cleanup of failed resources.
+Conditions: `PolicyEvaluated`, `ApprovalSatisfied`, `Dispatched`, `Provisioned`, `Ready`. `status.history` keeps the last 50 events with actor and timestamp; `status.attempts` keeps every attempt with its resources and failure.
 
 ### Dispatch checks
 
@@ -315,22 +293,11 @@ Before claiming an attempt the controller verifies: valid, unrevoked approval; c
 | workshop | WorkshopProvision `activeCount >= count` | No instances provisioning and `failedCount/count` at the workshop-manager threshold |
 | selfPacedLab | `readyCount + assignedCount >= poolSize` | No instances provisioning and the failed share at the self-paced lab manager threshold |
 
-Resource creation rejected by the API server (4xx other than 409/429) fails the attempt as `CreateRejected` (retryable). Resources deleted before provisioning completes fail the attempt as `ResourcesDeleted` (not retryable).
+Resource creation rejected by the API server (4xx other than 409/429) fails the attempt as `CreateRejected`. Resources deleted before provisioning completes fail the attempt as `ResourcesDeleted`.
 
-## Retry semantics
+## Failed orders
 
-A retry reuses the existing approval only when all of these hold:
-
-1. The order is `Failed` and the latest attempt failure was verified by the controller and is retryable.
-2. No attempt ever succeeded, and no attempt is active.
-3. The approval is `Approved` or `NotRequired` and not revoked.
-4. The current time is within `window` of `status.approval.satisfiedAt` (the approval decision time, or the evaluation time when approval was not required).
-5. Fewer than `maxAttempts` attempts exist. `maxAttempts` includes the initial attempt.
-6. The catalog item uid, material digest and policy digest are unchanged.
-
-Limits come from the policy (`retry.window`, `retry.max_attempts`) or the controller defaults, and are snapshotted into `status.policy.retryLimits` at evaluation. The request is fixed by the immutable spec, so a retry is always the same request.
-
-Flow: `POST .../retry` records `status.retry`. The controller rechecks eligibility, deletes the failed attempt's resources by recorded uid (`CleaningUp`), waits until they are gone (`CleanedUp`), returns the order to `Ready`, reruns the dispatch checks and claims a new attempt with new names and a freshly resolved schedule. Eligibility is checked again at dispatch. If any check fails the retry request is dropped and recorded as `RetryRejected`; the requester must submit a new order, which is evaluated afresh. Failed resources are kept until a retry cleans them up or the requester deletes them.
+There is no retry. `Failed` is terminal: the controller records the failure on the attempt, sets `completedAt`, and keeps the failed resources so the requester can inspect or delete them. To try again, the requester submits a new order, which is evaluated afresh against the current policy. The policy schema has no `retry` section; a policy that sets one is invalid.
 
 ## Manager approval (GPTEINFRA-18189)
 
@@ -383,7 +350,7 @@ Retries back off from 1 minute, doubling to a 30-minute cap, and never extend `a
 
 Self-decision is the one exception to "administrators can decide all requests": an administrator cannot approve or deny their own order, matched by user name or email. The relationship is looked up again for every decision, so a changed manager or a cached notification recipient grants nothing. If the Reporting API is unavailable, non-administrators get `503 manager_lookup_unavailable` and nothing is recorded; a 404 or malformed response grants no authority.
 
-Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Ready` or `Denied` transition and all provisioning. Approval reuse for provisioning retries is unchanged and sends no new approval request.
+Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Ready` or `Denied` transition and all provisioning.
 
 ### Approvals API (for GPTEINFRA-18190)
 

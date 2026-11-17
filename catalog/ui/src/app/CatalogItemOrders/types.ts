@@ -67,12 +67,12 @@ export type OrderResourceRef = {
 
 export type OrderAttempt = {
   number: number;
-  state: 'Dispatching' | 'Provisioning' | 'Succeeded' | 'Failed' | 'CleaningUp' | 'CleanedUp' | string;
+  state: 'Dispatching' | 'Provisioning' | 'Succeeded' | 'Failed' | string;
   startedAt?: string;
   completedAt?: string;
   schedule?: OrderSchedule;
   resources: OrderResourceRef[];
-  failure?: { reason?: string; message?: string; retryable?: boolean };
+  failure?: { reason?: string; message?: string };
 };
 
 export type OrderCancel = { allowed: boolean; code?: string; message?: string };

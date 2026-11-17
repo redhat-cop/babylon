@@ -34,8 +34,6 @@ from catalog_item_order import (
     APPROVAL_NOT_REQUIRED,
     APPROVAL_PENDING,
     APPROVAL_REVOKED,
-    ATTEMPT_CLEANED_UP,
-    ATTEMPT_CLEANING_UP,
     ATTEMPT_DISPATCHING,
     ATTEMPT_FAILED,
     ATTEMPT_PROVISIONING,
@@ -55,7 +53,6 @@ from catalog_item_order import (
     TERMINAL_PHASES,
     add_history,
     catalog_material_digest,
-    evaluate_retry,
     format_time,
     generate_name_suffix,
     order_attempts,
@@ -101,8 +98,6 @@ WORKSHOP_ORDERING_BLOCK_KEYS = ('workshops_ordering_blocked', 'workshops_orderin
 @dataclass
 class ControllerConfig:
     approval_expires_after: str = '72h'
-    retry_window: str = '72h'
-    retry_max_attempts: int = 3
     catalog_base_url: str | None = None
     review_base_url: str | None = None
     resync_interval: int = 60
@@ -123,11 +118,9 @@ class ControllerConfig:
             self.review_base_url = self.catalog_base_url
         if self.retention is not None and not parse_duration(self.retention):
             raise ValueError('retention must be a duration such as 30d, or empty to disable')
-        for name in ('approval_expires_after', 'retry_window'):
+        for name in ('approval_expires_after',):
             if parse_duration(getattr(self, name)) is None:
                 raise ValueError(f"{name} must be a duration such as 72h")
-        if self.retry_max_attempts < 1:
-            raise ValueError('retry_max_attempts must be at least 1')
 
     @classmethod
     def from_env(cls, environ=None):
@@ -135,8 +128,6 @@ class ControllerConfig:
         catalog_base_url = environ.get('CATALOG_BASE_URL') or None
         return cls(
             approval_expires_after=environ.get('ORDER_APPROVAL_EXPIRES_AFTER', '72h'),
-            retry_window=environ.get('ORDER_RETRY_WINDOW', '72h'),
-            retry_max_attempts=int(environ.get('ORDER_RETRY_MAX_ATTEMPTS', 3)),
             catalog_base_url=catalog_base_url,
             review_base_url=environ.get('ORDER_REVIEW_BASE_URL') or None,
             resync_interval=int(environ.get('ORDER_CONTROLLER_RESYNC_INTERVAL', 60)),
@@ -205,7 +196,6 @@ class CatalogItemOrderController:
             PHASE_PENDING_APPROVAL: self._pending_approval,
             PHASE_READY: self._ready,
             PHASE_PROVISIONING: self._provisioning,
-            PHASE_FAILED: self._failed,
             PHASE_BLOCKED: self._blocked,
         }.get(phase)
         if handler is None:
@@ -220,9 +210,8 @@ class CatalogItemOrderController:
     def _transition(self, order, status, phase, event, now, message=''):
         status['phase'] = phase
         status.pop('blocked', None)
-        # Retention is measured from completedAt; leaving a completed phase
-        # (for example a retry from Failed) clears it.
-        if phase in TERMINAL_PHASES or phase == PHASE_FAILED:
+        # Retention is measured from completedAt.
+        if phase in TERMINAL_PHASES:
             status['completedAt'] = format_time(now)
         else:
             status.pop('completedAt', None)
@@ -278,8 +267,6 @@ class CatalogItemOrderController:
             return False
         if now < completed_at + timedelta(seconds=parse_duration(self.config.retention)):
             return False
-        if order_phase(order) == PHASE_FAILED and evaluate_retry(order, now).eligible:
-            return False
         for attempt in order_attempts(order):
             for ref in attempt.get('resources') or []:
                 if not ref.get('uid'):
@@ -322,13 +309,6 @@ class CatalogItemOrderController:
         policy = (catalog_item.get('spec') or {}).get('approvalPolicy')
         return policy.get('digest') if isinstance(policy, dict) else None
 
-    def _retry_limits(self, published):
-        retry = (published or {}).get('retry') or {}
-        return {
-            'window': retry.get('window', self.config.retry_window),
-            'maxAttempts': retry.get('maxAttempts', self.config.retry_max_attempts),
-        }
-
     # Phase handlers
 
     async def _submitted(self, order, status, now):
@@ -357,7 +337,6 @@ class CatalogItemOrderController:
             'evaluatorVersion': evaluation['evaluatorVersion'],
             'matchedRules': evaluation['matchedRules'],
             'disabledRules': evaluation['disabledRules'],
-            'retryLimits': self._retry_limits(published if evaluation['state'] == 'Evaluated' else None),
         }
         for key, field in (('digest', 'policyDigest'), ('version', 'policyVersion')):
             if evaluation[field] is not None:
@@ -596,9 +575,7 @@ class CatalogItemOrderController:
                 status.pop(key, None)
             return self._transition(order, status, PHASE_SUBMITTED, 'Reevaluating', now, message)
         if attempts and not recoverable:
-            status.pop('retry', None)
-            set_condition(status, 'RetryAllowed', 'False', reason, message, now)
-            return self._transition(order, status, PHASE_FAILED, 'RetryRejected', now, message)
+            return self._transition(order, status, PHASE_FAILED, 'DispatchRejected', now, message)
         return self._block(order, status, reason, message, now, recoverable, PHASE_READY)
 
     async def _ready(self, order, status, now):
@@ -606,13 +583,6 @@ class CatalogItemOrderController:
         attempts = list(status.get('attempts') or [])
         if problem:
             return self._dispatch_problem_status(order, status, problem, now)
-
-        if attempts:
-            eligibility = evaluate_retry(order, now, controller=True)
-            if not eligibility.eligible:
-                status.pop('retry', None)
-                set_condition(status, 'RetryAllowed', 'False', eligibility.code, eligibility.message, now)
-                return self._transition(order, status, PHASE_FAILED, 'RetryRejected', now, eligibility.message)
 
         number = len(attempts) + 1
         resources = plan_resources(order, generate_name_suffix())
@@ -624,7 +594,6 @@ class CatalogItemOrderController:
             'resources': resources,
         })
         status['attempts'] = attempts
-        status.pop('retry', None)
         set_condition(status, 'Dispatched', 'False', 'Dispatching', f"Attempt {number} creating resources", now)
         # Planned names are not exposed until the resources exist.
         return self._transition(
@@ -632,13 +601,12 @@ class CatalogItemOrderController:
             f"Attempt {number}: " + ', '.join(ref['kind'] for ref in resources),
         )
 
-    def _fail_attempt(self, order, status, attempt, reason, message, retryable, now):
+    def _fail_attempt(self, order, status, attempt, reason, message, now):
         attempt['state'] = ATTEMPT_FAILED
         attempt['finishedAt'] = format_time(now)
         attempt['failure'] = {
             'reason': reason,
             'message': message[:1024],
-            'retryable': retryable,
             'verifiedAt': format_time(now),
         }
         set_condition(status, 'Provisioned', 'False', reason, message[:1024], now)
@@ -659,7 +627,7 @@ class CatalogItemOrderController:
         if catalog_item is None or catalog_item['metadata'].get('uid') != order['spec']['catalogItem']['uid']:
             return self._fail_attempt(
                 order, status, attempt, 'CatalogItemUnavailable',
-                'Catalog item became unavailable during dispatch', False, now,
+                'Catalog item became unavailable during dispatch', now,
             )
         existing = {}
         for ref in attempt['resources']:
@@ -675,7 +643,7 @@ class CatalogItemOrderController:
                 self._history(status, 'DispatchAborted', now, problem[1])
                 return self._dispatch_problem_status(order, status, problem, now)
             if problem:
-                return self._fail_attempt(order, status, attempt, 'DispatchAborted', problem[1], problem[2], now)
+                return self._fail_attempt(order, status, attempt, 'DispatchAborted', problem[1], now)
         created = {}
         for ref in attempt['resources']:
             obj = existing.get(ref['kind'])
@@ -697,7 +665,7 @@ class CatalogItemOrderController:
                         return self._fail_attempt(
                             order, status, attempt, 'CreateRejected',
                             f"{ref['kind']} {ref['namespace']}/{ref['name']} was rejected: {exception}",
-                            True, now,
+                            now,
                         )
                     raise
             if not owned_by_attempt(obj, order, number, ref):
@@ -729,62 +697,10 @@ class CatalogItemOrderController:
             set_condition(status, 'Provisioned', 'True', 'Provisioned', '', now)
             return self._transition(order, status, PHASE_PROVISIONED, 'Provisioned', now, f"Attempt {attempt['number']}")
         if outcome == 'failed':
-            return self._fail_attempt(order, status, attempt, 'ProvisioningFailed', message, True, now)
+            return self._fail_attempt(order, status, attempt, 'ProvisioningFailed', message, now)
         if outcome == 'missing':
-            return self._fail_attempt(order, status, attempt, 'ResourcesDeleted', message, False, now)
+            return self._fail_attempt(order, status, attempt, 'ResourcesDeleted', message, now)
         return None
-
-    async def _retry_problem(self, order, status):
-        catalog_item = await self._catalog_item(order)
-        problem = self._catalog_item_problem(order, catalog_item)
-        if problem:
-            return problem
-        if self._policy_digest(catalog_item) != (status.get('policy') or {}).get('digest'):
-            return 'PolicyChanged', 'Approval policy changed since approval; submit a new order'
-        return None
-
-    async def _failed(self, order, status, now):
-        attempts = status.get('attempts') or []
-        last = attempts[-1] if attempts else None
-        if last is not None and last.get('state') == ATTEMPT_CLEANING_UP:
-            return await self._cleanup(order, status, last, now)
-        if not status.get('retry'):
-            return None
-        eligibility = evaluate_retry(order, now, controller=True)
-        problem = await self._retry_problem(order, status) if eligibility.eligible else (
-            eligibility.code, eligibility.message
-        )
-        if problem:
-            status.pop('retry', None)
-            set_condition(status, 'RetryAllowed', 'False', problem[0], problem[1], now)
-            self._history(status, 'RetryRejected', now, problem[1])
-            return status
-        last['state'] = ATTEMPT_CLEANING_UP
-        set_condition(status, 'RetryAllowed', 'True', 'CleaningUp', f"Cleaning up attempt {last['number']}", now)
-        self._history(status, 'CleanupStarted', now, f"Attempt {last['number']}")
-        return status
-
-    async def _cleanup(self, order, status, attempt, now):
-        remaining = 0
-        for ref in reversed(attempt.get('resources') or []):
-            obj = await self.kube.get_resource(ref)
-            if obj is None or not owned_by_attempt(obj, order, attempt['number'], ref):
-                continue
-            if not obj['metadata'].get('deletionTimestamp'):
-                if not await self.kube.delete_resource(ref):
-                    continue
-                logger.info("Deleting %s %s/%s for retry of order %s", ref['kind'], ref['namespace'], ref['name'], order_id(order))
-                if await self.kube.get_resource(ref) is None:
-                    continue
-            remaining += 1
-        if remaining:
-            return None
-        attempt['state'] = ATTEMPT_CLEANED_UP
-        attempt['cleanedUpAt'] = format_time(now)
-        self._history(status, 'CleanedUp', now, f"Attempt {attempt['number']}")
-        if status.get('retry'):
-            return self._transition(order, status, PHASE_READY, 'RetryReady', now)
-        return status
 
     async def _blocked(self, order, status, now):
         blocked = status.get('blocked') or {}
@@ -816,9 +732,6 @@ def order_needs_reconcile(order):
         return False
     if phase == PHASE_BLOCKED:
         return bool((status.get('blocked') or {}).get('recoverable'))
-    if phase == PHASE_FAILED:
-        attempts = order_attempts(order)
-        return bool(status.get('retry')) or bool(attempts and attempts[-1].get('state') == ATTEMPT_CLEANING_UP)
     return True
 
 

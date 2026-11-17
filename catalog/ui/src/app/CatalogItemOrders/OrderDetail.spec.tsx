@@ -139,7 +139,7 @@ describe('OrderDetail', () => {
         phase: 'Failed',
         approval: { state: 'Approved' },
         cancel: { allowed: false, code: 'dispatch_started' },
-        attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'Provisioning failed: no capacity', retryable: true } }],
+        attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'Provisioning failed: no capacity' } }],
       }),
     ];
     await renderOrder();

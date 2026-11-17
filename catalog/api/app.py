@@ -2326,16 +2326,6 @@ async def catalog_item_order_cancel(request):
         )
     return await handle_catalog_item_order_request(request, operation, 'catalog_item_order_cancelled')
 
-
-@routes.post("/api/catalog-item-orders/{namespace}/{name}/retry")
-async def catalog_item_order_retry(request):
-    async def operation(service, session, user):
-        return 202, await service.retry(
-            request.match_info['namespace'], request.match_info['name'],
-            session=session, user_uid=user['metadata']['uid'],
-        )
-    return await handle_catalog_item_order_request(request, operation, 'catalog_item_order_retry_requested')
-
 @routes.get("/apis/{api_group:babylon\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:workshops|workshopprovisions|workshopuserassignments|selfpacedlabs|selfpacedlabprovisionitems|selfpacedlabuserassignments}")
 @routes.get("/apis/{api_group:poolboy\\.gpte\\.redhat\\.com}/v1/namespaces/{namespace}/{plural:resourceclaims}")
 async def openshift_api_list_by_get_rbac(request):

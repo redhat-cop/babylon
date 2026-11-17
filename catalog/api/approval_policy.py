@@ -19,9 +19,6 @@ AgnosticV source (`__meta__.catalog.approval_policy`):
     approval:
       approver: requester_manager
       expires_after: 72h
-    retry:
-      window: 72h
-      max_attempts: 3
     rules:
       <rule_id>:
         when: <condition>
@@ -69,8 +66,6 @@ MAX_TEXT_LENGTH = 500
 MAX_STRING_VALUE_LENGTH = 256
 MIN_EXPIRES_AFTER_SECONDS = 3600
 MAX_EXPIRES_AFTER_SECONDS = 30 * 86400
-MAX_RETRY_WINDOW_SECONDS = 30 * 86400
-MAX_RETRY_ATTEMPTS = 10
 
 OPERATORS = ('eq', 'ne', 'in', 'not_in', 'gt', 'gte', 'lt', 'lte', 'exists')
 NUMERIC_OPERATORS = ('gt', 'gte', 'lt', 'lte')
@@ -94,10 +89,9 @@ _DURATION_RE = re.compile(r'^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$')
 
 _TOP_LEVEL_KEYS = {
     'version', 'default', 'default_reason', 'default_override_reason',
-    'approval', 'retry', 'rules',
+    'approval', 'rules',
 }
 _APPROVAL_KEYS = {'approver', 'expires_after'}
-_RETRY_KEYS = {'window', 'max_attempts'}
 _RULE_KEYS = {'when', 'require', 'reason', 'disabled', 'disabled_reason'}
 
 # Published (camelCase) to source (snake_case) key mapping.
@@ -108,7 +102,6 @@ _PUBLISHED_TOP_LEVEL_KEYS = {
     'defaultOverrideReason': 'default_override_reason',
 }
 _PUBLISHED_APPROVAL_KEYS = {'approver': 'approver', 'expiresAfter': 'expires_after'}
-_PUBLISHED_RETRY_KEYS = {'window': 'window', 'maxAttempts': 'max_attempts'}
 _PUBLISHED_RULE_KEYS = {
     'when': 'when',
     'require': 'require',
@@ -445,35 +438,6 @@ class _Compiler:
                 if expires_after is not None:
                     compiled['approval']['expires_after'] = expires_after
 
-        if 'retry' in raw:
-            retry = raw['retry']
-            if not isinstance(retry, dict):
-                self.error('approval_policy.retry must be a mapping')
-            else:
-                self.unknown_keys(retry, _RETRY_KEYS, 'approval_policy.retry')
-                compiled_retry = {}
-                if 'window' in retry:
-                    window = self.duration(
-                        retry['window'], 'approval_policy.retry.window',
-                        0, MAX_RETRY_WINDOW_SECONDS,
-                    )
-                    if window is not None:
-                        compiled_retry['window'] = window
-                if 'max_attempts' in retry:
-                    max_attempts = retry['max_attempts']
-                    if (
-                        isinstance(max_attempts, bool)
-                        or not isinstance(max_attempts, int)
-                        or not 1 <= max_attempts <= MAX_RETRY_ATTEMPTS
-                    ):
-                        self.error(
-                            'approval_policy.retry.max_attempts must be an integer '
-                            f"between 1 and {MAX_RETRY_ATTEMPTS}"
-                        )
-                    else:
-                        compiled_retry['max_attempts'] = max_attempts
-                compiled['retry'] = compiled_retry
-
         rules = raw.get('rules', {})
         compiled_rules = []
         if isinstance(rules, list):
@@ -550,13 +514,6 @@ def _published_from_compiled(compiled):
     if 'expires_after' in compiled['approval']:
         approval['expiresAfter'] = compiled['approval']['expires_after']
     published['approval'] = approval
-    if 'retry' in compiled:
-        retry = {}
-        if 'window' in compiled['retry']:
-            retry['window'] = compiled['retry']['window']
-        if 'max_attempts' in compiled['retry']:
-            retry['maxAttempts'] = compiled['retry']['max_attempts']
-        published['retry'] = retry
     rules = []
     for rule in compiled['rules']:
         entry = {
@@ -631,10 +588,6 @@ def _raw_from_published(published):
             raw['approval'] = {
                 _PUBLISHED_APPROVAL_KEYS.get(k, k): v for k, v in value.items()
             }
-        elif key == 'retry' and isinstance(value, dict):
-            raw['retry'] = {
-                _PUBLISHED_RETRY_KEYS.get(k, k): v for k, v in value.items()
-            }
         elif key == 'rules' and isinstance(value, list):
             rules = {}
             for index, rule in enumerate(value):
@@ -675,10 +628,6 @@ class LoadedPolicy:
     @property
     def approval(self):
         return self.compiled['approval']
-
-    @property
-    def retry(self):
-        return self.compiled.get('retry', {})
 
     @property
     def rules(self):

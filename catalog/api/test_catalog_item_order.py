@@ -13,7 +13,6 @@ from catalog_item_order import (
     build_order,
     cancel_order,
     child_resource_name,
-    evaluate_retry,
     format_time,
     order_name,
     order_view,
@@ -21,7 +20,6 @@ from catalog_item_order import (
     record_approval_decision,
     reporting_user_lookup_path,
     resolve_schedule,
-    request_retry,
     revoke_approval,
     verify_order_integrity,
 )
@@ -335,23 +333,6 @@ def pending_order(expires_in=timedelta(hours=72)):
     return order
 
 
-def failed_order(attempts=1, retryable=True, satisfied_at=NOW, approval_state='Approved', window='72h', max_attempts=3):
-    order = as_created(build())
-    attempt_list = [
-        {'number': number, 'state': 'CleanedUp' if number < attempts else 'Failed',
-         'failure': {'reason': 'ProvisioningFailed', 'message': 'failed', 'retryable': retryable,
-                     'verifiedAt': format_time(NOW)}}
-        for number in range(1, attempts + 1)
-    ]
-    order['status'] = {
-        'phase': PHASE_FAILED,
-        'approval': {'state': approval_state, 'satisfiedAt': format_time(satisfied_at)},
-        'policy': {'retryLimits': {'window': window, 'maxAttempts': max_attempts}},
-        'attempts': attempt_list,
-    }
-    return order
-
-
 class TestDecisionContract(unittest.TestCase):
     def test_records_decision_bound_to_digests(self):
         order = pending_order()
@@ -429,52 +410,6 @@ class TestCancel(unittest.TestCase):
                 self.assertEqual(view['code'], caught.exception.code, 'view and endpoint use the same rule')
 
 
-class TestRetryEligibility(unittest.TestCase):
-    def test_eligible_within_window_and_attempts(self):
-        result = evaluate_retry(failed_order(), NOW + timedelta(hours=1))
-        self.assertTrue(result.eligible, result)
-        self.assertEqual(result.deadline, format_time(NOW + timedelta(hours=72)))
-        self.assertEqual(result.max_attempts, 3)
-        status = request_retry(failed_order(), 'alice', NOW + timedelta(hours=1))
-        self.assertEqual(status['retry']['requestedBy'], 'alice')
-
-    def test_not_required_orders_can_retry(self):
-        self.assertTrue(evaluate_retry(failed_order(approval_state='NotRequired'), NOW).eligible)
-
-    def test_ineligible_cases(self):
-        def with_status(order, **updates):
-            order['status'].update(updates)
-            return order
-        cases = {
-            'window expired': (failed_order(), NOW + timedelta(hours=72, seconds=1), 'retry_window_expired'),
-            'attempt limit includes initial': (failed_order(attempts=3), NOW, 'attempt_limit_reached'),
-            'not retryable failure': (failed_order(retryable=False), NOW, 'failure_not_retryable'),
-            'revoked': (with_status(failed_order(), approval={'state': 'Approved', 'satisfiedAt': format_time(NOW), 'revocation': {'reason': 'x'}}), NOW, 'approval_invalid'),
-            'expired approval': (failed_order(approval_state='Expired'), NOW, 'approval_invalid'),
-            'not failed': (with_status(failed_order(), phase='Provisioned'), NOW, 'not_failed'),
-            'retry pending': (with_status(failed_order(), retry={'requestedAt': format_time(NOW)}), NOW, 'retry_pending'),
-            'no limits recorded': (with_status(failed_order(), policy={}), NOW, 'retry_not_configured'),
-        }
-        for name, (order, now, code) in cases.items():
-            with self.subTest(name):
-                result = evaluate_retry(order, now)
-                self.assertFalse(result.eligible)
-                self.assertEqual(result.code, code)
-                with self.assertRaises(OrderConflictError):
-                    request_retry(order, 'alice', now)
-
-    def test_active_or_succeeded_attempt_blocks_retry(self):
-        order = failed_order(attempts=2)
-        order['status']['attempts'][0]['state'] = 'Succeeded'
-        self.assertEqual(evaluate_retry(order, NOW).code, 'previously_succeeded')
-        order = failed_order(attempts=2)
-        order['status']['attempts'][0]['state'] = 'CleaningUp'
-        self.assertEqual(evaluate_retry(order, NOW).code, 'attempt_active')
-        unverified = failed_order()
-        del unverified['status']['attempts'][-1]['failure']['verifiedAt']
-        self.assertEqual(evaluate_retry(unverified, NOW).code, 'failure_not_verified')
-
-
 class TestOrderView(unittest.TestCase):
     def test_view_hides_planned_names_until_created(self):
         order = as_created(build(), status={'phase': 'Provisioning', 'attempts': [{
@@ -493,7 +428,7 @@ class TestOrderView(unittest.TestCase):
         self.assertNotIn('accessPassword', view['request']['workshop'])
         self.assertEqual(order['spec']['request']['workshop']['accessPassword'], 'secret12')
         self.assertEqual(view['phase'], 'Submitted')
-        self.assertFalse(view['retry']['eligible'])
+        self.assertNotIn('retry', view)
 
 
 if __name__ == '__main__':

@@ -111,20 +111,6 @@ spec:
                       type: string
                   evaluatorVersion:
                     type: string
-                  retry:
-                    description: >-
-                      Limits for reusing an approval after a controller-verified provisioning failure.
-                    type: object
-                    properties:
-                      maxAttempts:
-                        description: Total provisioning attempts, including the initial attempt.
-                        type: integer
-                        minimum: 1
-                        maximum: 10
-                      window:
-                        description: Retry window measured from the time approval was satisfied.
-                        type: string
-                        pattern: ^([0-9]+d)?([0-9]+h)?([0-9]+m)?([0-9]+s)?$
                   rules:
                     type: array
                     maxItems: 50

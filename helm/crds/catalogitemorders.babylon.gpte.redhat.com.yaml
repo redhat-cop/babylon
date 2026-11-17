@@ -414,7 +414,7 @@ spec:
                       revokedBy:
                         type: string
                   satisfiedAt:
-                    description: Time approval was decided or determined not required. Retry window origin.
+                    description: Time approval was decided or determined not required.
                     type: string
                     format: date-time
                   state:
@@ -434,9 +434,6 @@ spec:
                   - number
                   - state
                   properties:
-                    cleanedUpAt:
-                      type: string
-                      format: date-time
                     failure:
                       type: object
                       properties:
@@ -444,8 +441,6 @@ spec:
                           type: string
                         reason:
                           type: string
-                        retryable:
-                          type: boolean
                         verifiedAt:
                           type: string
                           format: date-time
@@ -498,8 +493,6 @@ spec:
                     state:
                       type: string
                       enum:
-                      - CleanedUp
-                      - CleaningUp
                       - Dispatching
                       - Failed
                       - Provisioning
@@ -617,13 +610,6 @@ spec:
                           type: string
                   digest:
                     type: string
-                  retryLimits:
-                    type: object
-                    properties:
-                      maxAttempts:
-                        type: integer
-                      window:
-                        type: string
                   snapshot:
                     description: Copy of CatalogItem spec.approvalPolicy evaluated.
                     type: object
@@ -631,14 +617,6 @@ spec:
                   state:
                     type: string
                   version:
-                    type: string
-              retry:
-                type: object
-                properties:
-                  requestedAt:
-                    type: string
-                    format: date-time
-                  requestedBy:
                     type: string
     served: true
     storage: true

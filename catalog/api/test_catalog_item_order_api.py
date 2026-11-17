@@ -222,7 +222,7 @@ class TestReadAndOwnership(OrderApiTestCase):
 
         status, data = await self.call('GET', path)
         self.assertEqual((status, data['id']), (200, alice_order['id']))
-        self.assertIn('retry', data)
+        self.assertNotIn('retry', data)
 
         status, data = await self.call('GET', path, user='bob')
         self.assertEqual((status, data['error']), (404, 'order_not_found'))
@@ -250,7 +250,7 @@ class TestReadAndOwnership(OrderApiTestCase):
         self.assertNotIn('secret12', json.dumps(data))
 
 
-class TestCancelAndRetry(OrderApiTestCase):
+class TestCancel(OrderApiTestCase):
     async def test_cancel_pending_order(self):
         self.kube.add_catalog_item(make_catalog_item(raw_policy=MANAGER_POLICY))
         _, order = await self.submit()
@@ -286,33 +286,6 @@ class TestCancelAndRetry(OrderApiTestCase):
         self.kube.replace_order_status = conflict_once
         status, data = await self.call('POST', f"{ORDERS}/{USER_NAMESPACE}/{order['name']}/cancel")
         self.assertEqual((status, data['phase']), (200, 'Cancelled'))
-
-    async def test_retry_endpoint_enforces_eligibility(self):
-        _, order = await self.submit()
-        path = f"{ORDERS}/{USER_NAMESPACE}/{order['name']}/retry"
-        status, data = await self.call('POST', path)
-        self.assertEqual((status, data['error']), (409, 'not_failed'))
-
-        await self.reconcile(order)
-        current = self.kube.orders[(USER_NAMESPACE, order['name'])]
-        ref = current['status']['attempts'][0]['resources'][0]
-        self.kube.set_resource_status('ResourceClaim', ref['namespace'], ref['name'], complete_claim_status('provision-failed'))
-        await self.reconcile(order)
-
-        status, data = await self.call('POST', path, user='bob')
-        self.assertEqual(status, 404)
-        status, data = await self.call('POST', path)
-        self.assertEqual(status, 202, data)
-        self.assertEqual(data['phase'], 'Failed')
-        status, data = await self.call('POST', path)
-        self.assertEqual((status, data['error']), (409, 'retry_pending'))
-
-        self.clock.advance(hours=73)
-        current = self.kube.orders[(USER_NAMESPACE, order['name'])]
-        current['status'].pop('retry')
-        status, data = await self.call('POST', path)
-        self.assertEqual((status, data['error']), (409, 'retry_window_expired'))
-
 
 class TestProxyBlocksDirectOrderWrites(unittest.IsolatedAsyncioTestCase):
     def test_reject_function(self):
@@ -369,7 +342,6 @@ class TestControllerIntegrationThroughApi(OrderApiTestCase):
         await self.reconcile(order)
         self.assertEqual(self.kube.orders[(USER_NAMESPACE, order['name'])]['status']['phase'], 'Cancelled')
         self.assertEqual(self.kube.resources, {})
-
 
 
 if __name__ == '__main__':

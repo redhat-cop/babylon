@@ -31,14 +31,12 @@ rules:
   verbs:
   - get
 # Provisioning resources created by the backend adapters in requester namespaces.
-# Delete is used only to clean up a failed attempt before an approved retry.
 - apiGroups:
   - poolboy.gpte.redhat.com
   resources:
   - resourceclaims
   verbs:
   - create
-  - delete
   - get
 - apiGroups:
   - babylon.gpte.redhat.com
@@ -49,7 +47,6 @@ rules:
   - workshops
   verbs:
   - create
-  - delete
   - get
 # Recheck requester access and ordering blocks at dispatch.
 - apiGroups:

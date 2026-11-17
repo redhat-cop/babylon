@@ -1,6 +1,6 @@
 """CatalogItemOrder model: request normalization, digests and lifecycle rules.
 
-Pure functions shared by the catalog API (submission, cancel, retry) and the
+Pure functions shared by the catalog API (submission, cancel) and the
 CatalogItemOrder controller. Kubernetes access lives in
 catalog_item_order_kube.py, resource construction in
 catalog_item_order_adapters.py and reconciliation in
@@ -51,7 +51,8 @@ PHASE_DENIED = 'Denied'
 PHASE_EXPIRED = 'Expired'
 PHASE_CANCELLED = 'Cancelled'
 PHASE_BLOCKED = 'Blocked'
-TERMINAL_PHASES = (PHASE_PROVISIONED, PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
+# Failed is terminal: there is no retry, so a new order is needed to try again.
+TERMINAL_PHASES = (PHASE_PROVISIONED, PHASE_FAILED, PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
 
 APPROVAL_NOT_REQUIRED = 'NotRequired'
 APPROVAL_PENDING = 'Pending'
@@ -65,9 +66,7 @@ ATTEMPT_DISPATCHING = 'Dispatching'
 ATTEMPT_PROVISIONING = 'Provisioning'
 ATTEMPT_SUCCEEDED = 'Succeeded'
 ATTEMPT_FAILED = 'Failed'
-ATTEMPT_CLEANING_UP = 'CleaningUp'
-ATTEMPT_CLEANED_UP = 'CleanedUp'
-ACTIVE_ATTEMPT_STATES = (ATTEMPT_DISPATCHING, ATTEMPT_PROVISIONING, ATTEMPT_CLEANING_UP)
+ACTIVE_ATTEMPT_STATES = (ATTEMPT_DISPATCHING, ATTEMPT_PROVISIONING)
 
 ORDER_LABEL = f'{BABYLON_DOMAIN}/catalog-item-order'
 ORDER_UID_LABEL = f'{BABYLON_DOMAIN}/catalog-item-order-uid'
@@ -788,16 +787,14 @@ def active_attempt(order):
 
 
 def order_completed(order):
-    """True once an order needs no further controller work: terminal phases,
-    non-recoverable blocks, and failures with no retry in progress."""
+    """True once an order needs no further controller work: terminal phases
+    and non-recoverable blocks."""
     status = order.get('status') or {}
     phase = order_phase(order)
     if phase in TERMINAL_PHASES:
         return True
     if phase == PHASE_BLOCKED:
         return not (status.get('blocked') or {}).get('recoverable')
-    if phase == PHASE_FAILED:
-        return not status.get('retry') and active_attempt(order) is None
     return False
 
 
@@ -856,92 +853,6 @@ def cancel_order(order, actor, now):
     status.pop('blocked', None)
     set_condition(status, 'Ready', 'False', 'Cancelled', 'Order was cancelled by the requester', now)
     add_history(status, 'Cancelled', now, actor, 'Order cancelled before provisioning')
-    return status
-
-
-@dataclass(frozen=True)
-class RetryEligibility:
-    eligible: bool
-    code: str
-    message: str
-    attempts_used: int = 0
-    max_attempts: int | None = None
-    deadline: str | None = None
-
-    def as_dict(self):
-        result = {
-            'eligible': self.eligible,
-            'reason': self.code,
-            'message': self.message,
-            'attemptsUsed': self.attempts_used,
-        }
-        if self.max_attempts is not None:
-            result['maxAttempts'] = self.max_attempts
-        if self.deadline is not None:
-            result['deadline'] = self.deadline
-        return result
-
-
-def retry_limits(order):
-    limits = ((order.get('status') or {}).get('policy') or {}).get('retryLimits') or {}
-    return parse_duration(limits.get('window')), limits.get('maxAttempts')
-
-
-def evaluate_retry(order, now, controller=False):
-    """Whether the existing approval may be reused for another attempt.
-
-    Window origin is status.approval.satisfiedAt (approval decision time, or
-    policy evaluation time when no approval was required). maxAttempts counts
-    every attempt including the initial one. The controller additionally
-    rechecks policy and catalog item digests before dispatching the retry.
-
-    controller=True re-evaluates an accepted retry request: the order may
-    already be Ready again after cleanup and status.retry is set."""
-    status = order.get('status') or {}
-    attempts = order_attempts(order)
-    window, max_attempts = retry_limits(order)
-    used = len(attempts)
-
-    def result(eligible, code, message, deadline=None):
-        return RetryEligibility(eligible, code, message, used, max_attempts, deadline)
-
-    if not controller and order_phase(order) != PHASE_FAILED:
-        return result(False, 'not_failed', 'Only failed orders can be retried')
-    if active_attempt(order) is not None:
-        return result(False, 'attempt_active', 'Another attempt is still active')
-    if not controller and status.get('retry'):
-        return result(False, 'retry_pending', 'A retry has already been requested')
-    if any(attempt.get('state') == ATTEMPT_SUCCEEDED for attempt in attempts):
-        return result(False, 'previously_succeeded', 'A successful order cannot be retried; submit a new order')
-    last = attempts[-1] if attempts else None
-    failure = (last or {}).get('failure') or {}
-    if not last or last.get('state') not in (ATTEMPT_FAILED, ATTEMPT_CLEANED_UP) or not failure.get('verifiedAt'):
-        return result(False, 'failure_not_verified', 'No controller-verified provisioning failure to retry')
-    if not failure.get('retryable'):
-        return result(False, 'failure_not_retryable', failure.get('message') or 'Failure is not retryable')
-    approval = status.get('approval') or {}
-    if approval.get('revocation') or approval.get('state') not in (APPROVAL_APPROVED, APPROVAL_NOT_REQUIRED):
-        return result(False, 'approval_invalid', 'Approval is no longer valid; submit a new order')
-    if window is None or not isinstance(max_attempts, int):
-        return result(False, 'retry_not_configured', 'Retry limits were not recorded for this order')
-    satisfied_at = parse_time(approval.get('satisfiedAt'))
-    if satisfied_at is None:
-        return result(False, 'approval_invalid', 'Approval time was not recorded')
-    deadline = satisfied_at + timedelta(seconds=window)
-    if now > deadline:
-        return result(False, 'retry_window_expired', 'Retry window has expired; submit a new order', format_time(deadline))
-    if used >= max_attempts:
-        return result(False, 'attempt_limit_reached', 'Attempt limit reached; submit a new order', format_time(deadline))
-    return result(True, 'eligible', 'Retry may reuse the existing approval', format_time(deadline))
-
-
-def request_retry(order, actor, now):
-    eligibility = evaluate_retry(order, now)
-    if not eligibility.eligible:
-        raise OrderConflictError(eligibility.code, eligibility.message)
-    status = copy.deepcopy(order['status'])
-    status['retry'] = {'requestedAt': format_time(now), 'requestedBy': actor}
-    add_history(status, 'RetryRequested', now, actor, f"Retry requested for attempt {len(order_attempts(order)) + 1}")
     return status
 
 
@@ -1017,8 +928,7 @@ def record_approval_decision(order, *, outcome, decided_by, now, source, authori
 
 
 def revoke_approval(order, *, revoked_by, reason, now):
-    """Contract for GPTEINFRA-18189: revoke an approval before dispatch or
-    to prevent approval reuse for retries."""
+    """Contract for GPTEINFRA-18189: revoke an approval before dispatch."""
     status = copy.deepcopy(order.get('status') or {})
     approval = status.get('approval') or {}
     if approval.get('state') not in (APPROVAL_APPROVED, APPROVAL_PENDING):
@@ -1079,8 +989,6 @@ def order_view(order, now=None):
         'history': status.get('history', []),
         'statusUrl': f"/api/catalog-item-orders/{metadata.get('namespace')}/{metadata.get('name')}",
     }
-    if now is not None:
-        view['retry'] = evaluate_retry(order, now).as_dict()
     # Advisory for the UI; the cancel endpoint re-checks with a resourceVersion precondition.
     problem = cancel_problem(order)
     view['cancel'] = {'allowed': True} if problem is None else {

@@ -23,7 +23,7 @@ from order_test_support import (
     make_parameters,
     submission,
 )
-from test_approval_policy import CONDITIONAL_POLICY, RETRY_POLICY, UNCONDITIONAL_POLICY
+from test_approval_policy import CONDITIONAL_POLICY, EXPIRY_POLICY, UNCONDITIONAL_POLICY
 from test_catalog_item_order_controller import MANAGER_POLICY, complete_claim_status
 
 ORDER_SCHEMA = load_crd_schema(ORDER_CRD_PATH)
@@ -131,7 +131,7 @@ class TestCrds(unittest.TestCase):
         self.assertEqual(structural_problems(CATALOG_ITEM_SCHEMA), [])
 
     def test_published_policies_validate_against_catalog_item_crd(self):
-        for raw in (UNCONDITIONAL_POLICY, CONDITIONAL_POLICY, RETRY_POLICY, {'version': 'v9'}, None):
+        for raw in (UNCONDITIONAL_POLICY, CONDITIONAL_POLICY, EXPIRY_POLICY, {'version': 'v9'}, None):
             with self.subTest(raw=raw):
                 published = compile_approval_policy(
                     raw, parameter_specs=make_parameters(),
@@ -209,7 +209,7 @@ class TestHelm(unittest.TestCase):
         docs = helm_template(
             'catalog/helm',
             '--set', 'catalogItemOrders.controller.catalogBaseUrl=https://catalog.example.com',
-            '--set', 'catalogItemOrders.controller.retry.maxAttempts=2',
+            '--set', 'catalogItemOrders.controller.approvalExpiresAfter=48h',
         )
         api_role = find(docs, 'ClusterRole', 'babylon-catalog-api')[0]
         self.assertEqual(order_rules(api_role), {
@@ -240,7 +240,8 @@ class TestHelm(unittest.TestCase):
         self.assertEqual(container['image'], api['spec']['template']['spec']['containers'][0]['image'])
         env = {e['name']: e.get('value') for e in container['env']}
         self.assertEqual(env['CATALOG_BASE_URL'], 'https://catalog.example.com')
-        self.assertEqual(env['ORDER_RETRY_MAX_ATTEMPTS'], '2')
+        self.assertEqual(env['ORDER_APPROVAL_EXPIRES_AFTER'], '48h')
+        self.assertNotIn('ORDER_RETRY_MAX_ATTEMPTS', env)
         self.assertEqual(env['ORDER_RETENTION'], '30d')
         self.assertEqual(env['ORDER_MANAGER_EXEMPTION_MAX_LEVEL'], '5')
         self.assertFalse(container['securityContext']['allowPrivilegeEscalation'])

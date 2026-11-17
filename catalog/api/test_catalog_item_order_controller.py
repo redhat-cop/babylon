@@ -9,7 +9,6 @@ from catalog_item_order import (
     cancel_order,
     format_time,
     record_approval_decision,
-    request_retry,
     revoke_approval,
 )
 from catalog_item_order_adapters import build_resource, plan_resources
@@ -45,7 +44,6 @@ LARGE_POLICY = {'version': 'v1', 'rules': {'large': {
     'require': 'manager',
     'reason': 'Large training environments require manager approval.',
 }}}
-RETRY_POLICY = {**MANAGER_POLICY, 'retry': {'window': '72h', 'max_attempts': 3}}
 
 
 def complete_claim_status(current_state='started'):
@@ -630,14 +628,14 @@ class TestDurability(ControllerTestCase):
         from catalog_item_order import order_view
         self.assertNotIn(planned, str(order_view(order, self.clock())))
 
-    async def test_deleted_resources_fail_without_retry(self):
+    async def test_deleted_resources_fail_the_order(self):
         order = await self.reconcile(await self.submit())
         ref = order['status']['attempts'][0]['resources'][0]
         await self.kube.delete_resource(ref)
         order = await self.reconcile(order)
         self.assertEqual(order['status']['phase'], 'Failed')
         self.assertEqual(order['status']['attempts'][0]['failure']['reason'], 'ResourcesDeleted')
-        self.assertFalse(order['status']['attempts'][0]['failure']['retryable'])
+        self.assertNotIn('retryable', order['status']['attempts'][0]['failure'])
 
     async def test_create_rejection_fails_attempt(self):
         self.kube.create_errors['ResourceClaim'] = KubeError(422, 'Invalid')
@@ -652,8 +650,8 @@ class TestDurability(ControllerTestCase):
         self.assertEqual(retry_order['status']['attempts'][0]['state'], 'Dispatching')
 
 
-class TestRetry(ControllerTestCase):
-    async def failed_order(self, policy=RETRY_POLICY):
+class TestFailed(ControllerTestCase):
+    async def failed_order(self, policy=MANAGER_POLICY):
         item = self.add_item(raw_policy=policy) if policy else self.add_item()
         order = await self.reconcile(await self.submit(item))
         if order['status']['phase'] == 'PendingApproval':
@@ -664,118 +662,20 @@ class TestRetry(ControllerTestCase):
         self.assertEqual(order['status']['phase'], 'Failed')
         return item, order
 
-    async def request_retry(self, order):
-        await self.kube.replace_order_status(order, request_retry(order, 'alice', self.clock()))
-        return await self.reconcile(order)
-
-    async def test_retry_reuses_approval_after_cleanup(self):
+    async def test_failed_is_terminal_and_keeps_resources(self):
         _, order = await self.failed_order()
-        first_claim = order['status']['attempts'][0]['resources'][0]
-        self.assertEqual(order['status']['attempts'][0]['failure']['reason'], 'ProvisioningFailed')
-        self.assertTrue(order['status']['attempts'][0]['failure']['retryable'])
-        self.assertEqual(order['status']['policy']['retryLimits'], {'window': '72h', 'maxAttempts': 3})
-        self.kube.delete_finalizers = True
-        order = await self.request_retry(order)
-        self.assertEqual(order['status']['phase'], 'Failed')
-        self.assertEqual(order['status']['attempts'][0]['state'], 'CleaningUp')
-        self.assertEqual(len(order['status']['attempts']), 1, 'only one active attempt')
-        self.kube.finish_deletions()
-        order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
-        self.assertEqual([a['state'] for a in order['status']['attempts']], ['CleanedUp', 'Provisioning'])
-        second_claim = order['status']['attempts'][1]['resources'][0]
-        self.assertNotEqual(first_claim['name'], second_claim['name'])
-        self.assertEqual(self.claims(), [('ResourceClaim', second_claim['namespace'], second_claim['name'])])
-        self.assertEqual(order['status']['approval']['state'], 'Approved')
-        self.assertIn('DecisionApproved', self.history_events(order))
-
-    async def test_relabelled_failed_resources_are_still_cleaned_up(self):
-        _, order = await self.failed_order()
-        ref = order['status']['attempts'][0]['resources'][0]
-        key = ('ResourceClaim', ref['namespace'], ref['name'])
-        self.kube.resources[key]['metadata']['labels'] = {}
-        order = await self.request_retry(order)
-        self.assertNotIn(key, self.kube.resources, 'requester relabelling must not keep the old environment')
-        self.assertEqual(len(self.claims()), 1)
-        self.assertEqual([a['state'] for a in order['status']['attempts']], ['CleanedUp', 'Provisioning'])
-
-    async def test_replaced_resource_is_not_deleted_on_cleanup(self):
-        _, order = await self.failed_order()
-        ref = order['status']['attempts'][0]['resources'][0]
-        key = ('ResourceClaim', ref['namespace'], ref['name'])
-        replacement = copy.deepcopy(self.kube.resources[key])
-        replacement['metadata']['uid'] = 'someone-elses'
-        self.kube.resources[key] = replacement
-        await self.request_retry(order)
-        self.assertEqual(self.kube.resources[key]['metadata']['uid'], 'someone-elses')
-
-    async def test_attempt_limit_counts_initial_attempt(self):
-        _, order = await self.failed_order({**RETRY_POLICY, 'retry': {'window': '72h', 'max_attempts': 2}})
-        order = await self.request_retry(order)
-        self.set_claim_status(order, complete_claim_status('provision-failed'))
-        order = await self.reconcile(order)
-        self.assertEqual(len(order['status']['attempts']), 2)
-        with self.assertRaises(Exception):
-            request_retry(order, 'alice', self.clock())
-
-    async def test_retry_rejected_after_window_or_changes(self):
-        cases = ('window', 'policy', 'revoked', 'material')
-        for case in cases:
-            with self.subTest(case):
-                self.kube = FakeKube()
-                grant_default_access(self.kube)
-                self.controller = CatalogItemOrderController(self.kube, self.config, clock=self.clock)
-                self.clock.now = NOW
-                item, order = await self.failed_order()
-                await self.kube.replace_order_status(order, request_retry(order, 'alice', self.clock()))
-                order = await self.kube.get_order(USER_NAMESPACE, order['metadata']['name'])
-                key = (item['metadata']['namespace'], item['metadata']['name'])
-                if case == 'window':
-                    self.clock.advance(hours=73)
-                elif case == 'policy':
-                    item['spec']['approvalPolicy'] = compile_approval_policy(
-                        {**RETRY_POLICY, 'default_reason': 'changed'}, parameter_specs=make_parameters())
-                    self.kube.catalog_items[key] = item
-                elif case == 'revoked':
-                    self.kube.force_status(USER_NAMESPACE, order['metadata']['name'], lambda status: status['approval'].update(
-                        revocation={'revokedAt': format_time(NOW), 'revokedBy': 'manager', 'reason': 'no'}))
-                else:
-                    item['spec']['runtime'] = {'default': '2h', 'maximum': '8h'}
-                    self.kube.catalog_items[key] = item
-                order = await self.reconcile(order)
-                self.assertEqual(order['status']['phase'], 'Failed')
-                self.assertNotIn('retry', order['status'])
-                self.assertEqual(len(order['status']['attempts']), 1)
-                self.assertIn('RetryRejected', self.history_events(order))
-                self.assertEqual(len(self.claims()), 1, 'failed resources are retained')
-
-    async def test_successful_order_cannot_be_retried(self):
-        order = await self.reconcile(await self.submit())
-        self.set_claim_status(order, complete_claim_status())
-        order = await self.reconcile(order)
-        with self.assertRaises(Exception):
-            request_retry(order, 'alice', self.clock())
-
-    async def test_no_approval_order_retry_uses_controller_defaults(self):
-        self.config.retry_max_attempts = 2
-        _, order = await self.failed_order(policy=None)
-        self.assertEqual(order['status']['policy']['retryLimits'], {'window': '72h', 'maxAttempts': 2})
-        order = await self.request_retry(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
-        self.assertEqual(len(order['status']['attempts']), 2)
-
-    async def test_policy_change_after_approval_blocks_dispatch_of_retry(self):
-        item, order = await self.failed_order()
-        self.kube.delete_finalizers = True
-        order = await self.request_retry(order)
-        item['spec']['approvalPolicy'] = compile_approval_policy(
-            {**RETRY_POLICY, 'default_reason': 'changed'}, parameter_specs=make_parameters())
-        self.kube.catalog_items[(item['metadata']['namespace'], item['metadata']['name'])] = item
-        self.kube.finish_deletions()
+        self.assertIn('completedAt', order['status'])
+        self.assertNotIn('retryLimits', order['status']['policy'])
+        self.assertNotIn('retryable', order['status']['attempts'][0]['failure'])
+        writes = self.kube.status_writes
+        self.clock.advance(hours=1)
         order = await self.reconcile(order)
         self.assertEqual(order['status']['phase'], 'Failed')
-        self.assertEqual([a['state'] for a in order['status']['attempts']], ['CleanedUp'])
-        self.assertEqual(self.claims(), [])
+        self.assertEqual(self.kube.status_writes, writes, 'a failed order needs no further controller work')
+        self.assertEqual(len(self.claims()), 1, 'failed resources are kept for the requester to inspect or delete')
+        from catalog_item_order import order_view
+        self.assertEqual(order_view(order, self.clock())['cancel']['code'], 'order_finished')
+
 
 
 class TestRunLoop(ControllerTestCase):
@@ -827,12 +727,8 @@ class TestRetention(ControllerTestCase):
         expired = await self.reconcile(pending)
         self.assertEqual(expired['status']['completedAt'], format_time(self.clock()))
 
-        _, failed = await TestRetry.failed_order(self)
+        _, failed = await TestFailed.failed_order(self)
         self.assertIn('completedAt', failed['status'])
-        await self.kube.replace_order_status(failed, request_retry(failed, 'alice', self.clock()))
-        retried = await self.reconcile(failed)
-        self.assertEqual(retried['status']['phase'], 'Provisioning')
-        self.assertNotIn('completedAt', retried['status'])
 
         blocked = await self.reconcile(await self.submit(self.add_item(raw_policy={'version': 'v9'}), submission(key='key-blocked1')))
         self.assertTrue(blocked['status']['blocked']['recoverable'])
@@ -871,13 +767,12 @@ class TestRetention(ControllerTestCase):
         self.kube.resources[key]['metadata']['uid'] = 'unrelated'
         self.assertEqual(await self.sweep(order), (True, False))
 
-    async def test_retryable_failure_is_kept(self):
+    async def test_failed_order_kept_until_its_resources_are_gone(self):
         self.config.retention = '1d'
-        _, order = await TestRetry.failed_order(self)
+        _, order = await TestFailed.failed_order(self)
+        self.clock.advance(days=2)
+        self.assertEqual(await self.sweep(order), (False, True), 'failed resources still exist')
         await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
-        self.clock.advance(days=2)
-        self.assertEqual(await self.sweep(order), (False, True))
-        self.clock.advance(days=2)
         self.assertEqual(await self.sweep(order), (True, False))
 
     async def test_backfills_missing_completed_at(self):
@@ -925,15 +820,13 @@ class TestRetention(ControllerTestCase):
 class TestConfig(unittest.TestCase):
     def test_from_env_and_validation(self):
         config = ControllerConfig.from_env({
-            'ORDER_RETRY_WINDOW': '48h', 'ORDER_RETRY_MAX_ATTEMPTS': '2',
             'CATALOG_BASE_URL': 'https://catalog', 'ORDER_APPROVAL_EXPIRES_AFTER': '24h',
         })
-        self.assertEqual((config.retry_window, config.retry_max_attempts), ('48h', 2))
+        self.assertEqual(config.approval_expires_after, '24h')
         self.assertEqual(config.review_base_url, 'https://catalog')
+        self.assertFalse(hasattr(config, 'retry_window'))
         with self.assertRaises(ValueError):
-            ControllerConfig(retry_window='forever')
-        with self.assertRaises(ValueError):
-            ControllerConfig(retry_max_attempts=0)
+            ControllerConfig(approval_expires_after='forever')
         self.assertEqual(ControllerConfig.from_env({}).retention, '30d')
         self.assertIsNone(ControllerConfig.from_env({'ORDER_RETENTION': ''}).retention)
         self.assertEqual(ControllerConfig.from_env({'ORDER_RETENTION': '90d'}).retention, '90d')

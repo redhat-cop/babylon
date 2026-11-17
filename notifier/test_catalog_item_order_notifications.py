@@ -154,13 +154,13 @@ class TestNotificationsFor(unittest.TestCase):
         self.assertEqual(notifications_for(exempt, now=NOW), [], 'manager-exempt orders send no email')
         self.assertEqual(notifications_for(approved_order(), now=NOW + timedelta(days=8)), [])
 
-    def test_provisioning_retry_does_not_create_new_events(self):
+    def test_provisioning_progress_does_not_create_new_events(self):
         order = approved_order()
         first = notifications_for(order, now=NOW)
-        retried = copy.deepcopy(order)
-        retried['status']['phase'] = 'Provisioning'
-        retried['status']['attempts'] = [{'number': 1, 'state': 'CleanedUp'}, {'number': 2, 'state': 'Provisioning'}]
-        self.assertEqual(notifications_for(retried, now=NOW + timedelta(hours=1)), first)
+        progressed = copy.deepcopy(order)
+        progressed['status']['phase'] = 'Provisioning'
+        progressed['status']['attempts'] = [{'number': 1, 'state': 'Provisioning'}]
+        self.assertEqual(notifications_for(progressed, now=NOW + timedelta(hours=1)), first)
 
 
 class TestTemplates(unittest.TestCase):
@@ -335,16 +335,16 @@ class TestDelivery(unittest.IsolatedAsyncioTestCase):
         await self.notifier(only_send_to='dana.manager@example.com').handle(self.orders[('user-alice', 'order-1')])
         self.assertEqual([msg['To'] for msg in self.sent], ['dana.manager@example.com'])
 
-    async def test_outcome_after_request_and_no_new_request_on_retry(self):
+    async def test_outcome_after_request_and_no_new_request_while_provisioning(self):
         notifier = self.notifier()
         await notifier.handle(self.orders[('user-alice', 'order-1')])
         approved = approved_order()
         self.orders[('user-alice', 'order-1')] = approved
         await notifier.handle(approved)
-        retried = copy.deepcopy(approved)
-        retried['status']['attempts'] = [{'number': 1, 'state': 'CleanedUp'}, {'number': 2, 'state': 'Provisioning'}]
-        self.orders[('user-alice', 'order-1')] = retried
-        await notifier.handle(retried)
+        progressed = copy.deepcopy(approved)
+        progressed['status']['attempts'] = [{'number': 1, 'state': 'Provisioning'}]
+        self.orders[('user-alice', 'order-1')] = progressed
+        await notifier.handle(progressed)
         self.assertEqual([msg['To'] for msg in self.sent], ['dana.manager@example.com', 'alice@example.com'])
 
 

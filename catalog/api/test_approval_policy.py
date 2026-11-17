@@ -49,11 +49,10 @@ CONDITIONAL_POLICY = {
     },
 }
 
-RETRY_POLICY = {
+EXPIRY_POLICY = {
     'version': 'v1',
     'default': 'manager_required',
     'approval': {'expires_after': '72h'},
-    'retry': {'window': '72h', 'max_attempts': 3},
 }
 
 
@@ -83,7 +82,7 @@ class TestVendoredCopy(unittest.TestCase):
 
 class TestCompile(unittest.TestCase):
     def test_documented_examples_are_valid(self):
-        for raw in (UNCONDITIONAL_POLICY, CONDITIONAL_POLICY, RETRY_POLICY):
+        for raw in (UNCONDITIONAL_POLICY, CONDITIONAL_POLICY, EXPIRY_POLICY):
             with self.subTest(raw=raw):
                 published = compile_approval_policy(raw, parameter_specs=make_parameters())
                 self.assertEqual(published['state'], 'Valid', published.get('errors'))
@@ -92,12 +91,12 @@ class TestCompile(unittest.TestCase):
 
     def test_published_form_is_camel_case_and_sorted(self):
         published = compile_approval_policy(
-            {**CONDITIONAL_POLICY, 'retry': {'window': '24h', 'max_attempts': 2}},
+            CONDITIONAL_POLICY,
             parameter_specs=make_parameters(),
             source={'path': 'tests/test-item/prod.yaml'},
         )
         self.assertEqual([rule['id'] for rule in published['rules']], ['gpu', 'large_training'])
-        self.assertEqual(published['retry'], {'window': '24h', 'maxAttempts': 2})
+        self.assertNotIn('retry', published)
         self.assertEqual(published['source'], {'path': 'tests/test-item/prod.yaml'})
         self.assertEqual(published['default'], 'not_required')
 
@@ -152,7 +151,7 @@ class TestCompile(unittest.TestCase):
             'explicit not_required without override reason': {'version': 'v1', 'default': 'not_required'},
             'approver other than manager': {'version': 'v1', 'approval': {'approver': 'anyone'}},
             'expiry too long': {'version': 'v1', 'approval': {'expires_after': '90d'}},
-            'too many attempts': {'version': 'v1', 'retry': {'max_attempts': 50}},
+            'retry is not supported': {'version': 'v1', 'retry': {'window': '72h'}},
             'empty all': {'version': 'v1', 'rules': {'r': {
                 'when': {'all': []}, 'require': 'manager', 'reason': 'x'}}},
             'template string is just a value': {'version': 'v1', 'rules': {'r': {

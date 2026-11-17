@@ -1,4 +1,4 @@
-"""Catalog API operations for CatalogItemOrders: submit, get, list, cancel, retry.
+"""Catalog API operations for CatalogItemOrders: submit, get, list, cancel.
 
 Identity always comes from the authenticated session. Orders are read and
 written with the catalog API service account after ownership checks; users
@@ -14,7 +14,6 @@ from catalog_item_order import (
     cancel_order,
     order_name,
     order_view,
-    request_retry,
     submission_digest,
     utcnow,
     validate_submission_envelope,
@@ -179,6 +178,3 @@ class CatalogItemOrderService:
 
     async def cancel(self, namespace, name, *, session, user_uid):
         return await self._update_status(namespace, name, session, user_uid, cancel_order)
-
-    async def retry(self, namespace, name, *, session, user_uid):
-        return await self._update_status(namespace, name, session, user_uid, request_retry)

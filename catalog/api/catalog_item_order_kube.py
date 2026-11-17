@@ -133,25 +133,6 @@ class KubeOrderClient:
         except kubernetes_asyncio.client.exceptions.ApiException as exception:
             raise _wrap(exception) from exception
 
-    async def delete_resource(self, ref):
-        """Delete a resource; with a recorded uid, only that exact object.
-
-        Returns False if the object is gone or was replaced by another object."""
-        kind = resource_kind(ref)
-        kwargs = {}
-        if ref.get('uid'):
-            kwargs['body'] = {'preconditions': {'uid': ref['uid']}}
-        try:
-            await self.custom_objects_api.delete_namespaced_custom_object(
-                group=kind.api_group, version=kind.version, plural=kind.plural,
-                namespace=ref['namespace'], name=ref['name'], **kwargs,
-            )
-        except kubernetes_asyncio.client.exceptions.ApiException as exception:
-            if exception.status in (404, 409):
-                return False
-            raise _wrap(exception) from exception
-        return True
-
     async def get_system_status(self):
         """Ordering block flags from the system status ConfigMap.
 
