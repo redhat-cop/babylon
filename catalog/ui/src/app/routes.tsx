@@ -11,6 +11,7 @@ const CatalogItemForm = React.lazy(() => import('@app/Catalog/CatalogItemForm'))
 const Services = React.lazy(() => import('@app/Services/Services'));
 const OrdersList = React.lazy(() => import('@app/CatalogItemOrders/OrdersList'));
 const OrderDetail = React.lazy(() => import('@app/CatalogItemOrders/OrderDetail'));
+const OrderPlacing = React.lazy(() => import('@app/CatalogItemOrders/OrderPlacing'));
 const ManagerApprovals = React.lazy(() => import('@app/CatalogItemOrders/ApprovalsPage'));
 const AdminApprovals = React.lazy(() => import('@app/CatalogItemOrders/AdminApprovals'));
 const ResourceClaims = React.lazy(() => import('@app/Admin/ResourceClaims'));
@@ -108,6 +109,11 @@ const appRoutes: IAppRoute[] = [
     title: 'Babylon | My Services',
   },
   // Catalog item orders (GPTEINFRA-18190).
+  {
+    component: OrderPlacing,
+    path: '/orders/:namespace/:name/placing',
+    title: 'Babylon | Placing order',
+  },
   {
     component: OrderDetail,
     path: '/orders/:namespace/:name',

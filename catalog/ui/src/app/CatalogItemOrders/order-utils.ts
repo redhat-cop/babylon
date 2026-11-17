@@ -386,3 +386,28 @@ export function orderQuantity(order: Pick<CatalogItemOrder, 'orderType' | 'reque
 export function newOrderPath(catalogItem: { metadata: { namespace?: string; name?: string } }): string {
   return `/catalog/${encodeURIComponent(catalogItem.metadata.namespace)}/order/${encodeURIComponent(catalogItem.metadata.name)}`;
 }
+
+export function orderPagePath(order: Pick<CatalogItemOrder, 'namespace' | 'name'>): string {
+  return `/orders/${encodeURIComponent(order.namespace)}/${encodeURIComponent(order.name)}`;
+}
+
+/** Waiting page shown right after submitting, until the destination is known. */
+export function placingPagePath(order: Pick<CatalogItemOrder, 'namespace' | 'name'>): string {
+  return `${orderPagePath(order)}/placing`;
+}
+
+/**
+ * Where a just-submitted order should take the requester, or null while the
+ * controller is still working. Orders that need no approval never show an
+ * order page: they go straight to the created service, workshop or lab.
+ * Orders that need approval, or that cannot continue, open their order page.
+ */
+export function orderDestination(order: CatalogItemOrder): string | null {
+  if (order.approval?.state === 'NotRequired') {
+    return orderResourceLinks(order)[0]?.to || null;
+  }
+  if (order.approval?.requestedAt || ['PendingApproval', 'Blocked', 'Denied', 'Expired', 'Cancelled'].includes(order.phase)) {
+    return orderPagePath(order);
+  }
+  return null;
+}

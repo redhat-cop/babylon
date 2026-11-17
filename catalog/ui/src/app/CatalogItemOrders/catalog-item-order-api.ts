@@ -1,5 +1,4 @@
 import { apiFetch, apiPaths } from '@app/api';
-import { orderResourceLinks } from './order-utils';
 import type {
   ApprovalReview,
   CatalogItemOrder,
@@ -154,43 +153,4 @@ export function decideCatalogItemOrder(
     method: 'POST',
     body: trimmed ? { comment: trimmed } : {},
   });
-}
-
-/**
- * Where to send the requester after submitting. Orders that need no approval
- * never show up as orders: once the controller creates the service, workshop
- * or lab, go straight to it. Orders that need approval (or end up blocked,
- * denied, ...) open their order page. If the controller has not finished
- * within the wait, go to My Services, where the new service appears; the
- * order page is only used once approval is known to be needed.
- */
-export async function resolveOrderDestination(
-  order: CatalogItemOrder,
-  { timeoutMs = 30000, intervalMs = 500 }: { timeoutMs?: number; intervalMs?: number } = {},
-): Promise<string> {
-  const orderPage = `/orders/${encodeURIComponent(order.namespace)}/${encodeURIComponent(order.name)}`;
-  const servicesPage = `/services/${encodeURIComponent(order.namespace)}`;
-  const deadline = Date.now() + timeoutMs;
-  let current = order;
-  for (;;) {
-    const destination = destinationFor(current, orderPage);
-    if (destination) return destination;
-    if (Date.now() >= deadline) return servicesPage;
-    await sleep(intervalMs);
-    try {
-      current = await orderFetcher<CatalogItemOrder>(apiPaths.CATALOG_ITEM_ORDER(order));
-    } catch {
-      // Keep waiting; My Services is the fallback.
-    }
-  }
-}
-
-function destinationFor(order: CatalogItemOrder, orderPage: string): string | null {
-  const resource = orderResourceLinks(order)[0];
-  if (order.approval?.state === 'NotRequired') {
-    return resource ? resource.to : null;
-  }
-  if (order.approval?.requestedAt || order.phase === 'PendingApproval' || order.phase === 'Blocked') return orderPage;
-  if (['Denied', 'Expired', 'Cancelled'].includes(order.phase)) return orderPage;
-  return null;
 }

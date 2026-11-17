@@ -6,7 +6,7 @@ import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils
 import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
 import type { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
-import { OrderApiError, resolveOrderDestination, submitCatalogItemOrder } from '@app/CatalogItemOrders/catalog-item-order-api';
+import { OrderApiError, submitCatalogItemOrder } from '@app/CatalogItemOrders/catalog-item-order-api';
 
 // Catalog item orders (GPTEINFRA-18190): the form submits a CatalogItemOrder and never
 // calls the direct resource creation helpers, except for external URL and white glove orders.
@@ -29,7 +29,6 @@ jest.mock('@app/api', () => ({
 jest.mock('@app/CatalogItemOrders/catalog-item-order-api', () => ({
   ...jest.requireActual('@app/CatalogItemOrders/catalog-item-order-api'),
   submitCatalogItemOrder: jest.fn(),
-  resolveOrderDestination: jest.fn(),
 }));
 
 jest.mock('@app/components/ResourcePoolSelector', () => () => <div data-testid="resource-pool-selector" />);
@@ -75,7 +74,6 @@ const Form = () => (
   </SWRConfig>
 );
 const submit = jest.mocked(submitCatalogItemOrder);
-const resolveDestination = jest.mocked(resolveOrderDestination);
 
 async function fillRequiredFields(utils: Awaited<ReturnType<typeof render>>) {
   const { getByText, getByLabelText, getByRole } = utils;
@@ -95,20 +93,17 @@ describe('CatalogItemForm with catalog item orders', () => {
     jest.clearAllMocks();
     mockIsImpersonating = false;
     jest.mocked(fetcher).mockImplementation(async () => catalogItemObj);
-    resolveDestination.mockImplementation(async (order) => `/orders/${order.namespace}/${order.name}`);
   });
 
-  test('submits one CatalogItemOrder and goes straight to the created service when no approval is needed', async () => {
+  test('submits one CatalogItemOrder and opens the waiting page without creating resources directly', async () => {
     submit.mockResolvedValue({ namespace: 'user-test-redhat-com', name: 'order-abc' } as never);
-    resolveDestination.mockResolvedValue('/services/user-test-redhat-com/tests.test-empty-config.prod-1a2b3c4d');
     const utils = await render(<Form />);
     const button = await fillRequiredFields(utils);
 
     fireEvent.click(button);
     fireEvent.click(button);
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/services/user-test-redhat-com/tests.test-empty-config.prod-1a2b3c4d'));
-    expect(resolveDestination).toHaveBeenCalledWith({ namespace: 'user-test-redhat-com', name: 'order-abc' });
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/orders/user-test-redhat-com/order-abc/placing'));
     expect(submit).toHaveBeenCalledTimes(1);
     const body = submit.mock.calls[0][0];
     expect(body).toMatchObject({
@@ -142,7 +137,7 @@ describe('CatalogItemForm with catalog item orders', () => {
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/orders/user-test-redhat-com/order-abc'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/orders/user-test-redhat-com/order-abc/placing'));
     expect(submit).toHaveBeenCalledTimes(2);
     expect(submit.mock.calls[1][0].idempotencyKey).toBe(submit.mock.calls[0][0].idempotencyKey);
   });

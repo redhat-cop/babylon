@@ -7,6 +7,8 @@ import {
   getReviewStatus,
   isOrderActive,
   newOrderPath,
+  orderDestination,
+  placingPagePath,
   orderResourceLinks,
   safeParameters,
   usesOrderApi,
@@ -241,5 +243,28 @@ describe('visibleOrders', () => {
       order({ uid: 'c', submittedAt: '2026-11-16T00:00:00Z', approval: { state: 'Pending' } }),
     ];
     expect(visibleOrders(orders).map((o: CatalogItemOrder) => o.uid)).toEqual(['c', 'a']);
+  });
+});
+
+describe('orderDestination', () => {
+  const created = [{ number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'user-test', name: 'item-1a2b', uid: 'rc' }] }];
+
+  test('orders without approval go straight to the created service, never to an order page', () => {
+    expect(orderDestination(order({ phase: 'Submitted' }))).toBeNull();
+    expect(orderDestination(order({ phase: 'Approved', approval: { state: 'NotRequired' } }))).toBeNull();
+    expect(orderDestination(order({ phase: 'Approved', approval: { state: 'NotRequired' }, attempts: created }))).toBe(
+      '/services/user-test/item-1a2b',
+    );
+  });
+
+  test('orders that need approval or cannot continue open the order page', () => {
+    for (const overrides of [
+      { phase: 'PendingApproval' as const, approval: { state: 'Pending' as const, requestedAt: 'x' } },
+      { phase: 'Blocked' as const, blocked: { reason: 'PolicyInvalid' } },
+      { phase: 'Denied' as const },
+    ]) {
+      expect(orderDestination(order(overrides))).toBe('/orders/user-test/order-1');
+    }
+    expect(placingPagePath(order())).toBe('/orders/user-test/order-1/placing');
   });
 });
