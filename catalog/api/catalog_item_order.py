@@ -831,20 +831,25 @@ def add_history(status, event, now, actor, message='', limit=50):
         del history[:len(history) - limit]
 
 
+def cancel_problem(order):
+    """(code, message) explaining why the order cannot be cancelled, or None."""
+    phase = order_phase(order)
+    if phase in TERMINAL_PHASES:
+        return 'order_finished', f"Order is already {phase}"
+    if order_attempts(order) or phase in (PHASE_PROVISIONING, PHASE_FAILED):
+        return 'dispatch_started', 'Provisioning has started; manage or delete the provisioned resources instead'
+    return None
+
+
 def cancel_order(order, actor, now):
     """Return updated status for a pre-dispatch cancellation.
 
     Raises OrderConflictError once a provisioning attempt has been claimed.
     The caller must write the status with the order resourceVersion so that
     cancellation and the controller dispatch claim cannot both succeed."""
-    phase = order_phase(order)
-    if phase in TERMINAL_PHASES:
-        raise OrderConflictError('order_finished', f"Order is already {phase}")
-    if order_attempts(order) or phase in (PHASE_PROVISIONING, PHASE_FAILED):
-        raise OrderConflictError(
-            'dispatch_started',
-            'Provisioning has started; manage or delete the provisioned resources instead',
-        )
+    problem = cancel_problem(order)
+    if problem:
+        raise OrderConflictError(*problem)
     status = copy.deepcopy(order.get('status') or {})
     status['phase'] = PHASE_CANCELLED
     status['completedAt'] = format_time(now)
@@ -1072,10 +1077,17 @@ def order_view(order, now=None):
             for attempt in status.get('attempts', [])
         ],
         'history': status.get('history', []),
+        # A retry the requester asked for that the controller has not picked up yet.
+        'retryRequest': status.get('retry'),
         'statusUrl': f"/api/catalog-item-orders/{metadata.get('namespace')}/{metadata.get('name')}",
     }
     if now is not None:
         view['retry'] = evaluate_retry(order, now).as_dict()
+    # Advisory for the UI; the cancel endpoint re-checks with a resourceVersion precondition.
+    problem = cancel_problem(order)
+    view['cancel'] = {'allowed': True} if problem is None else {
+        'allowed': False, 'code': problem[0], 'message': problem[1],
+    }
     return view
 
 
@@ -1118,7 +1130,12 @@ def request_summary(order):
     return summary
 
 
-def review_view(order, catalog_item=None, authority=None):
+def _approval_expired(approval, now):
+    expires_at = parse_time(approval.get('expiresAt'))
+    return now is not None and (expires_at is None or now >= expires_at)
+
+
+def review_view(order, catalog_item=None, authority=None, now=None):
     """Sanitized order summary for approvers (managers and administrators)."""
     metadata = order.get('metadata') or {}
     spec = order['spec']
@@ -1146,7 +1163,8 @@ def review_view(order, catalog_item=None, authority=None):
             if approval.get(key) is not None
         },
         'canDecide': bool(authority) and order_phase(order) == PHASE_PENDING_APPROVAL
-        and approval.get('state') == APPROVAL_PENDING and not approval.get('decision'),
+        and approval.get('state') == APPROVAL_PENDING and not approval.get('decision')
+        and not _approval_expired(approval, now),
     }
     manager = approval.get('manager') or {}
     if manager:

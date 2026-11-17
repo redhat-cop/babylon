@@ -91,6 +91,17 @@ def _decode_offset(token):
     return offset
 
 
+LIST_STATE_PENDING = 'pending'
+LIST_STATE_DECIDED = 'decided'
+LIST_STATE_ALL = 'all'
+LIST_STATES = (LIST_STATE_PENDING, LIST_STATE_DECIDED, LIST_STATE_ALL)
+
+
+def _approval_requested(order):
+    """True for orders whose policy asked for a decision, whatever happened next."""
+    return bool(((order.get('status') or {}).get('approval') or {}).get('requestedAt'))
+
+
 def _is_pending(order):
     approval = (order.get('status') or {}).get('approval') or {}
     return (
@@ -155,18 +166,35 @@ class ApprovalService:
         authority = await self._authority(order, user_name, session, self.manager_lookup)
         if authority is None:
             raise ApprovalApiError(403, 'not_authorized', 'You are not an approver for this order')
-        return review_view(order, await self._catalog_item(order), authority)
+        return review_view(order, await self._catalog_item(order), authority, self.clock())
 
-    async def list(self, *, session, user_name, limit=None, continue_token=None):
-        """Pending orders the actor may decide, oldest request first."""
+    async def list(self, *, session, user_name, limit=None, continue_token=None, state=None):
+        """Approval requests the actor may review.
+
+        state `pending` (default) lists undecided requests, oldest first;
+        `decided` lists requests that are no longer pending and `all` both,
+        newest first. Orders that never required approval are not listed."""
         if limit is None:
             limit = DEFAULT_PAGE_SIZE
         if not isinstance(limit, int) or not 1 <= limit <= MAX_PAGE_SIZE:
             raise ApprovalApiError(400, 'invalid_limit', f"limit must be between 1 and {MAX_PAGE_SIZE}")
+        state = state or LIST_STATE_PENDING
+        if state not in LIST_STATES:
+            raise ApprovalApiError(400, 'invalid_state', f"state must be one of {', '.join(LIST_STATES)}")
         offset = _decode_offset(continue_token) if continue_token else 0
+
+        def selected(order):
+            if state == LIST_STATE_PENDING:
+                return _is_pending(order)
+            if not _approval_requested(order):
+                return False
+            return state == LIST_STATE_ALL or not _is_pending(order)
+
+        def requested_at(order):
+            return (order['status']['approval'].get('requestedAt') or '', order['metadata']['uid'])
         pending = sorted(
-            (order for order in await self.kube.list_orders() if _is_pending(order)),
-            key=lambda order: (order['status']['approval'].get('requestedAt') or '', order['metadata']['uid']),
+            (order for order in await self.kube.list_orders() if selected(order)),
+            key=requested_at, reverse=state != LIST_STATE_PENDING,
         )
         lookup = CachedManagerLookup(self.manager_lookup)
         eligible = []
@@ -182,7 +210,7 @@ class ApprovalService:
                 eligible.append((order, authority))
         page = eligible[offset:offset + limit]
         result = {
-            'items': [review_view(order, None, authority) for order, authority in page],
+            'items': [review_view(order, None, authority, self.clock()) for order, authority in page],
             'incomplete': incomplete,
         }
         if offset + limit < len(eligible):
@@ -227,7 +255,7 @@ class ApprovalService:
             decision = ((order.get('status') or {}).get('approval') or {}).get('decision')
             if decision:
                 if decision.get('decidedBy') == user_name and decision.get('outcome') == outcome:
-                    return 200, review_view(order, catalog_item, authority)
+                    return 200, review_view(order, catalog_item, authority, self.clock())
                 raise ApprovalApiError(409, 'already_decided', 'A decision has already been recorded for this order')
             now = self.clock()
             self._check_still_valid(order, catalog_item, now)
@@ -243,5 +271,5 @@ class ApprovalService:
                 updated = await self.kube.replace_order_status(order, status)
             except KubeConflictError:
                 continue
-            return 200, review_view(updated, catalog_item, authority)
+            return 200, review_view(updated, catalog_item, authority, self.clock())
         raise ApprovalApiError(409, 'order_conflict', 'Order changed concurrently; reload and try again')

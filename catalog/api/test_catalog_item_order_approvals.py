@@ -426,6 +426,43 @@ class TestReviewAndList(ApprovalTestCase):
             status, data = await self.call('GET', f"{APPROVALS}?{query}")
             self.assertEqual((status, data['error']), (400, code))
 
+    async def test_list_state_filter_for_the_admin_view(self):
+        decided = await self.pending_order(key='key-state-001')
+        pending = await self.pending_order(key='key-state-002')
+        cancelled = await self.pending_order(key='key-state-003')
+        await self.decide(decided, 'deny')
+        await self.kube.replace_order_status(cancelled, cancel_order(cancelled, 'alice', self.clock()))
+        not_required = await create_order(
+            self.kube, self.kube.add_catalog_item(make_catalog_item(name='tests.free.prod')),
+            body=submission(key='key-state-004', catalogItem={'namespace': self.item['metadata']['namespace'], 'name': 'tests.free.prod'}),
+            now=self.clock(),
+        )
+        await self.reconcile(not_required)
+        uid = lambda o: o['metadata']['uid']
+
+        for user in ('dana.manager@example.com', 'admin@example.com'):
+            with self.subTest(user=user):
+                _, data = await self.call('GET', APPROVALS, user=user)
+                self.assertEqual([i['uid'] for i in data['items']], [uid(pending)])
+                _, data = await self.call('GET', f"{APPROVALS}?state=decided", user=user)
+                self.assertEqual({i['uid'] for i in data['items']}, {uid(decided), uid(cancelled)})
+                self.assertFalse(any(i['canDecide'] for i in data['items']))
+                _, data = await self.call('GET', f"{APPROVALS}?state=all", user=user)
+                self.assertEqual({i['uid'] for i in data['items']}, {uid(decided), uid(pending), uid(cancelled)},
+                                 'orders that never required approval are not approval requests')
+        _, data = await self.call('GET', f"{APPROVALS}?state=all", user='bob@example.com')
+        self.assertEqual(data['items'], [])
+        status, data = await self.call('GET', f"{APPROVALS}?state=bogus")
+        self.assertEqual((status, data['error']), (400, 'invalid_state'))
+
+    async def test_expired_request_cannot_be_decided_before_the_controller_catches_up(self):
+        order = await self.pending_order()
+        self.clock.advance(hours=73)
+        status, data = await self.call('GET', f"{APPROVALS}/{order['metadata']['uid']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(data['phase'], 'PendingApproval')
+        self.assertFalse(data['canDecide'])
+
 
 class TestCachedLookup(unittest.IsolatedAsyncioTestCase):
     async def test_caches_within_ttl(self):

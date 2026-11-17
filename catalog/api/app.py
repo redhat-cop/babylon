@@ -2235,7 +2235,7 @@ async def catalog_item_order_approval_list(request):
     async def operation(service, session, user_name):
         return 200, await service.list(
             session=session, user_name=user_name, limit=limit,
-            continue_token=request.query.get('continue'),
+            continue_token=request.query.get('continue'), state=request.query.get('state'),
         )
     return await handle_catalog_item_order_approval_request(request, operation)
 

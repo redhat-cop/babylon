@@ -406,6 +406,7 @@ class TestCancel(unittest.TestCase):
         for phase in (None, 'Submitted', 'PendingApproval', 'Ready', 'Blocked'):
             with self.subTest(phase=phase):
                 order = as_created(build(), status={'phase': phase} if phase else None)
+                self.assertEqual(order_view(order, NOW)['cancel'], {'allowed': True})
                 status = cancel_order(order, 'alice', NOW)
                 self.assertEqual(status['phase'], PHASE_CANCELLED)
                 self.assertEqual(status['history'][-1]['event'], 'Cancelled')
@@ -420,8 +421,12 @@ class TestCancel(unittest.TestCase):
             {'phase': 'Denied'},
         ):
             with self.subTest(status=status):
-                with self.assertRaises(OrderConflictError):
-                    cancel_order(as_created(build(), status=status), 'alice', NOW)
+                order = as_created(build(), status=status)
+                with self.assertRaises(OrderConflictError) as caught:
+                    cancel_order(order, 'alice', NOW)
+                view = order_view(order, NOW)['cancel']
+                self.assertFalse(view['allowed'])
+                self.assertEqual(view['code'], caught.exception.code, 'view and endpoint use the same rule')
 
 
 class TestRetryEligibility(unittest.TestCase):
