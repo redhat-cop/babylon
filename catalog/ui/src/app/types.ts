@@ -875,8 +875,6 @@ export type Session = {
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
-  // Server-side CATALOG_ITEM_ORDERS_ENABLED; absent on older catalog APIs.
-  catalogItemOrdersEnabled?: boolean;
 };
 export type CostTracker = {
   lastRequest: string;

@@ -22,7 +22,6 @@ export interface ActionStartSession {
   catalogNamespaces: CatalogNamespace[];
   serviceNamespaces: ServiceNamespace[];
   userNamespace: UserNamespace;
-  catalogItemOrdersEnabled?: boolean;
 }
 
 // Action creators
@@ -55,8 +54,6 @@ interface AppState {
   interface: string | null;
   consoleURL?: string;
   resourceClaims?: unknown[] | null;
-  // Server-wide flag from the authenticated session, unaffected by impersonation.
-  catalogItemOrdersEnabled: boolean;
 }
 
 const initialState: AppState = {
@@ -72,7 +69,6 @@ const initialState: AppState = {
   catalogItems: null,
   impersonate: null,
   interface: null,
-  catalogItemOrdersEnabled: false,
 };
 
 const rootReducer = createReducer(initialState, (builder) => {
@@ -108,7 +104,6 @@ const rootReducer = createReducer(initialState, (builder) => {
       state.catalogItems = null;
       state.consoleURL = action.payload.consoleURL;
       state.interface = action.payload.interface;
-      state.catalogItemOrdersEnabled = action.payload.catalogItemOrdersEnabled === true;
     });
 });
 
@@ -134,11 +129,6 @@ export const selectAuthUser = createSelector(selectSelf, (state): string => stat
 export const selectConsoleURL = createSelector(selectSelf, (state): string => state.consoleURL);
 
 export const selectInterface = createSelector(selectSelf, (state): string => state.interface);
-
-export const selectCatalogItemOrdersEnabled = createSelector(
-  selectSelf,
-  (state): boolean => state.catalogItemOrdersEnabled === true,
-);
 
 export const selectIsImpersonating = createSelector(selectSelf, (state): boolean => state.impersonate !== null);
 

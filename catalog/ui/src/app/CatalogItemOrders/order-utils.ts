@@ -57,24 +57,13 @@ export type OrderFormInput = {
 };
 
 /**
- * Why the order form cannot submit this request as a CatalogItemOrder, or null.
- * These requests are rejected outright instead of falling back to direct
- * resource creation (see "Order API" in docs/Catalog_Item_Orders.md).
+ * Whether the order form submits this request as a CatalogItemOrder. Two flows
+ * keep the direct path until GPTEINFRA-18191 migrates them: external URL items
+ * (they only record the request and open an external site; nothing is
+ * provisioned) and white glove orders, which the order API does not accept.
  */
-export function unsupportedOrderReason({
-  catalogItem,
-  whiteGloved,
-}: {
-  catalogItem: CatalogItem;
-  whiteGloved?: boolean;
-}): string | null {
-  if (catalogItem.spec.externalUrl) {
-    return 'This catalog item opens an external site and cannot be ordered through catalog item orders yet.';
-  }
-  if (whiteGloved) {
-    return 'White glove requests cannot be fulfilled through catalog item orders yet. Contact the catalog administrators.';
-  }
-  return null;
+export function usesOrderApi({ catalogItem, whiteGloved }: { catalogItem: CatalogItem; whiteGloved?: boolean }): boolean {
+  return !catalogItem.spec.externalUrl && !whiteGloved;
 }
 
 export function orderTypeFor(input: Pick<OrderFormInput, 'workshop' | 'selfPacedLab'>): CatalogItemOrderType {

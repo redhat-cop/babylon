@@ -3,7 +3,6 @@ import { getApiSession } from '@app/api';
 import {
   actionStartSession,
   selectAuthUser,
-  selectCatalogItemOrdersEnabled,
   selectCatalogNamespaces,
   selectConsoleURL,
   selectInterface,
@@ -37,7 +36,6 @@ async function getSessionFn(dispatch: AppDispatch) {
       catalogNamespaces: session.catalogNamespaces,
       serviceNamespaces: session.serviceNamespaces,
       userNamespace: session.userNamespace,
-      catalogItemOrdersEnabled: session.catalogItemOrdersEnabled === true,
     }),
   );
 }
@@ -55,7 +53,6 @@ export default function useSession(): {
     userInterface: string;
     serviceNamespaces: ServiceNamespace[];
     userNamespace: UserNamespace;
-    catalogItemOrdersEnabled: boolean;
     isImpersonating: boolean;
   };
 } {
@@ -71,7 +68,6 @@ export default function useSession(): {
   const userInterface = useAppSelector(selectInterface);
   const serviceNamespaces = useAppSelector(selectServiceNamespaces);
   const userNamespace = useAppSelector(selectUserNamespace);
-  const catalogItemOrdersEnabled = useAppSelector(selectCatalogItemOrdersEnabled);
   const isImpersonating = useAppSelector(selectIsImpersonating);
   const { userImpersonated, setImpersonation } = useImpersonateUser();
 
@@ -103,7 +99,6 @@ export default function useSession(): {
       userInterface,
       serviceNamespaces,
       userNamespace,
-      catalogItemOrdersEnabled,
       isImpersonating,
     };
   }, [
@@ -119,7 +114,6 @@ export default function useSession(): {
     userInterface,
     serviceNamespaces,
     userNamespace,
-    catalogItemOrdersEnabled,
     isImpersonating,
   ]);
 

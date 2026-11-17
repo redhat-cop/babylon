@@ -13,7 +13,7 @@ const testWindow = window as unknown as { sessionPromiseInstance?: Promise<{ tok
 
 let sessionOverrides: Parameters<typeof generateSession>[0] = {};
 jest.mock('@app/utils/useSession', () =>
-  jest.fn(() => ({ getSession: () => generateSession({ catalogItemOrdersEnabled: true, ...sessionOverrides }) })),
+  jest.fn(() => ({ getSession: () => generateSession({ ...sessionOverrides }) })),
 );
 
 const ORDER_PATH = '/api/catalog-item-orders/user-test-redhat-com/order-1';
@@ -171,9 +171,4 @@ describe('OrderDetail', () => {
     expect(screen.queryByText('Provisioned')).not.toBeInTheDocument();
   });
 
-  test('renders not found when the feature is disabled', async () => {
-    sessionOverrides = { catalogItemOrdersEnabled: false };
-    await renderOrder();
-    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('catalog-item-orders'))).toHaveLength(0);
-  });
 });

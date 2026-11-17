@@ -12,7 +12,7 @@ import type { ApprovalReview } from './types';
 const testWindow = window as unknown as { sessionPromiseInstance?: Promise<{ token: string }> };
 
 jest.mock('@app/utils/useSession', () =>
-  jest.fn(() => ({ getSession: () => ({ ...generateSession({ catalogItemOrdersEnabled: true }), authUser: 'dana@example.com' }) })),
+  jest.fn(() => ({ getSession: () => ({ ...generateSession({}), authUser: 'dana@example.com' }) })),
 );
 
 function makeReview(overrides: Partial<ApprovalReview> = {}): ApprovalReview {

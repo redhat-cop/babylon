@@ -8,8 +8,8 @@ import catalogItemObj from '../__mocks__/catalogItem.json';
 import type { CatalogItem, ServiceNamespace, UserNamespace } from '@app/types';
 import { OrderApiError, submitCatalogItemOrder } from '@app/CatalogItemOrders/catalog-item-order-api';
 
-// Catalog item orders enabled (GPTEINFRA-18190): the form submits a CatalogItemOrder
-// and never calls the direct resource creation helpers.
+// Catalog item orders (GPTEINFRA-18190): the form submits a CatalogItemOrder and never
+// calls the direct resource creation helpers, except for external URL and white glove orders.
 
 jest.mock('@app/api', () => ({
   ...jest.requireActual('@app/api'),
@@ -23,6 +23,7 @@ jest.mock('@app/api', () => ({
   patchWhiteGloveRequest: jest.fn(),
   addJiraComment: jest.fn(),
   updateJiraLabels: jest.fn(),
+  saveExternalItemRequest: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock('@app/CatalogItemOrders/catalog-item-order-api', () => ({
@@ -49,7 +50,6 @@ jest.mock('@app/utils/useSession', () =>
         userNamespace: namespace as UserNamespace,
         groups: ['rhpds-devs'],
         isAdmin: false,
-        catalogItemOrdersEnabled: true,
         isImpersonating: mockIsImpersonating,
       }),
   })),
@@ -88,7 +88,7 @@ async function fillRequiredFields(utils: Awaited<ReturnType<typeof render>>) {
   return button;
 }
 
-describe('CatalogItemForm with catalog item orders enabled', () => {
+describe('CatalogItemForm with catalog item orders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsImpersonating = false;
@@ -155,14 +155,22 @@ describe('CatalogItemForm with catalog item orders enabled', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  test('rejects external URL items instead of falling back', async () => {
+  test('external URL items keep the direct flow: nothing is provisioned and no order is submitted', async () => {
     jest.mocked(fetcher).mockImplementation(async () => ({
       ...catalogItemObj,
       spec: { ...catalogItemObj.spec, externalUrl: 'https://example.com/lab' },
     }));
-    const { findByText, getByRole } = await render(<Form />);
-    expect(await findByText('This request cannot be ordered here')).toBeInTheDocument();
-    expect(getByRole('button', { name: 'Order' })).toBeDisabled();
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      const utils = await render(<Form />);
+      fireEvent.click(await fillRequiredFields(utils));
+      await waitFor(() => expect(open).toHaveBeenCalledWith('https://example.com/lab', '_blank'));
+      expect(api.saveExternalItemRequest).toHaveBeenCalledTimes(1);
+      expect(submit).not.toHaveBeenCalled();
+      expect(api.createServiceRequest).not.toHaveBeenCalled();
+    } finally {
+      open.mockRestore();
+    }
   });
 
   test('orders cannot be placed while impersonating', async () => {

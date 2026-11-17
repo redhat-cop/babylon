@@ -8,7 +8,7 @@ import {
   newOrderPath,
   orderResourceLinks,
   safeParameters,
-  unsupportedOrderReason,
+  usesOrderApi,
 } from './order-utils';
 import type { OrderFormInput } from './order-utils';
 import type { CatalogItemOrder } from './types';
@@ -139,13 +139,11 @@ describe('buildOrderSubmission', () => {
   });
 });
 
-describe('unsupportedOrderReason', () => {
-  test('rejects external URL items and white glove requests instead of falling back', () => {
-    expect(unsupportedOrderReason({ catalogItem })).toBeNull();
-    expect(
-      unsupportedOrderReason({ catalogItem: { ...catalogItem, spec: { externalUrl: 'https://x' } } as CatalogItem }),
-    ).toMatch(/external site/);
-    expect(unsupportedOrderReason({ catalogItem, whiteGloved: true })).toMatch(/White glove/);
+describe('usesOrderApi', () => {
+  test('orders go through the order API except external URL and white glove orders', () => {
+    expect(usesOrderApi({ catalogItem })).toBe(true);
+    expect(usesOrderApi({ catalogItem: { ...catalogItem, spec: { externalUrl: 'https://x' } } as CatalogItem })).toBe(false);
+    expect(usesOrderApi({ catalogItem, whiteGloved: true })).toBe(false);
   });
 });
 

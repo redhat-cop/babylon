@@ -129,12 +129,7 @@ import useSWRImmutable from 'swr/immutable';
 import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-icon';
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
-import ReorderModal from '@app/components/ReorderModal';
-import {
-  canReorderResourceClaim,
-  getResourceClaimReorderSchedule,
-  reorderResourceClaim,
-} from '@app/reorder-utils';
+import { canReorderResourceClaim } from '@app/reorder-utils';
 
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -415,8 +410,7 @@ const ServicesItemComponent: React.FC<{
   const navigate = useNavigate();
   const location = useLocation();
   const { sfdc_enabled } = useInterfaceConfig();
-  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email, catalogItemOrdersEnabled } =
-    useSession().getSession();
+  const { isAdmin, groups, serviceNamespaces: sessionServiceNamespaces, email } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [expanded, setExpanded] = useState([]);
   const {
@@ -507,7 +501,6 @@ const ServicesItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalScheduleAction, openModalScheduleAction] = useModal();
   const [modalCreateWorkshop, openModalCreateWorkshop] = useModal();
-  const [modalReorder, openModalReorder] = useModal();
   const [modalEditSalesforce, setModalEditSalesforce] = useState(false);
   const [modalAddServiceAccess, setModalAddServiceAccess] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
@@ -731,11 +724,9 @@ const ServicesItemComponent: React.FC<{
     actionHandlers.rate = () => showModal({ action: 'rate', modal: 'action', resourceClaim });
   }
   if (canReorderResourceClaim(resourceClaim, catalogItem, groups, isAdmin)) {
-    // With catalog item orders, a reorder is a new order through the order form,
-    // evaluated against the current approval policy; nothing is created directly.
-    actionHandlers.reorder = catalogItemOrdersEnabled
-      ? () => navigate(newOrderPath(catalogItem))
-      : () => openModalReorder();
+    // A reorder is a new order through the order form, evaluated against the
+    // current approval policy; nothing is created directly.
+    actionHandlers.reorder = () => navigate(newOrderPath(catalogItem));
   }
 
   // Find lab user interface information either in the resource claim or inside resources
@@ -940,35 +931,6 @@ const ServicesItemComponent: React.FC<{
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
       />
-      <Modal
-        ref={modalReorder}
-        onConfirm={() => undefined}
-        passModifiers={true}
-        confirmText="Reorder"
-        onError={(error: unknown) => {
-          if ((error as Response).status === 403) {
-            setIsUserDisabledModalOpen(true);
-          }
-        }}
-      >
-        <ReorderModal
-          catalogItem={catalogItem}
-          displayName={displayName(resourceClaim)}
-          isAdmin={isAdmin}
-          schedule={getResourceClaimReorderSchedule(resourceClaim)}
-          onReorder={async (schedule) => {
-            const newResourceClaim = await reorderResourceClaim({
-              resourceClaim,
-              catalogItem,
-              groups,
-              isAdmin,
-              email,
-              schedule,
-            });
-            navigate(`/services/${newResourceClaim.metadata.namespace}/${newResourceClaim.metadata.name}`);
-          }}
-        />
-      </Modal>
       <Modal ref={modalScheduleAction} onConfirm={onModalScheduleAction} passModifiers={true}>
         <ServicesScheduleAction
           action={
@@ -1721,24 +1683,14 @@ const ServicesItemComponent: React.FC<{
                   <>
                     {!workshopName &&
                     resourceClaim.metadata?.annotations?.[`${DEMO_DOMAIN}/workshopUiDisabled`] !== 'true' ? (
-                      catalogItemOrdersEnabled ? (
-                        // Converting a multi-user service into a workshop is not supported by
-                        // catalog item orders, and must not create a Workshop directly.
-                        <Tooltip content="Not available yet with catalog item orders. Order the item as a workshop instead.">
-                          <Button className="services-item__create-workshop-button" isAriaDisabled>
-                            Enable workshop user interface
-                          </Button>
-                        </Tooltip>
-                      ) : (
-                        <Button
-                          className="services-item__create-workshop-button"
-                          onClick={() => {
-                            showModal({ modal: 'createWorkshop', resourceClaim });
-                          }}
-                        >
-                          Enable workshop user interface
-                        </Button>
-                      )
+                      <Button
+                        className="services-item__create-workshop-button"
+                        onClick={() => {
+                          showModal({ modal: 'createWorkshop', resourceClaim });
+                        }}
+                      >
+                        Enable workshop user interface
+                      </Button>
                     ) : null}
                     <ServiceUsers resourceClaim={resourceClaim} />
                   </>

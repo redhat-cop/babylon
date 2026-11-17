@@ -399,8 +399,6 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
 
 const OrderDetail: React.FC = () => {
   const { namespace, name } = useParams();
-  const { catalogItemOrdersEnabled } = useSession().getSession();
-  if (!catalogItemOrdersEnabled) return <NotFound name="Orders" type="Page" />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
       <OrderDetailContent namespace={namespace} name={name} />

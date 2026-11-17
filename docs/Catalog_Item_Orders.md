@@ -244,8 +244,6 @@ The order view (submit, get, list, cancel, retry) also carries fields for the UI
 - `retry`: retry eligibility (`eligible`, `reason`, `message`, `attemptsUsed`, `maxAttempts`, `deadline`).
 - `retryRequest`: the requester's pending retry request (`requestedAt`, `requestedBy`) until the controller picks it up, otherwise `null`.
 
-`GET /auth/session` and `GET /auth/users/{user}` return `catalogItemOrdersEnabled`, the value of `CATALOG_ITEM_ORDERS_ENABLED`, so the UI can tell a disabled feature from a failing one.
-
 ## CatalogItemOrder resource
 
 `spec` is immutable and server-derived: requester (user, uid, and email when the OpenShift user name is an address; request headers are not trusted for this), catalog item reference with uid, resourceVersion and a digest of provisioning-relevant fields (`materialDigest`), order type, normalized request with effective defaults, `submittedAt`, idempotency key digest, submission digest and `requestDigest`. Immutability is enforced by a `self == oldSelf` validation rule and, for fields that rule cannot see (`request.parameters`), by the controller blocking any order whose `metadata.generation` is not 1 or whose `requestDigest` does not match.
@@ -472,7 +470,7 @@ Level numbering comes from live data; the Reporting API schema does not define i
 
 ### GPTEINFRA-18190: UI
 
-Implemented in `catalog/ui/src/app/CatalogItemOrders/`. Everything is gated on `catalogItemOrdersEnabled` from the session; when it is false or absent (older API), the UI behaves exactly as before.
+Implemented in `catalog/ui/src/app/CatalogItemOrders/`, always on.
 
 | Route | Page |
 |---|---|
@@ -483,13 +481,14 @@ Implemented in `catalog/ui/src/app/CatalogItemOrders/`. Everything is gated on `
 
 Behavior:
 
-- **Submission.** With the flag on, the catalog order form submits one `CatalogItemOrder` and opens its order page; it never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
-- **Unsupported requests** (external URL items, white glove requests, impersonation) are explained in the form and the Order button is disabled. Reorder on services and workshops opens the order form for the same item, which is a new order evaluated afresh; converting a multi-user service into a workshop is disabled with an explanation.
+- **Submission.** The catalog order form submits one `CatalogItemOrder` and opens its order page; it never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
+- **Direct flows kept until GPTEINFRA-18191.** External URL items (nothing is provisioned; the request is recorded and the external site opens) and white glove orders (fulfilment from a white glove request, or the admin White-Glove Support switch) keep the previous direct flow, as do MultiWorkshop creation and converting a multi-user service into a workshop. Ordering while impersonating is explained and disabled, because the order API records the authenticated requester.
+- **Reorder** on services and workshops opens the order form for the same item, which is a new order evaluated afresh.
 - **Errors.** Backend `error`/`message` are shown as returned; a 403 is not treated as a disabled account. Stale approval decisions (`already_decided`, `not_pending`, `expired`, `request_changed`, `policy_changed`, `order_conflict`) reload the request instead of replaying the decision; `manager_lookup_unavailable` is shown as temporary.
 - **Identity.** Order and approval SWR keys include the signed-in user, so cached privileged data is never shown to another identity. Approval authority always comes from the API; the UI never uses the displayed or impersonated email.
 - **Deep links.** oauth-proxy returns unauthenticated users to the requested URL after login, and the session retry in `api.ts` now stays on the current path instead of redirecting to `/`.
 
-Not covered here (GPTEINFRA-18191): MultiWorkshop creation, white glove fulfilment, and other clients still create resources directly.
+Not covered here (GPTEINFRA-18191): the direct flows above, the Kubernetes proxy, the CLI and other clients still create resources without consulting approval policies.
 
 ### GPTEINFRA-18191: client migration and enforcement
 

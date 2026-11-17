@@ -107,8 +107,7 @@ const appRoutes: IAppRoute[] = [
     path: '/services',
     title: 'Babylon | My Services',
   },
-  // Catalog item orders (GPTEINFRA-18190). The pages render NotFound unless the
-  // session reports catalogItemOrdersEnabled.
+  // Catalog item orders (GPTEINFRA-18190).
   {
     component: OrderDetail,
     path: '/orders/:namespace/:name',

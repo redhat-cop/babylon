@@ -20,7 +20,6 @@ import { apiPaths } from '@app/api';
 import useSession from '@app/utils/useSession';
 import Footer from '@app/components/Footer';
 import LoadingSection from '@app/components/LoadingSection';
-import NotFound from '@app/components/NotFound';
 import { orderFetcher } from './catalog-item-order-api';
 import type { OrderApiError } from './catalog-item-order-api';
 import type { CatalogItemOrder, CatalogItemOrderList } from './types';
@@ -76,9 +75,9 @@ export const OrdersTable: React.FC<{ orders: CatalogItemOrder[] }> = ({ orders }
 );
 
 const OrdersList: React.FC = () => {
-  const { catalogItemOrdersEnabled, userNamespace, authUser } = useSession().getSession();
+  const { userNamespace, authUser } = useSession().getSession();
   const { data, error, isLoading, mutate } = useSWR<CatalogItemOrderList, OrderApiError>(
-    catalogItemOrdersEnabled ? [apiPaths.CATALOG_ITEM_ORDERS(), authUser] : null,
+    [apiPaths.CATALOG_ITEM_ORDERS(), authUser],
     ([path]: [string, string]) => orderFetcher<CatalogItemOrderList>(path),
     {
       suspense: false,
@@ -87,9 +86,6 @@ const OrdersList: React.FC = () => {
     },
   );
 
-  if (!catalogItemOrdersEnabled) {
-    return <NotFound name="Orders" type="Page" />;
-  }
   const orders = sortOrders(data?.items || []);
 
   return (

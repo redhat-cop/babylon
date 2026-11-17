@@ -84,7 +84,7 @@ import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 import { IdempotencyKeys, submitCatalogItemOrder, toOrderApiError } from '@app/CatalogItemOrders/catalog-item-order-api';
-import { buildOrderSubmission, orderErrorTitle, unsupportedOrderReason } from '@app/CatalogItemOrders/order-utils';
+import { buildOrderSubmission, orderErrorTitle, usesOrderApi } from '@app/CatalogItemOrders/order-utils';
 
 import './catalog-item-form.css';
 
@@ -114,7 +114,6 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     userNamespace,
     email,
     userInterface,
-    catalogItemOrdersEnabled,
     isImpersonating,
   } = useSession().getSession();
   // Catalog item orders (GPTEINFRA-18190): one idempotency key per logical request,
@@ -280,13 +279,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const orderingBlockedMessage = formState.workshop 
     ? workshopOrderingBlockedMessage 
     : serviceOrderingBlockedMessage;
-  // With catalog item orders enabled, requests the order API cannot take are
-  // rejected here; they never fall back to creating resources directly.
-  const orderUnsupportedReason = catalogItemOrdersEnabled
-    ? isImpersonating
+  // Catalog item orders (GPTEINFRA-18190): requests go through the order API,
+  // except external URL items and white glove orders, which keep the direct flow.
+  const submitsOrder = usesOrderApi({ catalogItem, whiteGloved: formState.whiteGloved || Boolean(wgrParam) });
+  // The order API records the authenticated requester and rejects impersonation.
+  const orderUnsupportedReason =
+    submitsOrder && isImpersonating
       ? 'Orders cannot be placed while impersonating another user. Stop impersonating to order.'
-      : unsupportedOrderReason({ catalogItem, whiteGloved: formState.whiteGloved || Boolean(wgrParam) })
-    : null;
+      : null;
   const submitRequestEnabled =
     isOrderingBlocked || isQuotaExceeded || orderUnsupportedReason
       ? false
@@ -463,7 +463,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
 
-    if (catalogItemOrdersEnabled) {
+    if (submitsOrder) {
       return submitOrder(parameterValues);
     }
 
@@ -775,7 +775,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         <Alert
           variant="warning"
           isInline
-          title="This request cannot be ordered here"
+          title="Ordering is not available while impersonating"
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           {orderUnsupportedReason}
@@ -1592,7 +1592,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             ) : null}
           </Alert>
         ) : null}
-        {catalogItemOrdersEnabled && !orderUnsupportedReason ? (
+        {submitsOrder && !orderUnsupportedReason ? (
           <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
             Some catalog items need manager approval before provisioning starts. You can follow your order under My
             Services, Orders.
@@ -1603,7 +1603,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <Button
               isAriaDisabled={!submitRequestEnabled}
               isDisabled={!submitRequestEnabled}
-              isLoading={catalogItemOrdersEnabled && isLoading}
+              isLoading={submitsOrder && isLoading}
               onClick={() => submitRequest()}
             >
               Order

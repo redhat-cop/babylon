@@ -246,7 +246,7 @@ const ServicesList: React.FC<{
 }> = ({ serviceNamespaceName }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, serviceNamespaces: sessionServiceNamespaces, catalogItemOrdersEnabled } = useSession().getSession();
+  const { isAdmin, serviceNamespaces: sessionServiceNamespaces } = useSession().getSession();
   const { mutate: globalMutate, cache } = useSWRConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const hasSearch = searchParams.has('search');
@@ -668,9 +668,7 @@ const ServicesList: React.FC<{
           workshop={modalState.workshop}
         />
       </Modal>
-      {catalogItemOrdersEnabled ? (
-        <MyServicesTabs active="services" servicesPath={`/services/${serviceNamespaceName}`} />
-      ) : null}
+      <MyServicesTabs active="services" servicesPath={`/services/${serviceNamespaceName}`} />
       {isAdmin || sessionServiceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="services-list__topbar">
           <ProjectSelector

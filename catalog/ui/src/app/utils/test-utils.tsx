@@ -72,7 +72,6 @@ export const generateSession = ({
   } as UserNamespace,
   roles = [],
   groups = [],
-  catalogItemOrdersEnabled = false,
   isImpersonating = false,
 }: {
   email?: string;
@@ -81,10 +80,8 @@ export const generateSession = ({
   userNamespace?: UserNamespace;
   roles?: string[];
   groups?: string[];
-  catalogItemOrdersEnabled?: boolean;
   isImpersonating?: boolean;
 }) => ({
-  catalogItemOrdersEnabled,
   isImpersonating,
   email,
   isAdmin,
