@@ -85,7 +85,7 @@ def decided(order, state, phase, **extra):
 def approved_order():
     order = pending_order()
     decision = {'outcome': 'Approved', 'decidedBy': 'dana.manager@example.com', 'decidedAt': ts(), 'comment': 'OK'}
-    return decided(order, 'Approved', 'Provisioning', decision=decision, satisfiedAt=ts())
+    return decided(order, 'Approved', 'Fulfilled', decision=decision, satisfiedAt=ts())
 
 
 class FakeRedis:
@@ -146,20 +146,20 @@ class TestNotificationsFor(unittest.TestCase):
                                  [(event, 'alice@example.com')])
 
     def test_not_required_and_old_events_send_nothing(self):
-        not_required = decided(pending_order(), 'NotRequired', 'Provisioning')
+        not_required = decided(pending_order(), 'NotRequired', 'Fulfilled')
         self.assertEqual(notifications_for(not_required, now=NOW), [])
-        exempt = decided(pending_order(), 'NotRequired', 'Provisioning', exemption={
+        exempt = decided(pending_order(), 'NotRequired', 'Fulfilled', exemption={
             'source': 'reporting-api-manager-level', 'reason': 'Requester is a manager at level 5',
         })
         self.assertEqual(notifications_for(exempt, now=NOW), [], 'manager-exempt orders send no email')
         self.assertEqual(notifications_for(approved_order(), now=NOW + timedelta(days=8)), [])
 
-    def test_provisioning_progress_does_not_create_new_events(self):
+    def test_resource_creation_does_not_create_new_events(self):
         order = approved_order()
         first = notifications_for(order, now=NOW)
         progressed = copy.deepcopy(order)
-        progressed['status']['phase'] = 'Provisioning'
-        progressed['status']['attempts'] = [{'number': 1, 'state': 'Provisioning'}]
+        progressed['status']['phase'] = 'Fulfilled'
+        progressed['status']['attempts'] = [{'number': 1, 'state': 'Created'}]
         self.assertEqual(notifications_for(progressed, now=NOW + timedelta(hours=1)), first)
 
 
@@ -335,14 +335,14 @@ class TestDelivery(unittest.IsolatedAsyncioTestCase):
         await self.notifier(only_send_to='dana.manager@example.com').handle(self.orders[('user-alice', 'order-1')])
         self.assertEqual([msg['To'] for msg in self.sent], ['dana.manager@example.com'])
 
-    async def test_outcome_after_request_and_no_new_request_while_provisioning(self):
+    async def test_outcome_after_request_and_no_new_request_after_fulfillment(self):
         notifier = self.notifier()
         await notifier.handle(self.orders[('user-alice', 'order-1')])
         approved = approved_order()
         self.orders[('user-alice', 'order-1')] = approved
         await notifier.handle(approved)
         progressed = copy.deepcopy(approved)
-        progressed['status']['attempts'] = [{'number': 1, 'state': 'Provisioning'}]
+        progressed['status']['attempts'] = [{'number': 1, 'state': 'Created'}]
         self.orders[('user-alice', 'order-1')] = progressed
         await notifier.handle(progressed)
         self.assertEqual([msg['To'] for msg in self.sent], ['dana.manager@example.com', 'alice@example.com'])

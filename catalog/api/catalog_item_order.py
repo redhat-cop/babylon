@@ -44,15 +44,16 @@ UNSUPPORTED_ORDER_TYPES = {
 PHASE_SUBMITTED = 'Submitted'
 PHASE_PENDING_APPROVAL = 'PendingApproval'
 PHASE_READY = 'Ready'
-PHASE_PROVISIONING = 'Provisioning'
-PHASE_PROVISIONED = 'Provisioned'
-PHASE_FAILED = 'Failed'
+# Approved (or approval not required) and creating the provisioning resources.
+# Creation is retried until it succeeds; the order does not follow provisioning.
+PHASE_CREATING = 'Creating'
+# Resources created. Provisioning progress lives on the resources themselves.
+PHASE_FULFILLED = 'Fulfilled'
 PHASE_DENIED = 'Denied'
 PHASE_EXPIRED = 'Expired'
 PHASE_CANCELLED = 'Cancelled'
 PHASE_BLOCKED = 'Blocked'
-# Failed is terminal: there is no retry, so a new order is needed to try again.
-TERMINAL_PHASES = (PHASE_PROVISIONED, PHASE_FAILED, PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
+TERMINAL_PHASES = (PHASE_FULFILLED, PHASE_DENIED, PHASE_EXPIRED, PHASE_CANCELLED)
 
 APPROVAL_NOT_REQUIRED = 'NotRequired'
 APPROVAL_PENDING = 'Pending'
@@ -63,10 +64,8 @@ APPROVAL_REVOKED = 'Revoked'
 DECISION_OUTCOMES = (APPROVAL_APPROVED, APPROVAL_DENIED)
 
 ATTEMPT_DISPATCHING = 'Dispatching'
-ATTEMPT_PROVISIONING = 'Provisioning'
-ATTEMPT_SUCCEEDED = 'Succeeded'
-ATTEMPT_FAILED = 'Failed'
-ACTIVE_ATTEMPT_STATES = (ATTEMPT_DISPATCHING, ATTEMPT_PROVISIONING)
+ATTEMPT_CREATED = 'Created'
+ACTIVE_ATTEMPT_STATES = (ATTEMPT_DISPATCHING,)
 
 ORDER_LABEL = f'{BABYLON_DOMAIN}/catalog-item-order'
 ORDER_UID_LABEL = f'{BABYLON_DOMAIN}/catalog-item-order-uid'
@@ -833,8 +832,8 @@ def cancel_problem(order):
     phase = order_phase(order)
     if phase in TERMINAL_PHASES:
         return 'order_finished', f"Order is already {phase}"
-    if order_attempts(order) or phase in (PHASE_PROVISIONING, PHASE_FAILED):
-        return 'dispatch_started', 'Provisioning has started; manage or delete the provisioned resources instead'
+    if order_attempts(order) or phase == PHASE_CREATING:
+        return 'dispatch_started', 'Resources are being created; manage or delete them instead'
     return None
 
 

@@ -267,11 +267,11 @@ class TestCancel(OrderApiTestCase):
         await self.reconcile(order)
         self.assertEqual(self.kube.resources, {})
 
-    async def test_cancel_after_dispatch_conflicts(self):
+    async def test_cancel_after_fulfillment_conflicts(self):
         _, order = await self.submit()
         await self.reconcile(order)
         status, data = await self.call('POST', f"{ORDERS}/{USER_NAMESPACE}/{order['name']}/cancel")
-        self.assertEqual((status, data['error']), (409, 'dispatch_started'))
+        self.assertEqual((status, data['error']), (409, 'order_finished'))
 
     async def test_cancel_retries_on_concurrent_update(self):
         _, order = await self.submit()

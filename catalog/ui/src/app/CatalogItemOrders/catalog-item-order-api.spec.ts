@@ -3,6 +3,7 @@ import {
   IdempotencyKeys,
   OrderApiError,
   decideCatalogItemOrder,
+  resolveOrderDestination,
   submitCatalogItemOrder,
   toOrderApiError,
 } from './catalog-item-order-api';
@@ -143,6 +144,33 @@ describe('catalog item order API', () => {
       const error = await toOrderApiError(new Response('Bad gateway', { status: 502 }));
       expect(error.code).toBe('http_502');
       expect(error.isTransient).toBe(true);
+    });
+  });
+
+  describe('resolveOrderDestination', () => {
+    const base = { id: 'ns/order-abc', namespace: 'ns', name: 'order-abc', uid: 'u', orderType: 'service', catalogItem: { namespace: 'c', name: 'item' }, request: {}, attempts: [] } as never;
+
+    test('without approval, waits for the created resource and goes straight to it', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ ...(base as object), phase: 'Creating', approval: { state: 'NotRequired' } }));
+      fetchMock.mockResponseOnce(JSON.stringify({
+        ...(base as object), phase: 'Fulfilled', approval: { state: 'NotRequired' },
+        attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'ns', name: 'item-1a2b', uid: 'rc' }] }],
+      }));
+      const destination = await resolveOrderDestination({ ...(base as object), phase: 'Submitted', approval: {} } as never, { intervalMs: 0 });
+      expect(destination).toBe('/services/ns/item-1a2b');
+      expect(fetchMock.mock.calls).toHaveLength(2);
+    });
+
+    test('orders that need approval open their order page', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ ...(base as object), phase: 'PendingApproval', approval: { state: 'Pending', requestedAt: 'x' } }));
+      const destination = await resolveOrderDestination({ ...(base as object), phase: 'Submitted', approval: {} } as never, { intervalMs: 0 });
+      expect(destination).toBe('/orders/ns/order-abc');
+    });
+
+    test('falls back to the order page when the controller has not decided in time', async () => {
+      fetchMock.mockResponse(JSON.stringify({ ...(base as object), phase: 'Submitted', approval: {} }));
+      const destination = await resolveOrderDestination({ ...(base as object), phase: 'Submitted', approval: {} } as never, { intervalMs: 0, timeoutMs: 5 });
+      expect(destination).toBe('/orders/ns/order-abc');
     });
   });
 });

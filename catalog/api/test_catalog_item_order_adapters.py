@@ -6,7 +6,6 @@ from catalog_item_order import Requester, build_order, format_time, resolve_sche
 from catalog_item_order_adapters import (
     AUTO_DETACH_WHEN,
     UnsupportedOrderTypeError,
-    assess_resources,
     build_resource as _build_resource,
     owned_by_attempt,
     plan_resources as _plan_resources,
@@ -243,61 +242,9 @@ class TestUnsupported(unittest.TestCase):
                  'spec': {'orderType': 'multiWorkshop', 'catalogItem': {'name': 'x'}}}
         with self.assertRaises(UnsupportedOrderTypeError):
             plan_resources(order)
-        with self.assertRaises(UnsupportedOrderTypeError):
-            assess_resources('multiWorkshop', {})
 
 
-def claim(states):
-    return {'metadata': {}, 'status': {'resources': [{'state': state} for state in states]}}
-
-
-def subject(current_state, complete=False):
-    state = {'kind': 'AnarchySubject', 'spec': {'vars': {'current_state': current_state}}}
-    if complete:
-        state['status'] = {'towerJobs': {'provision': {'completeTimestamp': '2026-10-26T12:00:00Z'}}}
-    return state
-
-
-class TestAssessment(unittest.TestCase):
-    def test_service_outcomes_match_workshop_manager_logic(self):
-        cases = (
-            ({'metadata': {}}, 'provisioning'),
-            (claim([None]), 'provisioning'),
-            (claim([subject('provisioning')]), 'provisioning'),
-            (claim([subject('started', complete=True)]), 'provisioned'),
-            (claim([subject('started', complete=True), subject('provisioning')]), 'provisioning'),
-            (claim([subject('provision-failed')]), 'failed'),
-            (claim([subject('provision-error')]), 'failed'),
-            (claim([subject('started', complete=True), subject('provision-cancelled')]), 'failed'),
-        )
-        for resource_claim, expected in cases:
-            with self.subTest(resource_claim=resource_claim):
-                outcome, _ = assess_resources('service', {'ResourceClaim': resource_claim})
-                self.assertEqual(outcome, expected)
-
-    def test_missing_or_deleting_resources(self):
-        self.assertEqual(assess_resources('service', {'ResourceClaim': None})[0], 'missing')
-        self.assertEqual(
-            assess_resources('service', {'ResourceClaim': {'metadata': {'deletionTimestamp': 'x'}}})[0], 'missing',
-        )
-        self.assertEqual(assess_resources('workshop', {'Workshop': {'metadata': {}}, 'WorkshopProvision': None})[0], 'missing')
-
-    def test_workshop_outcomes(self):
-        def objects(**status):
-            return {'Workshop': {'metadata': {}}, 'WorkshopProvision': {'metadata': {}, 'spec': {'count': 10}, 'status': status}}
-        self.assertEqual(assess_resources('workshop', objects(activeCount=10))[0], 'provisioned')
-        self.assertEqual(assess_resources('workshop', objects(activeCount=3, provisioningCount=2))[0], 'provisioning')
-        self.assertEqual(assess_resources('workshop', objects(failedCount=6, provisioningCount=1))[0], 'provisioning')
-        self.assertEqual(assess_resources('workshop', objects(failedCount=6, activeCount=4))[0], 'failed')
-        self.assertEqual(assess_resources('workshop', objects(failedCount=5, activeCount=5), workshop_fail_threshold=60)[0], 'provisioning')
-
-    def test_self_paced_lab_outcomes(self):
-        def objects(**status):
-            return {'SelfPacedLab': {'metadata': {}}, 'SelfPacedLabProvisionItem': {'metadata': {}, 'spec': {'poolSize': 5}, 'status': status}}
-        self.assertEqual(assess_resources('selfPacedLab', objects(readyCount=4, assignedCount=1))[0], 'provisioned')
-        self.assertEqual(assess_resources('selfPacedLab', objects(readyCount=2, provisioningCount=3))[0], 'provisioning')
-        self.assertEqual(assess_resources('selfPacedLab', objects(readyCount=1, failedCount=4))[0], 'failed')
-
+class TestOwnership(unittest.TestCase):
     def test_recorded_uid_overrides_labels(self):
         order = {'metadata': {'uid': 'order-uid'}}
         relabelled = {'metadata': {'uid': 'claim-uid', 'labels': {}}}

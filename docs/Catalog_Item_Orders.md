@@ -46,7 +46,6 @@ The catalog chart always deploys the order controller and grants the API its ord
 | `SALESFORCE_API` | in-cluster Reporting API | Reporting API URL for manager resolution (Helm: `catalogItemOrders.controller.reportingApiUrl`); token `SALESFORCE_AUTHORIZATION_TOKEN` from `salesforceApi.secretName`, as for the catalog API. |
 | `ORDER_RETENTION` | `30d` | Delete completed orders this long after `status.completedAt`; empty disables. Helm: `catalogItemOrders.controller.retention`. |
 | `ORDER_CONTROLLER_RESYNC_INTERVAL` | `60` | Seconds between full resyncs; also how often child resource status is checked. |
-| `WORKSHOP_FAIL_PERCENTAGE_THRESHOLD`, `SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD` | `60` | Same thresholds the workshop and self-paced lab managers use to stop provisioning. |
 
 ## AgnosticV approval policy
 
@@ -230,7 +229,7 @@ Users have no RBAC on `catalogitemorders`; the catalog API proxy also rejects wr
 
 ### Retention
 
-The controller sets `status.completedAt` when an order completes: `Provisioned`, `Denied`, `Expired`, `Cancelled`, `Failed`, or `Blocked` without automatic recovery. On each resync the controller deletes orders whose `completedAt` is older than `ORDER_RETENTION` (default `30d`), except:
+The controller sets `status.completedAt` when an order completes: `Fulfilled`, `Denied`, `Expired`, `Cancelled`, or `Blocked` without automatic recovery. On each resync the controller deletes orders whose `completedAt` is older than `ORDER_RETENTION` (default `30d`), except:
 
 - pending or in-progress orders, including recoverable blocks, which are never deleted;
 - orders with any recorded provisioning resource still present (matched by uid), so the order outlives the environment it authorized and is deleted on a later resync after that environment is gone.
@@ -240,8 +239,8 @@ Deletion uses uid and resourceVersion preconditions, so an order updated after i
 ### Lifecycle
 
 ```text
-Submitted ─┬─> PendingApproval ─┬─> Ready ─> Provisioning ─┬─> Provisioned
-           │                    ├─> Denied                 └─> Failed
+Submitted ─┬─> PendingApproval ─┬─> Ready ─> Creating ─> Fulfilled
+           │                    ├─> Denied
            │                    └─> Expired
            ├─> Ready (approval not required)
            └─> Blocked
@@ -253,9 +252,8 @@ Submitted, PendingApproval, Ready, Blocked (before any attempt) ─(cancel)─> 
 | `Submitted` | Accepted; the controller has not evaluated it yet (no status). |
 | `PendingApproval` | Waiting for a trusted decision until `status.approval.expiresAt`. No resources exist. |
 | `Ready` | Approved or approval not required; the controller rechecks restrictions before dispatch. |
-| `Provisioning` | An attempt was claimed. Its resources are created (`Dispatching`) and monitored (`Provisioning`). |
-| `Provisioned` | All resources for the attempt reported successful provisioning. Terminal for the order. |
-| `Failed` | Controller-verified failure of the attempt. Terminal; submit a new order to try again. |
+| `Creating` | The dispatch was claimed and its resources are being created (attempt `Dispatching`). Creation errors are retried until creation succeeds; the `Dispatched` condition shows the last error. |
+| `Fulfilled` | All resources were created (attempt `Created`). Terminal: the order does not follow provisioning, which is tracked on the service, workshop or lab itself. |
 | `Denied` | Decision was denial, or approval was revoked while pending. Terminal. |
 | `Expired` | No decision before expiry. Terminal. |
 | `Cancelled` | Cancelled by the requester before dispatch. Terminal. |
@@ -269,7 +267,7 @@ Submitted, PendingApproval, Ready, Blocked (before any attempt) ─(cancel)─> 
 
 When a policy changes before dispatch of an order that needed no approval, the order is re-evaluated from `Submitted`, because no approval exists that could be reused.
 
-Conditions: `PolicyEvaluated`, `ApprovalSatisfied`, `Dispatched`, `Provisioned`, `Ready`. `status.history` keeps the last 50 events with actor and timestamp; `status.attempts` keeps every attempt with its resources and failure.
+Conditions: `PolicyEvaluated`, `ApprovalSatisfied`, `Dispatched`, `Ready`. `status.history` keeps the last 50 events with actor and timestamp; `status.attempts` keeps every attempt with its resources and failure.
 
 ### Dispatch checks
 
@@ -280,24 +278,14 @@ Before claiming an attempt the controller verifies: valid, unrevoked approval; c
 - Every status change is a full status replace with the read `resourceVersion`. Conflicts re-read and re-evaluate.
 - Dispatch is claimed by recording the attempt, its resolved schedule and its planned resource names before creating anything. Names are `<catalog item name>-<8 random hex digits>`, matching the UI name shape. The suffix is unpredictable and planned names are hidden from the order API until the resources exist, so a requester cannot pre-create an object under a planned name.
 - Creation is by planned name. Before the controller has recorded a uid, an existing object is used only if its order uid and attempt labels match; otherwise the order blocks with `NameCollision` and the object is not modified. Once created, the recorded uid is authoritative for monitoring and cleanup, because requesters can edit labels on their resources. Cleanup deletes with a uid precondition and never deletes a replacement object.
-- When creation resumes after the claim (restart, persistent API errors), the controller reruns every dispatch check before creating a missing resource. If nothing was created yet the attempt is withdrawn (`DispatchAborted`) and the order blocks or returns to `Failed`; if some resources exist the attempt fails as `DispatchAborted`.
+- When creation resumes after the claim (restart, persistent API errors), the controller reruns every dispatch check before creating a missing resource. If nothing was created yet the attempt is withdrawn (`DispatchAborted`) and the order blocks; if some resources exist, the controller keeps trying and records the problem in the `Dispatched` condition.
 - After a crash or failed status write the next reconcile finds already-created resources by name, so no duplicates are created. Parent/child creation (Workshop then WorkshopProvision) resumes the same plan.
 - API cancellation and the dispatch claim both write status with a `resourceVersion` precondition, so exactly one succeeds. Once an attempt exists, cancel returns `409 dispatch_started`.
 - Transient API errors leave the order unchanged and are retried on the next event or resync.
 
-### Outcome detection
+### After creation
 
-| Order type | Provisioned | Failed |
-|---|---|---|
-| service | Every AnarchySubject in the ResourceClaim finished provisioning | Any state ending `-failed`, or `provision-error`/`provision-cancelled` (same as workshop-manager) |
-| workshop | WorkshopProvision `activeCount >= count` | No instances provisioning and `failedCount/count` at the workshop-manager threshold |
-| selfPacedLab | `readyCount + assignedCount >= poolSize` | No instances provisioning and the failed share at the self-paced lab manager threshold |
-
-Resource creation rejected by the API server (4xx other than 409/429) fails the attempt as `CreateRejected`. Resources deleted before provisioning completes fail the attempt as `ResourcesDeleted`.
-
-## Failed orders
-
-There is no retry. `Failed` is terminal: the controller records the failure on the attempt, sets `completedAt`, and keeps the failed resources so the requester can inspect or delete them. To try again, the requester submits a new order, which is evaluated afresh against the current policy. The policy schema has no `retry` section; a policy that sets one is invalid.
+The order ends when its resources exist. It does not monitor provisioning: success, failure and deletion of the service, workshop or lab are shown on their own pages. Resource creation rejected by the API server (4xx other than 409/429), an unavailable catalog item, or a failed dispatch check after some resources exist keep the order `Creating`; the controller retries on every reconcile and records the reason in the `Dispatched` condition without rewriting status for the same error. There is no retry of provisioning: to try again after a failed environment, the requester places a new order, which is evaluated afresh. The policy schema has no `retry` section; a policy that sets one is invalid.
 
 ## Manager approval (GPTEINFRA-18189)
 
@@ -350,7 +338,7 @@ Retries back off from 1 minute, doubling to a 30-minute cap, and never extend `a
 
 Self-decision is the one exception to "administrators can decide all requests": an administrator cannot approve or deny their own order, matched by user name or email. The relationship is looked up again for every decision, so a changed manager or a cached notification recipient grants nothing. If the Reporting API is unavailable, non-administrators get `503 manager_lookup_unavailable` and nothing is recorded; a 404 or malformed response grants no authority.
 
-Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Ready` or `Denied` transition and all provisioning.
+Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Ready` or `Denied` transition and creates the resources.
 
 ### Approvals API (for GPTEINFRA-18190)
 
@@ -441,13 +429,13 @@ Implemented in `catalog/ui/src/app/CatalogItemOrders/`, always on.
 | Route | Page |
 |---|---|
 | `/orders` | My Services → Orders in the navigation (My Services is a group with Services and Orders). Lists the requester's orders, refreshing every 8 s while any order is active. |
-| `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`): status, approval reason, manager, expiry, review link, schedule, parameters, attempts, history; Cancel when `cancel.allowed`, and links to the service, workshop or lab page once its resource exists. The UI offers no retry. |
+| `/orders/<namespace>/<name>` | Order detail (`status.orderUrl`) for orders that needed approval: status (waiting, approved by whom, denied, expired, cancelled), approval reason, manager, expiry, review link, schedule, parameters and history; Cancel when `cancel.allowed`, and a link to the service, workshop or lab once it exists. |
 | `/approvals`, `/approvals/<uid>` | Manager panel and review page (`status.approval.reviewUrl`). Opening a link only reads the review; Approve and Deny need a confirmation with an optional comment. |
 | `/admin/approvals`, `/admin/approvals/<uid>` | Administrator view, sharing the list and review components, with a Pending / Decided / All filter. |
 
 Behavior:
 
-- **Submission.** The catalog order form submits one `CatalogItemOrder` and opens its order page; it never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
+- **Submission.** The catalog order form submits one `CatalogItemOrder` and waits briefly for the controller: when no approval is needed it opens the created service, workshop or lab directly (there is no order page for the user, and such orders are not listed); when approval is needed it opens the order page; it never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
 - **Direct flows kept until GPTEINFRA-18191.** External URL items (nothing is provisioned; the request is recorded and the external site opens) and white glove orders (fulfilment from a white glove request, or the admin White-Glove Support switch) keep the previous direct flow, as do MultiWorkshop creation and converting a multi-user service into a workshop. Ordering while impersonating is explained and disabled, because the order API records the authenticated requester.
 - **Reorder** on services and workshops opens the order form for the same item, which is a new order evaluated afresh.
 - **Errors.** Backend `error`/`message` are shown as returned; a 403 is not treated as a disabled account. Stale approval decisions (`already_decided`, `not_pending`, `expired`, `request_changed`, `policy_changed`, `order_conflict`) reload the request instead of replaying the decision; `manager_lookup_unavailable` is shown as temporary.

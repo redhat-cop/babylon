@@ -1,6 +1,7 @@
 import type { CatalogItem } from '@app/types';
 import {
   PENDING_APPROVAL_MESSAGE,
+  approvedBy,
   buildOrderSubmission,
   getOrderStatus,
   getReviewStatus,
@@ -149,33 +150,26 @@ describe('usesOrderApi', () => {
 
 describe('getOrderStatus', () => {
   test('pending approval shows the required message', () => {
-    const status = getOrderStatus(order({ phase: 'PendingApproval', approval: { state: 'Pending' } }), NOW);
+    const status = getOrderStatus(order({ phase: 'PendingApproval', approval: { state: 'Pending' } }));
     expect(status.kind).toBe('pendingApproval');
     expect(status.description).toBe(PENDING_APPROVAL_MESSAGE);
   });
 
-  test('approval alone never shows provisioning success', () => {
-    for (const phase of ['Ready', 'Provisioning'] as const) {
-      const status = getOrderStatus(order({ phase, approval: { state: 'Approved' } }), NOW);
-      expect(status.tone).not.toBe('success');
-      expect(status.label).not.toMatch(/provisioned/i);
-    }
-    expect(getOrderStatus(order({ phase: 'Provisioned' }), NOW).tone).toBe('success');
-  });
-
-  test('distinguishes scheduled start from active provisioning', () => {
-    const future = order({ phase: 'Ready', approval: { state: 'Approved' }, request: { schedule: { start: '2026-11-20T09:00:00Z' } } });
-    expect(getOrderStatus(future, NOW).kind).toBe('scheduled');
-    const now = order({
-      phase: 'Provisioning',
-      attempts: [{ number: 1, state: 'Provisioning', resources: [], schedule: { start: '2026-11-17T11:00:00Z' } }],
-    });
-    expect(getOrderStatus(now, NOW).kind).toBe('provisioning');
+  test('an approved order says who approved it, without tracking provisioning', () => {
+    const approval = { state: 'Approved' as const, decision: { outcome: 'Approved' as const, decidedBy: 'dana', decidedByEmail: 'dana@example.com' } };
+    const fulfilled = getOrderStatus(order({ phase: 'Fulfilled', approval }));
+    expect(fulfilled).toMatchObject({ kind: 'approved', label: 'Approved' });
+    expect(fulfilled.description).toMatch(/^Approved by dana@example.com\./);
+    expect(fulfilled.description).not.toMatch(/provisioned/i);
+    const creating = getOrderStatus(order({ phase: 'Creating', approval }));
+    expect(creating).toMatchObject({ kind: 'creating', label: 'Approved' });
+    expect(creating.description).toMatch(/being created/);
+    expect(approvedBy(order({ approval }))).toBe('dana@example.com');
   });
 
   test('maps every terminal and blocked state', () => {
     const cases: [Partial<CatalogItemOrder>, string][] = [
-      [{ phase: 'Failed', attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'boom' } }] }, 'failed'],
+      [{ phase: 'Fulfilled', approval: { state: 'NotRequired' } }, 'created'],
       [{ phase: 'Denied', approval: { state: 'Denied', decision: { outcome: 'Denied', decidedBy: 'mgr' } } }, 'denied'],
       [{ phase: 'Expired' }, 'expired'],
       [{ phase: 'Cancelled' }, 'cancelled'],
@@ -183,17 +177,17 @@ describe('getOrderStatus', () => {
       [{ phase: 'Blocked', blocked: { reason: 'PolicyChanged', message: 'Policy changed', recoverable: false } }, 'blocked'],
     ];
     for (const [overrides, kind] of cases) {
-      expect(getOrderStatus(order(overrides), NOW).kind).toBe(kind);
+      expect(getOrderStatus(order(overrides)).kind).toBe(kind);
     }
   });
 });
 
 describe('isOrderActive', () => {
-  test('refreshes pending and in-progress orders but not finished or failed ones', () => {
+  test('refreshes orders until they are finished', () => {
     expect(isOrderActive(order({ phase: 'PendingApproval' }))).toBe(true);
-    expect(isOrderActive(order({ phase: 'Provisioning' }))).toBe(true);
-    expect(isOrderActive(order({ phase: 'Provisioned' }))).toBe(false);
-    expect(isOrderActive(order({ phase: 'Failed' }))).toBe(false);
+    expect(isOrderActive(order({ phase: 'Creating' }))).toBe(true);
+    expect(isOrderActive(order({ phase: 'Fulfilled' }))).toBe(false);
+    expect(isOrderActive(order({ phase: 'Denied' }))).toBe(false);
   });
 });
 
@@ -203,10 +197,10 @@ describe('orderResourceLinks', () => {
     const links = orderResourceLinks(
       order({
         attempts: [
-          { number: 1, state: 'Failed', resources: [{ kind: 'ResourceClaim', namespace: 'user-test', name: 'old', uid: 'u0' }] },
+          { number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'user-test', name: 'old', uid: 'u0' }] },
           {
             number: 2,
-            state: 'Provisioning',
+            state: 'Created',
             resources: [
               { kind: 'Workshop', namespace: 'user-test', name: 'item-abc', uid: 'u1' },
               { kind: 'WorkshopProvision', namespace: 'user-test', name: 'item-abc', uid: 'u2' },
@@ -237,4 +231,16 @@ describe('getReviewStatus', () => {
 
 test('newOrderPath opens the order form for the same catalog item', () => {
   expect(newOrderPath(catalogItem)).toBe('/catalog/babylon-catalog-test/order/tests.item.prod');
+});
+
+describe('visibleOrders', () => {
+  test('lists only orders that needed approval, newest first', () => {
+    const { visibleOrders } = jest.requireActual('./OrdersList');
+    const orders = [
+      order({ uid: 'a', submittedAt: '2026-11-15T00:00:00Z', approval: { state: 'Approved' } }),
+      order({ uid: 'b', submittedAt: '2026-11-17T00:00:00Z', approval: { state: 'NotRequired' } }),
+      order({ uid: 'c', submittedAt: '2026-11-16T00:00:00Z', approval: { state: 'Pending' } }),
+    ];
+    expect(visibleOrders(orders).map((o: CatalogItemOrder) => o.uid)).toEqual(['c', 'a']);
+  });
 });

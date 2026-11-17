@@ -288,36 +288,6 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
         <ApprovalDetails order={order} />
       </PageSection>
 
-      {order.attempts?.length > 0 ? (
-        <PageSection hasBodyWrapper={false}>
-          <Title headingLevel="h2" size="lg">
-            Provisioning attempts
-          </Title>
-          <Table aria-label="Provisioning attempts" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Attempt</Th>
-                <Th>State</Th>
-                <Th>Started</Th>
-                <Th>Details</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {order.attempts.map((attempt) => (
-                <Tr key={attempt.number}>
-                  <Td dataLabel="Attempt">{attempt.number}</Td>
-                  <Td dataLabel="State">{attempt.state}</Td>
-                  <Td dataLabel="Started">
-                    <OrderTime value={attempt.startedAt} />
-                  </Td>
-                  <Td dataLabel="Details">{attempt.failure?.message || '-'}</Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </PageSection>
-      ) : null}
-
       {order.history?.length > 0 ? (
         <PageSection hasBodyWrapper={false}>
           <Title headingLevel="h2" size="lg">

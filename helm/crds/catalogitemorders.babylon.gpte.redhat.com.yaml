@@ -434,17 +434,8 @@ spec:
                   - number
                   - state
                   properties:
-                    failure:
-                      type: object
-                      properties:
-                        message:
-                          type: string
-                        reason:
-                          type: string
-                        verifiedAt:
-                          type: string
-                          format: date-time
-                    finishedAt:
+                    createdAt:
+                      description: When all resources of the attempt were created.
                       type: string
                       format: date-time
                     number:
@@ -493,10 +484,8 @@ spec:
                     state:
                       type: string
                       enum:
+                      - Created
                       - Dispatching
-                      - Failed
-                      - Provisioning
-                      - Succeeded
               completedAt:
                 description: >-
                   When the order reached a completed state. The controller deletes completed orders
@@ -567,12 +556,11 @@ spec:
                 enum:
                 - Blocked
                 - Cancelled
+                - Creating
                 - Denied
                 - Expired
-                - Failed
+                - Fulfilled
                 - PendingApproval
-                - Provisioned
-                - Provisioning
                 - Ready
                 - Submitted
               policy:

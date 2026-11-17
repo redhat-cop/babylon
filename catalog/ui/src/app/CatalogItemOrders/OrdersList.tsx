@@ -31,8 +31,14 @@ import CatalogItemName from './CatalogItemName';
 export const ACTIVE_REFRESH_MS = 8000;
 const IDLE_REFRESH_MS = 60000;
 
-function sortOrders(orders: CatalogItemOrder[]): CatalogItemOrder[] {
-  return [...orders].sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+/**
+ * Orders shown to the requester: those that needed approval. Orders that need
+ * no approval go straight to the created service and have no order page.
+ */
+export function visibleOrders(orders: CatalogItemOrder[]): CatalogItemOrder[] {
+  return orders
+    .filter((order) => order.approval?.state !== 'NotRequired')
+    .sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
 }
 
 export const OrdersTable: React.FC<{ orders: CatalogItemOrder[] }> = ({ orders }) => (
@@ -85,7 +91,7 @@ const OrdersList: React.FC = () => {
     },
   );
 
-  const orders = sortOrders(data?.items || []);
+  const orders = visibleOrders(data?.items || []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
@@ -99,7 +105,7 @@ const OrdersList: React.FC = () => {
             <Title headingLevel="h1" size="lg">
               Orders
             </Title>
-            <p>Orders stay here from submission, including while they wait for approval, before any service exists.</p>
+            <p>Orders that need manager approval. Once approved, the service is created and linked here.</p>
           </SplitItem>
         </Split>
       </PageSection>
@@ -112,7 +118,7 @@ const OrdersList: React.FC = () => {
           </Alert>
         ) : orders.length === 0 ? (
           <EmptyState headingLevel="h2" titleText="No orders" variant="full">
-            <EmptyStateBody>Orders you place from the catalog appear here.</EmptyStateBody>
+            <EmptyStateBody>Orders that need manager approval appear here.</EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
                 <Link to="/catalog">Browse the catalog</Link>

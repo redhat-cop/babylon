@@ -83,7 +83,12 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
-import { IdempotencyKeys, submitCatalogItemOrder, toOrderApiError } from '@app/CatalogItemOrders/catalog-item-order-api';
+import {
+  IdempotencyKeys,
+  resolveOrderDestination,
+  submitCatalogItemOrder,
+  toOrderApiError,
+} from '@app/CatalogItemOrders/catalog-item-order-api';
 import { buildOrderSubmission, orderErrorTitle, usesOrderApi } from '@app/CatalogItemOrders/order-utils';
 
 import './catalog-item-form.css';
@@ -630,7 +635,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         selfPacedLab: formState.selfPacedLab,
       });
       const order = await submitCatalogItemOrder({ ...body, idempotencyKey: orderKeys.current.keyFor(body) });
-      navigate(`/orders/${encodeURIComponent(order.namespace)}/${encodeURIComponent(order.name)}`);
+      // No approval needed: straight to the created service. Approval needed: the order page.
+      navigate(await resolveOrderDestination(order));
     } catch (error: unknown) {
       const apiError = await toOrderApiError(error);
       const title = orderErrorTitle(apiError.code);

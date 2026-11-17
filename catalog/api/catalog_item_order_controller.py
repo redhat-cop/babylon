@@ -35,18 +35,15 @@ from catalog_item_order import (
     APPROVAL_PENDING,
     APPROVAL_REVOKED,
     ATTEMPT_DISPATCHING,
-    ATTEMPT_FAILED,
-    ATTEMPT_PROVISIONING,
-    ATTEMPT_SUCCEEDED,
+    ATTEMPT_CREATED,
     DECISION_OUTCOMES,
     ORDER_TYPE_SERVICE,
     PHASE_BLOCKED,
     PHASE_DENIED,
     PHASE_EXPIRED,
-    PHASE_FAILED,
     PHASE_PENDING_APPROVAL,
-    PHASE_PROVISIONED,
-    PHASE_PROVISIONING,
+    PHASE_CREATING,
+    PHASE_FULFILLED,
     PHASE_READY,
     PHASE_SUBMITTED,
     PLURAL,
@@ -69,7 +66,6 @@ from catalog_item_order import (
 )
 from catalog_item_order_adapters import (
     ORDER_TYPE_KINDS,
-    assess_resources,
     build_resource,
     owned_by_attempt,
     plan_resources,
@@ -103,8 +99,6 @@ class ControllerConfig:
     resync_interval: int = 60
     workers: int = 4
     history_limit: int = 50
-    workshop_fail_threshold: int = 60
-    self_paced_lab_fail_threshold: int = 60
     # Delete completed orders this long after completion; None disables.
     retention: str | None = '30d'
     # Exempt managers at this chain level or above (1 is the top); None disables.
@@ -133,8 +127,6 @@ class ControllerConfig:
             resync_interval=int(environ.get('ORDER_CONTROLLER_RESYNC_INTERVAL', 60)),
             workers=int(environ.get('ORDER_CONTROLLER_WORKERS', 4)),
             history_limit=int(environ.get('ORDER_HISTORY_LIMIT', 50)),
-            workshop_fail_threshold=int(environ.get('WORKSHOP_FAIL_PERCENTAGE_THRESHOLD', 60)),
-            self_paced_lab_fail_threshold=int(environ.get('SELFPACEDLAB_FAIL_PERCENTAGE_THRESHOLD', 60)),
             retention=environ.get('ORDER_RETENTION', '30d') or None,
             manager_exemption_max_level=int(environ['ORDER_MANAGER_EXEMPTION_MAX_LEVEL'])
             if environ.get('ORDER_MANAGER_EXEMPTION_MAX_LEVEL') else None,
@@ -195,7 +187,7 @@ class CatalogItemOrderController:
             PHASE_SUBMITTED: self._submitted,
             PHASE_PENDING_APPROVAL: self._pending_approval,
             PHASE_READY: self._ready,
-            PHASE_PROVISIONING: self._provisioning,
+            PHASE_CREATING: self._creating,
             PHASE_BLOCKED: self._blocked,
         }.get(phase)
         if handler is None:
@@ -574,8 +566,6 @@ class CatalogItemOrderController:
             for key in ('approval', 'policy'):
                 status.pop(key, None)
             return self._transition(order, status, PHASE_SUBMITTED, 'Reevaluating', now, message)
-        if attempts and not recoverable:
-            return self._transition(order, status, PHASE_FAILED, 'DispatchRejected', now, message)
         return self._block(order, status, reason, message, now, recoverable, PHASE_READY)
 
     async def _ready(self, order, status, now):
@@ -597,37 +587,34 @@ class CatalogItemOrderController:
         set_condition(status, 'Dispatched', 'False', 'Dispatching', f"Attempt {number} creating resources", now)
         # Planned names are not exposed until the resources exist.
         return self._transition(
-            order, status, PHASE_PROVISIONING, 'DispatchStarted', now,
+            order, status, PHASE_CREATING, 'DispatchStarted', now,
             f"Attempt {number}: " + ', '.join(ref['kind'] for ref in resources),
         )
 
-    def _fail_attempt(self, order, status, attempt, reason, message, now):
-        attempt['state'] = ATTEMPT_FAILED
-        attempt['finishedAt'] = format_time(now)
-        attempt['failure'] = {
-            'reason': reason,
-            'message': message[:1024],
-            'verifiedAt': format_time(now),
-        }
-        set_condition(status, 'Provisioned', 'False', reason, message[:1024], now)
-        return self._transition(order, status, PHASE_FAILED, reason, now, message[:1024])
+    def _creation_pending(self, status, reason, message, now):
+        """Creation could not complete; keep the order Creating and try again on
+        the next reconcile. Returns None when nothing changed, to avoid churn."""
+        message = f"{message[:1000]}; retrying"
+        current = next((c for c in status.get('conditions') or [] if c.get('type') == 'Dispatched'), {})
+        if current.get('reason') == reason and current.get('message') == message:
+            return None
+        set_condition(status, 'Dispatched', 'False', reason, message, now)
+        self._history(status, 'CreationRetrying', now, message)
+        return status
 
-    async def _provisioning(self, order, status, now):
+    async def _creating(self, order, status, now):
         attempts = status.get('attempts') or []
         attempt = attempts[-1] if attempts else None
-        if attempt is None or attempt.get('state') not in (ATTEMPT_DISPATCHING, ATTEMPT_PROVISIONING):
-            return self._block(order, status, 'InconsistentState', 'Provisioning order has no active attempt', now)
-        if attempt['state'] == ATTEMPT_DISPATCHING:
-            return await self._dispatch_resources(order, status, attempt, now)
-        return await self._monitor(order, status, attempt, now)
+        if attempt is None or attempt.get('state') != ATTEMPT_DISPATCHING:
+            return self._block(order, status, 'InconsistentState', 'Creating order has no active attempt', now)
+        return await self._dispatch_resources(order, status, attempt, now)
 
     async def _dispatch_resources(self, order, status, attempt, now):
         number = attempt['number']
         catalog_item = await self._catalog_item(order)
         if catalog_item is None or catalog_item['metadata'].get('uid') != order['spec']['catalogItem']['uid']:
-            return self._fail_attempt(
-                order, status, attempt, 'CatalogItemUnavailable',
-                'Catalog item became unavailable during dispatch', now,
+            return self._creation_pending(
+                status, 'CatalogItemUnavailable', 'Catalog item is not available', now,
             )
         existing = {}
         for ref in attempt['resources']:
@@ -643,7 +630,7 @@ class CatalogItemOrderController:
                 self._history(status, 'DispatchAborted', now, problem[1])
                 return self._dispatch_problem_status(order, status, problem, now)
             if problem:
-                return self._fail_attempt(order, status, attempt, 'DispatchAborted', problem[1], now)
+                return self._creation_pending(status, problem[0], problem[1], now)
         created = {}
         for ref in attempt['resources']:
             obj = existing.get(ref['kind'])
@@ -662,10 +649,9 @@ class CatalogItemOrderController:
                         raise KubeError(409, f"{ref['kind']} {ref['name']} conflicted but is not readable")
                 except KubeError as exception:
                     if 400 <= exception.status < 500 and exception.status != 429:
-                        return self._fail_attempt(
-                            order, status, attempt, 'CreateRejected',
-                            f"{ref['kind']} {ref['namespace']}/{ref['name']} was rejected: {exception}",
-                            now,
+                        return self._creation_pending(
+                            status, 'CreateRejected',
+                            f"{ref['kind']} {ref['namespace']}/{ref['name']} was rejected: {exception}", now,
                         )
                     raise
             if not owned_by_attempt(obj, order, number, ref):
@@ -676,31 +662,13 @@ class CatalogItemOrderController:
                 )
             created[ref['kind']] = obj
             ref['uid'] = obj['metadata'].get('uid')
-        attempt['state'] = ATTEMPT_PROVISIONING
-        set_condition(status, 'Dispatched', 'True', 'ResourcesCreated', f"Attempt {number} resources created", now)
-        set_condition(status, 'Provisioned', 'False', 'Provisioning', 'Provisioning in progress', now)
-        self._history(status, 'ResourcesCreated', now, f"Attempt {number}")
-        return status
-
-    async def _monitor(self, order, status, attempt, now):
-        objects = {}
-        for ref in attempt['resources']:
-            obj = await self.kube.get_resource(ref)
-            objects[ref['kind']] = obj if obj is not None and owned_by_attempt(obj, order, attempt['number'], ref) else None
-        outcome, message = assess_resources(
-            order['spec']['orderType'], objects,
-            self.config.workshop_fail_threshold, self.config.self_paced_lab_fail_threshold,
+        attempt['state'] = ATTEMPT_CREATED
+        attempt['createdAt'] = format_time(now)
+        set_condition(status, 'Dispatched', 'True', 'ResourcesCreated', '', now)
+        return self._transition(
+            order, status, PHASE_FULFILLED, 'Fulfilled', now,
+            ', '.join(f"{ref['kind']} {ref['name']}" for ref in attempt['resources']),
         )
-        if outcome == 'provisioned':
-            attempt['state'] = ATTEMPT_SUCCEEDED
-            attempt['finishedAt'] = format_time(now)
-            set_condition(status, 'Provisioned', 'True', 'Provisioned', '', now)
-            return self._transition(order, status, PHASE_PROVISIONED, 'Provisioned', now, f"Attempt {attempt['number']}")
-        if outcome == 'failed':
-            return self._fail_attempt(order, status, attempt, 'ProvisioningFailed', message, now)
-        if outcome == 'missing':
-            return self._fail_attempt(order, status, attempt, 'ResourcesDeleted', message, now)
-        return None
 
     async def _blocked(self, order, status, now):
         blocked = status.get('blocked') or {}

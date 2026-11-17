@@ -7,9 +7,8 @@ export type CatalogItemOrderPhase =
   | 'Submitted'
   | 'PendingApproval'
   | 'Ready'
-  | 'Provisioning'
-  | 'Provisioned'
-  | 'Failed'
+  | 'Creating'
+  | 'Fulfilled'
   | 'Denied'
   | 'Expired'
   | 'Cancelled'
@@ -67,12 +66,11 @@ export type OrderResourceRef = {
 
 export type OrderAttempt = {
   number: number;
-  state: 'Dispatching' | 'Provisioning' | 'Succeeded' | 'Failed' | string;
+  state: 'Dispatching' | 'Created' | string;
   startedAt?: string;
-  completedAt?: string;
+  createdAt?: string;
   schedule?: OrderSchedule;
   resources: OrderResourceRef[];
-  failure?: { reason?: string; message?: string };
 };
 
 export type OrderCancel = { allowed: boolean; code?: string; message?: string };

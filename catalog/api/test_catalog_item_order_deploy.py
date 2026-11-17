@@ -24,7 +24,7 @@ from order_test_support import (
     submission,
 )
 from test_approval_policy import CONDITIONAL_POLICY, EXPIRY_POLICY, UNCONDITIONAL_POLICY
-from test_catalog_item_order_controller import MANAGER_POLICY, complete_claim_status
+from test_catalog_item_order_controller import MANAGER_POLICY
 
 ORDER_SCHEMA = load_crd_schema(ORDER_CRD_PATH)
 CATALOG_ITEM_SCHEMA = load_crd_schema(CATALOG_ITEM_CRD_PATH)
@@ -164,11 +164,8 @@ class TestOrderSchemaValidation(unittest.IsolatedAsyncioTestCase):
             key='key-schema-plain', catalogItem={'namespace': 'babylon-catalog-prod', 'name': 'tests.plain.prod'}))
         await controller.reconcile(order['metadata']['namespace'], order['metadata']['name'])
         current = await kube.get_order(order['metadata']['namespace'], order['metadata']['name'])
-        ref = current['status']['attempts'][0]['resources'][0]
-        kube.set_resource_status('ResourceClaim', ref['namespace'], ref['name'], complete_claim_status('provision-failed'))
-        await controller.reconcile(order['metadata']['namespace'], order['metadata']['name'])
-        current = await kube.get_order(order['metadata']['namespace'], order['metadata']['name'])
-        self.assertEqual(current['status']['phase'], 'Failed')
+        self.assertEqual(current['status']['phase'], 'Fulfilled')
+        self.assertEqual(current['status']['attempts'][0]['state'], 'Created')
         self.assertEqual(validation_problems(current, ORDER_SCHEMA), [])
 
 

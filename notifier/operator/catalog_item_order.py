@@ -78,7 +78,7 @@ def notifications_for(order, now=None, max_age=MAX_EVENT_AGE):
     One approval request per approval cycle to the resolved direct manager;
     higher managers use the same review link or the approvals panel. Requester
     notifications for approval, denial (including revocation) and expiry.
-    Provisioning progress after approval produces no new events."""
+    Creating the resources after approval produces no new events."""
     now = now or datetime.now(timezone.utc)
     status = order.get('status') or {}
     approval = status.get('approval') or {}

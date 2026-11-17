@@ -14,7 +14,7 @@ export const PENDING_APPROVAL_MESSAGE = 'Your order is waiting for manager appro
 // Parameters the API sets from dedicated fields; sending them as parameters is rejected.
 const RESERVED_PARAMETERS = ['purpose', 'purpose_activity', 'purpose_explanation', 'salesforce_id'];
 
-const TERMINAL_PHASES = ['Provisioned', 'Failed', 'Denied', 'Expired', 'Cancelled'];
+const TERMINAL_PHASES = ['Fulfilled', 'Denied', 'Expired', 'Cancelled'];
 
 export type OrderFormInput = {
   catalogItem: CatalogItem;
@@ -144,11 +144,9 @@ export function buildOrderSubmission(input: OrderFormInput): Omit<CatalogItemOrd
 export type OrderStatusKind =
   | 'submitted'
   | 'pendingApproval'
-  | 'starting'
-  | 'scheduled'
-  | 'provisioning'
-  | 'provisioned'
-  | 'failed'
+  | 'creating'
+  | 'approved'
+  | 'created'
   | 'denied'
   | 'expired'
   | 'cancelled'
@@ -158,10 +156,15 @@ export type OrderStatusKind =
 export type OrderStatus = {
   kind: OrderStatusKind;
   label: string;
-  /** Visual tone. "success" is reserved for provisioned orders. */
   tone: 'info' | 'warning' | 'success' | 'danger' | 'neutral';
   description: string;
 };
+
+/** Who approved the order, for "Approved by Dana". */
+export function approvedBy(order: Pick<CatalogItemOrder, 'approval'>): string | undefined {
+  const decision = order.approval?.decision;
+  return decision?.outcome === 'Approved' ? decision.decidedByEmail || decision.decidedBy : undefined;
+}
 
 export function latestAttempt(order: Pick<CatalogItemOrder, 'attempts'>): OrderAttempt | undefined {
   return order.attempts && order.attempts.length > 0 ? order.attempts[order.attempts.length - 1] : undefined;
@@ -178,53 +181,35 @@ function inFuture(timestamp: string | undefined, now: number): boolean {
   return !Number.isNaN(time) && time > now;
 }
 
-export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()): OrderStatus {
+export function getOrderStatus(order: CatalogItemOrder): OrderStatus {
   const approval = order.approval || {};
-  const attempt = latestAttempt(order);
-  const start = effectiveSchedule(order).start;
+  const approver = approvedBy(order);
+  const approvedText = approver ? `Approved by ${approver}.` : approval.state === 'Approved' ? 'Approved.' : '';
   switch (order.phase) {
     case 'PendingApproval':
       return { kind: 'pendingApproval', label: 'Waiting for approval', tone: 'warning', description: PENDING_APPROVAL_MESSAGE };
-    case 'Ready': {
-      const approvedText =
-        approval.state === 'Approved'
-          ? 'Approved. '
-          : approval.state === 'NotRequired'
-            ? 'No approval was needed. '
-            : '';
-      if (inFuture(start, now)) {
-        return {
-          kind: 'scheduled',
-          label: 'Scheduled',
-          tone: 'info',
-          description: `${approvedText}Provisioning will start at the scheduled time.`,
-        };
-      }
+    case 'Ready':
+    case 'Creating':
       return {
-        kind: 'starting',
-        label: approval.state === 'Approved' ? 'Approved' : 'Ready',
-        tone: 'info',
-        description: `${approvedText}Provisioning has not started yet; it will start shortly.`,
+        kind: 'creating',
+        label: approval.state === 'Approved' ? 'Approved' : 'Creating',
+        tone: approval.state === 'Approved' ? 'success' : 'info',
+        description: `${approvedText ? `${approvedText} ` : ''}Your service is being created.`,
       };
-    }
-    case 'Provisioning':
-      if (inFuture(start, now)) {
+    case 'Fulfilled':
+      if (approval.state === 'Approved') {
         return {
-          kind: 'scheduled',
-          label: 'Scheduled',
-          tone: 'info',
-          description: 'Resources are created and will start at the scheduled time.',
+          kind: 'approved',
+          label: 'Approved',
+          tone: 'success',
+          description: `${approvedText} Your service has been created; its page shows provisioning progress.`,
         };
       }
-      return { kind: 'provisioning', label: 'Provisioning', tone: 'info', description: 'Provisioning is in progress.' };
-    case 'Provisioned':
-      return { kind: 'provisioned', label: 'Provisioned', tone: 'success', description: 'Provisioning completed successfully.' };
-    case 'Failed':
       return {
-        kind: 'failed',
-        label: 'Provisioning failed',
-        tone: 'danger',
-        description: attempt?.failure?.message || 'The latest provisioning attempt failed.',
+        kind: 'created',
+        label: 'Created',
+        tone: 'success',
+        description: 'Your service has been created; its page shows provisioning progress.',
       };
     case 'Denied': {
       const decision = approval.decision;
@@ -234,8 +219,8 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
         label: 'Denied',
         tone: 'danger',
         description: revoked
-          ? 'The approval was revoked. Provisioning did not start.'
-          : `Your order was denied${decision?.decidedBy ? ` by ${decision.decidedByEmail || decision.decidedBy}` : ''}. Provisioning did not start.`,
+          ? 'The approval was revoked. Nothing was created.'
+          : `Your order was denied${decision?.decidedBy ? ` by ${decision.decidedByEmail || decision.decidedBy}` : ''}. Nothing was created.`,
       };
     }
     case 'Expired':
@@ -243,10 +228,10 @@ export function getOrderStatus(order: CatalogItemOrder, now: number = Date.now()
         kind: 'expired',
         label: 'Expired',
         tone: 'neutral',
-        description: 'No decision was made before the approval request expired. Provisioning did not start.',
+        description: 'No decision was made before the approval request expired. Nothing was created.',
       };
     case 'Cancelled':
-      return { kind: 'cancelled', label: 'Cancelled', tone: 'neutral', description: 'You cancelled this order before provisioning started.' };
+      return { kind: 'cancelled', label: 'Cancelled', tone: 'neutral', description: 'You cancelled this order. Nothing was created.' };
     case 'Blocked':
       if (order.blocked?.recoverable) {
         return {
@@ -387,7 +372,7 @@ export function orderErrorTitle(code: string): string {
     case 'order_not_found':
       return 'Order not found';
     case 'dispatch_started':
-      return 'Provisioning has already started';
+      return 'The service is already being created';
     case 'idempotency_key_conflict':
       return 'This order was already submitted with different values';
     default:

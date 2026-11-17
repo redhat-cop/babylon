@@ -96,12 +96,12 @@ class ControllerTestCase(unittest.IsolatedAsyncioTestCase):
 class TestNoApproval(ControllerTestCase):
     async def test_no_policy_order_creates_resources_once(self):
         order = await self.reconcile(await self.submit())
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(order['status']['approval']['state'], 'NotRequired')
         self.assertEqual(order['status']['policy']['state'], 'NotConfigured')
         self.assertEqual(len(self.claims()), 1)
         attempt = order['status']['attempts'][0]
-        self.assertEqual(attempt['state'], 'Provisioning')
+        self.assertEqual(attempt['state'], 'Created')
         self.assertTrue(attempt['resources'][0]['uid'])
         for _ in range(3):
             order = await self.reconcile(order)
@@ -110,15 +110,15 @@ class TestNoApproval(ControllerTestCase):
 
         self.set_claim_status(order, complete_claim_status())
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioned')
-        self.assertEqual(order['status']['attempts'][0]['state'], 'Succeeded')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
+        self.assertEqual(order['status']['attempts'][0]['state'], 'Created')
         self.assertIsNone(await self.controller.step(order))
         self.assertFalse(order_needs_reconcile(order))
 
     async def test_policy_not_matching_creates_resources(self):
         item = self.add_item(raw_policy=LARGE_POLICY)
         order = await self.reconcile(await self.submit(item, submission(parameters={'num_users': 10})))
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(order['status']['policy']['matchedRules'], [])
         self.assertEqual(order['status']['policy']['digest'], item['spec']['approvalPolicy']['digest'])
         self.assertEqual(order['status']['policy']['snapshot'], item['spec']['approvalPolicy'])
@@ -132,7 +132,7 @@ class TestNoApproval(ControllerTestCase):
             with self.subTest(order_type):
                 self.kube.resources.clear()
                 order = await self.reconcile(await self.submit(body=submission(order_type=order_type, key=f"key-{order_type}")))
-                self.assertEqual(order['status']['phase'], 'Provisioning')
+                self.assertEqual(order['status']['phase'], 'Fulfilled')
                 kinds = sorted(key[0] for key in self.kube.resources)
                 self.assertEqual(kinds, sorted([parent, child]))
                 child_ref = order['status']['attempts'][0]['resources'][1]
@@ -145,7 +145,7 @@ class TestNoApproval(ControllerTestCase):
                 )
                 self.kube.set_resource_status(child, child_ref['namespace'], child_ref['name'], status)
                 order = await self.reconcile(order)
-                self.assertEqual(order['status']['phase'], 'Provisioned')
+                self.assertEqual(order['status']['phase'], 'Fulfilled')
 
 
 class TestApprovalGate(ControllerTestCase):
@@ -171,7 +171,7 @@ class TestApprovalGate(ControllerTestCase):
         order = await self.reconcile(order)
         self.assertEqual(order['status']['approval']['state'], 'Approved')
         self.assertEqual(order['status']['approval']['satisfiedAt'], format_time(self.clock()))
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(len(self.claims()), 1)
         self.assertIn('Approved', self.history_events(order))
 
@@ -181,7 +181,7 @@ class TestApprovalGate(ControllerTestCase):
         self.clock.advance(hours=30)
         await self.decide(order)
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         approved_at = self.clock()
         self.assertEqual(order['status']['attempts'][0]['schedule'], {
             'end': format_time(approved_at + timedelta(days=3)),
@@ -319,7 +319,7 @@ class TestApprovalGate(ControllerTestCase):
                 order = await self.reconcile(await self.submit(self.add_item(raw_policy=MANAGER_POLICY)), controller)
                 approval = order['status']['approval']
                 if phase == 'Ready':
-                    self.assertIn(order['status']['phase'], ('Ready', 'Provisioning'))
+                    self.assertIn(order['status']['phase'], ('Ready', 'Fulfilled'))
                     self.assertEqual(approval['state'], 'NotRequired')
                     self.assertEqual(approval['exemption']['source'], 'reporting-api-manager-level')
                 else:
@@ -417,7 +417,7 @@ class TestPolicyFailuresBlock(ControllerTestCase):
         cosmetic['spec']['description'] = {'content': 'new', 'format': 'html'}
         self.kube.catalog_items[(item['metadata']['namespace'], item['metadata']['name'])] = cosmetic
         order = await self.reconcile(await self.submit(item, submission(key='key-cosmetic')))
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
 
     async def test_tampered_spec_blocks_without_provisioning(self):
         item = self.add_item(raw_policy=MANAGER_POLICY)
@@ -454,14 +454,14 @@ class TestDispatchRestrictions(ControllerTestCase):
         self.assertEqual(self.kube.resources, {})
         self.kube.system_status = {}
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(len(self.claims()), 1)
 
     async def test_workshop_block_key_applies_to_workshops_only(self):
         self.kube.system_status = {'workshops_ordering_blocked': True}
         service = await self.reconcile(await self.submit(body=submission(key='key-service1')))
         workshop = await self.reconcile(await self.submit(body=submission(order_type='workshop', key='key-workshop')))
-        self.assertEqual(service['status']['phase'], 'Provisioning')
+        self.assertEqual(service['status']['phase'], 'Fulfilled')
         self.assertEqual(workshop['status']['blocked']['message'], 'Ordering is temporarily unavailable')
 
     async def test_access_revoked_after_submission_blocks(self):
@@ -472,7 +472,7 @@ class TestDispatchRestrictions(ControllerTestCase):
         self.assertEqual(order['status']['blocked']['reason'], 'CatalogItemAccessDenied')
         self.kube.admins.add('alice')
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
 
     async def test_namespace_access_required(self):
         self.kube.namespace_access['alice'].clear()
@@ -484,7 +484,7 @@ class TestDispatchRestrictions(ControllerTestCase):
         self.kube.admins.add('alice')
         self.kube.system_status = {'services_ordering_blocked': True}
         order = await self.reconcile(await self.submit())
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
 
     async def test_system_status_error_does_not_dispatch(self):
         self.kube.system_status = KubeError(500, 'boom')
@@ -533,7 +533,7 @@ class TestDurability(ControllerTestCase):
         restarted = CatalogItemOrderController(self.kube, self.config, clock=self.clock)
         order = await self.reconcile(order, restarted)
         self.assertEqual(len(self.kube.created), 2, 'restart rediscovers instead of creating duplicates')
-        self.assertEqual(order['status']['attempts'][0]['state'], 'Provisioning')
+        self.assertEqual(order['status']['attempts'][0]['state'], 'Created')
         self.assertTrue(all(ref.get('uid') for ref in order['status']['attempts'][0]['resources']))
 
     async def test_partial_creation_resumes_same_plan(self):
@@ -547,7 +547,7 @@ class TestDurability(ControllerTestCase):
                                   schedule=order['status']['attempts'][0]['schedule'], created={}, now=NOW)
         await self.kube.create_resource(workshop_ref, workshop)
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(len([k for k in self.kube.resources if k[0] == 'Workshop']), 1)
         self.assertEqual(len([k for k in self.kube.resources if k[0] == 'WorkshopProvision']), 1)
 
@@ -617,7 +617,7 @@ class TestDurability(ControllerTestCase):
         self.assertEqual(self.kube.resources, {})
         self.kube.system_status = {}
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(len(self.claims()), 1)
 
     async def test_planned_names_are_not_exposed_before_creation(self):
@@ -628,54 +628,35 @@ class TestDurability(ControllerTestCase):
         from catalog_item_order import order_view
         self.assertNotIn(planned, str(order_view(order, self.clock())))
 
-    async def test_deleted_resources_fail_the_order(self):
+    async def test_fulfilled_order_does_not_follow_its_resources(self):
         order = await self.reconcile(await self.submit())
-        ref = order['status']['attempts'][0]['resources'][0]
-        await self.kube.delete_resource(ref)
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
+        writes = self.kube.status_writes
+        await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Failed')
-        self.assertEqual(order['status']['attempts'][0]['failure']['reason'], 'ResourcesDeleted')
-        self.assertNotIn('retryable', order['status']['attempts'][0]['failure'])
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
+        self.assertEqual(self.kube.status_writes, writes, 'provisioning is tracked on the resource, not the order')
 
-    async def test_create_rejection_fails_attempt(self):
+    async def test_create_rejection_keeps_trying_until_creation_succeeds(self):
         self.kube.create_errors['ResourceClaim'] = KubeError(422, 'Invalid')
         order = await self.reconcile(await self.submit())
-        self.assertEqual(order['status']['phase'], 'Failed')
-        self.assertEqual(order['status']['attempts'][0]['failure']['reason'], 'CreateRejected')
+        self.assertEqual(order['status']['phase'], 'Creating')
+        self.assertEqual(order['status']['attempts'][0]['state'], 'Dispatching')
+        condition = next(c for c in order['status']['conditions'] if c['type'] == 'Dispatched')
+        self.assertEqual((condition['status'], condition['reason']), ('False', 'CreateRejected'))
+        writes = self.kube.status_writes
+        order = await self.reconcile(order)
+        self.assertEqual(self.kube.status_writes, writes, 'the same failure does not churn status')
+        del self.kube.create_errors['ResourceClaim']
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
+        self.assertEqual(len(self.claims()), 1)
         self.kube.create_errors['ResourceClaim'] = KubeError(503, 'Unavailable')
         retry_order = await self.submit(body=submission(key='key-transient'))
         with self.assertRaises(KubeError):
             await self.reconcile(retry_order)
         retry_order = await self.kube.get_order(USER_NAMESPACE, retry_order['metadata']['name'])
         self.assertEqual(retry_order['status']['attempts'][0]['state'], 'Dispatching')
-
-
-class TestFailed(ControllerTestCase):
-    async def failed_order(self, policy=MANAGER_POLICY):
-        item = self.add_item(raw_policy=policy) if policy else self.add_item()
-        order = await self.reconcile(await self.submit(item))
-        if order['status']['phase'] == 'PendingApproval':
-            await self.decide(order)
-            order = await self.reconcile(order)
-        self.set_claim_status(order, complete_claim_status('provision-failed'))
-        order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Failed')
-        return item, order
-
-    async def test_failed_is_terminal_and_keeps_resources(self):
-        _, order = await self.failed_order()
-        self.assertIn('completedAt', order['status'])
-        self.assertNotIn('retryLimits', order['status']['policy'])
-        self.assertNotIn('retryable', order['status']['attempts'][0]['failure'])
-        writes = self.kube.status_writes
-        self.clock.advance(hours=1)
-        order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Failed')
-        self.assertEqual(self.kube.status_writes, writes, 'a failed order needs no further controller work')
-        self.assertEqual(len(self.claims()), 1, 'failed resources are kept for the requester to inspect or delete')
-        from catalog_item_order import order_view
-        self.assertEqual(order_view(order, self.clock())['cancel']['code'], 'order_finished')
-
 
 
 class TestRunLoop(ControllerTestCase):
@@ -690,12 +671,12 @@ class TestRunLoop(ControllerTestCase):
         for _ in range(50):
             await asyncio.sleep(0.01)
             current = await self.kube.get_order(USER_NAMESPACE, order['metadata']['name'])
-            if (current.get('status') or {}).get('phase') == 'Provisioning':
+            if (current.get('status') or {}).get('phase') == 'Fulfilled':
                 break
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
             await task
-        self.assertEqual(current['status']['phase'], 'Provisioning')
+        self.assertEqual(current['status']['phase'], 'Fulfilled')
         self.assertEqual(len(self.kube.created), 1)
 
 
@@ -727,8 +708,9 @@ class TestRetention(ControllerTestCase):
         expired = await self.reconcile(pending)
         self.assertEqual(expired['status']['completedAt'], format_time(self.clock()))
 
-        _, failed = await TestFailed.failed_order(self)
-        self.assertIn('completedAt', failed['status'])
+        fulfilled = await self.reconcile(await self.submit(body=submission(key='key-fulfilled')))
+        self.assertEqual(fulfilled['status']['phase'], 'Fulfilled')
+        self.assertEqual(fulfilled['status']['completedAt'], format_time(self.clock()))
 
         blocked = await self.reconcile(await self.submit(self.add_item(raw_policy={'version': 'v9'}), submission(key='key-blocked1')))
         self.assertTrue(blocked['status']['blocked']['recoverable'])
@@ -749,7 +731,7 @@ class TestRetention(ControllerTestCase):
         order = await self.reconcile(await self.submit())
         self.set_claim_status(order, complete_claim_status())
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioned')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.clock.advance(days=31)
         self.assertEqual(await self.sweep(order), (False, True))
         await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
@@ -765,14 +747,6 @@ class TestRetention(ControllerTestCase):
         self.clock.advance(days=31)
         self.assertEqual(await self.sweep(order), (False, True), 'relabelling does not hide the environment')
         self.kube.resources[key]['metadata']['uid'] = 'unrelated'
-        self.assertEqual(await self.sweep(order), (True, False))
-
-    async def test_failed_order_kept_until_its_resources_are_gone(self):
-        self.config.retention = '1d'
-        _, order = await TestFailed.failed_order(self)
-        self.clock.advance(days=2)
-        self.assertEqual(await self.sweep(order), (False, True), 'failed resources still exist')
-        await self.kube.delete_resource(order['status']['attempts'][0]['resources'][0])
         self.assertEqual(await self.sweep(order), (True, False))
 
     async def test_backfills_missing_completed_at(self):

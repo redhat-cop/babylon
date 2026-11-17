@@ -208,7 +208,7 @@ class TestDecisions(ApprovalTestCase):
         self.assertEqual(decision['policyDigest'], self.item['spec']['approvalPolicy']['digest'])
         self.assertEqual(self.kube.resources, {}, 'the decision endpoint never provisions')
         order = await self.reconcile(order)
-        self.assertEqual(order['status']['phase'], 'Provisioning')
+        self.assertEqual(order['status']['phase'], 'Fulfilled')
         self.assertEqual(len(self.kube.created), 1)
 
     async def test_higher_manager_can_deny_and_denial_does_not_provision(self):
@@ -242,7 +242,7 @@ class TestDecisions(ApprovalTestCase):
         status, data = await self.decide(order, user='admin@example.com')
         self.assertEqual(status, 200, data)
         self.assertEqual(data['approval']['decision']['authority']['basis'], 'administrator')
-        self.assertEqual((await self.reconcile(order))['status']['phase'], 'Provisioning')
+        self.assertEqual((await self.reconcile(order))['status']['phase'], 'Fulfilled')
 
     async def test_reporting_failures_never_grant_authority(self):
         order = await self.pending_order()

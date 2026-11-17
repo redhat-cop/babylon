@@ -7,7 +7,6 @@ from catalog_item_order import (
     OrderConflictError,
     OrderValidationError,
     PHASE_CANCELLED,
-    PHASE_FAILED,
     PHASE_PENDING_APPROVAL,
     Requester,
     build_order,
@@ -394,10 +393,9 @@ class TestCancel(unittest.TestCase):
 
     def test_cancel_after_dispatch_or_terminal_conflicts(self):
         for status in (
-            {'phase': 'Provisioning', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
+            {'phase': 'Creating', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
             {'phase': 'Blocked', 'attempts': [{'number': 1, 'state': 'Dispatching'}]},
-            {'phase': 'Failed', 'attempts': [{'number': 1, 'state': 'Failed'}]},
-            {'phase': 'Provisioned'},
+            {'phase': 'Fulfilled', 'attempts': [{'number': 1, 'state': 'Created'}]},
             {'phase': 'Cancelled'},
             {'phase': 'Denied'},
         ):
@@ -412,7 +410,7 @@ class TestCancel(unittest.TestCase):
 
 class TestOrderView(unittest.TestCase):
     def test_view_hides_planned_names_until_created(self):
-        order = as_created(build(), status={'phase': 'Provisioning', 'attempts': [{
+        order = as_created(build(), status={'phase': 'Creating', 'attempts': [{
             'number': 1, 'state': 'Dispatching',
             'resources': [
                 {'apiVersion': 'v1', 'kind': 'Workshop', 'namespace': 'n', 'name': 'planned-1', 'uid': 'u1'},

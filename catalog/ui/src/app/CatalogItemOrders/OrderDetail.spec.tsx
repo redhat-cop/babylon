@@ -100,32 +100,32 @@ describe('OrderDetail', () => {
     expect(screen.getByText('num_users')).toBeInTheDocument();
     expect(screen.queryByText(/hunter2/)).not.toBeInTheDocument();
     expect(screen.queryByText('admin_password')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Retry provisioning' })).not.toBeInTheDocument();
   });
 
   test('cancel is only offered when the backend allows it', async () => {
-    orderResponses = [makeOrder({ phase: 'Provisioning', cancel: { allowed: false, code: 'dispatch_started' } })];
+    orderResponses = [makeOrder({ phase: 'Creating', approval: { state: 'Approved' }, cancel: { allowed: false, code: 'dispatch_started' } })];
     await renderOrder();
-    await screen.findByText('Provisioning is in progress.');
+    await screen.findByText(/Your service is being created/);
     expect(screen.queryByRole('button', { name: 'Cancel order' })).not.toBeInTheDocument();
   });
 
-  test('a cancellation that races with provisioning shows the current state instead of an error', async () => {
-    const provisioning = makeOrder({
-      phase: 'Provisioning',
-      cancel: { allowed: false, code: 'dispatch_started' },
-      attempts: [{ number: 1, state: 'Provisioning', resources: [{ kind: 'ResourceClaim', namespace: 'user-test-redhat-com', name: 'tests.item.prod-1a2b3c4d', uid: 'rc-1' }] }],
+  test('a cancellation that races with creation shows the current state instead of an error', async () => {
+    const fulfilled = makeOrder({
+      phase: 'Fulfilled',
+      approval: { state: 'Approved', decision: { outcome: 'Approved', decidedBy: 'dana', decidedByEmail: 'dana@example.com' } },
+      cancel: { allowed: false, code: 'order_finished' },
+      attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'ResourceClaim', namespace: 'user-test-redhat-com', name: 'tests.item.prod-1a2b3c4d', uid: 'rc-1' }] }],
     });
     postHandler = (url) => {
       expect(url).toBe(`${ORDER_PATH}/cancel`);
-      orderResponses = [provisioning];
-      return { status: 409, body: { error: 'dispatch_started', message: 'Provisioning has started; manage or delete the provisioned resources instead' } };
+      orderResponses = [fulfilled];
+      return { status: 409, body: { error: 'dispatch_started', message: 'Resources are being created; manage or delete them instead' } };
     };
     await renderOrder();
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel order' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel order', hidden: false }));
 
-    expect(await screen.findByText('Provisioning has already started')).toBeInTheDocument();
+    expect(await screen.findByText('The service is already being created')).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'View service' })).toHaveAttribute(
       'href',
       '/services/user-test-redhat-com/tests.item.prod-1a2b3c4d',
@@ -133,27 +133,21 @@ describe('OrderDetail', () => {
     expect(posts()).toHaveLength(1);
   });
 
-  test('a failed order shows the failure without retry or new-order actions', async () => {
+  test('an approved order shows who approved it and links to the created service', async () => {
     orderResponses = [
       makeOrder({
-        phase: 'Failed',
-        approval: { state: 'Approved' },
-        cancel: { allowed: false, code: 'dispatch_started' },
-        attempts: [{ number: 1, state: 'Failed', resources: [], failure: { message: 'Provisioning failed: no capacity' } }],
+        phase: 'Fulfilled',
+        approval: { state: 'Approved', decision: { outcome: 'Approved', decidedBy: 'dana', decidedByEmail: 'dana@example.com' } },
+        cancel: { allowed: false, code: 'order_finished' },
+        attempts: [{ number: 1, state: 'Created', resources: [{ kind: 'Workshop', namespace: 'user-test-redhat-com', name: 'tests.item.prod-1a2b3c4d', uid: 'w-1' }] }],
       }),
     ];
     await renderOrder();
-    expect(await screen.findAllByText('Provisioning failed: no capacity')).not.toHaveLength(0);
-    expect(screen.queryByRole('button', { name: /Retry/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Place a new order' })).not.toBeInTheDocument();
+    expect(await screen.findByText(/Approved by dana@example.com\./)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View workshop' })).toHaveAttribute('href', '/workshops/user-test-redhat-com/tests.item.prod-1a2b3c4d');
+    expect(screen.queryByText(/Provisioning/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel order' })).not.toBeInTheDocument();
-  });
-
-  test('approved but not provisioned never shows success', async () => {
-    orderResponses = [makeOrder({ phase: 'Ready', approval: { state: 'Approved' }, cancel: { allowed: true } })];
-    await renderOrder();
-    expect(await screen.findByText(/Provisioning has not started yet/)).toBeInTheDocument();
-    expect(screen.queryByText('Provisioned')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Provisioning attempts' })).not.toBeInTheDocument();
   });
 
 });
