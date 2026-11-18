@@ -26,7 +26,7 @@ const Navigation: React.FC = () => {
   const { incidents_enabled, ratings_enabled, partner_connect_header_enabled, rcars_enabled, white_glove_enabled } = useInterfaceConfig();
   const { isAdmin, userNamespace, userInterface, email } = useSession().getSession();
 
-  const whatsNewEnabled = isAdmin && userInterface !== 'rhdp-partners';
+  const whatsNewEnabled = userInterface !== 'rhdp-partners';
   const { data: whatsNew } = useWhatsNew(whatsNewEnabled);
   const { hasUnread, target: whatsNewTarget } = useWhatsNewNotification(
     whatsNewEnabled ? whatsNew?.children?.[0] : undefined, email, location.pathname,
