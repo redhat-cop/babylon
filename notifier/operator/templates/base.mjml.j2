@@ -48,6 +48,7 @@
     </mj-section>
     {% endif %}
 
+    {% block action %}
     {% if service_url %}
     <mj-section padding-top="0" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
       <mj-column>
@@ -57,6 +58,7 @@
       </mj-column>
     </mj-section>
     {% endif %}
+    {% endblock action %}
 
     <!-- Footer -->
     <mj-section padding-top="12px" padding-bottom="6px" padding-left="12px" padding-right="12px">

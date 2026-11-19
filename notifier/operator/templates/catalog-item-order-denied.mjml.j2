@@ -1,0 +1,28 @@
+{% extends "base.mjml.j2" %}
+{% block title %}{% include "_catalog-item-order-title.mjml.j2" %}{% endblock title %}
+{% block content %}
+<mj-column>
+  <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
+    {% if revocation_reason %}
+    <p>The approval for your order for <strong>{{ catalog_item_display_name|e }}</strong> was revoked. It will not be provisioned.</p>
+    <p><strong>Reason:</strong> {{ revocation_reason|e }}</p>
+    {% else %}
+    <p>Your order for <strong>{{ catalog_item_display_name|e }}</strong> was denied{% if decided_by %} by {{ decided_by|e }}{% endif %}. It will not be provisioned.</p>
+    {% if decision_comment %}<p><strong>Comment:</strong> {{ decision_comment|e }}</p>{% endif %}
+    {% endif %}
+    <p>If you still need this environment, talk to your manager and submit a new order.</p>
+    {% include "_catalog-item-order-summary.mjml.j2" %}
+  </mj-text>
+</mj-column>
+{% endblock content %}
+{% block action %}
+{% if order_url %}
+<mj-section padding-top="0" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+  <mj-column>
+    <mj-button font-family="Red Hat Text" background-color="#ee0000" color="#ffffff" font-size="16px" href="{{ order_url|e }}">
+      View order
+    </mj-button>
+  </mj-column>
+</mj-section>
+{% endif %}
+{% endblock action %}

@@ -6,6 +6,7 @@ import {
   selectCatalogNamespaces,
   selectConsoleURL,
   selectInterface,
+  selectIsImpersonating,
   selectServiceNamespaces,
   selectUser,
   selectUserFullName,
@@ -52,6 +53,7 @@ export default function useSession(): {
     userInterface: string;
     serviceNamespaces: ServiceNamespace[];
     userNamespace: UserNamespace;
+    isImpersonating: boolean;
   };
 } {
   const dispatch = useAppDispatch();
@@ -66,6 +68,7 @@ export default function useSession(): {
   const userInterface = useAppSelector(selectInterface);
   const serviceNamespaces = useAppSelector(selectServiceNamespaces);
   const userNamespace = useAppSelector(selectUserNamespace);
+  const isImpersonating = useAppSelector(selectIsImpersonating);
   const { userImpersonated, setImpersonation } = useImpersonateUser();
 
   const promise = useMemo(async () => {
@@ -96,6 +99,7 @@ export default function useSession(): {
       userInterface,
       serviceNamespaces,
       userNamespace,
+      isImpersonating,
     };
   }, [
     authUser,
@@ -110,6 +114,7 @@ export default function useSession(): {
     userInterface,
     serviceNamespaces,
     userNamespace,
+    isImpersonating,
   ]);
 
   return { getSession };

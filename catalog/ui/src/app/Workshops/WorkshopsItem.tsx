@@ -80,14 +80,10 @@ import LocalTimestamp from '@app/components/LocalTimestamp';
 import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import UserDisabledModal from '@app/components/UserDisabledModal';
-import ReorderModal from '@app/components/ReorderModal';
-import {
-  canReorderWorkshop,
-  getWorkshopReorderSchedule,
-  reorderWorkshop,
-} from '@app/reorder-utils';
+import { canReorderWorkshop } from '@app/reorder-utils';
 import useSWRImmutable from 'swr/immutable';
 import parseDuration from 'parse-duration';
+import { newOrderPath } from '@app/CatalogItemOrders/order-utils';
 
 import './workshops-item.css';
 
@@ -120,7 +116,6 @@ const WorkshopsItemComponent: React.FC<{
   const [modalAction, openModalAction] = useModal();
   const [modalDelete, openModalDelete] = useModal();
   const [modalSchedule, openModalSchedule] = useModal();
-  const [modalReorder, openModalReorder] = useModal();
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const { cache } = useSWRConfig();
   const [selectedResourceClaims, setSelectedResourceClaims] = useState<ResourceClaim[]>([]);
@@ -546,35 +541,6 @@ const WorkshopsItemComponent: React.FC<{
           workshopProvisions={workshopProvisions}
         />
       </Modal>
-      <Modal
-        ref={modalReorder}
-        onConfirm={() => undefined}
-        passModifiers={true}
-        confirmText="Reorder"
-        onError={(error: unknown) => {
-          if ((error as Response).status === 403) {
-            setIsUserDisabledModalOpen(true);
-          }
-        }}
-      >
-        <ReorderModal
-          catalogItem={catalogItem}
-          displayName={displayName(workshop)}
-          isAdmin={isAdmin}
-          isWorkshop={true}
-          schedule={getWorkshopReorderSchedule(workshop)}
-          onReorder={async (schedule) => {
-            const newWorkshop = await reorderWorkshop({
-              workshop,
-              workshopProvision,
-              catalogItem,
-              email,
-              schedule,
-            });
-            navigate(`/workshops/${newWorkshop.metadata.namespace}/${newWorkshop.metadata.name}`);
-          }}
-        />
-      </Modal>
       <UserDisabledModal
         isOpen={isUserDisabledModalOpen}
         onClose={() => setIsUserDisabledModalOpen(false)}
@@ -650,7 +616,7 @@ const WorkshopsItemComponent: React.FC<{
                     ? () => showModal({ action: 'stopServices', resourceClaims: instanceResourceClaims })
                     : null,
                   reorder: canReorderWorkshop(workshop, catalogItem, workshopProvision, groups, isAdmin)
-                    ? () => openModalReorder()
+                    ? () => navigate(newOrderPath(catalogItem))
                     : null,
                 }}
                 canManageCollaborators={canManageCollaborators}
