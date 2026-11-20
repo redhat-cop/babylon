@@ -409,6 +409,19 @@ class ServiceAccessConfig(KopfObject):
         await self.__manage_workshop_access_role(workshop, logger)
         await self.__manage_role_binding(workshop, logger)
 
+    async def __list_workshop_tenant_cluster_resource_claim_names(self, workshop, logger) -> list[str]:
+        """Return names of tenant cluster ResourceClaims belonging to the workshop."""
+        names = []
+        try:
+            async for resource_claim in ResourceClaim.list(
+                label_selector=f"{Babylon.workshop_uid_label}={workshop.uid},{Babylon.tenant_cluster_pool_label}",
+                namespace=self.namespace,
+            ):
+                names.append(resource_claim.name)
+        except k8sApiException:
+            logger.exception("Failed to list tenant cluster ResourceClaims for %s", workshop)
+        return sorted(names)
+
     async def __manage_workshop_service_access_config_reference(self, workshop, logger):
         """Make sure Workshop has reference to ServiceAccessConfig in status."""
         service_access_configs = workshop.status.get('serviceAccessConfigs')
@@ -441,11 +454,18 @@ class ServiceAccessConfig(KopfObject):
                 verbs=['get', 'patch', 'update'],
             ),
         ]
-        if len(workshop.resource_claim_names) > 0:
+        # Tenant cluster ResourceClaims are created by the tenant-cluster-pool-manager
+        # and are not tracked in the Workshop status, so look them up by label.
+        resource_claim_names = list(workshop.resource_claim_names)
+        resource_claim_names.extend(
+            name for name in await self.__list_workshop_tenant_cluster_resource_claim_names(workshop, logger)
+            if name not in resource_claim_names
+        )
+        if len(resource_claim_names) > 0:
             role.rules.append(
                 V1PolicyRule(
                     api_groups=[ResourceClaim.api_group],
-                    resource_names=workshop.resource_claim_names,
+                    resource_names=resource_claim_names,
                     resources=[ResourceClaim.plural],
                     verbs=['delete', 'get', 'patch', 'update'],
                 )
