@@ -702,24 +702,48 @@ const Ops: React.FC = () => {
     return map;
   }, [allTcpData]);
 
-  const provisionKeys = useMemo(
-    () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
-    [workshops],
+  // Platform mode: single cluster-wide fetch avoids firing hundreds of concurrent per-workshop requests
+  const { data: platformProvData, mutate: mutatePlatformProv, isValidating: platformProvValidating } = useSWR<WorkshopProvisionList>(
+    platformMode ? apiPaths.WORKSHOP_PROVISIONS({ limit: 5000 }) : null,
+    fetcher,
+    { refreshInterval: 30000 },
   );
-  const { data: allProvData, mutate: mutateProvisions, isValidating: provValidating } = useSWR<WorkshopProvisionList[]>(
-    provisionKeys.length > 0 ? provisionKeys : null,
+  const perWsProvisionKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsProvData, mutate: mutatePerWsProv, isValidating: perWsProvValidating } = useSWR<WorkshopProvisionList[]>(
+    perWsProvisionKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopProvisionList>)),
     { refreshInterval: 30000 },
   );
+  const mutateProvisions = useCallback(() => {
+    if (platformMode) mutatePlatformProv();
+    else mutatePerWsProv();
+  }, [platformMode, mutatePlatformProv, mutatePerWsProv]);
+  const provValidating = platformMode ? platformProvValidating : perWsProvValidating;
   const provisionsByWorkshop = useMemo(() => {
     const map = new Map<string, WorkshopProvision[]>();
-    if (allProvData) {
+    if (platformMode) {
+      for (const prov of platformProvData?.items ?? []) {
+        const wsName = prov.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`];
+        const ns = prov.metadata.namespace;
+        if (wsName && ns) {
+          const key = `${ns}/${wsName}`;
+          const list = map.get(key) ?? [];
+          list.push(prov);
+          map.set(key, list);
+        }
+      }
+    } else if (perWsProvData) {
       workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allProvData[i]?.items ?? []);
+        map.set(wsKey(ws), perWsProvData[i]?.items ?? []);
       });
     }
     return map;
-  }, [workshops, allProvData]);
+  }, [workshops, perWsProvData, platformProvData, platformMode]);
 
   const getCurrentCount = useCallback((ws: Workshop): number | null => {
     const provs = provisionsByWorkshop.get(wsKey(ws));
@@ -751,24 +775,47 @@ const Ops: React.FC = () => {
     };
   }, [provisionsByWorkshop]);
 
-  const assignmentKeys = useMemo(
-    () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
-    [workshops],
+  const { data: platformAssignData, mutate: mutatePlatformAssign, isValidating: platformAssignValidating } = useSWR<WorkshopUserAssignmentList>(
+    platformMode ? apiPaths.WORKSHOP_USER_ASSIGNMENTS({ limit: 5000 }) : null,
+    fetcher,
+    { refreshInterval: 30000 },
   );
-  const { data: allAssignData, mutate: mutateAssignments, isValidating: assignValidating } = useSWR<WorkshopUserAssignmentList[]>(
-    assignmentKeys.length > 0 ? assignmentKeys : null,
+  const perWsAssignmentKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsAssignData, mutate: mutatePerWsAssign, isValidating: perWsAssignValidating } = useSWR<WorkshopUserAssignmentList[]>(
+    perWsAssignmentKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
     { refreshInterval: 30000 },
   );
+  const mutateAssignments = useCallback(() => {
+    if (platformMode) mutatePlatformAssign();
+    else mutatePerWsAssign();
+  }, [platformMode, mutatePlatformAssign, mutatePerWsAssign]);
+  const assignValidating = platformMode ? platformAssignValidating : perWsAssignValidating;
   const assignmentsByWorkshop = useMemo(() => {
     const map = new Map<string, WorkshopUserAssignment[]>();
-    if (allAssignData) {
+    if (platformMode) {
+      for (const a of platformAssignData?.items ?? []) {
+        const wsName = a.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`];
+        const ns = a.metadata.namespace;
+        if (wsName && ns) {
+          const key = `${ns}/${wsName}`;
+          const list = map.get(key) ?? [];
+          list.push(a);
+          map.set(key, list);
+        }
+      }
+    } else if (perWsAssignData) {
       workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allAssignData[i]?.items ?? []);
+        map.set(wsKey(ws), perWsAssignData[i]?.items ?? []);
       });
     }
     return map;
-  }, [workshops, allAssignData]);
+  }, [workshops, perWsAssignData, platformAssignData, platformMode]);
 
   const getSeats = useCallback((ws: Workshop): { assigned: number; total: number } | null => {
     const assignments = assignmentsByWorkshop.get(wsKey(ws));
@@ -778,28 +825,46 @@ const Ops: React.FC = () => {
   }, [assignmentsByWorkshop]);
 
   // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
-  const resourceClaimKeys = useMemo(
-    () => workshops.map(w => apiPaths.RESOURCE_CLAIMS({
-      namespace: w.metadata.namespace,
-      labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
-      limit: 500,
-    })),
-    [workshops],
+  const { data: platformRcData } = useSWR<ResourceClaimList>(
+    platformMode ? apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: 5000 }) : null,
+    fetcher,
+    { refreshInterval: 30000 },
   );
-  const { data: allRcData } = useSWR<ResourceClaimList[]>(
-    resourceClaimKeys.length > 0 ? resourceClaimKeys : null,
+  const perWsResourceClaimKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.RESOURCE_CLAIMS({
+          namespace: w.metadata.namespace,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
+          limit: 500,
+        }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsRcData } = useSWR<ResourceClaimList[]>(
+    perWsResourceClaimKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
     { refreshInterval: 30000 },
   );
   const resourceClaimsByWorkshop = useMemo(() => {
     const map = new Map<string, ResourceClaim[]>();
-    if (allRcData) {
+    if (platformMode) {
+      for (const rc of platformRcData?.items ?? []) {
+        const wsName = rc.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`];
+        const ns = rc.metadata.namespace;
+        if (wsName && ns) {
+          const key = `${ns}/${wsName}`;
+          const list = map.get(key) ?? [];
+          list.push(rc);
+          map.set(key, list);
+        }
+      }
+    } else if (perWsRcData) {
       workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allRcData[i]?.items ?? []);
+        map.set(wsKey(ws), perWsRcData[i]?.items ?? []);
       });
     }
     return map;
-  }, [workshops, allRcData]);
+  }, [workshops, perWsRcData, platformRcData, platformMode]);
 
   const [showPasswords, setShowPasswords] = useState(false);
 

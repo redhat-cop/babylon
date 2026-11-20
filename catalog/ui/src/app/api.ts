@@ -2872,14 +2872,14 @@ export const apiPaths = {
     limit,
     continueId,
   }: {
-    workshopName: string;
-    namespace: string;
+    workshopName?: string;
+    namespace?: string;
     limit?: number | string;
     continueId?: string;
   }) =>
-    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
-      limit ? `&limit=${limit}` : ''
-    }${continueId ? `&continue=${continueId}` : ''}`,
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshopprovisions?${
+      workshopName ? `labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}` : ''
+    }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,
   RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
   RESOURCE_HANDLES: ({
@@ -2981,8 +2981,10 @@ export const apiPaths = {
   RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   USER_RATING: ({ requestUid }: { requestUid: string }) => `/api/ratings/request/${requestUid}`,
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
-  WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
-    `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
+  WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName, limit }: { namespace?: string; workshopName?: string; limit?: number | string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/workshopuserassignments?${
+      workshopName ? `labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}` : ''
+    }${limit ? `&limit=${limit}` : ''}`,
   SERVICE_ACCESS_CONFIG: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccessconfigs/${name}`,
   SERVICE_ACCESSES: ({
