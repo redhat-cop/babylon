@@ -844,7 +844,9 @@ class AgnosticVComponent(K8sObject):
 
         return definition
 
-    def get_resource_provider_definition(self) -> Mapping|None:
+    def get_resource_provider_definition(self,
+        linked_agnosticv_components: List[AgnosticVComponent],
+    ) -> Mapping|None:
         """Get ResourceProvider definition
         Return None if item is an exernal url."""
         # FIXME - catalog_meta should not impact anarchy governor creation.
@@ -1134,7 +1136,14 @@ class AgnosticVComponent(K8sObject):
             definition['spec']['statusSummaryTemplate']['catalog_item_name'] = self.name
             definition['spec']['statusSummaryTemplate']['catalog_item_namespace'] = self.catalog_item_namespace
 
+        linked_component_has_tenant_cluster = False
         for idx, linked_component in enumerate(self.linked_components):
+            # Get linked AgnosticVComponent from linked_agnosticv_components
+            linked_agnosticv_component = None
+            for item in linked_agnosticv_components:
+                if item.name == linked_component.component_name:
+                    linked_agnosticv_component = item
+
             linked_resource_provider = {
                 "name": linked_component.component_name,
                 "waitFor": f"current_state_{idx} == 'started'",
@@ -1154,6 +1163,11 @@ class AgnosticVComponent(K8sObject):
                     }
                 ]
             }
+
+            # Pass any sandbox_api_lab_key to any linked component that uses a tenant cluster
+            if linked_agnosticv_component is not None and linked_agnosticv_component.has_tenant_cluster:
+                linked_component_has_tenant_cluster = True
+                linked_resource_provider['parameterValues']['sandbox_api_lab_key'] = "{{sandbox_api_lab_key|default(omit)}}"
 
             if linked_component.when:
                 linked_resource_provider['when'] = linked_component.when
@@ -1248,7 +1262,7 @@ class AgnosticVComponent(K8sObject):
 
         # Pass sandbox_api_lab_key as var in AnarchySubject if set as parameter.
         # This allows the workshop manager to associate AnarchySubjects to TenantClusterPools.
-        if self.has_tenant_cluster:
+        if self.has_tenant_cluster or linked_component_has_tenant_cluster:
             definition['spec']['parameters'].append({
                 "name": "sandbox_api_lab_key",
                 "allowUpdate": False,
@@ -1260,6 +1274,7 @@ class AgnosticVComponent(K8sObject):
                     }
                 }
             })
+        if self.has_tenant_cluster and self.deployer_type is not None:
             definition['spec']['override']['spec']['vars']['sandbox_api_lab_key'] = (
                 '{{resource_handle.parameter_values.sandbox_api_lab_key|default(omit)}}'
             )
