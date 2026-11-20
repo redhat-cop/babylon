@@ -825,7 +825,7 @@ const Ops: React.FC = () => {
   }, [assignmentsByWorkshop]);
 
   // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
-  const { data: platformRcData } = useSWR<ResourceClaimList>(
+  const { data: platformRcData, mutate: mutatePlatformRc } = useSWR<ResourceClaimList>(
     platformMode ? apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: 5000 }) : null,
     fetcher,
     { refreshInterval: 30000 },
@@ -840,11 +840,15 @@ const Ops: React.FC = () => {
       : null,
     [workshops, platformMode],
   );
-  const { data: perWsRcData } = useSWR<ResourceClaimList[]>(
+  const { data: perWsRcData, mutate: mutatePerWsRc } = useSWR<ResourceClaimList[]>(
     perWsResourceClaimKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
     { refreshInterval: 30000 },
   );
+  const mutateResourceClaims = useCallback(() => {
+    if (platformMode) mutatePlatformRc();
+    else mutatePerWsRc();
+  }, [platformMode, mutatePlatformRc, mutatePerWsRc]);
   const resourceClaimsByWorkshop = useMemo(() => {
     const map = new Map<string, ResourceClaim[]>();
     if (platformMode) {
@@ -1898,7 +1902,7 @@ const Ops: React.FC = () => {
 
     // Refresh provisions and resource claims
     await mutateProvisions();
-    await mutate(resourceClaimKeys);
+    await mutateResourceClaims();
 
     setRedeployLoading(false);
 
