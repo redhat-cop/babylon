@@ -2880,6 +2880,11 @@ export const apiPaths = {
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopprovisions?labelSelector=babylon.gpte.redhat.com/workshop=${workshopName}${
       limit ? `&limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
+  /** Cluster-scoped list of all WorkshopProvisions that belong to a workshop (admin use only) */
+  WORKSHOP_PROVISIONS_ALL: ({ limit, continueId }: { limit?: number | string; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/workshopprovisions?labelSelector=${BABYLON_DOMAIN}/workshop${
+      limit ? `&limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
   RESOURCE_HANDLE: ({ resourceHandleName }: { resourceHandleName: string }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcehandles/${resourceHandleName}`,
   RESOURCE_HANDLES: ({
@@ -2983,6 +2988,11 @@ export const apiPaths = {
   WORKSHOP_SUPPORT: () => `/api/admin/workshop/support`,
   WORKSHOP_USER_ASSIGNMENTS: ({ namespace, workshopName }: { namespace: string; workshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop=${workshopName}`,
+  /** Cluster-scoped list of all WorkshopUserAssignments that belong to a workshop (admin use only) */
+  WORKSHOP_USER_ASSIGNMENTS_ALL: ({ limit, continueId }: { limit?: number | string; continueId?: string }) =>
+    `/apis/${BABYLON_DOMAIN}/v1/workshopuserassignments?labelSelector=${BABYLON_DOMAIN}/workshop${
+      limit ? `&limit=${limit}` : ''
+    }${continueId ? `&continue=${continueId}` : ''}`,
   SERVICE_ACCESS_CONFIG: ({ namespace, name }: { namespace: string; name: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/serviceaccessconfigs/${name}`,
   SERVICE_ACCESSES: ({

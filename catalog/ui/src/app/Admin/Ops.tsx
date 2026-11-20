@@ -82,6 +82,7 @@ import {
   dateToApiString,
   deleteResourceClaim,
   fetcher,
+  fetcherItemsInAllPages,
   lockWorkshop,
   patchWorkshop,
   patchWorkshopProvision,
@@ -95,6 +96,7 @@ import type {
   TenantClusterPool, TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
+  K8sObject,
 } from '@app/types';
 import {
   displayName,
@@ -374,6 +376,29 @@ export function relativeTime(iso: string): string {
 
 function wsKey(ws: Workshop): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
+}
+
+/** Group cluster-wide list results by `namespace/workshopName` using the workshop label (same key as wsKey). */
+function groupByWorkshopLabel<T extends K8sObject>(items: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const wsName = item.metadata.labels?.[`${BABYLON_DOMAIN}/workshop`];
+    const ns = item.metadata.namespace;
+    if (!wsName || !ns) continue;
+    const key = `${ns}/${wsName}`;
+    const list = map.get(key);
+    if (list) list.push(item);
+    else map.set(key, [item]);
+  }
+  return map;
+}
+
+/** Map per-workshop list responses (same order as `workshops`) to a wsKey-indexed map. */
+function groupPerWorkshopResults<T>(workshops: Workshop[], lists?: { items: T[] }[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  if (!lists) return map;
+  workshops.forEach((ws, i) => map.set(wsKey(ws), lists[i]?.items ?? []));
+  return map;
 }
 
 function wsDetailPath(ws: Workshop): string {
@@ -702,24 +727,38 @@ const Ops: React.FC = () => {
     return map;
   }, [allTcpData]);
 
-  const provisionKeys = useMemo(
-    () => workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
-    [workshops],
+  // Platform mode: one paginated cluster-wide list per resource type instead of N per-workshop requests.
+  // The key is the first-page URL; fetcherItemsInAllPages follows `continue` so nothing is truncated.
+  const { data: platformProvItems, mutate: mutatePlatformProv, isValidating: platformProvValidating } = useSWR<WorkshopProvision[]>(
+    platformMode ? apiPaths.WORKSHOP_PROVISIONS_ALL({ limit: FETCH_LIMIT }) : null,
+    () => fetcherItemsInAllPages(continueId =>
+      apiPaths.WORKSHOP_PROVISIONS_ALL({ limit: FETCH_LIMIT, continueId }),
+    ) as Promise<WorkshopProvision[]>,
+    { refreshInterval: 30000 },
   );
-  const { data: allProvData, mutate: mutateProvisions, isValidating: provValidating } = useSWR<WorkshopProvisionList[]>(
-    provisionKeys.length > 0 ? provisionKeys : null,
+  const perWsProvisionKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsProvData, mutate: mutatePerWsProv, isValidating: perWsProvValidating } = useSWR<WorkshopProvisionList[]>(
+    perWsProvisionKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopProvisionList>)),
     { refreshInterval: 30000 },
   );
-  const provisionsByWorkshop = useMemo(() => {
-    const map = new Map<string, WorkshopProvision[]>();
-    if (allProvData) {
-      workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allProvData[i]?.items ?? []);
-      });
-    }
-    return map;
-  }, [workshops, allProvData]);
+  const mutateProvisions = useCallback(
+    () => (platformMode ? mutatePlatformProv() : mutatePerWsProv()),
+    [platformMode, mutatePlatformProv, mutatePerWsProv],
+  );
+  const provValidating = platformMode ? platformProvValidating : perWsProvValidating;
+  const provisionsByWorkshop = useMemo(
+    () => platformMode
+      ? groupByWorkshopLabel(platformProvItems ?? [])
+      : groupPerWorkshopResults(workshops, perWsProvData),
+    [workshops, perWsProvData, platformProvItems, platformMode],
+  );
+
 
   const getCurrentCount = useCallback((ws: Workshop): number | null => {
     const provs = provisionsByWorkshop.get(wsKey(ws));
@@ -751,24 +790,36 @@ const Ops: React.FC = () => {
     };
   }, [provisionsByWorkshop]);
 
-  const assignmentKeys = useMemo(
-    () => workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace })),
-    [workshops],
+
+  const { data: platformAssignItems, mutate: mutatePlatformAssign, isValidating: platformAssignValidating } = useSWR<WorkshopUserAssignment[]>(
+    platformMode ? apiPaths.WORKSHOP_USER_ASSIGNMENTS_ALL({ limit: FETCH_LIMIT }) : null,
+    () => fetcherItemsInAllPages(continueId =>
+      apiPaths.WORKSHOP_USER_ASSIGNMENTS_ALL({ limit: FETCH_LIMIT, continueId }),
+    ) as Promise<WorkshopUserAssignment[]>,
+    { refreshInterval: 30000 },
   );
-  const { data: allAssignData, mutate: mutateAssignments, isValidating: assignValidating } = useSWR<WorkshopUserAssignmentList[]>(
-    assignmentKeys.length > 0 ? assignmentKeys : null,
+  const perWsAssignmentKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsAssignData, mutate: mutatePerWsAssign, isValidating: perWsAssignValidating } = useSWR<WorkshopUserAssignmentList[]>(
+    perWsAssignmentKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
     { refreshInterval: 30000 },
   );
-  const assignmentsByWorkshop = useMemo(() => {
-    const map = new Map<string, WorkshopUserAssignment[]>();
-    if (allAssignData) {
-      workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allAssignData[i]?.items ?? []);
-      });
-    }
-    return map;
-  }, [workshops, allAssignData]);
+  const mutateAssignments = useCallback(
+    () => (platformMode ? mutatePlatformAssign() : mutatePerWsAssign()),
+    [platformMode, mutatePlatformAssign, mutatePerWsAssign],
+  );
+  const assignValidating = platformMode ? platformAssignValidating : perWsAssignValidating;
+  const assignmentsByWorkshop = useMemo(
+    () => platformMode
+      ? groupByWorkshopLabel(platformAssignItems ?? [])
+      : groupPerWorkshopResults(workshops, perWsAssignData),
+    [workshops, perWsAssignData, platformAssignItems, platformMode],
+  );
 
   const getSeats = useCallback((ws: Workshop): { assigned: number; total: number } | null => {
     const assignments = assignmentsByWorkshop.get(wsKey(ws));
@@ -778,28 +829,38 @@ const Ops: React.FC = () => {
   }, [assignmentsByWorkshop]);
 
   // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
-  const resourceClaimKeys = useMemo(
-    () => workshops.map(w => apiPaths.RESOURCE_CLAIMS({
-      namespace: w.metadata.namespace,
-      labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
-      limit: 500,
-    })),
-    [workshops],
+  const { data: platformRcItems, mutate: mutatePlatformRc } = useSWR<ResourceClaim[]>(
+    platformMode ? apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: FETCH_LIMIT }) : null,
+    () => fetcherItemsInAllPages(continueId =>
+      apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: FETCH_LIMIT, continueId }),
+    ) as Promise<ResourceClaim[]>,
+    { refreshInterval: 30000 },
   );
-  const { data: allRcData } = useSWR<ResourceClaimList[]>(
-    resourceClaimKeys.length > 0 ? resourceClaimKeys : null,
+  const perWsResourceClaimKeys = useMemo(
+    () => !platformMode && workshops.length > 0
+      ? workshops.map(w => apiPaths.RESOURCE_CLAIMS({
+          namespace: w.metadata.namespace,
+          labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
+          limit: 500,
+        }))
+      : null,
+    [workshops, platformMode],
+  );
+  const { data: perWsRcData, mutate: mutatePerWsRc } = useSWR<ResourceClaimList[]>(
+    perWsResourceClaimKeys,
     (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
     { refreshInterval: 30000 },
   );
-  const resourceClaimsByWorkshop = useMemo(() => {
-    const map = new Map<string, ResourceClaim[]>();
-    if (allRcData) {
-      workshops.forEach((ws, i) => {
-        map.set(wsKey(ws), allRcData[i]?.items ?? []);
-      });
-    }
-    return map;
-  }, [workshops, allRcData]);
+  const mutateResourceClaims = useCallback(
+    () => (platformMode ? mutatePlatformRc() : mutatePerWsRc()),
+    [platformMode, mutatePlatformRc, mutatePerWsRc],
+  );
+  const resourceClaimsByWorkshop = useMemo(
+    () => platformMode
+      ? groupByWorkshopLabel(platformRcItems ?? [])
+      : groupPerWorkshopResults(workshops, perWsRcData),
+    [workshops, perWsRcData, platformRcItems, platformMode],
+  );
 
   const [showPasswords, setShowPasswords] = useState(false);
 
@@ -1833,7 +1894,7 @@ const Ops: React.FC = () => {
 
     // Refresh provisions and resource claims
     await mutateProvisions();
-    await mutate(resourceClaimKeys);
+    await mutateResourceClaims();
 
     setRedeployLoading(false);
 
