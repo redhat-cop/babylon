@@ -14,8 +14,8 @@ importers:
   .:
     dependencies:
       '@asciidoctor/core':
-        specifier: ~4.2.1
-        version: 4.2.1
+        specifier: ~4.3.0
+        version: 4.3.0
       '@lexical/code':
         specifier: ^0.52.0
         version: 0.52.0(typescript@6.0.3)
@@ -284,8 +284,8 @@ packages:
   '@asamuzakjp/css-color@3.2.0':
     resolution: {integrity: sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==}
 
-  '@asciidoctor/core@4.2.1':
-    resolution: {integrity: sha512-c/LvM4nnkeLhHryAQOI41AL7UlOowmydMhNaVoH4zecKo2HkyalaNodeVqueR2RVU0/MOg4HPikYtFMHdVXa4A==}
+  '@asciidoctor/core@4.3.0':
+    resolution: {integrity: sha512-GjUCNKhhMp7Sbp70biHN7dNS9DvnOqdO1Z4XflgQX7NZ9+GtpFglTaZ8R+VlrL9XqzuJ9KJDcq8FlMD8CSzXDw==}
     engines: {node: '>=20'}
     peerDependencies:
       highlight.js: ^11.0.0
@@ -5493,7 +5493,7 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
 
-  '@asciidoctor/core@4.2.1': {}
+  '@asciidoctor/core@4.3.0': {}
 
   '@babel/code-frame@7.29.7':
     dependencies:
