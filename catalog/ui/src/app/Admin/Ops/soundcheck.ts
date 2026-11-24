@@ -1,7 +1,6 @@
 /** Showroom Soundcheck helpers for Babylon Admin Ops (batch kickoff + light status). */
 
-export const DEFAULT_SOUNDCHECK_URL =
-  'https://showroom-soundcheck-dev.apps.ocpv-infra01.dal12.infra.demo.redhat.com';
+export const DEFAULT_SOUNDCHECK_URL = 'https://showroom-soundcheck-dev.apps.ocpv-infra01.dal12.infra.demo.redhat.com';
 
 /** Terminal statuses — stop polling / close SSE once reached. */
 export const SOUNDCHECK_TERMINAL = new Set(['completed', 'failed']);
@@ -47,18 +46,12 @@ export function soundcheckApiRoot(baseUrl: string | undefined | null): string {
   return `${normalizeSoundcheckBase(baseUrl)}/api`;
 }
 
-export function buildSoundcheckSessionUrl(
-  baseUrl: string | undefined | null,
-  sessionId: string,
-): string {
+export function buildSoundcheckSessionUrl(baseUrl: string | undefined | null, sessionId: string): string {
   return `${normalizeSoundcheckBase(baseUrl)}/session/${encodeURIComponent(sessionId)}`;
 }
 
 /** Idempotent per-workshop deep-link (Soundcheck get-or-create). Prefer for row badges. */
-export function buildSoundcheckWorkshopUrl(
-  baseUrl: string | undefined | null,
-  workshopId: string,
-): string {
+export function buildSoundcheckWorkshopUrl(baseUrl: string | undefined | null, workshopId: string): string {
   const id = workshopId.trim();
   if (!id) throw new Error('workshop id is required');
   return `${normalizeSoundcheckBase(baseUrl)}/session/workshop/${encodeURIComponent(id)}`;
@@ -299,7 +292,9 @@ export function connectSoundcheckSSE(
         } else {
           opts.onUpdate?.(snap);
         }
-      } catch { /* ignore parse errors */ }
+      } catch {
+        /* ignore parse errors */
+      }
     };
 
     es.addEventListener('session_update', handleMsg(false) as EventListener);
@@ -323,10 +318,11 @@ export async function cloneSoundcheckSession(
   opts?: { signal?: AbortSignal },
 ): Promise<string> {
   if (!sessionId) throw new Error('sessionId is required');
-  const resp = await fetch(
-    `${soundcheckApiRoot(baseUrl)}/sessions/${encodeURIComponent(sessionId)}/clone`,
-    { method: 'POST', signal: opts?.signal, credentials: 'omit' },
-  );
+  const resp = await fetch(`${soundcheckApiRoot(baseUrl)}/sessions/${encodeURIComponent(sessionId)}/clone`, {
+    method: 'POST',
+    signal: opts?.signal,
+    credentials: 'omit',
+  });
   if (!resp.ok) throw new Error(`Soundcheck clone ${resp.status}`);
   const body = (await resp.json()) as { session_id?: string };
   if (!body?.session_id) throw new Error('Soundcheck clone returned no session_id');
@@ -398,10 +394,7 @@ export function mergeStatusCache(
 }
 
 /** Drop cache entries so the next visible-page fetch refreshes them. */
-export function invalidateStatusCache(
-  cache: SoundcheckStatusCache,
-  workshopIds: string[],
-): SoundcheckStatusCache {
+export function invalidateStatusCache(cache: SoundcheckStatusCache, workshopIds: string[]): SoundcheckStatusCache {
   const ids = new Set(normalizeWorkshopIds(workshopIds));
   if (ids.size === 0) return cache;
   const next: SoundcheckStatusCache = { ...cache };

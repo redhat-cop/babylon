@@ -2,9 +2,44 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
-import { ActionList, ActionListItem, Alert, Breadcrumb, BreadcrumbItem, Button, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, FormGroup, Label, LabelGroup, MenuToggle, PageSection, ProgressStep, ProgressStepper, Radio, Select, SelectList, SelectOption, Split, SplitItem, Tab, Tabs, TabTitleText, TextArea, TextInput, Title } from '@patternfly/react-core';
+import {
+  ActionList,
+  ActionListItem,
+  Alert,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  FormGroup,
+  Label,
+  LabelGroup,
+  MenuToggle,
+  PageSection,
+  ProgressStep,
+  ProgressStepper,
+  Radio,
+  Select,
+  SelectList,
+  SelectOption,
+  Split,
+  SplitItem,
+  Tab,
+  Tabs,
+  TabTitleText,
+  TextArea,
+  TextInput,
+  Title,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFooter, ModalHeader as PFModalHeader } from '@patternfly/react-core';
+import {
+  Modal as PFModal,
+  ModalBody as PFModalBody,
+  ModalFooter as PFModalFooter,
+  ModalHeader as PFModalHeader,
+} from '@patternfly/react-core';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import ClockIcon from '@patternfly/react-icons/dist/js/icons/clock-icon';
@@ -12,7 +47,13 @@ import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import { addJiraComment, apiPaths, fetcher, patchWhiteGloveRequest, silentFetcher, updateJiraLabels } from '@app/api';
 import useDebounce from '@app/utils/useDebounce';
 import type { CatalogItem, MultiWorkshopList, SalesforceItem, WhiteGloveRequest, WorkshopList } from '@app/types';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, displayName, getPurposeOptsFromCatalogItem, WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  DEMO_DOMAIN,
+  displayName,
+  getPurposeOptsFromCatalogItem,
+  WHITE_GLOVE_EXCLUDED_CATALOG_NAMESPACES,
+} from '@app/util';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import TimeInterval from '@app/components/TimeInterval';
@@ -30,10 +71,14 @@ import './white-glove.css';
 
 function stateLabel(state: string): string {
   switch (state) {
-    case 'pending-approval': return 'Pending Approval';
-    case 'approved': return 'Approved';
-    case 'rejected': return 'Rejected';
-    default: return state;
+    case 'pending-approval':
+      return 'Pending Approval';
+    case 'approved':
+      return 'Approved';
+    case 'rejected':
+      return 'Rejected';
+    default:
+      return state;
   }
 }
 
@@ -41,7 +86,11 @@ function getBannerClass(state: string): string {
   return `wg-status-banner wg-status-banner--${state}`;
 }
 
-function getProgressVariant(stepState: string, currentState: string, hasService?: boolean): 'success' | 'danger' | 'pending' | 'info' {
+function getProgressVariant(
+  stepState: string,
+  currentState: string,
+  hasService?: boolean,
+): 'success' | 'danger' | 'pending' | 'info' {
   const stateOrder = ['pending-approval', 'approved'];
   const currentIndex = stateOrder.indexOf(currentState);
 
@@ -93,7 +142,9 @@ const WhiteGloveDetailContent: React.FC = () => {
   const [selectedService, setSelectedService] = useState<string>('');
   const [isLinking, setIsLinking] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
-  const [serviceOptions, setServiceOptions] = useState<{ value: string; label: string; type: 'workshops' | 'multi-workshop'; workshopId?: string }[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<
+    { value: string; label: string; type: 'workshops' | 'multi-workshop'; workshopId?: string }[]
+  >([]);
 
   const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
   const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
@@ -120,11 +171,15 @@ const WhiteGloveDetailContent: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!isAdmin || catalogItemsFetched || !wgr?.spec?.catalogItemNames?.length || !wgr?.spec?.catalogItemNamespace) return;
+    if (!isAdmin || catalogItemsFetched || !wgr?.spec?.catalogItemNames?.length || !wgr?.spec?.catalogItemNamespace)
+      return;
     setCatalogItemsFetched(true);
     Promise.all(
-      wgr.spec.catalogItemNames.map((itemName) =>
-        silentFetcher(apiPaths.CATALOG_ITEM({ namespace: wgr.spec.catalogItemNamespace, name: itemName })) as Promise<CatalogItem | null>,
+      wgr.spec.catalogItemNames.map(
+        (itemName) =>
+          silentFetcher(
+            apiPaths.CATALOG_ITEM({ namespace: wgr.spec.catalogItemNamespace, name: itemName }),
+          ) as Promise<CatalogItem | null>,
       ),
     ).then((items) => {
       const valid = items.filter(Boolean) as CatalogItem[];
@@ -271,7 +326,9 @@ const WhiteGloveDetailContent: React.FC = () => {
   if (!wgr) {
     return (
       <PageSection>
-        <Title headingLevel="h1" size="2xl">Loading...</Title>
+        <Title headingLevel="h1" size="2xl">
+          Loading...
+        </Title>
       </PageSection>
     );
   }
@@ -279,9 +336,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   const ann = wgr.metadata.annotations || {};
   const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
   const isRejected = state === 'rejected';
-  const requester = ann[`${DEMO_DOMAIN}/requester`]
-    || ann[`${BABYLON_DOMAIN}/created-by`]
-    || '—';
+  const requester = ann[`${DEMO_DOMAIN}/requester`] || ann[`${BABYLON_DOMAIN}/created-by`] || '—';
   const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
   const jiraAssignee = jiraData?.assignee;
   const jiraStatus = jiraData?.status;
@@ -367,15 +422,16 @@ const WhiteGloveDetailContent: React.FC = () => {
 
   function removeCatalogItemByIndex(index: number) {
     const current = selectedCatalogItems.length > 0 ? selectedCatalogItems : [];
-    const currentNames = current.length > 0
-      ? current.map((i) => i.metadata.name)
-      : wgr?.spec?.catalogItemNames || [];
+    const currentNames = current.length > 0 ? current.map((i) => i.metadata.name) : wgr?.spec?.catalogItemNames || [];
     const updated = currentNames.filter((_, i) => i !== index);
     if (current.length > 0) {
       setSelectedCatalogItems(current.filter((_, i) => i !== index));
     }
     patchSpec(
-      { catalogItemNames: updated.length > 0 ? updated : null, catalogItemNamespace: updated.length > 0 ? (wgr?.spec?.catalogItemNamespace || null) : null },
+      {
+        catalogItemNames: updated.length > 0 ? updated : null,
+        catalogItemNamespace: updated.length > 0 ? wgr?.spec?.catalogItemNamespace || null : null,
+      },
       updated.length > 0 ? `Updated "Catalog Item" to: ${updated.join(', ')}` : 'Removed all catalog items',
     );
   }
@@ -416,8 +472,18 @@ const WhiteGloveDetailContent: React.FC = () => {
               </div>
               <div className="wg-status-banner__meta">
                 Submitted <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
-                {isAdmin && <> by <strong>{requester}</strong></>}
-                {assignee && <> &middot; Assigned to <strong>{assignee}</strong></>}
+                {isAdmin && (
+                  <>
+                    {' '}
+                    by <strong>{requester}</strong>
+                  </>
+                )}
+                {assignee && (
+                  <>
+                    {' '}
+                    &middot; Assigned to <strong>{assignee}</strong>
+                  </>
+                )}
               </div>
             </SplitItem>
             {jiraTicketId && (
@@ -425,34 +491,53 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer" className="wg-jira-link">
                   {jiraTicketId} &#8599;
                 </a>
-                {jiraStatus && (
-                  <span className="wg-jira-status">{jiraStatus}</span>
-                )}
+                {jiraStatus && <span className="wg-jira-status">{jiraStatus}</span>}
               </SplitItem>
             )}
           </Split>
           <ProgressStepper className="wg-status-banner__stepper">
-            <ProgressStep variant="success" id="step-submitted" titleId="step-submitted-t" aria-label="Submitted completed">Submitted</ProgressStep>
+            <ProgressStep
+              variant="success"
+              id="step-submitted"
+              titleId="step-submitted-t"
+              aria-label="Submitted completed"
+            >
+              Submitted
+            </ProgressStep>
             <ProgressStep
               variant={getProgressVariant('pending-approval', state)}
               isCurrent={isCurrent('pending-approval', state)}
-              id="step-pending" titleId="step-pending-t" aria-label="Pending Approval"
+              id="step-pending"
+              titleId="step-pending-t"
+              aria-label="Pending Approval"
             >
               Pending Approval
             </ProgressStep>
             {isRejected ? (
-              <ProgressStep variant="danger" isCurrent id="step-rejected" titleId="step-rejected-t" aria-label="Rejected">Rejected</ProgressStep>
+              <ProgressStep
+                variant="danger"
+                isCurrent
+                id="step-rejected"
+                titleId="step-rejected-t"
+                aria-label="Rejected"
+              >
+                Rejected
+              </ProgressStep>
             ) : (
               <>
                 <ProgressStep
                   variant={getProgressVariant('approved', state)}
-                  id="step-approved" titleId="step-approved-t" aria-label="Approved"
+                  id="step-approved"
+                  titleId="step-approved-t"
+                  aria-label="Approved"
                 >
                   Approved
                 </ProgressStep>
                 <ProgressStep
                   variant={getProgressVariant('service', state, !!(serviceName && serviceNamespace))}
-                  id="step-service" titleId="step-service-t" aria-label="View Service"
+                  id="step-service"
+                  titleId="step-service-t"
+                  aria-label="View Service"
                 >
                   {serviceName && serviceNamespace ? (
                     <Link to={`/${serviceType}/${serviceNamespace}/${serviceName}`}>View Service</Link>
@@ -464,7 +549,13 @@ const WhiteGloveDetailContent: React.FC = () => {
             )}
           </ProgressStepper>
           {isRejected && wgr.metadata.annotations?.[`${DEMO_DOMAIN}/rejection-reason`] && (
-            <Alert variant="danger" isInline isPlain title="Reason" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            <Alert
+              variant="danger"
+              isInline
+              isPlain
+              title="Reason"
+              style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+            >
               {wgr.metadata.annotations[`${DEMO_DOMAIN}/rejection-reason`]}
             </Alert>
           )}
@@ -473,17 +564,16 @@ const WhiteGloveDetailContent: React.FC = () => {
         {isAdmin && (state === 'pending-approval' || state === 'rejected') && (
           <ActionList style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <ActionListItem>
-              <Button
-                variant="primary"
-                onClick={openApproveModal}
-              >
+              <Button variant="primary" onClick={openApproveModal}>
                 Approve
               </Button>
             </ActionListItem>
             {state !== 'rejected' && (
-            <ActionListItem>
-              <Button variant="danger" onClick={() => setIsRejectModalOpen(true)}>Reject</Button>
-            </ActionListItem>
+              <ActionListItem>
+                <Button variant="danger" onClick={() => setIsRejectModalOpen(true)}>
+                  Reject
+                </Button>
+              </ActionListItem>
             )}
           </ActionList>
         )}
@@ -494,8 +584,9 @@ const WhiteGloveDetailContent: React.FC = () => {
           <PFModalHeader title="Reject White Glove Request" />
           <PFModalBody>
             <p style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Provide a reason for rejecting the white glove request for <strong>{wgr.spec.displayName}</strong> from <strong>{requester}</strong>.
-              The requester will be notified and the reason will be synced to the Jira ticket.
+              Provide a reason for rejecting the white glove request for <strong>{wgr.spec.displayName}</strong> from{' '}
+              <strong>{requester}</strong>. The requester will be notified and the reason will be synced to the Jira
+              ticket.
             </p>
             <FormGroup label="Reason for Rejection" isRequired fieldId="reject-reason">
               <TextArea
@@ -508,8 +599,12 @@ const WhiteGloveDetailContent: React.FC = () => {
             </FormGroup>
           </PFModalBody>
           <PFModalFooter>
-            <Button variant="danger" isDisabled={!rejectReason.trim()} onClick={handleReject}>Reject Request</Button>
-            <Button variant="link" onClick={() => setIsRejectModalOpen(false)}>Cancel</Button>
+            <Button variant="danger" isDisabled={!rejectReason.trim()} onClick={handleReject}>
+              Reject Request
+            </Button>
+            <Button variant="link" onClick={() => setIsRejectModalOpen(false)}>
+              Cancel
+            </Button>
           </PFModalFooter>
         </PFModal>
       )}
@@ -519,8 +614,15 @@ const WhiteGloveDetailContent: React.FC = () => {
           <PFModalHeader title="Approve White Glove Request" />
           <PFModalBody>
             {!hasCatalogItems && (
-              <Alert variant="info" isInline isPlain title="No catalog item was specified" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                The requester selected &quot;I&apos;m not sure / Need consultation&quot;. Select an existing workshop or multi-workshop to link to this request.
+              <Alert
+                variant="info"
+                isInline
+                isPlain
+                title="No catalog item was specified"
+                style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+              >
+                The requester selected &quot;I&apos;m not sure / Need consultation&quot;. Select an existing workshop or
+                multi-workshop to link to this request.
               </Alert>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
@@ -548,7 +650,14 @@ const WhiteGloveDetailContent: React.FC = () => {
                 </>
               )}
               {approveChoice === 'link-existing' && (
-                <div style={{ paddingLeft: hasCatalogItems ? 'var(--pf-t--global--spacer--lg)' : '0', display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
+                <div
+                  style={{
+                    paddingLeft: hasCatalogItems ? 'var(--pf-t--global--spacer--lg)' : '0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--pf-t--global--spacer--md)',
+                  }}
+                >
                   <FormGroup label="Project" isRequired fieldId="link-namespace">
                     <ProjectSelector
                       currentNamespaceName={linkNamespace || undefined}
@@ -596,7 +705,13 @@ const WhiteGloveDetailContent: React.FC = () => {
                             {serviceOptions.map((opt) => (
                               <SelectOption key={opt.value} value={opt.value}>
                                 {opt.label}
-                                <span style={{ color: 'var(--pf-t--global--text--color--subtle)', marginLeft: '8px', fontSize: 'var(--pf-t--global--font--size--xs)' }}>
+                                <span
+                                  style={{
+                                    color: 'var(--pf-t--global--text--color--subtle)',
+                                    marginLeft: '8px',
+                                    fontSize: 'var(--pf-t--global--font--size--xs)',
+                                  }}
+                                >
                                   ({opt.type === 'multi-workshop' ? 'Multi-Workshop' : 'Workshop'})
                                 </span>
                               </SelectOption>
@@ -619,7 +734,9 @@ const WhiteGloveDetailContent: React.FC = () => {
             >
               {approveChoice === 'create-new' ? 'Continue' : 'Link & Approve'}
             </Button>
-            <Button variant="link" onClick={closeApproveModal}>Cancel</Button>
+            <Button variant="link" onClick={closeApproveModal}>
+              Cancel
+            </Button>
           </PFModalFooter>
         </PFModal>
       )}
@@ -632,22 +749,37 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event Title</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <TextInput id="detail-displayName" className="wg-admin-input" value={wgr.spec.displayName || ''} isDisabled={!isAdmin}
-                      onChange={(_e, v) => debouncedPatchSpec({ displayName: v }, `Updated "Event Title" to: ${v}`)} />
+                    <TextInput
+                      id="detail-displayName"
+                      className="wg-admin-input"
+                      value={wgr.spec.displayName || ''}
+                      isDisabled={!isAdmin}
+                      onChange={(_e, v) => debouncedPatchSpec({ displayName: v }, `Updated "Event Title" to: ${v}`)}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Request Type</DescriptionListTerm>
-                  <DescriptionListDescription><span className="wg-label">White Glove</span></DescriptionListDescription>
+                  <DescriptionListDescription>
+                    <span className="wg-label">White Glove</span>
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Slack Channel</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <TextInput id="detail-slack" className="wg-admin-input" placeholder="e.g. #wg-rhel9-summit" isDisabled={!isAdmin}
+                    <TextInput
+                      id="detail-slack"
+                      className="wg-admin-input"
+                      placeholder="e.g. #wg-rhel9-summit"
+                      isDisabled={!isAdmin}
                       value={slackChannel || wgr.spec.slackChannel || ''}
-                      onChange={(_e, v) => { setSlackChannel(v); debouncedPatchSpec({ slackChannel: v }); }} />
+                      onChange={(_e, v) => {
+                        setSlackChannel(v);
+                        debouncedPatchSpec({ slackChannel: v });
+                      }}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
@@ -655,22 +787,37 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListGroup>
                     <DescriptionListTerm>Service</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <Button variant="primary" component="a" href={`/${serviceType}/${serviceNamespace}/${serviceName}`}>{serviceName} &#8599;</Button>
+                      <Button
+                        variant="primary"
+                        component="a"
+                        href={`/${serviceType}/${serviceNamespace}/${serviceName}`}
+                      >
+                        {serviceName} &#8599;
+                      </Button>
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 )}
 
                 <DescriptionListGroup>
-                  <DescriptionListTerm>{wgr.spec.catalogItemNames?.length > 1 ? 'Catalog Items' : 'Catalog Item'}</DescriptionListTerm>
+                  <DescriptionListTerm>
+                    {wgr.spec.catalogItemNames?.length > 1 ? 'Catalog Items' : 'Catalog Item'}
+                  </DescriptionListTerm>
                   <DescriptionListDescription>
                     {selectedCatalogItems.length > 0 ? (
                       <div className="wg-catalog-items">
                         {selectedCatalogItems.map((item, index) => (
                           <div key={`${item.metadata.namespace}/${item.metadata.name}`} className="wg-catalog-item">
-                            <div className="wg-catalog-item__icon"><CatalogItemIcon catalogItem={item} /></div>
+                            <div className="wg-catalog-item__icon">
+                              <CatalogItemIcon catalogItem={item} />
+                            </div>
                             <span className="wg-catalog-item__name">{displayName(item)}</span>
                             {isAdmin && (
-                              <Button variant="plain" aria-label="Remove catalog item" onClick={() => removeCatalogItemByIndex(index)} className="wg-catalog-item__remove">
+                              <Button
+                                variant="plain"
+                                aria-label="Remove catalog item"
+                                onClick={() => removeCatalogItemByIndex(index)}
+                                className="wg-catalog-item__remove"
+                              >
                                 <TimesIcon />
                               </Button>
                             )}
@@ -678,11 +825,19 @@ const WhiteGloveDetailContent: React.FC = () => {
                         ))}
                       </div>
                     ) : !hasCatalogItems ? (
-                      <em style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginBottom: isAdmin ? '8px' : '0' }}>Not specified — needs consultation</em>
+                      <em
+                        style={{
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                          display: 'block',
+                          marginBottom: isAdmin ? '8px' : '0',
+                        }}
+                      >
+                        Not specified — needs consultation
+                      </em>
                     ) : null}
                     {isAdmin && (
                       <Button variant="secondary" size="sm" onClick={() => setIsCatalogSelectorOpen(true)}>
-                        {(selectedCatalogItems.length > 0 || hasCatalogItems) ? 'Change' : 'Select catalog item'}
+                        {selectedCatalogItems.length > 0 || hasCatalogItems ? 'Change' : 'Select catalog item'}
                       </Button>
                     )}
                   </DescriptionListDescription>
@@ -695,13 +850,21 @@ const WhiteGloveDetailContent: React.FC = () => {
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Requested On</DescriptionListTerm>
-                  <DescriptionListDescription><TimeInterval toTimestamp={wgr.metadata.creationTimestamp} /></DescriptionListDescription>
+                  <DescriptionListDescription>
+                    <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
+                  </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Jira Ticket</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {jiraTicketId ? <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer">{jiraTicketId} &#8599;</a> : '—'}
+                    {jiraTicketId ? (
+                      <a href={jiraTicketUrl || '#'} target="_blank" rel="noopener noreferrer">
+                        {jiraTicketId} &#8599;
+                      </a>
+                    ) : (
+                      '—'
+                    )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
@@ -718,18 +881,28 @@ const WhiteGloveDetailContent: React.FC = () => {
                     {isAdmin ? (
                       <div className="hide-form-group-labels">
                         <ActivityPurposeSelector
-                          value={{ purpose: wgr.spec.purpose, activity: wgr.spec.activity, explanation: wgr.spec.explanation }}
+                          value={{
+                            purpose: wgr.spec.purpose,
+                            activity: wgr.spec.activity,
+                            explanation: wgr.spec.explanation,
+                          }}
                           purposeOpts={purposeOpts}
                           onChange={(newActivity, newPurpose, newExplanation) => {
                             patchSpec(
-                              { activity: newActivity || null, purpose: newPurpose || null, explanation: newExplanation || null },
+                              {
+                                activity: newActivity || null,
+                                purpose: newPurpose || null,
+                                explanation: newExplanation || null,
+                              },
                               `Updated "Activity" to: ${newActivity || '—'}, "Purpose" to: ${newPurpose || '—'}`,
                             );
                           }}
                         />
                       </div>
                     ) : (
-                      <span>{wgr.spec.activity || '—'} / {wgr.spec.purpose || '—'}</span>
+                      <span>
+                        {wgr.spec.activity || '—'} / {wgr.spec.purpose || '—'}
+                      </span>
                     )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -743,56 +916,89 @@ const WhiteGloveDetailContent: React.FC = () => {
                           fieldId="detail-salesforce"
                           standalone={false}
                           items={(wgr.spec.salesforceItems || []) as SalesforceItem[]}
-                          onChange={(items) => patchSpec(
-                            { salesforceItems: items.length > 0 ? items : null },
-                            `Updated "Salesforce IDs"`,
-                          )}
+                          onChange={(items) =>
+                            patchSpec({ salesforceItems: items.length > 0 ? items : null }, `Updated "Salesforce IDs"`)
+                          }
                         />
                       </div>
-                    ) : (wgr.spec.salesforceItems?.length > 0 ? (
+                    ) : wgr.spec.salesforceItems?.length > 0 ? (
                       wgr.spec.salesforceItems.map((item) => `${item.id} (${item.type})`).join(', ')
-                    ) : '—')}
+                    ) : (
+                      '—'
+                    )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event Start Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <DateTimePickerButton date={wgr.spec.eventDate ? new Date(wgr.spec.eventDate) : null} timezone={timezone}
-                      placeholder="Not set" isDisabled={!isAdmin} onClick={() => setIsStartDateModalOpen(true)} />
+                    <DateTimePickerButton
+                      date={wgr.spec.eventDate ? new Date(wgr.spec.eventDate) : null}
+                      timezone={timezone}
+                      placeholder="Not set"
+                      isDisabled={!isAdmin}
+                      onClick={() => setIsStartDateModalOpen(true)}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event End Date</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <DateTimePickerButton date={wgr.spec.eventEndDate ? new Date(wgr.spec.eventEndDate) : null} timezone={timezone}
-                      placeholder="Not set" isDisabled={!isAdmin} onClick={() => setIsEndDateModalOpen(true)} />
+                    <DateTimePickerButton
+                      date={wgr.spec.eventEndDate ? new Date(wgr.spec.eventEndDate) : null}
+                      timezone={timezone}
+                      placeholder="Not set"
+                      isDisabled={!isAdmin}
+                      onClick={() => setIsEndDateModalOpen(true)}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Number of Users</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <PatientNumberInput min={1} max={999} value={wgr.spec.numberOfUsers || 1}
-                      onChange={isAdmin ? (value) => debouncedPatchSpec({ numberOfUsers: value }, `Updated "Number of Users" to: ${value}`) : undefined}
-                      onChangeDelay={500} />
+                    <PatientNumberInput
+                      min={1}
+                      max={999}
+                      value={wgr.spec.numberOfUsers || 1}
+                      onChange={
+                        isAdmin
+                          ? (value) =>
+                              debouncedPatchSpec({ numberOfUsers: value }, `Updated "Number of Users" to: ${value}`)
+                          : undefined
+                      }
+                      onChangeDelay={500}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Event Delivery Mode</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Select id="detail-delivery-mode" isOpen={isDeliveryModeOpen}
+                    <Select
+                      id="detail-delivery-mode"
+                      isOpen={isDeliveryModeOpen}
                       onOpenChange={setIsDeliveryModeOpen}
-                      onSelect={(_e, value) => { setIsDeliveryModeOpen(false); patchSpec({ deliveryMode: value as string }, `Updated "Event Delivery Mode" to: ${value}`); }}
+                      onSelect={(_e, value) => {
+                        setIsDeliveryModeOpen(false);
+                        patchSpec({ deliveryMode: value as string }, `Updated "Event Delivery Mode" to: ${value}`);
+                      }}
                       selected={wgr.spec.deliveryMode || undefined}
                       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle ref={toggleRef} onClick={() => isAdmin && setIsDeliveryModeOpen((prev) => !prev)}
-                          isExpanded={isDeliveryModeOpen} isDisabled={!isAdmin} style={{ width: '200px' }}>
-                          {wgr.spec.deliveryMode ? { virtual: 'Virtual', 'on-site': 'On-site', hybrid: 'Hybrid' }[wgr.spec.deliveryMode] : 'Not set'}
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => isAdmin && setIsDeliveryModeOpen((prev) => !prev)}
+                          isExpanded={isDeliveryModeOpen}
+                          isDisabled={!isAdmin}
+                          style={{ width: '200px' }}
+                        >
+                          {wgr.spec.deliveryMode
+                            ? { virtual: 'Virtual', 'on-site': 'On-site', hybrid: 'Hybrid' }[wgr.spec.deliveryMode]
+                            : 'Not set'}
                         </MenuToggle>
-                      )}>
+                      )}
+                    >
                       <SelectList>
                         <SelectOption value="virtual">Virtual</SelectOption>
                         <SelectOption value="on-site">On-site</SelectOption>
@@ -805,16 +1011,33 @@ const WhiteGloveDetailContent: React.FC = () => {
                 <DescriptionListGroup>
                   <DescriptionListTerm>Audience Type</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Select id="detail-audience-type" isOpen={isAudienceTypeOpen}
+                    <Select
+                      id="detail-audience-type"
+                      isOpen={isAudienceTypeOpen}
                       onOpenChange={setIsAudienceTypeOpen}
-                      onSelect={(_e, value) => { setIsAudienceTypeOpen(false); patchSpec({ audienceType: value as string }, `Updated "Audience Type" to: ${value}`); }}
+                      onSelect={(_e, value) => {
+                        setIsAudienceTypeOpen(false);
+                        patchSpec({ audienceType: value as string }, `Updated "Audience Type" to: ${value}`);
+                      }}
                       selected={wgr.spec.audienceType || undefined}
                       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-                        <MenuToggle ref={toggleRef} onClick={() => isAdmin && setIsAudienceTypeOpen((prev) => !prev)}
-                          isExpanded={isAudienceTypeOpen} isDisabled={!isAdmin} style={{ width: '200px' }}>
-                          {wgr.spec.audienceType ? { 'external-customers': 'External Customers', 'internal-redhat': 'Internal Red Hat', partners: 'Partners' }[wgr.spec.audienceType] : 'Not set'}
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => isAdmin && setIsAudienceTypeOpen((prev) => !prev)}
+                          isExpanded={isAudienceTypeOpen}
+                          isDisabled={!isAdmin}
+                          style={{ width: '200px' }}
+                        >
+                          {wgr.spec.audienceType
+                            ? {
+                                'external-customers': 'External Customers',
+                                'internal-redhat': 'Internal Red Hat',
+                                partners: 'Partners',
+                              }[wgr.spec.audienceType]
+                            : 'Not set'}
                         </MenuToggle>
-                      )}>
+                      )}
+                    >
                       <SelectList>
                         <SelectOption value="external-customers">External Customers</SelectOption>
                         <SelectOption value="internal-redhat">Internal Red Hat</SelectOption>
@@ -828,31 +1051,64 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <DescriptionListTerm>Shared With</DescriptionListTerm>
                   <DescriptionListDescription>
                     {isAdmin && (
-                      <div className="wg-admin-input" style={{ display: 'flex', gap: '4px', alignItems: 'center', marginBottom: wgr.spec.shareWith?.length > 0 ? '8px' : '0' }}>
-                        <TextInput id="detail-share-with" value={shareWithInput}
+                      <div
+                        className="wg-admin-input"
+                        style={{
+                          display: 'flex',
+                          gap: '4px',
+                          alignItems: 'center',
+                          marginBottom: wgr.spec.shareWith?.length > 0 ? '8px' : '0',
+                        }}
+                      >
+                        <TextInput
+                          id="detail-share-with"
+                          value={shareWithInput}
                           onChange={(_e, v) => setShareWithInput(v)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addShareWithEmail(); } }}
-                          placeholder="Enter email address" style={{ flex: 1 }} />
-                        <Button variant="secondary" size="sm" onClick={addShareWithEmail} isDisabled={!shareWithInput.trim()}>Add</Button>
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addShareWithEmail();
+                            }
+                          }}
+                          placeholder="Enter email address"
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={addShareWithEmail}
+                          isDisabled={!shareWithInput.trim()}
+                        >
+                          Add
+                        </Button>
                       </div>
                     )}
                     {wgr.spec.shareWith?.length > 0 ? (
                       <LabelGroup>
                         {wgr.spec.shareWith.map((email) => (
-                          <Label key={email} {...(isAdmin ? { onClose: () => removeShareWithEmail(email) } : {})}>{email}</Label>
+                          <Label key={email} {...(isAdmin ? { onClose: () => removeShareWithEmail(email) } : {})}>
+                            {email}
+                          </Label>
                         ))}
                       </LabelGroup>
-                    ) : !isAdmin ? '—' : null}
+                    ) : !isAdmin ? (
+                      '—'
+                    ) : null}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
 
                 <DescriptionListGroup>
                   <DescriptionListTerm>Notes</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <TextArea id="detail-notes" className="wg-admin-input" isDisabled={!isAdmin}
+                    <TextArea
+                      id="detail-notes"
+                      className="wg-admin-input"
+                      isDisabled={!isAdmin}
                       value={wgr.spec.notes || ''}
                       onChange={(_e, v) => debouncedPatchSpec({ notes: v || null }, `Updated "Notes"`)}
-                      placeholder="Special requirements (optional)" rows={4} />
+                      placeholder="Special requirements (optional)"
+                      rows={4}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
@@ -863,17 +1119,19 @@ const WhiteGloveDetailContent: React.FC = () => {
               <div style={{ marginTop: '16px' }}>
                 {jiraComments.length > 0 ? (
                   <div className="wg-comments-list">
-                    {jiraComments.map((c: { author: string; body: string; created: string; updated: string }, i: number) => (
-                      <div key={i} className="wg-comment">
-                        <div className="wg-comment__header">
-                          <strong>{c.author}</strong>
-                          <span className="wg-comment__time">
-                            <LocalTimestamp timestamp={c.created} />
-                          </span>
+                    {jiraComments.map(
+                      (c: { author: string; body: string; created: string; updated: string }, i: number) => (
+                        <div key={i} className="wg-comment">
+                          <div className="wg-comment__header">
+                            <strong>{c.author}</strong>
+                            <span className="wg-comment__time">
+                              <LocalTimestamp timestamp={c.created} />
+                            </span>
+                          </div>
+                          <div className="wg-comment__body">{c.body}</div>
                         </div>
-                        <div className="wg-comment__body">{c.body}</div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 ) : (
                   <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontStyle: 'italic' }}>

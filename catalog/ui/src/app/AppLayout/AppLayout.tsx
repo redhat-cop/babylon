@@ -174,10 +174,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
               <div
                 dangerouslySetInnerHTML={{
                   __html: dompurify.sanitize(
-                    (partnerHeaderHtml || '').replace(
-                      /(src|href)="(\/[^"]*?)"/g,
-                      '$1="https://connect.redhat.com$2"',
-                    ),
+                    (partnerHeaderHtml || '').replace(/(src|href)="(\/[^"]*?)"/g, '$1="https://connect.redhat.com$2"'),
                     {
                       FORCE_BODY: true,
                       ADD_TAGS: ['svg', 'path'],

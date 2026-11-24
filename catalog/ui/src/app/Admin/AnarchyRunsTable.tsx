@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState,  } from '@patternfly/react-core';
+import { EmptyState } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import type { AnarchyRun } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -15,8 +15,12 @@ const AnarchyRunsTable: React.FC<{
 }> = ({ anarchyRuns, selectedUids, selectedUidsReducer }) => {
   if (anarchyRuns.length === 0) {
     return (
-      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No AnarchyRuns found." variant="full">
-        </EmptyState>
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationTriangleIcon}
+        titleText="No AnarchyRuns found."
+        variant="full"
+      ></EmptyState>
     );
   }
   return (

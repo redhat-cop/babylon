@@ -131,7 +131,9 @@ const InfoTab: React.FC<{
             </DescriptionListDescription>
           </DescriptionListGroup>
 
-          {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+          {!externalPlatformUrl &&
+          !isPartOfWorkshop &&
+          (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
               <DescriptionListDescription>
@@ -148,7 +150,8 @@ const InfoTab: React.FC<{
                   variant="extended"
                   resourceClaim={resourceClaim}
                 >
-                  {resourceClaim.status?.lifespan?.end && resourceClaim.spec?.lifespan?.end &&
+                  {resourceClaim.status?.lifespan?.end &&
+                  resourceClaim.spec?.lifespan?.end &&
                   resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
                     <>
                       {' '}

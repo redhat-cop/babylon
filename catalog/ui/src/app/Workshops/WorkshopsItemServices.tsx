@@ -129,7 +129,7 @@ const WorkshopsItemServices: React.FC<{
   );
 
   const activeResourceClaimsCount = resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length;
-  
+
   if (activeResourceClaimsCount == 0) {
     return (
       <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services Found" variant="full">
@@ -201,7 +201,12 @@ const WorkshopsItemServices: React.FC<{
               resources
                 .map((r) => {
                   const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
-                  return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url || data?.showroom_primary_view_url;
+                  return (
+                    data?.labUserInterfaceUrl ||
+                    data?.lab_ui_url ||
+                    data?.bookbag_url ||
+                    data?.showroom_primary_view_url
+                  );
                 })
                 .find((u) => u != null);
             const cells: unknown[] = [
@@ -246,7 +251,9 @@ const WorkshopsItemServices: React.FC<{
                 {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
                   ? userAssignments
                       .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
-                      .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>)
+                      .map((uA) => (
+                        <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>
+                      ))
                   : '-'}
               </>,
 

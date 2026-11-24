@@ -51,7 +51,6 @@ const EditableText: React.FC<{
           onChange={(_event, v) => setEditedValue(v)}
           onKeyUp={onKeyUp}
           value={editedValue}
-
         />
       );
     }
@@ -76,7 +75,12 @@ const EditableText: React.FC<{
         onClick={beginEditing}
       >
         {value ? '********' : '- none -'}
-        <Button onClick={beginEditing} variant="link" style={{padding: 0}} icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
+        <Button
+          onClick={beginEditing}
+          variant="link"
+          style={{ padding: 0 }}
+          icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />}
+        />
       </Content>
     );
   }
@@ -87,7 +91,12 @@ const EditableText: React.FC<{
       onClick={beginEditing}
     >
       {value || placeholder || ''}
-      <Button onClick={beginEditing} variant="link" style={{padding: 0}} icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />} />
+      <Button
+        onClick={beginEditing}
+        variant="link"
+        style={{ padding: 0 }}
+        icon={updating ? <Spinner size="sm" /> : <PencilAltIcon />}
+      />
     </Content>
   );
 };

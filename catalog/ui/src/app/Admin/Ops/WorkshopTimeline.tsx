@@ -19,13 +19,28 @@ export interface WorkshopTimelineProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null;
+  getClusterInfo?: (
+    ws: Workshop,
+  ) => {
+    poolName: string;
+    poolNamespace: string;
+    clusterName: string;
+    totalClusters: number;
+    availableClusters: number;
+    poolSaturationPercent: number;
+    maxPlacements: number;
+    placementCount: number;
+    maxTotalPlacements: number;
+    placementCapacityPercent: number;
+  } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
   dateRange: { start: Date; end: Date };
   onDateChange: (start: Date, end: Date) => void;
-  getSoundcheckBadge?: (ws: WorkshopWithResourceClaims) => { label: string; href: string; title: string; colorClass?: string } | null;
+  getSoundcheckBadge?: (
+    ws: WorkshopWithResourceClaims,
+  ) => { label: string; href: string; title: string; colorClass?: string } | null;
 }
 
 function getMonday(d: Date): Date {
@@ -58,11 +73,13 @@ function wsKey(ws: WorkshopWithResourceClaims): string {
   return `${ws.metadata.namespace}/${ws.metadata.name}`;
 }
 
-export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Running' | 'Failed' | 'Scheduled' | 'Stopped' {
+export function getWorkshopStatus(
+  workshop: WorkshopWithResourceClaims,
+): 'Running' | 'Failed' | 'Scheduled' | 'Stopped' {
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
-  const hasFailed = resourceClaims.some(rc => {
+  const hasFailed = resourceClaims.some((rc) => {
     const state = rc.status?.resources?.[0]?.state;
     if (!state || state.kind !== 'AnarchySubject') return false;
     const provisionState = state.spec?.vars?.current_state;
@@ -72,9 +89,10 @@ export function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'Runnin
 
   if (workshop.spec?.provisionDisabled) return 'Stopped';
 
-  const hasStarted = resourceClaims.some(rc =>
-    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
-    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete'
+  const hasStarted = resourceClaims.some(
+    (rc) =>
+      rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
+      rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete',
   );
 
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
@@ -108,11 +126,11 @@ export type StatusKey = 'Running' | 'Failed' | 'Scheduled' | 'Stopped';
 export type RegionKey = 'all' | 'emea' | 'na-east' | 'na-west' | 'apac-india' | 'apac-aus';
 
 export const REGIONS: { key: RegionKey; label: string; tz: string; startUtcH: number; endUtcH: number }[] = [
-  { key: 'apac-aus',   label: 'APAC Aus',     tz: 'Australia/Sydney',  startUtcH: 23,   endUtcH: 31 },  // wraps midnight
-  { key: 'apac-india', label: 'APAC India',   tz: 'Asia/Kolkata',      startUtcH: 3.5,  endUtcH: 11.5 },
-  { key: 'emea',       label: 'EMEA',         tz: 'Europe/Berlin',     startUtcH: 7,    endUtcH: 15 },
-  { key: 'na-east',    label: 'NA East',      tz: 'America/New_York',  startUtcH: 13,   endUtcH: 21 },
-  { key: 'na-west',    label: 'NA West',      tz: 'America/Los_Angeles', startUtcH: 16, endUtcH: 24 },
+  { key: 'apac-aus', label: 'APAC Aus', tz: 'Australia/Sydney', startUtcH: 23, endUtcH: 31 }, // wraps midnight
+  { key: 'apac-india', label: 'APAC India', tz: 'Asia/Kolkata', startUtcH: 3.5, endUtcH: 11.5 },
+  { key: 'emea', label: 'EMEA', tz: 'Europe/Berlin', startUtcH: 7, endUtcH: 15 },
+  { key: 'na-east', label: 'NA East', tz: 'America/New_York', startUtcH: 13, endUtcH: 21 },
+  { key: 'na-west', label: 'NA West', tz: 'America/Los_Angeles', startUtcH: 16, endUtcH: 24 },
 ];
 
 /** Primary region = classified by workshop start time (which region's 9-5 it kicks off in) */
@@ -123,7 +141,7 @@ export function getWorkshopPrimaryRegion(ws: WorkshopWithResourceClaims): Region
   const utcH = d.getUTCHours() + d.getUTCMinutes() / 60;
   for (const r of REGIONS) {
     if (r.endUtcH > 24) {
-      if (utcH >= r.startUtcH || utcH < (r.endUtcH - 24)) return r.key;
+      if (utcH >= r.startUtcH || utcH < r.endUtcH - 24) return r.key;
     } else {
       if (utcH >= r.startUtcH && utcH < r.endUtcH) return r.key;
     }
@@ -152,14 +170,15 @@ export function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): Region
     for (const r of REGIONS) {
       if (primary === r.key) continue; // already included
       const bizStartMs = todayStart.getTime() + r.startUtcH * 3600000;
-      const bizEndMs = r.endUtcH > 24
-        ? todayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
-        : todayStart.getTime() + r.endUtcH * 3600000;
+      const bizEndMs =
+        r.endUtcH > 24
+          ? todayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+          : todayStart.getTime() + r.endUtcH * 3600000;
       if (nowMs >= bizStartMs && nowMs < bizEndMs) {
         regions.push(r.key);
       }
     }
-    return regions.length > 0 ? regions : (primary ? [primary] : []);
+    return regions.length > 0 ? regions : primary ? [primary] : [];
   }
 
   // Stopped/failed: primary region only
@@ -188,14 +207,15 @@ export function getWorkshopActiveRegions(ws: WorkshopWithResourceClaims): Region
 
   for (const r of REGIONS) {
     const bizStartMs = startDay.getTime() + r.startUtcH * 3600000;
-    const bizEndMs = r.endUtcH > 24
-      ? startDay.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
-      : startDay.getTime() + r.endUtcH * 3600000;
+    const bizEndMs =
+      r.endUtcH > 24
+        ? startDay.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+        : startDay.getTime() + r.endUtcH * 3600000;
     if (deliveryStart.getTime() < bizEndMs && deliveryEnd.getTime() > bizStartMs) {
       regions.push(r.key);
     }
   }
-  return regions.length > 0 ? regions : (primary ? [primary] : []);
+  return regions.length > 0 ? regions : primary ? [primary] : [];
 }
 
 export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
@@ -217,14 +237,17 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
 }) => {
   // Region and status filtering is done globally in Ops.tsx — timeline only filters by date range
   const visibleWorkshops = useMemo(() => {
-    return workshops.filter(w => workshopInDateRange(w, dateRange.start, dateRange.end));
+    return workshops.filter((w) => workshopInDateRange(w, dateRange.start, dateRange.end));
   }, [workshops, dateRange]);
 
   const groupedWorkshops = useMemo(() => {
     const grouped: Record<StatusKey, WorkshopWithResourceClaims[]> = {
-      Running: [], Failed: [], Scheduled: [], Stopped: [],
+      Running: [],
+      Failed: [],
+      Scheduled: [],
+      Stopped: [],
     };
-    visibleWorkshops.forEach(ws => {
+    visibleWorkshops.forEach((ws) => {
       grouped[getWorkshopStatus(ws)].push(ws);
     });
     return grouped;
@@ -251,12 +274,15 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
     return ((now - start) / (end - start)) * 100;
   }, [dateRange]);
 
-  const formatDateCell = useCallback((day: Date, opts: Intl.DateTimeFormatOptions) => {
-    if (timezone !== 'local') {
-      return day.toLocaleDateString('en-US', { ...opts, timeZone: timezone });
-    }
-    return day.toLocaleDateString('en-US', opts);
-  }, [timezone]);
+  const formatDateCell = useCallback(
+    (day: Date, opts: Intl.DateTimeFormatOptions) => {
+      if (timezone !== 'local') {
+        return day.toLocaleDateString('en-US', { ...opts, timeZone: timezone });
+      }
+      return day.toLocaleDateString('en-US', opts);
+    },
+    [timezone],
+  );
 
   const swimlaneProps = {
     viewStart: dateRange.start,
@@ -315,12 +341,18 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
                   key={i}
                   className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}${!isSingleDay ? ' timeline-date-cell--clickable' : ''}`}
                   onClick={!isSingleDay ? () => handleDateChange(getStartOfDay(day), getEndOfDay(day)) : undefined}
-                  title={!isSingleDay ? `Click to zoom into ${formatDateCell(day, { weekday: 'long', month: 'long', day: 'numeric' })}` : undefined}
+                  title={
+                    !isSingleDay
+                      ? `Click to zoom into ${formatDateCell(day, { weekday: 'long', month: 'long', day: 'numeric' })}`
+                      : undefined
+                  }
                 >
                   <span className="timeline-date-cell__dow">{formatDateCell(day, { weekday: 'short' })}</span>
-                  <span className="timeline-date-cell__day">{formatDateCell(day, { month: 'short', day: 'numeric' })}</span>
+                  <span className="timeline-date-cell__day">
+                    {formatDateCell(day, { month: 'short', day: 'numeric' })}
+                  </span>
                   <div className="timeline-date-cell__hours">
-                    {[9, 12, 17].map(h => (
+                    {[9, 12, 17].map((h) => (
                       <span key={h} className="timeline-date-cell__hour-mark" style={{ left: `${(h / 24) * 100}%` }}>
                         {h <= 12 ? `${h}${h === 12 ? 'pm' : 'am'}` : `${h - 12}pm`}
                       </span>
@@ -332,16 +364,13 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
           </div>
 
           <div className="timeline-timezone-label">
-            Times in {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} · change at timezone selector at top of screen
+            Times in{' '}
+            {timezone === 'local' ? `local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})` : timezone} ·
+            change at timezone selector at top of screen
           </div>
 
-          {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map(status => (
-            <TimelineSwimlane
-              key={status}
-              status={status}
-              workshops={groupedWorkshops[status]}
-              {...swimlaneProps}
-            />
+          {(['Running', 'Failed', 'Scheduled', 'Stopped'] as const).map((status) => (
+            <TimelineSwimlane key={status} status={status} workshops={groupedWorkshops[status]} {...swimlaneProps} />
           ))}
         </>
       )}

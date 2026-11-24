@@ -17,11 +17,11 @@ const ResourceClaimDeleteModal: React.FC<{
       setTitle(
         resourceClaims.length === 1
           ? `Redeploy service ${displayName(resourceClaims[0])}?`
-          : 'Redeploy selected services?'
+          : 'Redeploy selected services?',
       );
     } else {
       setTitle(
-        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?'
+        resourceClaims.length === 1 ? `Delete service ${displayName(resourceClaims[0])}?` : 'Delete selected services?',
       );
     }
   }, [resourceClaims, restart, setTitle]);

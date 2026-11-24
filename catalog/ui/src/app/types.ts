@@ -117,11 +117,7 @@ export interface CatalogItem extends K8sObject {
 }
 
 export type CatalogItemIncidentStatus =
-  | 'Degraded performance'
-  | 'Operational'
-  | 'Under maintenance'
-  | 'Partial outage'
-  | 'Major outage';
+  'Degraded performance' | 'Operational' | 'Under maintenance' | 'Partial outage' | 'Major outage';
 
 export interface CatalogItemIncident {
   created_by: string;
