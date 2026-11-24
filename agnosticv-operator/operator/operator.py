@@ -95,10 +95,21 @@ async def agnosticvcomponent_create(logger, body, **_):
 
 @kopf.on.delete(AgnosticVComponent.api_group, AgnosticVComponent.api_version, 'agnosticvcomponents')
 async def agnosticvcomponent_delete(logger, body, **_):
+    """Handle AgnosticVComponent delete by deleting dependent resources.
+
+    Resources deleted immediately:
+    - TenantClusterPools in shared-clusters namespace
+
+    Resources which check conditions and cleanup later:
+    - CatalogItems
+
+    Resources with no cascading delete handling at this time:
+    - AnarchyGovernors
+    - ResourceProviders
+    """
     agnosticv_component = AgnosticVComponent(client=OperatorRuntime.babylon, definition=body)
-    # FIXME - Implement delete handling?
-    # CatalogItems have a separate process to watch for when they reference
-    # a component that no longer uses them.
+    logger.info("Handling delete of %s", agnosticv_component)
+    delete_shared_clusters_tenant_cluster_pool(agnosticv_component.name, logger)
 
 @kopf.on.resume(AgnosticVComponent.api_group, AgnosticVComponent.api_version, 'agnosticvcomponents')
 async def agnosticvcomponent_resume(logger, body, **_):
@@ -161,6 +172,9 @@ async def agnoticvrepo_daemon(logger, stopped, **kwargs):
                 )
     except asyncio.CancelledError:
         pass
+
+async def delete_shared_clusters_tenant_cluster_pool(agnosticv_component.name: str, logger) -> None:
+    """Delete TenantClusterPool in shared-clusters namespace if found."""
 
 async def manage_agnosticv_component(agnosticv_component: AgnosticVComponent, logger) -> None:
     """Manage all configuraton configured from AgnosticV"""

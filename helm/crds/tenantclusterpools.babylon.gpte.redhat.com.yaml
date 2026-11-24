@@ -39,6 +39,24 @@ spec:
             description: Specification of TenantClusterPool.
             type: object
             properties:
+              lifespan:
+                description: >-
+                  Configuration to control automatic deletion of TenantClusterPool.
+                type: object
+                properties:
+                  end:
+                    description: >-
+                      Time to start deletion of TenantClusterPool.
+                      When this date is in the past all clusters will be disabled and
+                      will be deleted when zero tenants remain. Once all clusters are
+                      deleted, the TenantClusterPool will delete.
+                    type: string
+                    format: date-time
+                  terminationGracePeriodSeconds:
+                    description: >-
+                      How long to wait for cluster tenant counts to reach zero before
+                      deleting cluster ResourceClaims.
+                    type: integer
               clusterProvisioning:
                 description: >-
                   Configuration for provisioning clusters which provide

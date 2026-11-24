@@ -461,6 +461,10 @@ async def manage_tenant_cluster_pool(tenant_cluster_pool, logger) -> None:
     ):
         return
 
+    # Give up provisioning clusters if there are more than 5 failures
+    if failed_cluster_count > 5:
+        return
+
     # Don't create a cluster if one was created within the last 10 minutes
     # NOTE: Perhaps make this configurable in a future release?
     if (
@@ -507,10 +511,10 @@ async def manage_tenant_cluster_pool_cluster_with_resource_claim(
     )
 
     if resource_claim.state in ('provision-failed', 'provision-error'):
-        # Delete if older than 10 minutes and not associated to a workshop
+        # Delete failures if older than 24 hours and not associated to a workshop
         if (
             resource_claim.workshop_provision_name is None and
-            (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 600
+            (datetime.now(timezone.utc) - resource_claim.creation_datetime).total_seconds() > 86400
        ):
             logger.info(
                 "Deleting %s %s for %s",

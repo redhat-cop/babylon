@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 
+from datetime import datetime, timedelta
 from hashlib import sha1
 from typing import Any, List, Mapping
 
@@ -314,6 +315,13 @@ class TenantClusterPoolSpec:
         return self._definition.get('enabled')
 
     @property
+    def lifespan(self) -> TenantClusterPoolSpecLifespan|None:
+        """Return lifespan if set"""
+        if 'lifespan' not in self._definition:
+            return None
+        return TenantClusterPoolSpecLifespan(self._definition)
+
+    @property
     def max_clusters(self) -> int|None:
         """Maximum number of clusters to provision. If undefined then no
         maximum is applied."""
@@ -377,6 +385,46 @@ class TenantClusterPoolSpecClusterProvisioningProvider:
     def parameter_values(self) -> Mapping[str, Any]:
         """Parameter values used when creating the tenant ResourceHandle"""
         return self._definition.get('parameterValues', {})
+
+
+class TenantClusterPoolSpecLifespan:
+    """Configuration for lifespan of TenantClusterPool."""
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def end(self) -> str|None:
+        """Return lifespan end timestamp if set.
+
+        Value is time to start deletion of TenantClusterPool.
+        When this date is in the past all clusters will be disabled and
+        will be deleted when zero tenants remain. Once all clusters are
+        deleted, the TenantClusterPool will delete."""
+        return self._definition.get('end')
+
+    @property
+    def end_datetime(self) -> datetime|None:
+        """Return lifespan end as datetime object if end is set."""
+        end = self.end
+        if end is None:
+            return None
+        datetime.strptime(end, '%Y-%m-%dT%H:%M:%S%z')
+
+    @property
+    def termination_grace_period_seconds(self) -> int|None:
+        """Return terminationGracePeriodSeconds if set.
+
+        How long to wait for cluster tenant counts to reach zero before
+        deleting cluster ResourceClaims."""
+        return self._definition.get('terminationGracePeriodSeconds')
+
+    @property
+    def termination_grace_period_timedelta(self) -> timedelta|None:
+        """Return termination grace period as timedelta if set."""
+        seconds = self.termination_grace_period_seconds
+        if seconds is None:
+            return None
+        return timedelta(seconds=seconds)
 
 
 class TenantClusterPoolSpecSandboxHost:
