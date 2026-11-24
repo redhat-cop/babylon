@@ -35,7 +35,7 @@
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.12",
+    "@testing-library/user-event": "^14.6.13",
     "@types/dompurify": "^3.2.0",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
@@ -44,7 +44,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/react-router-dom": "^5.3.3",
-    "@typescript-eslint/eslint-plugin": "^8.72.2",
+    "@typescript-eslint/eslint-plugin": "^8.73.0",
     "@typescript-eslint/parser": "^8.73.0",
     "babel-loader": "^10.1.1",
     "babel-plugin-transform-imports": "^2.0.0",
@@ -81,7 +81,7 @@
     }
   },
   "dependencies": {
-    "@asciidoctor/core": "~4.2.1",
+    "@asciidoctor/core": "~4.3.0",
     "@lexical/code": "^0.52.0",
     "@lexical/code-prism": "^0.52.0",
     "@lexical/html": "^0.52.0",
