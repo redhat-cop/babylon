@@ -39,12 +39,15 @@ module.exports = () => {
               options: {
                 postcssOptions: {
                   plugins: [
+                    // Makes the shared @custom-media definitions visible to every CSS file
+                    // (replaces the `importFrom` option removed in postcss-custom-media v9).
                     [
-                      'postcss-custom-media',
+                      '@csstools/postcss-global-data',
                       {
-                        importFrom: ['./src/app/custom-media.css'],
+                        files: ['./src/app/custom-media.css'],
                       },
                     ],
+                    'postcss-custom-media',
                   ],
                 },
               },
