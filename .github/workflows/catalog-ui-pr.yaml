@@ -42,6 +42,12 @@ jobs:
         working-directory: ./catalog/ui
         run: pnpm run test
         shell: bash
+      - name: Build production bundle
+        working-directory: ./catalog/ui
+        run: pnpm run build
+        shell: bash
+        env:
+          NODE_ENV: production
   deploy:
     needs: test
     name: "Publish image in quay"
