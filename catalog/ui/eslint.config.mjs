@@ -1,3 +1,4 @@
+import { fixupPluginRules } from '@eslint/compat';
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
@@ -31,7 +32,9 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint,
-      'react': react,
+      // eslint-plugin-react 7.x still calls context APIs removed in ESLint 10
+      // (e.g. context.getFilename); fixupPluginRules restores them.
+      'react': fixupPluginRules(react),
       'react-hooks': reactHooks,
     },
     settings: {
