@@ -122,7 +122,7 @@ export async function kickoffSoundcheck(
       window.open(sessionUrl, '_blank', 'noopener,noreferrer');
     }
     return { sessionId: body.session_id, sessionUrl, mode: 'api' };
-  } catch (err) {
+  } catch {
     // CORS, offline, or API unavailable — deep-link still creates one batch session
     // in the Soundcheck UI (same workshop= comma list; no N parallel checks).
     const deepUrl = buildSoundcheckCheckUrl(baseUrl, ids, {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
@@ -1134,14 +1134,14 @@ const SelfPacedLabItemComponent: React.FC<{
                     const userAssignments = userAssignmentsList?.items || [];
                     return {
                       cells: [
-                        <>
+                        <Fragment key="name">
                           <Link key="link" to={`/services/${rc.metadata.namespace}/${rc.metadata.name}`}>
                             {displayName(rc)}
                           </Link>
                           {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
-                        </>,
+                        </Fragment>,
                         <ServiceStatus key="status" resourceClaim={rc} />,
-                        <>
+                        <Fragment key="assignment">
                           {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
                             ? userAssignments
                                 .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
@@ -1151,11 +1151,11 @@ const SelfPacedLabItemComponent: React.FC<{
                                   </p>
                                 ))
                             : '-'}
-                        </>,
-                        <>
+                        </Fragment>,
+                        <Fragment key="created">
                           <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
                           <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)
-                        </>,
+                        </Fragment>,
                         ...(isAdmin
                           ? [
                               <ButtonCircleIcon

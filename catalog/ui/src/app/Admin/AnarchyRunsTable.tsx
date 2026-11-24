@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -41,17 +41,19 @@ const AnarchyRunsTable: React.FC<{
       rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
         return {
           cells: [
-            <>
+            <Fragment key="name">
               <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>
                 {anarchyRun.metadata.name}
               </Link>
               <OpenshiftConsoleLink key="console" resource={anarchyRun} />
-            </>,
-            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
-            <>
+            </Fragment>,
+            <Fragment key="runner-state">
+              {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
+            </Fragment>,
+            <Fragment key="created">
               <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
               <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
-            </>,
+            </Fragment>,
           ],
           onSelect: (isSelected: boolean) =>
             selectedUidsReducer({

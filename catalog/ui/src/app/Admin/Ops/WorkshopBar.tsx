@@ -95,9 +95,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   getSeats,
   getProvisionProgress,
   getCurrentCount,
-  getCluster,
   getClusterInfo,
-  multiWorkshopsByName,
   isMultiNs,
   timezone,
   soundcheckBadge,
@@ -105,7 +103,6 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const navigate = useNavigate();
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
   const status = getWorkshopStatus(workshop);
-  const clusterName = useMemo(() => getCluster?.(workshop) || null, [getCluster, workshop]);
   const clusterInfo = useMemo(() => getClusterInfo?.(workshop) || null, [getClusterInfo, workshop]);
 
   // Calculate cluster capacity state using placement capacity as primary metric

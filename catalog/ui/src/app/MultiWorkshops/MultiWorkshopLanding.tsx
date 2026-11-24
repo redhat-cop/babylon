@@ -138,6 +138,28 @@ const MultiWorkshopLandingComponent: React.FC<{
     },
   );
 
+  const assets = multiworkshop?.spec.assets || [];
+
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
+
+  const { platforms, assetCountByPlatform } = useMemo(() => {
+    const countMap = new Map<string, number>();
+    for (const asset of assets) {
+      if (asset.platform) {
+        countMap.set(asset.platform, (countMap.get(asset.platform) ?? 0) + 1);
+      }
+    }
+    const platformList = Array.from(countMap.keys()).sort((a, b) => a.localeCompare(b));
+    return { platforms: platformList, assetCountByPlatform: countMap };
+  }, [assets]);
+
+  const hasFilterableContent = platforms.length > 1;
+
+  const filteredAssets = useMemo(() => {
+    if (selectedPlatforms.size === 0) return assets;
+    return assets.filter((asset) => asset.platform && selectedPlatforms.has(asset.platform));
+  }, [assets, selectedPlatforms]);
+
   if (isLoading) {
     return (
       <div className="multi-workshop-landing">
@@ -161,27 +183,6 @@ const MultiWorkshopLandingComponent: React.FC<{
   }
 
   const displayName = multiworkshop.spec.displayName || multiworkshop.spec.name || multiworkshop.metadata.name;
-  const assets = multiworkshop.spec.assets || [];
-
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
-
-  const { platforms, assetCountByPlatform } = useMemo(() => {
-    const countMap = new Map<string, number>();
-    for (const asset of assets) {
-      if (asset.platform) {
-        countMap.set(asset.platform, (countMap.get(asset.platform) ?? 0) + 1);
-      }
-    }
-    const platformList = Array.from(countMap.keys()).sort((a, b) => a.localeCompare(b));
-    return { platforms: platformList, assetCountByPlatform: countMap };
-  }, [assets]);
-
-  const hasFilterableContent = platforms.length > 1;
-
-  const filteredAssets = useMemo(() => {
-    if (selectedPlatforms.size === 0) return assets;
-    return assets.filter((asset) => asset.platform && selectedPlatforms.has(asset.platform));
-  }, [assets, selectedPlatforms]);
 
   const handleTogglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) => {

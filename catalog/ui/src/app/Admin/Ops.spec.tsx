@@ -1,9 +1,9 @@
 import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
-import { within } from '@testing-library/react';
+import { within, render as rtlRender } from '@testing-library/react';
+import { EmptyState as PFEmptyState } from '@patternfly/react-core';
 import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs } from './Ops';
-import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import type { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
 
@@ -684,8 +684,6 @@ describe('Ops Component', () => {
 
   describe('Empty State', () => {
     test('empty state component renders correctly when given no data', () => {
-      const { EmptyState: PFEmptyState } = require('@patternfly/react-core');
-      const { render: rtlRender } = require('@testing-library/react');
       const result = rtlRender(<PFEmptyState titleText="No workshops found" headingLevel="h4" />);
       expect(result.getByText('No workshops found')).toBeInTheDocument();
     });
@@ -751,7 +749,7 @@ describe('Ops Component', () => {
       expect(clickSpy).toHaveBeenCalled();
 
       (document.createElement as jest.Mock).mockRestore();
-      delete (window.URL as any).createObjectURL;
+      delete (window.URL as Partial<typeof window.URL>).createObjectURL;
     });
   });
 

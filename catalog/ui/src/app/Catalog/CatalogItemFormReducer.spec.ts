@@ -47,7 +47,7 @@ describe('CatalogItemFormReducer', () => {
   describe('reduceFormState', () => {
     describe('init action', () => {
       it('should initialize form state with default values', () => {
-        const initialState = reduceFormState(undefined as any, {
+        const initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: mockCatalogItem,
           serviceNamespace: mockServiceNamespace,
@@ -67,7 +67,7 @@ describe('CatalogItemFormReducer', () => {
       });
 
       it('should initialize selectedResourcePool as undefined', () => {
-        const initialState = reduceFormState(undefined as any, {
+        const initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: mockCatalogItem,
           serviceNamespace: mockServiceNamespace,
@@ -88,7 +88,7 @@ describe('CatalogItemFormReducer', () => {
             supportedActions: { start: {}, provision: {}, destroy: {} },
           },
         };
-        const initialState = reduceFormState(undefined as any, {
+        const initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: catalogItemNoStop,
           serviceNamespace: mockServiceNamespace,
@@ -109,7 +109,7 @@ describe('CatalogItemFormReducer', () => {
             supportedActions: { start: {}, stop: {}, provision: {}, destroy: {} },
           },
         };
-        const initialState = reduceFormState(undefined as any, {
+        const initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: catalogItemWithStop,
           serviceNamespace: mockServiceNamespace,
@@ -126,7 +126,7 @@ describe('CatalogItemFormReducer', () => {
       let initialState: ReturnType<typeof reduceFormState>;
 
       beforeEach(() => {
-        initialState = reduceFormState(undefined as any, {
+        initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: mockCatalogItem,
           serviceNamespace: mockServiceNamespace,
@@ -183,7 +183,7 @@ describe('CatalogItemFormReducer', () => {
       let initialState: ReturnType<typeof reduceFormState>;
 
       beforeEach(() => {
-        initialState = reduceFormState(undefined as any, {
+        initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: mockCatalogItem,
           serviceNamespace: mockServiceNamespace,
@@ -221,7 +221,7 @@ describe('CatalogItemFormReducer', () => {
       let initialState: ReturnType<typeof reduceFormState>;
 
       beforeEach(() => {
-        initialState = reduceFormState(undefined as any, {
+        initialState = reduceFormState(undefined, {
           type: 'init',
           catalogItem: mockCatalogItem,
           serviceNamespace: mockServiceNamespace,
@@ -287,7 +287,7 @@ describe('CatalogItemFormReducer', () => {
     let initialState: ReturnType<typeof reduceFormState>;
 
     beforeEach(() => {
-      initialState = reduceFormState(undefined as any, {
+      initialState = reduceFormState(undefined, {
         type: 'init',
         catalogItem: mockCatalogItem,
         serviceNamespace: mockServiceNamespace,

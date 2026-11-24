@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import RenderedContent from '@app/components/RenderedContent';
 import parseDuration from 'parse-duration';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   DescriptionList,

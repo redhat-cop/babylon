@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import useSWR from 'swr';
 import ResourcePoolSelector from './ResourcePoolSelector';
 import type { ResourcePool } from '@app/types';
 
@@ -177,8 +178,7 @@ describe('ResourcePoolSelector with no pools', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const useSWR = require('swr').default;
-    useSWR.mockReturnValue({
+    (useSWR as jest.Mock).mockReturnValue({
       data: [],
       error: undefined,
       isLoading: false,
@@ -202,8 +202,7 @@ describe('ResourcePoolSelector filtering', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    const useSWR = require('swr').default;
-    useSWR.mockReturnValue({
+    (useSWR as jest.Mock).mockReturnValue({
       data: mockResourcePools,
       error: undefined,
       isLoading: false,

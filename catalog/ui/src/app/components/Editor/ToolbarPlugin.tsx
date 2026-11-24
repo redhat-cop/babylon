@@ -81,7 +81,7 @@ function FloatingLinkEditor({ editor }) {
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
         return parsed.href;
       }
-    } catch (e) {
+    } catch {
       // Invalid URL; fall through and return empty string.
     }
     return '';

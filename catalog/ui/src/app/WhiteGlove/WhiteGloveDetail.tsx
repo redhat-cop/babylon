@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
@@ -323,6 +323,32 @@ const WhiteGloveDetailContent: React.FC = () => {
       .finally(() => setIsLinking(false));
   }
 
+  const jiraTicketIdForComment = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
+
+  async function patchSpec(specPatch: Record<string, unknown>, commentLabel?: string) {
+    const updated = await patchWhiteGloveRequest({ namespace, name, patch: { spec: specPatch } });
+    mutate(updated, false);
+    if (commentLabel && jiraTicketIdForComment) {
+      addJiraComment(jiraTicketIdForComment, commentLabel).catch(() => {});
+    }
+  }
+
+  // useDebounce captures its callback once, so route through a ref to always call the latest patchSpec.
+  const patchSpecRef = useRef(patchSpec);
+  useEffect(() => {
+    patchSpecRef.current = patchSpec;
+  });
+
+  const debouncedPatchSpec = useDebounce(
+    (specPatch: Record<string, unknown>, commentLabel?: string) => patchSpecRef.current(specPatch, commentLabel),
+    1000,
+  );
+
+  const catalogItemsFilter = useCallback(
+    (items: CatalogItem[]) => items.filter((item) => getSLA(item) !== SLAs.Unsupported),
+    [],
+  );
+
   if (!wgr) {
     return (
       <PageSection>
@@ -370,21 +396,6 @@ const WhiteGloveDetailContent: React.FC = () => {
     }
   }
 
-  const jiraTicketIdForComment = wgr?.metadata?.annotations?.[`${DEMO_DOMAIN}/jira-ticket-id`];
-
-  async function patchSpec(specPatch: Record<string, unknown>, commentLabel?: string) {
-    const updated = await patchWhiteGloveRequest({ namespace, name, patch: { spec: specPatch } });
-    mutate(updated, false);
-    if (commentLabel && jiraTicketIdForComment) {
-      addJiraComment(jiraTicketIdForComment, commentLabel).catch(() => {});
-    }
-  }
-
-  const debouncedPatchSpec = useDebounce(
-    (specPatch: Record<string, unknown>, commentLabel?: string) => patchSpec(specPatch, commentLabel),
-    1000,
-  );
-
   function addShareWithEmail() {
     const email = shareWithInput.trim();
     if (!email) return;
@@ -401,11 +412,6 @@ const WhiteGloveDetailContent: React.FC = () => {
     const updated = current.filter((e) => e !== email);
     patchSpec({ shareWith: updated.length > 0 ? updated : null }, `Updated "Share With": removed ${email}`);
   }
-
-  const catalogItemsFilter = useCallback(
-    (items: CatalogItem[]) => items.filter((item) => getSLA(item) !== SLAs.Unsupported),
-    [],
-  );
 
   function handleCatalogItemSelect(catalogItemOrItems: CatalogItem | CatalogItem[]) {
     const items = Array.isArray(catalogItemOrItems) ? catalogItemOrItems : [catalogItemOrItems];

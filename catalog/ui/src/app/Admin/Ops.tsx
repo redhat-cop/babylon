@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import {
   Alert,
   AlertGroup,
@@ -99,11 +99,11 @@ import type {
   ResourceClaimList,
   MultiWorkshop,
   MultiWorkshopList,
-  TenantClusterPool,
   TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
   K8sObject,
+  Namespace,
 } from '@app/types';
 import {
   displayName,
@@ -165,7 +165,7 @@ import {
   type OpsHistoryEntry,
 } from '@app/Admin/Ops/opsHistory';
 // Force webpack to include Timeline
-if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
+if (typeof window !== 'undefined') (window as Window & { __TIMELINE__?: unknown }).__TIMELINE__ = WorkshopTimeline;
 
 import './admin.css';
 import './ops.css';
@@ -201,7 +201,7 @@ export function distributeProvisionCounts(oldCounts: number[], newTotal: number)
 }
 
 export function workshopProvisionAssignedCount(p: WorkshopProvision): number {
-  return (p.status as any)?.assignedCount ?? 0;
+  return p.status?.assignedCount ?? 0;
 }
 
 export function distributeProvisionCountsRespectingAssigned(
@@ -246,12 +246,8 @@ const TIMELINE_STORAGE_KEY = 'opsTimelineDateRange';
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-const ONE_DAY_MS = TWENTY_FOUR_HOURS_MS;
 /** ~6 months — matches AutoStopDestroy.tsx (15778800000ms) */
 const SIX_MONTHS_MS = 15778800000;
-
-/** Paginate workshop *groups* (rows), not individual asset lines */
-const OPS_GROUP_PAGE_DEFAULT = 18;
 
 export type OpsSortMode =
   | 'start-asc'
@@ -433,23 +429,6 @@ function wsDetailPath(ws: Workshop): string {
 }
 
 /**
- * Check if a ResourceClaim is in a failed provision state.
- */
-function isResourceClaimFailed(rc: ResourceClaim): boolean {
-  // Check for provision failure states
-  const state = rc.status?.resources?.[0]?.state;
-  if (!state) return false;
-
-  // AnarchySubject with failed provision
-  if (state.kind === 'AnarchySubject') {
-    const provisionState = state.spec?.vars?.current_state;
-    return provisionState === 'provision-failed' || provisionState === 'provision-error';
-  }
-
-  return false;
-}
-
-/**
  * Parse multi-term search input into individual search terms.
  * Supports comma-separated, space-separated, or mixed formats.
  * Examples:
@@ -488,7 +467,6 @@ const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
-  const { mutate } = useSWRConfig();
   const soundcheckBase = normalizeSoundcheckBase();
 
   // ---------- Alerts ----------
@@ -578,7 +556,7 @@ const Ops: React.FC = () => {
   const [showPlatformConfirm, setShowPlatformConfirm] = useState(false);
 
   // Fetch all user namespaces for multi-ns picker
-  const { data: allNsData } = useSWR<{ items: any[] }>(
+  const { data: allNsData } = useSWR<{ items: Namespace[] }>(
     multiNsMode ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : null,
     fetcher,
   );
@@ -841,7 +819,7 @@ const Ops: React.FC = () => {
     (ws: Workshop): number => {
       const provs = provisionsByWorkshop.get(wsKey(ws));
       if (!provs || provs.length === 0) return 0;
-      return provs.reduce((sum, p) => sum + ((p.status as any)?.failedCount ?? 0), 0);
+      return provs.reduce((sum, p) => sum + (p.status?.failedCount ?? 0), 0);
     },
     [provisionsByWorkshop],
   );
@@ -859,8 +837,8 @@ const Ops: React.FC = () => {
       if (!provs || provs.length === 0) return null;
       return {
         desired: provs.reduce((s, p) => s + (p.spec?.count ?? 0), 0),
-        claimed: provs.reduce((s, p) => s + ((p.status as any)?.resourceClaimCount ?? 0), 0),
-        failed: provs.reduce((s, p) => s + ((p.status as any)?.failedCount ?? 0), 0),
+        claimed: provs.reduce((s, p) => s + (p.status?.resourceClaimCount ?? 0), 0),
+        failed: provs.reduce((s, p) => s + (p.status?.failedCount ?? 0), 0),
         concurrency: provs.reduce((s, p) => s + (p.spec?.concurrency ?? 1), 0),
       };
     },
@@ -1000,7 +978,7 @@ const Ops: React.FC = () => {
         const parsed = JSON.parse(stored);
         return { start: new Date(parsed.start), end: new Date(parsed.end) };
       }
-    } catch (e) {
+    } catch {
       /* ignore */
     }
     const today = new Date();
@@ -1016,7 +994,7 @@ const Ops: React.FC = () => {
           end: timelineDateRange.end.toISOString(),
         }),
       );
-    } catch (e) {
+    } catch {
       /* ignore */
     }
   }, [timelineDateRange]);
@@ -3986,7 +3964,7 @@ const Ops: React.FC = () => {
                       return (
                         <Tooltip key={key} content={tooltipContent} maxWidth="360px">
                           <Label
-                            color={statusFilter === key ? 'blue' : (color as any)}
+                            color={statusFilter === key ? 'blue' : color}
                             isCompact
                             onClick={() => setStatusFilter(statusFilter === key ? 'all' : (key as StatusKey | 'all'))}
                             className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
@@ -4688,12 +4666,9 @@ const Ops: React.FC = () => {
                         let grpSeatsAssigned = 0;
                         let grpSeatsTotal = 0;
                         let grpLocked = 0;
-                        let grpActive = 0;
                         let grpStopped = 0;
-                        let grpFailed = 0;
                         let grpDesired = 0;
                         let grpClaimed = 0;
-                        let grpFailedCount = 0;
                         let grpConcurrency = 0;
                         let grpAttention = false;
                         const grpPasswords = new Map<string, string>();
@@ -4723,14 +4698,11 @@ const Ops: React.FC = () => {
                             grpSeatsTotal += s.total;
                           }
                           if (isWorkshopLocked(ws)) grpLocked++;
-                          if (s && s.assigned > 0) grpActive++;
                           if (ws.spec?.provisionDisabled) grpStopped++;
                           const prog = getProvisionProgress(ws);
                           if (prog) {
-                            if (prog.failed > 0) grpFailed++;
                             grpDesired += prog.desired;
                             grpClaimed += prog.claimed;
-                            grpFailedCount += prog.failed;
                             grpConcurrency += prog.concurrency;
                           }
                           if (
@@ -5123,7 +5095,8 @@ const Ops: React.FC = () => {
                                     setSelectedWs((prev) => {
                                       const next = new Set(prev);
                                       const k = wsKey(ws);
-                                      next.has(k) ? next.delete(k) : next.add(k);
+                                      if (next.has(k)) next.delete(k);
+                                      else next.add(k);
                                       return next;
                                     })
                                   }

@@ -32,7 +32,7 @@ const EditableText: React.FC<{
     setEditing(false);
   }
 
-  function onKeyUp(event: any): void {
+  function onKeyUp(event: React.KeyboardEvent): void {
     if (event.key === 'Enter') {
       finishEditing();
     } else if (event.key === 'Escape') {

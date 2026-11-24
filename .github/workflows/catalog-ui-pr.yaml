@@ -38,6 +38,10 @@ jobs:
       - name: Install packages
         working-directory: ./catalog/ui
         run: pnpm install --frozen-lockfile
+      - name: Lint
+        working-directory: ./catalog/ui
+        run: pnpm run lint
+        shell: bash
       - name: Run integration tests
         working-directory: ./catalog/ui
         run: pnpm run test

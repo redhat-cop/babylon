@@ -93,7 +93,7 @@ const WhiteGloveListContent: React.FC = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(defaultPerPage);
 
-  const { data, mutate } = useSWR<WhiteGloveRequestList>(
+  const { data } = useSWR<WhiteGloveRequestList>(
     userNamespace ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name }) : null,
     fetcher,
     { refreshInterval: 8000 },

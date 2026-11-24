@@ -6,7 +6,7 @@ const ResourceClaimDeleteModal: React.FC<{
   onConfirm: () => Promise<void>;
   resourceClaims: ResourceClaim[];
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
-  setOnConfirmCb?: (_: any) => Promise<void>;
+  setOnConfirmCb?: (_: unknown) => Promise<void>;
   restart?: boolean;
 }> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb, restart }) => {
   useEffect(() => {

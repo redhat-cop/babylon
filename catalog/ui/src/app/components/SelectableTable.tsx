@@ -1,12 +1,20 @@
 import React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 
+export interface SelectableTableRow {
+  // Callers build cells as unknown[]; each cell is rendered as a ReactNode.
+  cells: unknown[];
+  disableSelection?: boolean;
+  onSelect?: (isSelected: boolean) => void;
+  selected?: boolean;
+}
+
 const SelectableTable: React.FC<{
-  columns: any[];
-  onSelectAll: any;
-  rows: any[];
+  columns: string[];
+  onSelectAll: (isSelected: boolean) => void;
+  rows: SelectableTableRow[];
 }> = ({ columns, onSelectAll, rows }) => {
-  function onSelect(_: any, isSelected: boolean, rowId: string | number) {
+  function onSelect(_: unknown, isSelected: boolean, rowId: string | number) {
     if (rowId === -1) {
       onSelectAll(isSelected);
     } else {
@@ -51,9 +59,9 @@ const SelectableTable: React.FC<{
                 rowIndex,
               }}
             />
-            {row.cells.map((cell: any, cellIndex: number) => (
+            {row.cells.map((cell, cellIndex: number) => (
               <Td key={cellIndex} dataLabel={columns[cellIndex]}>
-                {cell}
+                {cell as React.ReactNode}
               </Td>
             ))}
           </Tr>

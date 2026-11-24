@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -234,11 +234,11 @@ const AnarchyGovernors: React.FC = () => {
             rows={anarchyGovernors.map((anarchyGovernor: AnarchyGovernor) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchyGovernor.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchyGovernor} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchygovernors/${anarchyGovernor.metadata.namespace}/${anarchyGovernor.metadata.name}`}
@@ -246,13 +246,13 @@ const AnarchyGovernors: React.FC = () => {
                       {anarchyGovernor.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyGovernor} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchyGovernor.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={anarchyGovernor.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({

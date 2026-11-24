@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { Fragment, useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -488,13 +488,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                 rows={resourceHandles.map((resourceHandle: ResourceHandle) => {
                   return {
                     cells: [
-                      <>
+                      <Fragment key="name">
                         <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}>
                           {resourceHandle.metadata.name}
                         </Link>
                         <OpenshiftConsoleLink key="console" resource={resourceHandle} />
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="service-namespace">
                         {resourceHandle.spec.resourceClaim ? (
                           [
                             <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
@@ -509,8 +509,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         ) : (
                           <p>-</p>
                         )}
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="service-name">
                         {resourceHandle.spec.resourceClaim ? (
                           [
                             <Link
@@ -524,13 +524,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         ) : (
                           <p>-</p>
                         )}
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="created">
                         <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
                         <span key="interval" style={{ padding: '0 6px' }}>
                           (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
                         </span>
-                      </>,
+                      </Fragment>,
                     ],
                     onSelect: (isSelected: boolean) =>
                       reduceResourceHandleSelectedUids({
@@ -584,13 +584,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                       )
                       .map((scaling: ResourcePoolScaling) => ({
                         cells: [
-                          <>
+                          <Fragment key="name">
                             {scaling.metadata.name}
                             <OpenshiftConsoleLink key="console" resource={scaling} />
-                          </>,
-                          <>{scaling.spec.count}</>,
-                          <>{scaling.status?.count ?? '-'}</>,
-                          <>
+                          </Fragment>,
+                          <Fragment key="requested-count">{scaling.spec.count}</Fragment>,
+                          <Fragment key="current-count">{scaling.status?.count ?? '-'}</Fragment>,
+                          <Fragment key="state">
                             {scaling.status?.state === 'waiting' && scaling.spec.at ? (
                               <>
                                 Scheduled at <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
@@ -601,13 +601,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                             ) : (
                               scaling.status?.state || '-'
                             )}
-                          </>,
-                          <>
+                          </Fragment>,
+                          <Fragment key="created">
                             <LocalTimestamp key="timestamp" timestamp={scaling.metadata.creationTimestamp} />
                             <span key="interval" style={{ padding: '0 6px' }}>
                               (<TimeInterval key="time-interval" toTimestamp={scaling.metadata.creationTimestamp} />)
                             </span>
-                          </>,
+                          </Fragment>,
                           <div key="actions">
                             <ButtonCircleIcon
                               onClick={() => {

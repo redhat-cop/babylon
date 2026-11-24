@@ -69,10 +69,6 @@ function getEndOfDay(d: Date): Date {
   return date;
 }
 
-function wsKey(ws: WorkshopWithResourceClaims): string {
-  return `${ws.metadata.namespace}/${ws.metadata.name}`;
-}
-
 export function getWorkshopStatus(
   workshop: WorkshopWithResourceClaims,
 ): 'Running' | 'Failed' | 'Scheduled' | 'Stopped' {

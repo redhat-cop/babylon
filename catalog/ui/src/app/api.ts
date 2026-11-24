@@ -190,7 +190,7 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
 export async function silentFetcher(path: string, opt?: Record<string, unknown>) {
   try {
     return await fetcher(path, opt);
-  } catch (_) {
+  } catch {
     return null;
   }
 }

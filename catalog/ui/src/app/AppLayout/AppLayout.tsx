@@ -14,6 +14,28 @@ import { NotificationDrawerProvider, useNotificationDrawer } from './Notificatio
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
+const PageContent: React.FC<{
+  children: React.ReactNode;
+  masthead: React.ReactNode;
+  sidebar: React.ReactNode;
+  onPageResize: (props: { mobileView: boolean; windowSize: number }) => void;
+}> = ({ children, masthead, sidebar, onPageResize }) => {
+  const notificationDrawerContext = useNotificationDrawer();
+  return (
+    <Page
+      className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
+      mainContainerId="primary-app-container"
+      masthead={masthead}
+      sidebar={sidebar}
+      onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
+      notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
+      isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
+    >
+      {children}
+    </Page>
+  );
+};
+
 const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessControl?: IAppRouteAccessControl }> = ({
   children,
   title,
@@ -141,23 +163,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     />
   );
 
-  const PageContent = () => {
-    const notificationDrawerContext = useNotificationDrawer();
-    return (
-      <Page
-        className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
-        mainContainerId="primary-app-container"
-        masthead={_Header}
-        sidebar={Sidebar}
-        onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
-        notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
-        isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
-      >
-        {children}
-      </Page>
-    );
-  };
-
   if (partner_connect_header_enabled && !partnerScriptsReady) {
     return <LoadingSection />;
   }
@@ -203,7 +208,9 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             </div>
           </PageSection>
         ) : null}
-        <PageContent />
+        <PageContent masthead={_Header} sidebar={Sidebar} onPageResize={onPageResize}>
+          {children}
+        </PageContent>
       </Suspense>
     </NotificationDrawerProvider>
   );

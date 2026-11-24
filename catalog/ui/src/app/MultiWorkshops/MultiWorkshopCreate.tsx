@@ -453,13 +453,6 @@ const MultiWorkshopCreate: React.FC = () => {
     }
   }
 
-  function updateAsset(index: number, field: string, value: string) {
-    setCreateFormData((prev) => ({
-      ...prev,
-      assets: prev.assets.map((asset, i) => (i === index ? { ...asset, [field]: value } : asset)),
-    }));
-  }
-
   function addAsset() {
     setCreateFormData((prev) => ({
       ...prev,

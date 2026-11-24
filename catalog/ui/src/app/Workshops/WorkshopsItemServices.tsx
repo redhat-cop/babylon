@@ -211,7 +211,7 @@ const WorkshopsItemServices: React.FC<{
                 .find((u) => u != null);
             const cells: unknown[] = [
               // Name
-              <>
+              <React.Fragment key="name">
                 <Link
                   key="services"
                   to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
@@ -219,9 +219,9 @@ const WorkshopsItemServices: React.FC<{
                   {displayName(resourceClaim)}
                 </Link>
                 {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
-              </>,
+              </React.Fragment>,
               // GUID
-              <>
+              <React.Fragment key="guid">
                 {guid ? (
                   isAdmin && resourceHandle ? (
                     [
@@ -241,13 +241,13 @@ const WorkshopsItemServices: React.FC<{
                     <small>{cluster}</small>
                   </div>
                 ) : null}
-              </>,
+              </React.Fragment>,
 
               // Status
               <ServiceStatus key="status" resourceClaim={resourceClaim} />,
 
               // User
-              <>
+              <React.Fragment key="user">
                 {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
                   ? userAssignments
                       .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
@@ -255,14 +255,14 @@ const WorkshopsItemServices: React.FC<{
                         <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>
                       ))
                   : '-'}
-              </>,
+              </React.Fragment>,
 
               // Created
-              <>
+              <React.Fragment key="created">
                 <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
                 <br key="break" />
                 (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
-              </>,
+              </React.Fragment>,
               // Actions
               <React.Fragment key="actions">
                 <div

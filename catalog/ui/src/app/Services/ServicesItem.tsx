@@ -92,7 +92,6 @@ import {
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
   DEMO_DOMAIN,
-  extractErrorMessage,
   getWhiteGloved,
   parseSalesforceItems,
 } from '@app/util';

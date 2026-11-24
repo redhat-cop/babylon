@@ -4,7 +4,7 @@ const WorkshopActionModal: React.FC<{
   onConfirm: () => Promise<void>;
   action: 'start' | 'stop';
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
-  setOnConfirmCb?: (_: any) => Promise<void>;
+  setOnConfirmCb?: (_: unknown) => Promise<void>;
 }> = ({ onConfirm, action, setTitle, setOnConfirmCb }) => {
   useEffect(() => {
     setOnConfirmCb(() => onConfirm);
