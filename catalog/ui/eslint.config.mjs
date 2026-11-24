@@ -9,7 +9,7 @@ import globals from 'globals';
 export default [
   // Base ESLint recommended rules
   js.configs.recommended,
-  
+
   // Configuration for JavaScript and TypeScript files
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -34,7 +34,7 @@ export default [
       '@typescript-eslint': tseslint,
       // eslint-plugin-react 7.x still calls context APIs removed in ESLint 10
       // (e.g. context.getFilename); fixupPluginRules restores them.
-      'react': fixupPluginRules(react),
+      react: fixupPluginRules(react),
       'react-hooks': reactHooks,
     },
     settings: {
@@ -49,7 +49,7 @@ export default [
       ...react.configs.recommended.rules,
       // React hooks rules
       ...reactHooks.configs.recommended.rules,
-      
+
       // Custom rules (migrated from .eslintrc)
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/consistent-type-imports': 'error',
@@ -62,7 +62,7 @@ export default [
       'react/prop-types': 'off',
     },
   },
-  
+
   // Configuration for JavaScript files only
   {
     files: ['**/*.js'],
