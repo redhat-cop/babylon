@@ -20,9 +20,6 @@ spec:
         description: >-
           Configuration for the babylon-cluster-tenant-manager to maintain
           capacity for a cluster catalog item and associated tenant items.
-        required:
-        - clusterProvisioning
-        - sandboxHost
         properties:
           apiVersion:
             type: string
@@ -130,6 +127,30 @@ spec:
                     description: >-
                       Configure whether tenant sandbox request must include quota.
                     type: boolean
+                  worker_sizing:
+                    description: >-
+                      Configuration for sizing the worker count of clusters
+                      from the pool. When unset, clusters are provisioned at
+                      the static size from the catalog item.
+                    type: object
+                    properties:
+                      max_workers:
+                        description: >-
+                          The maximum number of workers per cluster.
+                        type: integer
+                      min_workers:
+                        description: >-
+                          The minimum number of workers per cluster.
+                        type: integer
+                      placements_per_worker:
+                        description: >-
+                          The number of tenant placements per worker.
+                        type: integer
+                    required:
+                      - max_workers
+                      - min_workers
+                      - placements_per_worker
+
               tenantPools:
                 description: >-
                   Configuration to keep a pool of provisioned tenant items.
@@ -216,8 +237,10 @@ spec:
                   - sandboxApiState
         required:
         - apiVersion
+        - clusterProvisioning
         - kind
         - metadata
+        - sandboxHost
         - spec
         type: object
     served: true
