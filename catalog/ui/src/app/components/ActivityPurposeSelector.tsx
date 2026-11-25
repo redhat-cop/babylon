@@ -27,9 +27,13 @@ const ActivityPurposeSelector: React.FC<{
   const [explanation, setExplanation] = useState(value?.explanation || '');
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs local editable selection from the controlled value prop only when a non-empty value arrives; deriving would discard local edits
     if (value?.activity && value.activity !== activity) setActivity(value.activity);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs local editable selection from the controlled value prop only when a non-empty value arrives; deriving would discard local edits
     if (value?.purpose && value.purpose !== purpose) setPurpose(value.purpose);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs local editable selection from the controlled value prop only when a non-empty value arrives; deriving would discard local edits
     if (value?.explanation && value.explanation !== explanation) setExplanation(value.explanation);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- must only re-run when the incoming value changes; adding local state deps would overwrite user edits with the stale prop
   }, [value?.activity, value?.purpose, value?.explanation]);
 
   const activityOpts = purposeOpts
@@ -42,17 +46,20 @@ const ActivityPurposeSelector: React.FC<{
 
     if (activityOpts.size === 1) {
       activityName = [...activityOpts.values()][0][0].activity;
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-time auto-selection on mount when only one option exists; also notifies parent via onChange
       setActivity(activityName);
     }
 
     if (purposeOpts.length === 1) {
       purposeName = purposeOpts[0].name;
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-time auto-selection on mount when only one option exists; also notifies parent via onChange
       setPurpose(purposeName);
     }
 
     if (activityName || purposeName) {
       onChange(activityName, purposeName, null);
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- mount-only; activityOpts is rebuilt every render and onChange is usually inline, so deps would call onChange (parent setState) on every render
   }, []);
 
   const availablePurposes = purposeOpts.filter((p) => p.activity === activity);

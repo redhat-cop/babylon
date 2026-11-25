@@ -277,6 +277,7 @@ const SelfPacedLabItemComponent: React.FC<{
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the editable (debounced) ops-effort buffer from the annotation after a refetch; deriving would discard in-progress edits
     setOpsEffort(opsEffortFromAnnotation);
   }, [opsEffortFromAnnotation]);
 
@@ -295,6 +296,7 @@ const SelfPacedLabItemComponent: React.FC<{
         },
       },
     }).then((updated) => mutateSelfPacedLab(updated));
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- keyed on name/namespace only; depending on the selfPacedLab object or mutate fn would re-run the patch on every SWR refetch
   }, [debouncedOpsEffort, opsEffortFromAnnotation, selfPacedLab?.metadata?.name, selfPacedLab?.metadata?.namespace]);
 
   const whiteGloved = selfPacedLab?.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
@@ -653,6 +655,7 @@ const SelfPacedLabItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status</DescriptionListTerm>
                   <DescriptionListDescription>
+                    {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once start time passes; freezing it would break that */}
                     {autoStartTime && autoStartTime > Date.now() ? (
                       <ScheduledStatus startTime={autoStartTime} />
                     ) : selfPacedLab.status?.poolCount ? (
@@ -777,6 +780,7 @@ const SelfPacedLabItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 ) : null}
+                {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once start time passes; freezing it would break that */}
                 {autoStartTime && autoStartTime > Date.now() ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Start Date</DescriptionListTerm>

@@ -44,12 +44,14 @@ const SelectableTable: React.FC<{
             }}
           />
           {columns.map((column, index) => (
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- column headers are plain strings that may repeat (e.g. empty) and are positional
             <Th key={index}>{column}</Th>
           ))}
         </Tr>
       </Thead>
       <Tbody>
         {rows.map((row, rowIndex) => (
+          // eslint-disable-next-line @eslint-react/no-array-index-key -- SelectableTableRow has no identity field and rowIndex is the selection id passed to onSelect
           <Tr key={rowIndex}>
             <Td
               select={{
@@ -60,6 +62,7 @@ const SelectableTable: React.FC<{
               }}
             />
             {row.cells.map((cell, cellIndex: number) => (
+              // eslint-disable-next-line @eslint-react/no-array-index-key -- cells are positional within a row
               <Td key={cellIndex} dataLabel={columns[cellIndex]}>
                 {cell as React.ReactNode}
               </Td>

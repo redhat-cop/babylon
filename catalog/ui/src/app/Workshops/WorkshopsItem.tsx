@@ -672,6 +672,7 @@ const WorkshopsItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
+      {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once the time passes; freezing it would break that */}
       {workshop.spec?.lifespan?.readyBy && new Date(workshop.spec.lifespan.readyBy).getTime() > Date.now() ? (
         <PageSection hasBodyWrapper={false} key="ready-by-alert">
           <Alert variant="info" isInline title="Scheduled Ready Time">

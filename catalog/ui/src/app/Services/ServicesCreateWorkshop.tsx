@@ -12,9 +12,9 @@ const ServicesCreateWorkshop: React.FC<{
 }> = ({ resourceClaim, setOnConfirmCb }) => {
   const [userRegistrationValue, setUserRegistrationValue] = useState('open');
   const [userRegistrationSelectIsOpen, setUserRegistrationSelectIsOpen] = useState(false);
-  const [workshopAccessPassword, setWorkshopAccessPassword] = useState(randomString(8));
+  const [workshopAccessPassword, setWorkshopAccessPassword] = useState(() => randomString(8));
   const [workshopDescription, setWorkshopDescription] = useState('');
-  const [workshopDisplayName, setWorkshopDisplayName] = useState(displayName(resourceClaim));
+  const [workshopDisplayName, setWorkshopDisplayName] = useState(() => displayName(resourceClaim));
 
   const onToggleClick = () => {
     setUserRegistrationSelectIsOpen(!userRegistrationSelectIsOpen);

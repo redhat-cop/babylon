@@ -82,7 +82,7 @@ const UserMessage: React.FC<{
 const ServiceUsers: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ resourceClaim }) => {
-  const users = {};
+  let users = {};
   const labUserInterfaceUrls = JSON.parse(
     resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}',
   );
@@ -90,13 +90,13 @@ const ServiceUsers: React.FC<{
   for (const status_resource of resourceClaim?.status?.resources || []) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
     if (resource_users) {
-      Object.assign(users, resource_users);
+      users = { ...users, ...resource_users };
     }
   }
   if (resourceClaim?.status?.summary) {
     const resource_users = resourceClaim.status.summary.provision_data?.users;
     if (resource_users) {
-      Object.assign(users, resource_users);
+      users = { ...users, ...resource_users };
     }
   }
 

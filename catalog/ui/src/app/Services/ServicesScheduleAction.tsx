@@ -56,6 +56,7 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
+          // eslint-disable-next-line @eslint-react/purity -- relative maximum lifespan is measured from the current time; must not be frozen at mount
           Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
         )
       : workshop
@@ -71,6 +72,7 @@ const ServicesScheduleAction: React.FC<{
         : null;
   }
   const minMaxProps = {
+    // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must not be frozen at mount
     minDate: Date.now(),
     maxDate,
   };

@@ -95,9 +95,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const wgrParam = searchParams.get('wgr');
   const [wgrNamespace, wgrName] = wgrParam ? wgrParam.split('/') : [null, null];
   const debouncedApiFetch = useDebounce(apiFetch, 1000);
-  const [autoStopDestroyModal, openAutoStopDestroyModal] = useState<TDatesTypes>(null);
+  const [autoStopDestroyModal, setAutoStopDestroyModal] = useState<TDatesTypes>(null);
   const [isStartModalOpen, setIsStartModalOpen] = useState(false);
-  const [searchSalesforceIdModal, openSearchSalesforceIdModal] = useState(false);
+  const [searchSalesforceIdModal, setSearchSalesforceIdModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUserDisabledModalOpen, setIsUserDisabledModalOpen] = useState(false);
   const [availabilityData, setAvailabilityData] = useState<AvailabilityCheckResponse | null>(null);
@@ -240,8 +240,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
 
     dispatchFormState({ type: 'whiteGloved', whiteGloved: true });
 
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot guard set after applying the async-loaded WhiteGloveRequest to the form reducer; must run after the SWR fetch resolves
     setWgrApplied(true);
-  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState, serviceNamespaces]);
+  }, [whiteGloveRequest, wgrApplied, workshopInitialProps, dispatchFormState, serviceNamespaces, workshopUiDisabled]);
 
   let maxAutoDestroyTime = Math.min(
     parseDuration(catalogItem.spec.lifespan?.maximum),
@@ -338,6 +339,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     const parametersWithSelectors = getParametersWithSandboxSelectors();
 
     if (parametersWithSelectors.length === 0) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- clears sandbox availability result when the catalog item has no sandbox-selector parameters; tied to the same effect that triggers checkAvailability
       setAvailabilityData(null);
       prevSandboxParametersRef.current = {};
       return undefined;
@@ -369,6 +371,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         checkAvailability();
         return undefined;
       } else {
+        // eslint-disable-next-line @eslint-react/set-state-in-effect -- clears stale availability when selector params change to empty; change detection relies on prevSandboxParametersRef inside this effect
         setAvailabilityData(null);
         return undefined;
       }
@@ -594,6 +597,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
         maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime}
         defaultRuntimeTimestamp={
+          // eslint-disable-next-line @eslint-react/purity -- compares against the current time on each render; freezing "now" would use a stale reference while the form stays open
           new Date(Date.now() + parseDuration(catalogItem.spec.runtime?.default)) > formState.endDate
             ? parseDuration('4h')
             : parseDuration(catalogItem.spec.runtime?.default)
@@ -602,7 +606,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           isAdmin
             ? null
             : formState.workshop
-              ? (formState.startDate ? formState.startDate.getTime() : Date.now()) - Date.now() + parseDuration('5d')
+              ? // eslint-disable-next-line @eslint-react/purity -- max destroy window is relative to the current time at render; freezing "now" would drift while the form stays open
+                (formState.startDate ? formState.startDate.getTime() : Date.now()) - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
         onConfirm={(dates: TDates) =>
@@ -612,13 +617,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
               : null
         }
-        onClose={() => openAutoStopDestroyModal(null)}
+        onClose={() => setAutoStopDestroyModal(null)}
         title={_displayName}
       />
       <CatalogItemFormStartModal
         isOpen={isStartModalOpen}
         isWorkshop={!!formState.workshop}
         isAdmin={isAdmin}
+        // eslint-disable-next-line @eslint-react/purity -- default start is "now" when no start date is chosen; must reflect current time when the modal opens
         startDate={formState.startDate || new Date()}
         onConfirm={(startDate: Date, readyByMode: boolean) => {
           setUseDirectProvisioningDate(readyByMode);
@@ -650,7 +656,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       />
       <SearchSalesforceIdModal
         isOpen={searchSalesforceIdModal}
-        onClose={() => openSearchSalesforceIdModal(false)}
+        onClose={() => setSearchSalesforceIdModal(false)}
         defaultSfdcType={formState.salesforceItems?.[formState.salesforceItems.length - 1]?.type || null}
         onSubmitCb={(value: string, type: 'campaign' | 'project' | 'opportunity') =>
           dispatchFormState({
@@ -985,6 +991,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 type="auto-start"
                 onClick={() => setIsStartModalOpen(true)}
                 className="catalog-item-form__auto-stop-btn"
+                // eslint-disable-next-line @eslint-react/purity -- shows "now" as the start when no start date is set; must stay current across re-renders
                 time={formState.startDate ? formState.startDate.getTime() : Date.now()}
                 variant="extended"
                 destroyTimestamp={formState.endDate?.getTime()}
@@ -1001,7 +1008,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
                 type="auto-stop"
-                onClick={() => openAutoStopDestroyModal('auto-stop')}
+                onClick={() => setAutoStopDestroyModal('auto-stop')}
                 className="catalog-item-form__auto-stop-btn"
                 time={formState.stopDate ? formState.stopDate.getTime() : null}
                 variant="extended"
@@ -1016,7 +1023,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
                 type="auto-destroy"
-                onClick={() => openAutoStopDestroyModal('auto-destroy')}
+                onClick={() => setAutoStopDestroyModal('auto-destroy')}
                 className="catalog-item-form__auto-destroy-btn"
                 time={formState.endDate.getTime()}
                 variant="extended"
@@ -1034,6 +1041,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   type="auto-start"
                   onClick={() => setIsStartModalOpen(true)}
                   className="catalog-item-form__auto-stop-btn"
+                  // eslint-disable-next-line @eslint-react/purity -- shows "now" as the start when no start date is set; must stay current across re-renders
                   time={formState.startDate ? formState.startDate.getTime() : Date.now()}
                   variant="extended"
                   destroyTimestamp={formState.endDate?.getTime()}
@@ -1045,7 +1053,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 <div className="catalog-item-form__group-control--single">
                   <AutoStopDestroy
                     type="auto-stop"
-                    onClick={() => openAutoStopDestroyModal('auto-stop')}
+                    onClick={() => setAutoStopDestroyModal('auto-stop')}
                     className="catalog-item-form__auto-stop-btn"
                     time={formState.stopDate.getTime()}
                     variant="extended"
@@ -1058,7 +1066,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <div className="catalog-item-form__group-control--single">
                 <AutoStopDestroy
                   type="auto-destroy"
-                  onClick={() => openAutoStopDestroyModal('auto-destroy')}
+                  onClick={() => setAutoStopDestroyModal('auto-destroy')}
                   className="catalog-item-form__auto-destroy-btn"
                   time={formState.endDate.getTime()}
                   variant="extended"

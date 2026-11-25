@@ -136,18 +136,18 @@ function sandboxApiStateColor(state: string): 'green' | 'yellow' | 'red' | 'grey
 
 const TenantClusterPools: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
-  const [expandedPools, setExpandedPools] = useState<Set<string>>(new Set());
+  const [expandedPools, setExpandedPools] = useState<Set<string>>(() => new Set());
 
   const { data: tenantClusterPools } = useSWR<TenantClusterPool[]>(
     apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
@@ -305,6 +305,7 @@ const TenantClusterPools: React.FC = () => {
                         </tr>
                         {isExpanded
                           ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => (
+                              // eslint-disable-next-line @eslint-react/no-array-index-key -- cluster name is optional and resourceClaimName uniqueness is not guaranteed; keeping index avoids changing row state retention
                               <ClusterChildRow key={idx} cluster={cluster} namespace={pool.metadata.namespace} />
                             ))
                           : null}

@@ -39,6 +39,7 @@ const DateTimePickerModalDialog: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the selection to the date prop each time the modal is opened, together with the imperative openModal() call
       setSelectedDate(date);
       openModal();
     }

@@ -38,16 +38,16 @@ const AnarchyActions: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const actionFilter = searchParams.has('action') ? searchParams.get('action') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);

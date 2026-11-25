@@ -46,16 +46,16 @@ function filterResourcePool(resourcePool: ResourcePool, keywordFilter: string[])
 const ResourcePools: React.FC = () => {
   const matchMutate = useMatchMutate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 

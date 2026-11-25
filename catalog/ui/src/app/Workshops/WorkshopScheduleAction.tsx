@@ -27,11 +27,14 @@ const WorkshopScheduleAction: React.FC<{
   const { isAdmin } = useSession().getSession();
   let maxDate: number = null;
   let currentActionDate: Date = null;
+  // Offset from "now" used for the initial selected date when there is no current action date
+  let defaultDateOffset = 0;
   const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
   if (action === 'retirement' || action === 'start' || action === 'start-date') {
     if (action === 'retirement') {
-      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
+      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : null;
+      defaultDateOffset = 14400000; // By default: 14400000 = 4h;
       maxDate = getMaxAutoDestroy(workshop);
     } else if (action === 'start') {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
@@ -49,7 +52,7 @@ const WorkshopScheduleAction: React.FC<{
     maxDate = resourceClaims.length > 0 ? Math.min(...resourceClaims.map((r) => getMaxRuntime(r))) : null;
   }
 
-  const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(() => currentActionDate || new Date(Date.now() + defaultDateOffset));
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   const [timezone, setTimezone] = useState(getBrowserTimezone);
 
@@ -87,6 +90,7 @@ const WorkshopScheduleAction: React.FC<{
           : 'Auto-stop';
 
   const minMaxProps = {
+    // eslint-disable-next-line @eslint-react/purity -- picker min bound is the current time at each render; freezing would allow past dates in a long-open modal
     minDate: Date.now(),
     maxDate,
   };

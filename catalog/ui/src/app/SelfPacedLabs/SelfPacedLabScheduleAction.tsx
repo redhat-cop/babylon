@@ -12,8 +12,9 @@ const SelfPacedLabScheduleAction: React.FC<{
   setIsDisabled?: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ action, currentDate, setState, setIsDisabled }) => {
   const { isAdmin } = useSession().getSession();
-  const defaultDate = currentDate ? new Date(currentDate) : new Date(Date.now() + 14400000);
-  const [selectedDate, setSelectedDate] = useState(defaultDate);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    currentDate ? new Date(currentDate) : new Date(Date.now() + 14400000),
+  );
   const [timezone, setTimezone] = useState(getBrowserTimezone);
 
   useEffect(() => {
@@ -33,9 +34,11 @@ const SelfPacedLabScheduleAction: React.FC<{
   const actionLabel = action === 'retirement' ? 'Auto-destroy' : 'Start Date';
 
   const minMaxProps: { minDate: number; maxDate?: number } = {
+    // eslint-disable-next-line @eslint-react/purity -- picker bounds are relative to the current time at each render; freezing would allow past dates in a long-open modal
     minDate: Date.now(),
   };
   if (!isAdmin) {
+    // eslint-disable-next-line @eslint-react/purity -- max date is one year from the current time at each render, same as minDate
     minMaxProps.maxDate = Date.now() + 365 * 24 * 60 * 60 * 1000;
   }
 
@@ -51,6 +54,7 @@ const SelfPacedLabScheduleAction: React.FC<{
             timezone={timezone}
           />
         </FormGroup>
+        {/* eslint-disable-next-line @eslint-react/purity -- past-date warning must compare against the current time on each render */}
         {selectedDate.getTime() <= Date.now() ? (
           <Alert
             variant="warning"

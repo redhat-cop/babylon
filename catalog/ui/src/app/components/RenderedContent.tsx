@@ -33,6 +33,7 @@ const RenderedContent: React.FC<{
   if (result.failed) return <span role="alert">Unable to display this content.</span>;
   if (children) return <>{children(result.html)}</>;
   if (maxLength !== undefined) return <>{stripHtml(result.html).trim().slice(0, maxLength)}</>;
+  // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml -- result.html comes from renderContent(), which sanitizes with DOMPurify
   return <div className={className} dangerouslySetInnerHTML={{ __html: result.html }} />;
 };
 

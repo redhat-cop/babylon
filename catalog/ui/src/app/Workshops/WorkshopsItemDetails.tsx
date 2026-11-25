@@ -272,6 +272,7 @@ const WorkshopsItemDetails: React.FC<{
   }
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the editable (debounced) ops-effort buffer from the annotation after a refetch; deriving would discard in-progress edits
     setOpsEffort(opsEffortFromAnnotation);
   }, [opsEffortFromAnnotation]);
 
@@ -661,6 +662,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
+      {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once the time passes; freezing it would break that */}
       {autoStartTime && autoStartTime > Date.now() ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Start Date</DescriptionListTerm>
@@ -750,6 +752,7 @@ const WorkshopsItemDetails: React.FC<{
         </DescriptionListGroup>
       ) : null}
 
+      {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once the time passes; freezing it would break that */}
       {checkWorkshopCanStop(resourceClaims) || (autoStartTime && autoStartTime > Date.now()) ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Auto-Stop</DescriptionListTerm>

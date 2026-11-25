@@ -623,6 +623,7 @@ const ServicesItemComponent: React.FC<{
   }
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the editable (debounced) ops-effort input from the annotation after refetch; deriving would discard in-progress edits
     setOpsEffort(opsEffortFromAnnotation);
   }, [opsEffortFromAnnotation]);
 
@@ -649,6 +650,7 @@ const ServicesItemComponent: React.FC<{
   ]);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the optimistic resource-pool selection from the annotation after refetch
     setSelectedResourcePool(resourcePoolAnnotation);
   }, [resourcePoolAnnotation]);
 
@@ -1221,6 +1223,7 @@ const ServicesItemComponent: React.FC<{
                       </DescriptionListDescription>
                     </DescriptionListGroup>
 
+                    {/* eslint-disable-next-line @eslint-react/purity -- shows the scheduled start only while it is in the future; must stay current as SWR polling re-renders */}
                     {startTime && startTime > Date.now() ? (
                       <DescriptionListGroup>
                         <DescriptionListTerm>Start</DescriptionListTerm>
@@ -1696,6 +1699,7 @@ const ServicesItemComponent: React.FC<{
                     if (resourceClaim.status?.resources?.length > 1) {
                       return (
                         <Card
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- status resources are positionally aligned with spec resources and never reordered; expansion state is also keyed by index
                           key={idx}
                           id={`component-card-${idx}`}
                           isExpanded={expanded.includes(`item-${idx}`)}
@@ -1721,6 +1725,7 @@ const ServicesItemComponent: React.FC<{
                     }
 
                     return (
+                      // eslint-disable-next-line @eslint-react/no-array-index-key -- status resources are positionally aligned with spec resources and never reordered
                       <React.Fragment key={idx}>
                         <ComponentDetailsList {...detailsProps} />
                       </React.Fragment>

@@ -175,7 +175,8 @@ const ReorderModal: React.FC<{
           isAdmin
             ? null
             : isWorkshop
-              ? scheduleDates.startDate.getTime() - Date.now() + parseDuration('5d')
+              ? // eslint-disable-next-line @eslint-react/purity -- max duration is relative to the current time and must be recomputed on each render
+                scheduleDates.startDate.getTime() - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
         onConfirm={(dates) => {

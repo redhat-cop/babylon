@@ -14,7 +14,7 @@
     "start": "sirv dist --cors --single --host --port 8080",
     "start:dev": "webpack serve --color --progress --config webpack.dev.js",
     "test": "jest",
-    "eslint": "eslint ./src/",
+    "eslint": "eslint ./src/ --max-warnings 0",
     "lint": "pnpm run eslint",
     "format": "prettier --check --write \"./**/*.{tsx,ts,json,css,js}\"",
     "type-check": "tsc --noEmit",

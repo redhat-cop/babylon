@@ -34,6 +34,7 @@ const BulkUserAssignmentModal: React.FunctionComponent<BulkUserAssignmentModalPr
 
   // Reset emails text each time modal is opened.
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the text buffer when the parent toggles isOpen; component stays mounted so a key reset would need parent changes
     setEmailsText('');
   }, [isOpen]);
 

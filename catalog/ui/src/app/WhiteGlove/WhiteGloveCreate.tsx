@@ -83,6 +83,7 @@ const WhiteGloveCreateContent: React.FC = () => {
 
   const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
 
+  // eslint-disable-next-line @eslint-react/purity -- lead-time warning must be computed against the current time on each render
   const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
 
   const defaultCatalogNamespace = catalogNamespaces?.find(
@@ -331,6 +332,7 @@ const WhiteGloveCreateContent: React.FC = () => {
             <Alert variant="info" isInline title="Some dates are unavailable">
               <ul style={{ margin: 0, paddingLeft: '16px' }}>
                 {wgBlockedDates.map((range, i) => (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- static config list never reordered; date ranges are not guaranteed unique
                   <li key={i}>
                     {range.startDate === range.endDate ? range.startDate : `${range.startDate} to ${range.endDate}`}
                     {range.message ? ` — ${range.message}` : ''}
@@ -523,6 +525,7 @@ const WhiteGloveCreateContent: React.FC = () => {
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
         date={eventDate}
+        // eslint-disable-next-line @eslint-react/purity -- picker min bound is the current time at each render; freezing would allow past dates
         minDate={Date.now()}
         title="Event Start Date"
         additionalValidators={[blockedDateValidator]}

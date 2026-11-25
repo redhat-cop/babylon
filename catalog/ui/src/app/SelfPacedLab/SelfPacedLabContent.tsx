@@ -22,6 +22,7 @@ const SelfPacedLabContent: React.FC<{
   const infoMessageTemplate = selfPacedLab.template ? (JSON.parse(selfPacedLab.template) as MessageTemplate) : null;
   let renderEditor = true;
 
+  const userAssignmentDataJson = JSON.stringify(userAssignment.data);
   const templateHtml = useMemo(() => {
     if (!infoMessageTemplate || !userAssignment?.data) return null;
     return (
@@ -39,7 +40,8 @@ const SelfPacedLabContent: React.FC<{
         )}
       </RenderedContent>
     );
-  }, [infoMessageTemplate, JSON.stringify(userAssignment.data)]);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- deep-compares userAssignment.data via its JSON string so a refetch with identical data does not re-render the template
+  }, [infoMessageTemplate, userAssignmentDataJson]);
 
   const userAssignmentMessagesHtml = useMemo(
     () =>

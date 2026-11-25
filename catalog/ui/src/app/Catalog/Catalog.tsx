@@ -227,6 +227,8 @@ export async function fetchCatalog(namespaces: string[]): Promise<CatalogItem[]>
   return catalogItems;
 }
 
+const HIDDEN_CATALOG_NAMESPACES = ['babylon-catalog-infra'];
+
 const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ userHasRequiredPropertiesToAccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -235,7 +237,6 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   const { namespace: catalogNamespaceName } = useParams();
   const showFavorites = searchParams.has('favorites') ? searchParams.get('favorites') === 'true' : false;
   const { catalogNamespaces, groups, isAdmin } = useSession().getSession();
-  const HIDDEN_CATALOG_NAMESPACES = ['babylon-catalog-infra'];
   const visibleCatalogNamespaces = useMemo(
     () => catalogNamespaces.filter((ns) => !HIDDEN_CATALOG_NAMESPACES.includes(ns.name)),
     [catalogNamespaces],

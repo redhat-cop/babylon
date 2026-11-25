@@ -171,6 +171,7 @@ const BlockedDatesManager: React.FC = () => {
             </Thead>
             <Tbody>
               {wgBlockedDates.map((range, i) => (
+                // eslint-disable-next-line @eslint-react/no-array-index-key -- blocked ranges have no id and may duplicate; deletion is index-based and rows hold no local state
                 <Tr key={i}>
                   <Td dataLabel="Start">{range.startDate}</Td>
                   <Td dataLabel="End">{range.endDate}</Td>

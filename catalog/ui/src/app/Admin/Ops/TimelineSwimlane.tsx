@@ -24,9 +24,7 @@ export interface TimelineSwimlaneProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (
-    ws: Workshop,
-  ) => {
+  getClusterInfo?: (ws: Workshop) => {
     poolName: string;
     poolNamespace: string;
     clusterName: string;
@@ -168,6 +166,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
         >
           {nowPercent !== null && <div className="timeline-now-line" style={{ left: `${nowPercent}%` }} />}
           {rows.map((row, rowIndex) => (
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- rows are positional layout lanes computed by packing; they have no identity beyond their index
             <div key={rowIndex} className="timeline-swimlane__row" style={{ top: `${rowIndex * 46 + 8}px` }}>
               {row.workshops.map((workshop) => (
                 <WorkshopBar

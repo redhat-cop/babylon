@@ -23,13 +23,13 @@ function LogoImg({ onClick }: { onClick: () => void }) {
 }
 
 const PublicHeader: React.FC = () => {
-  const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const [isUserHelpDropdownOpen, setIsUserHelpDropdownOpen] = useState(false);
   const { help_link, help_text, status_page_url, feedback_link, learn_more_link } = useInterface('rhpds').data;
   const navigate = useNavigate();
 
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     event?.preventDefault();
-    setUserHelpDropdownOpen(false);
+    setIsUserHelpDropdownOpen(false);
     if (value) {
       window.open(value as string, '_blank');
     }
@@ -69,7 +69,7 @@ const PublicHeader: React.FC = () => {
       <Dropdown
         aria-label="Help menu"
         isOpen={isUserHelpDropdownOpen}
-        onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
+        onOpenChange={(isOpen: boolean) => setIsUserHelpDropdownOpen(isOpen)}
         onSelect={onSelect}
         isScrollable
         popperProps={{ position: 'right' }}
@@ -77,7 +77,7 @@ const PublicHeader: React.FC = () => {
           <MenuToggle
             ref={toggleRef}
             variant="plain"
-            onClick={() => setUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
+            onClick={() => setIsUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
             isExpanded={isUserHelpDropdownOpen}
             style={{ width: 'auto' }}
             icon={<QuestionCircleIcon style={{ fill: '#fff' }} />}

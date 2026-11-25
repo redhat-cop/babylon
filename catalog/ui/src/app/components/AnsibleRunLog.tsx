@@ -68,10 +68,12 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
   return (
     <div className="ansible-run-log">
       {(ansibleRun.plays || []).map((play, play_number) => (
+        // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
         <div key={play_number} className="ansible-run-log-play">
           <div className="ansible-run-log-play-start">{play.start.substring(0, 19)}Z</div>
           <div className="ansible-run-log-play-header">PLAY [{play.name}] *****</div>
           {(play.tasks || []).map((task, task_number) => (
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
             <div key={task_number} className="ansible-run-log-task">
               <div className="ansible-run-log-task-start">{task.start.substring(0, 19)}Z</div>
               <div className="ansible-run-log-task-header">TASK [{task.name}] *****</div>
@@ -81,18 +83,22 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
                     <div className="ansible-run-log-task-host-items">
                       {host.items.map((item, item_number) =>
                         item.result?.changed ? (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
                           <div key={item_number} className="ansible-run-log-task-host-item-changed">
                             changed: [{hostname}] (item={item.item})
                           </div>
                         ) : item.ok ? (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
                           <div key={item_number} className="ansible-run-log-task-host-item-ok">
                             ok: [{hostname}] (item={item.item})
                           </div>
                         ) : item.skipped ? (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
                           <div key={item_number} className="ansible-run-log-task-host-item-skipped">
                             skipping: [{hostname}] (item={item.item})
                           </div>
                         ) : item.failed ? (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
                           <div key={item_number} className="ansible-run-log-task-host-item-failed">
                             fatal: [{hostname}] (item={item.item}): FAILED! =&gt;
                             <div className="ansible-run-log-yaml-dump">
@@ -100,6 +106,7 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
                             </div>
                           </div>
                         ) : (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- append-only ansible log rendered read-only; entries have no unique id and are never reordered
                           <div key={item_number} className="ansible-run-log-task-host-unknown">
                             ??: {hostname}
                           </div>

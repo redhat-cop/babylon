@@ -106,14 +106,15 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       document.head.appendChild(el);
     });
 
+    let loaded = 0;
+    const onLoad = () => {
+      loaded++;
+      if (loaded >= newScripts.length) setPartnerScriptsReady(true);
+    };
     if (newScripts.length === 0) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- readiness depends on the DOM script injection done above in this effect; nothing to wait for when all scripts already exist
       setPartnerScriptsReady(true);
     } else {
-      let loaded = 0;
-      const onLoad = () => {
-        loaded++;
-        if (loaded >= newScripts.length) setPartnerScriptsReady(true);
-      };
       newScripts.forEach((el) => {
         el.addEventListener('load', onLoad);
         el.addEventListener('error', onLoad);
@@ -121,6 +122,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     }
 
     return () => {
+      newScripts.forEach((el) => {
+        el.removeEventListener('load', onLoad);
+        el.removeEventListener('error', onLoad);
+      });
       setPartnerScriptsReady(false);
       document.head.querySelectorAll('style[data-rhpc]').forEach((el) => el.remove());
       document.head.querySelectorAll('link[href*="connect.redhat.com"]').forEach((el) => el.remove());
@@ -143,6 +148,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     }, 500);
 
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- login event must fire once when partner scripts become ready; re-dispatching on email/fullName changes is not intended
   }, [partnerScriptsReady]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
@@ -177,6 +183,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
           >
             <div>
               <div
+                // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml -- partner header HTML is sanitized with dompurify.sanitize before injection
                 dangerouslySetInnerHTML={{
                   __html: dompurify.sanitize(
                     (partnerHeaderHtml || '').replace(/(src|href)="(\/[^"]*?)"/g, '$1="https://connect.redhat.com$2"'),

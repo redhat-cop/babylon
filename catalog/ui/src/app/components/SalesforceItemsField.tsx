@@ -125,6 +125,7 @@ const SalesforceItemsField: React.FC<{
   // Show the form when there are no existing items
   useEffect(() => {
     if (existingItems.length === 0 && !showAddForm) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- latches the add form open when the list becomes empty; it must stay open after items are added, so it is not derivable
       setShowAddForm(true);
     }
   }, [existingItems.length, showAddForm]);
@@ -133,6 +134,7 @@ const SalesforceItemsField: React.FC<{
     <>
       {/* Display existing items as read-only input fields */}
       {existingItems.map((item, idx) => (
+        // eslint-disable-next-line @eslint-react/no-array-index-key -- rows are fully controlled (no local state) and ids from saved data are not guaranteed unique; idx is also used for removal
         <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>

@@ -25,6 +25,7 @@ const CatalogItemFormStartModal: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the modal's editable date buffer to the parent's startDate each time the modal opens, alongside the imperative openModal()
       setSelectedDate(startDate);
       openModal();
     }

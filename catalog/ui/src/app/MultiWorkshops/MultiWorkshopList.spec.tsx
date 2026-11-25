@@ -27,17 +27,20 @@ jest.mock('@app/api', () => ({
 
 jest.mock('@app/Modal/Modal', () => {
   const ReactActual = jest.requireActual<typeof React>('react');
-  const Modal = ReactActual.forwardRef(
-    (
-      { title }: { children: React.ReactNode; title: string; onConfirm: () => void },
-      ref: React.Ref<{ open: () => void }>,
-    ) => {
-      const [isOpen, setIsOpen] = ReactActual.useState(false);
-      ReactActual.useImperativeHandle(ref, () => ({ open: () => setIsOpen(true) }));
-      if (!isOpen) return null;
-      return <div data-testid="confirm-modal">{title}</div>;
-    },
-  );
+  const Modal = ({
+    title,
+    ref,
+  }: {
+    children: React.ReactNode;
+    title: string;
+    onConfirm: () => void;
+    ref?: React.Ref<{ open: () => void }>;
+  }) => {
+    const [isOpen, setIsOpen] = ReactActual.useState(false);
+    ReactActual.useImperativeHandle(ref, () => ({ open: () => setIsOpen(true) }));
+    if (!isOpen) return null;
+    return <div data-testid="confirm-modal">{title}</div>;
+  };
   Modal.displayName = 'Modal';
   return {
     __esModule: true,

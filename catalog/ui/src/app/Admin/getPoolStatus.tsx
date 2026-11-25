@@ -2,15 +2,15 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { ResourceHandle } from '@app/types';
 
 export function useIsMounted() {
-  const isMounted = useRef(false);
+  const isMountedRef = useRef(false);
   useEffect(() => {
-    isMounted.current = true;
+    isMountedRef.current = true;
     return () => {
-      isMounted.current = false;
+      isMountedRef.current = false;
     };
   }, []);
 
-  return useCallback(() => isMounted.current, []);
+  return useCallback(() => isMountedRef.current, []);
 }
 
 function getPoolStatus(resourceHandles: ResourceHandle[]): { available: number; total: number; taken: number } {

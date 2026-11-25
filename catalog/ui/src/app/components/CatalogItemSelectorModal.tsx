@@ -432,7 +432,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(defaultMultiSelect ?? !singleSelect);
-  const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
+  const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(() => new Map());
   const { catalogNamespaces: sessionCatalogNamespaces } = useSession().getSession();
   const catalogNamespaces = useMemo(
     () =>

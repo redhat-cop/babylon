@@ -138,9 +138,10 @@ const MultiWorkshopLandingComponent: React.FC<{
     },
   );
 
-  const assets = multiworkshop?.spec.assets || [];
+  const specAssets = multiworkshop?.spec.assets;
+  const assets = useMemo(() => specAssets || [], [specAssets]);
 
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(() => new Set());
 
   const { platforms, assetCountByPlatform } = useMemo(() => {
     const countMap = new Map<string, number>();
@@ -273,6 +274,7 @@ const MultiWorkshopLandingComponent: React.FC<{
                 {filteredAssets.map((asset, index) => {
                   const isAvailable = asset.type === 'external' ? !!asset.url : !!asset.workshopId;
 
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- index is only a fallback for assets without a key (not yet configured); asset.key is used whenever present
                   return <WorkshopCard key={asset.key || index} asset={asset} isAvailable={isAvailable} />;
                 })}
               </div>

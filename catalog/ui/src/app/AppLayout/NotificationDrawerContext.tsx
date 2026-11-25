@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, use, useState } from 'react';
 
 interface NotificationDrawerContextType {
   notificationDrawer: React.ReactNode | null;
@@ -15,7 +15,7 @@ export const NotificationDrawerProvider: React.FC<{ children: ReactNode }> = ({ 
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   return (
-    <NotificationDrawerContext.Provider
+    <NotificationDrawerContext
       value={{
         notificationDrawer,
         isDrawerExpanded,
@@ -24,12 +24,12 @@ export const NotificationDrawerProvider: React.FC<{ children: ReactNode }> = ({ 
       }}
     >
       {children}
-    </NotificationDrawerContext.Provider>
+    </NotificationDrawerContext>
   );
 };
 
 export const useNotificationDrawer = () => {
-  const context = useContext(NotificationDrawerContext);
+  const context = use(NotificationDrawerContext);
   return context; // Return undefined if not provided, so components can check
 };
 

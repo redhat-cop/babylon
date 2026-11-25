@@ -520,7 +520,7 @@ const ServicesList: React.FC<{
         return Promise.resolve(null);
       }
     },
-    [cache, modalState.action, modalState.workshop, revalidate, mutate],
+    [modalState.action],
   );
 
   const performModalActionForSelfPacedLab = useCallback(

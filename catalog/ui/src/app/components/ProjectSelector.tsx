@@ -90,7 +90,7 @@ const ProjectSelector: React.FC<{
       }
     }
     setIsOpen((v) => !v);
-  }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin]);
+  }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin, cache, labelSelector]);
 
   const filteredServiceNamespaces = useMemo(
     () =>

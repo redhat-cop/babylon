@@ -20,6 +20,7 @@ const SalesforceItemsList: React.FC<SalesforceItemsListProps> = ({ items }) => {
       {items
         .filter((item) => item.type && item.id)
         .map((item, idx) => (
+          // eslint-disable-next-line @eslint-react/no-array-index-key -- read-only list; ids are not guaranteed unique so idx disambiguates
           <ListItem key={`${item.id}-${idx}`}>
             <span style={{ fontWeight: 'bold' }}>{getTypeLabel(item.type)} Id</span>: {item.id}
           </ListItem>

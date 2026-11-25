@@ -101,6 +101,7 @@ const WhatsNew: React.FC = () => {
           </header>
           <div
             className="whats-new-content"
+            // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml -- articleHtml() sanitizes the body with dompurify.sanitize (html profile) before serializing
             dangerouslySetInnerHTML={{
               __html: articleHtml(page?.body || ''),
             }}

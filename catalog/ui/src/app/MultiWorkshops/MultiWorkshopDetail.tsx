@@ -116,6 +116,7 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; w
   const orderedCount: number = workshop?.status?.provisionCount?.ordered ?? 0;
   const hasStatus = activeResourceClaims.length > 0 || orderedCount > 0;
   const autoStartTime = workshop ? getWorkshopLifespan(workshop).start : null;
+  // eslint-disable-next-line @eslint-react/purity -- compares scheduled start against the current time; must stay current as SWR polling re-renders the page
   const isScheduled = autoStartTime && autoStartTime > Date.now();
 
   if (isScheduled) {
@@ -944,6 +945,7 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListGroup>
                   ) : null}
 
+                  {/* eslint-disable-next-line @eslint-react/purity -- hides the start-date editor once the start time has passed; must stay current as SWR polling re-renders the page */}
                   {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
@@ -951,6 +953,7 @@ const MultiWorkshopDetail: React.FC = () => {
                         <Split hasGutter style={{ alignItems: 'center' }}>
                           <SplitItem>
                             <DateTimePickerButton
+                              // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no start date is set; must reflect current time
                               date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
                               timezone={timezone}
                               isDisabled={isLocked}
@@ -971,6 +974,7 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListTerm>End Date</DescriptionListTerm>
                     <DescriptionListDescription>
                       <DateTimePickerButton
+                        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no end date is set; must reflect current time
                         date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
                         timezone={timezone}
                         isDisabled={isLocked}
@@ -1290,7 +1294,9 @@ const MultiWorkshopDetail: React.FC = () => {
       <Footer />
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
+        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no start date is set; must reflect current time
         date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
+        // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must stay current as SWR polling re-renders the page
         minDate={Date.now()}
         title="Start provisioning date"
         onConfirm={async (date) => {
@@ -1314,7 +1320,9 @@ const MultiWorkshopDetail: React.FC = () => {
       />
       <DateTimePickerModalDialog
         isOpen={isEndDateModalOpen}
+        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no end date is set; must reflect current time
         date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
+        // eslint-disable-next-line @eslint-react/purity -- minimum end date falls back to the current time; must stay current as SWR polling re-renders the page
         minDate={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
         title="End Date"
         onConfirm={async (date) => {

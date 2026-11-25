@@ -938,7 +938,7 @@ const Ops: React.FC = () => {
   const [showPasswords, setShowPasswords] = useState(false);
 
   const isRefreshing = wsValidating || provValidating || assignValidating;
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [lastRefresh, setLastRefresh] = useState<Date>(() => new Date());
   const handleRefresh = useCallback(() => {
     mutateWorkshops();
     mutateProvisions();
@@ -950,7 +950,7 @@ const Ops: React.FC = () => {
 
   const [workshopSearchText, setWorkshopSearchText] = useState('');
   const [stageFilter, setStageFilter] = useState<string | null>(null);
-  const [purposeFilter, setPurposeFilter] = useState<Set<string>>(new Set());
+  const [purposeFilter, setPurposeFilter] = useState<Set<string>>(() => new Set());
   const [purposeFilterOpen, setPurposeFilterOpen] = useState(false);
   const [failedFilter, setFailedFilter] = useState(false);
   const [opsViewMode, setOpsViewMode] = useState<'all' | 'white-glove'>('all');
@@ -1161,6 +1161,7 @@ const Ops: React.FC = () => {
     attentionFilter,
     tableRegionFilter,
     clusterFilter,
+    tenantAssignmentFilter,
     sortMode,
     getFailedCount,
     getSeats,
@@ -1173,14 +1174,17 @@ const Ops: React.FC = () => {
     [targets, isMultiNs],
   );
 
-  const [selectedWs, setSelectedWs] = useState<Set<string>>(new Set());
+  const [selectedWs, setSelectedWs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets selection/page whenever any filter changes (including namespace/platformMode from outside handlers); moving into every setter would be a large, error-prone refactor
     setSelectedWs(new Set());
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets selection/page whenever any filter changes (including namespace/platformMode from outside handlers); moving into every setter would be a large, error-prone refactor
     setTablePage(1);
   }, [workshopSearchText, stageFilter, purposeFilter, namespace, opsViewMode, sortMode, failedFilter, platformMode]);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets failed filter when stage or route namespace changes; namespace comes from the URL, so there is no single handler to move this into
     setFailedFilter(false);
   }, [stageFilter, namespace]);
 
@@ -1267,6 +1271,7 @@ const Ops: React.FC = () => {
   }, [pagedWorkshopGroups]);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- clamps stored page when data shrinks; deriving a clamped value would require touching every tablePage consumer and pagination control
     if (tablePage > maxTablePage) setTablePage(maxTablePage);
   }, [tablePage, maxTablePage]);
 
@@ -1291,7 +1296,7 @@ const Ops: React.FC = () => {
     }
   }, [allSelected, workshopKeysOnPage]);
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
 
   const toggleGroup = useCallback((name: string) => {
     setExpandedGroups((prev) => {
@@ -1845,7 +1850,7 @@ const Ops: React.FC = () => {
     link.setAttribute('download', `workshops-${namespace || 'multi'}-${ts}.csv`);
     document.body.appendChild(link);
     link.click();
-  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats, getWhiteGloved]);
+  }, [workshopGroups, timezone, namespace, getProvisionProgress, getSeats]);
 
   // ---------- Handlers ----------
 
@@ -3556,6 +3561,7 @@ const Ops: React.FC = () => {
                             {(soundcheckRun.failedTargets?.length ?? 0) > 0 && (
                               <ul className="ops-soundcheck-alerts">
                                 {soundcheckRun.failedTargets!.map((t, i) => (
+                                  // eslint-disable-next-line @eslint-react/no-array-index-key -- failed target summaries have no id and label/url are not guaranteed unique; read-only list
                                   <li key={i}>
                                     <strong>{t.label}</strong>
                                     {t.errorMessage ? (

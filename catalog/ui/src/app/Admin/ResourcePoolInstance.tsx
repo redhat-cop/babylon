@@ -431,6 +431,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
               {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => {
                 const resourceName = resourcePoolSpecResource.name || resourcePoolSpecResource.provider.name;
                 return (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); name is optional and may repeat, list is never reordered
                   <StackItem key={idx}>
                     <Title headingLevel="h3">
                       {resourceName === 'babylon'

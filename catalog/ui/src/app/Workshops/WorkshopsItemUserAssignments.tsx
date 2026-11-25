@@ -134,9 +134,9 @@ const WorkshopsItemUserAssignments: React.FC<{
           </Tr>
         </Thead>
         <Tbody>
-          {groupAndSortBy(userAssignments).map((userAssignment, userAssignmentIdx) => {
+          {groupAndSortBy(userAssignments).map((userAssignment) => {
             return (
-              <Tr key={userAssignmentIdx}>
+              <Tr key={userAssignment.metadata.uid}>
                 {haveUserNames ? <Td>{userAssignment.spec.userName}</Td> : null}
                 {resourceClaimNames.length > 1 ? (
                   <Td>

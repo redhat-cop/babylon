@@ -147,6 +147,7 @@ const MultiWorkshopCreate: React.FC = () => {
   useEffect(() => {
     if (!whiteGloveRequest || wgrApplied) return;
 
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot prefill of the editable form from the async-loaded WhiteGloveRequest; deriving would discard user edits
     setCreateFormData((prev) => ({
       ...prev,
       name: whiteGloveRequest.spec.displayName || prev.name,
@@ -179,8 +180,10 @@ const MultiWorkshopCreate: React.FC = () => {
       displayName: whiteGloveRequest.metadata.namespace,
       requester: whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`],
     };
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot prefill of the editable namespace selection from the async-loaded WhiteGloveRequest
     setSelectedNamespace(wgrServiceNamespace);
 
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot guard so the WhiteGloveRequest prefill runs only once after the SWR fetch resolves
     setWgrApplied(true);
   }, [whiteGloveRequest, wgrApplied, serviceNamespaces]);
 
@@ -876,6 +879,7 @@ const MultiWorkshopCreate: React.FC = () => {
 
           <FormGroup label="Assets" fieldId="assets">
             {createFormData.assets.map((asset, index) => (
+              // eslint-disable-next-line @eslint-react/no-array-index-key -- asset.key is '' for unselected rows (duplicates possible) and rows are edited/removed by index
               <Card key={index} className="multiworkshop-create__asset-card" style={{ marginBottom: '12px' }}>
                 <CardBody>
                   <div
@@ -1097,6 +1101,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
         date={createFormData.startDate}
+        // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must stay current while the page is open
         minDate={Date.now()}
         title="Provisioning Start Date"
         onConfirm={(d) => {
@@ -1112,6 +1117,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <DateTimePickerModalDialog
         isOpen={isReadyByDateModalOpen}
         date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+        // eslint-disable-next-line @eslint-react/purity -- minimum ready-by date is relative to the current time; must stay current while the page is open
         minDate={Date.now() + READY_BY_LEAD_TIME_MS}
         title="Ready by"
         onConfirm={(d) => {

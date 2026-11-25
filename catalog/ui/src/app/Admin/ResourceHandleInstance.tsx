@@ -285,6 +285,7 @@ const ResourceHandleInstanceComponent: React.FC<{ resourceHandleName: string; ac
               {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => {
                 const resourceName = resourceHandleSpecResource.name || resourceHandleSpecResource.provider.name;
                 return (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); name is optional and may repeat, list is never reordered
                   <StackItem key={idx}>
                     <Title headingLevel="h3">
                       {resourceName === 'babylon'

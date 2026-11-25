@@ -60,7 +60,6 @@ const CatalogItemAdmin: React.FC = () => {
     },
   );
   const { email: userEmail } = useSession().getSession();
-  const [isReadOnlyValue, setIsReadOnlyValue] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('Operational');
@@ -68,6 +67,7 @@ const CatalogItemAdmin: React.FC = () => {
   const [incidentUrl, setIncidentUrl] = useState('');
   const [jiraIssueId, setJiraIssueId] = useState('');
   const [comment, setComment] = useState('');
+  const isReadOnlyValue = status === 'Operational' || status === 'Major outage';
   const provider = getProvider(catalogItem);
 
   const onToggleClick = () => {
@@ -82,25 +82,30 @@ const CatalogItemAdmin: React.FC = () => {
 
   useEffect(() => {
     if (status === 'Operational') {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- status-driven side effect: clears/forces form fields when status changes from the dropdown or from loaded incident data; moving to the handler would miss the load path
       setIsDisabled(false);
-      setIsReadOnlyValue(true);
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- status-driven side effect: clears/forces form fields when status changes from the dropdown or from loaded incident data; moving to the handler would miss the load path
       setJiraIssueId('');
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- status-driven side effect: clears/forces form fields when status changes from the dropdown or from loaded incident data; moving to the handler would miss the load path
       setIncidentUrl('');
     } else if (status === 'Major outage') {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- status-driven side effect: clears/forces form fields when status changes from the dropdown or from loaded incident data; moving to the handler would miss the load path
       setIsDisabled(true);
-      setIsReadOnlyValue(true);
-    } else {
-      setIsReadOnlyValue(false);
     }
-  }, [setIsReadOnlyValue, status]);
+  }, [status]);
 
   useEffect(() => {
     if (isLoadingIncidents === false) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- seeds the editable form buffer from the fetched incident once loading finishes; deriving would discard in-progress edits
       setStatus(catalogItemIncident?.status || 'Operational');
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- seeds the editable form buffer from the fetched incident once loading finishes; deriving would discard in-progress edits
       setIsDisabled(catalogItemIncident?.disabled ?? false);
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- seeds the editable form buffer from the fetched incident once loading finishes; deriving would discard in-progress edits
       setIncidentUrl(catalogItemIncident?.incident_url || '');
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- seeds the editable form buffer from the fetched incident once loading finishes; deriving would discard in-progress edits
       setJiraIssueId(catalogItemIncident?.jira_url || '');
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- only seed form on load completion; depending on incident fields would overwrite user edits on every SWR revalidation
   }, [isLoadingIncidents]);
 
   async function removeComment(comment: comment) {
