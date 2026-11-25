@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import useSWRImmutable from 'swr/immutable';
@@ -333,16 +333,8 @@ const WhiteGloveDetailContent: React.FC = () => {
     }
   }
 
-  // useDebounce captures its callback once, so route through a ref to always call the latest patchSpec.
-  const patchSpecRef = useRef(patchSpec);
-  useEffect(() => {
-    patchSpecRef.current = patchSpec;
-  });
-
-  const debouncedPatchSpec = useDebounce(
-    (specPatch: Record<string, unknown>, commentLabel?: string) => patchSpecRef.current(specPatch, commentLabel),
-    1000,
-  );
+  // useDebounce always invokes the latest patchSpec, so the current Jira ticket id is used.
+  const debouncedPatchSpec = useDebounce(patchSpec, 1000);
 
   const catalogItemsFilter = useCallback(
     (items: CatalogItem[]) => items.filter((item) => getSLA(item) !== SLAs.Unsupported),
