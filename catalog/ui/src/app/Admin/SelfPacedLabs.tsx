@@ -230,7 +230,12 @@ const SelfPacedLabs: React.FC = () => {
       </PageSection>
       {selfPacedLabs.length === 0 ? (
         <PageSection hasBodyWrapper={false} key="selfpacedlabs-list-empty">
-          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No self-paced labs found." variant="full">
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationTriangleIcon}
+            titleText="No self-paced labs found."
+            variant="full"
+          >
             <EmptyStateFooter>
               {keywordFilter ? (
                 <EmptyStateBody>No self-paced labs matched search.</EmptyStateBody>

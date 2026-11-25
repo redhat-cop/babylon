@@ -27,7 +27,13 @@ type ProjectRowProps = {
   setIsOpen: (v: boolean) => void;
 };
 
-const ProjectRow = ({ index, style, filteredServiceNamespaces, onSelect, setIsOpen }: RowComponentProps<ProjectRowProps>) => (
+const ProjectRow = ({
+  index,
+  style,
+  filteredServiceNamespaces,
+  onSelect,
+  setIsOpen,
+}: RowComponentProps<ProjectRowProps>) => (
   <div style={style}>
     <DropdownItem
       itemId={filteredServiceNamespaces[index].name}

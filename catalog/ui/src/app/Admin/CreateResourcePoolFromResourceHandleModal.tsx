@@ -12,7 +12,7 @@ import useMatchMutate from '@app/utils/useMatchMutate';
 const formFieldStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'row',
-  gap: "var(--pf-t--global--spacer--sm)",
+  gap: 'var(--pf-t--global--spacer--sm)',
   alignItems: 'center',
 };
 

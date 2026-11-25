@@ -106,7 +106,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const prevSandboxParametersRef = React.useRef<Record<string, unknown>>({});
   const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email, userInterface } = useSession().getSession();
   const { sfdc_enabled } = useInterfaceConfig();
-  const { isWorkshopOrderingBlocked, workshopOrderingBlockedMessage, isServiceOrderingBlocked, serviceOrderingBlockedMessage } = useSystemStatus();
+  const {
+    isWorkshopOrderingBlocked,
+    workshopOrderingBlockedMessage,
+    isServiceOrderingBlocked,
+    serviceOrderingBlockedMessage,
+  } = useSystemStatus();
   const { data: catalogItem } = useSWRImmutable<CatalogItem>(
     apiPaths.CATALOG_ITEM({ namespace: catalogNamespaceName, name: catalogItemName }),
     fetcher,
@@ -123,9 +128,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   );
 
   const { data: whiteGloveRequest, error: wgrError } = useSWR<WhiteGloveRequest>(
-    wgrNamespace && wgrName
-      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
-      : null,
+    wgrNamespace && wgrName ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName }) : null,
     fetcher,
   );
 
@@ -210,12 +213,8 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       });
     }
 
-    const startDate = whiteGloveRequest.spec.eventDate
-      ? new Date(whiteGloveRequest.spec.eventDate)
-      : undefined;
-    const endDate = whiteGloveRequest.spec.eventEndDate
-      ? new Date(whiteGloveRequest.spec.eventEndDate)
-      : undefined;
+    const startDate = whiteGloveRequest.spec.eventDate ? new Date(whiteGloveRequest.spec.eventDate) : undefined;
+    const endDate = whiteGloveRequest.spec.eventEndDate ? new Date(whiteGloveRequest.spec.eventEndDate) : undefined;
     if (startDate || endDate) {
       dispatchFormState({ type: 'dates', startDate, stopDate: endDate, endDate });
     }
@@ -232,9 +231,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
 
     // An approver's session may not include the requester's user namespace.
-    const wgrServiceNamespace = serviceNamespaces.find(
-      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
-    ) || {
+    const wgrServiceNamespace = serviceNamespaces.find((ns) => ns.name === whiteGloveRequest.metadata.namespace) || {
       name: whiteGloveRequest.metadata.namespace,
       displayName: whiteGloveRequest.metadata.namespace,
       requester: whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`],
@@ -255,14 +252,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     purposeOpts.length > 0 ? purposeOpts.find((p) => formState.purpose && formState.purpose.startsWith(p.name)) : null;
   const incident = getStatus(catalogItemIncident);
   // Check if ordering is blocked by system status (workshop or service ordering)
-  const isOrderingBlocked = formState.workshop 
-    ? (isWorkshopOrderingBlocked && !isAdmin) 
-    : (isServiceOrderingBlocked && !isAdmin);
-  const orderingBlockedMessage = formState.workshop 
-    ? workshopOrderingBlockedMessage 
-    : serviceOrderingBlockedMessage;
+  const isOrderingBlocked = formState.workshop
+    ? isWorkshopOrderingBlocked && !isAdmin
+    : isServiceOrderingBlocked && !isAdmin;
+  const orderingBlockedMessage = formState.workshop ? workshopOrderingBlockedMessage : serviceOrderingBlockedMessage;
   const submitRequestEnabled =
-    isOrderingBlocked || isQuotaExceeded ? false : (incident && incident.disabled && !isAdmin ? false : checkEnableSubmit(formState) && !isLoading);
+    isOrderingBlocked || isQuotaExceeded
+      ? false
+      : incident && incident.disabled && !isAdmin
+        ? false
+        : checkEnableSubmit(formState) && !isLoading;
 
   useEffect(() => {
     if (!formState.conditionChecks.completed) {
@@ -377,7 +376,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     return undefined;
   }, [formState.parameters, getParametersWithSandboxSelectors, checkAvailability]);
 
-  async function approveWhiteGloveRequest(service: { name: string; namespace: string; type: 'services' | 'workshops' | 'selfpacedlabs' }) {
+  async function approveWhiteGloveRequest(service: {
+    name: string;
+    namespace: string;
+    type: 'services' | 'workshops' | 'selfpacedlabs';
+  }) {
     if (!whiteGloveRequest || !wgrNamespace || !wgrName) return;
     try {
       await patchWhiteGloveRequest({
@@ -482,7 +485,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           },
           selfPacedLab: selfPacedLab,
         });
-        await approveWhiteGloveRequest({ name: selfPacedLab.metadata.name, namespace: selfPacedLab.metadata.namespace, type: 'selfpacedlabs' });
+        await approveWhiteGloveRequest({
+          name: selfPacedLab.metadata.name,
+          namespace: selfPacedLab.metadata.namespace,
+          type: 'selfpacedlabs',
+        });
         postWgrScheduledToJira(selfPacedLab.metadata.namespace);
         navigate(`/selfpacedlabs/${selfPacedLab.metadata.namespace}/${selfPacedLab.metadata.name}`);
       } else if (formState.workshop) {
@@ -505,9 +512,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           stopDate: formState.stopDate,
           endDate: formState.endDate,
           startDate: formState.startDate,
-          readyByDate: useDirectProvisioningDate && formState.startDate
-            ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS)
-            : undefined,
+          readyByDate:
+            useDirectProvisioningDate && formState.startDate
+              ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS)
+              : undefined,
           email,
           parameterValues,
           skippedSfdc: formState.salesforceId.skip,
@@ -528,7 +536,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           useAutoDetach: formState.useAutoDetach,
           selectedResourcePool: formState.selectedResourcePool,
         });
-        await approveWhiteGloveRequest({ name: workshop.metadata.name, namespace: workshop.metadata.namespace, type: 'workshops' });
+        await approveWhiteGloveRequest({
+          name: workshop.metadata.name,
+          namespace: workshop.metadata.namespace,
+          type: 'workshops',
+        });
         postWgrScheduledToJira(workshop.metadata.namespace);
         navigate(redirectUrl);
       } else {
@@ -550,7 +562,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           salesforceItems: formState.salesforceItems,
         });
 
-        await approveWhiteGloveRequest({ name: resourceClaim.metadata.name, namespace: resourceClaim.metadata.namespace, type: 'services' });
+        await approveWhiteGloveRequest({
+          name: resourceClaim.metadata.name,
+          namespace: resourceClaim.metadata.namespace,
+          type: 'services',
+        });
         postWgrScheduledToJira(resourceClaim.metadata.namespace);
         navigate(`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`);
       }
@@ -616,13 +632,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   parseDuration(
                     formState.activity?.startsWith('Customer Facing')
                       ? '365d'
-                      : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h'
+                      : catalogItem.spec.runtime?.default || catalogItem.spec.lifespan?.default || '30h',
                   ),
               ),
-              endDate: new Date(
-                readyByTime +
-                  parseDuration(catalogItem.spec.lifespan?.default || '30h'),
-              ),
+              endDate: new Date(readyByTime + parseDuration(catalogItem.spec.lifespan?.default || '30h')),
             });
           } else {
             dispatchFormState({
@@ -646,10 +659,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           })
         }
       />
-      <UserDisabledModal
-        isOpen={isUserDisabledModalOpen}
-        onClose={() => setIsUserDisabledModalOpen(false)}
-      />
+      <UserDisabledModal isOpen={isUserDisabledModalOpen} onClose={() => setIsUserDisabledModalOpen(false)} />
       <Breadcrumb>
         <BreadcrumbItem
           render={({ className }) => (
@@ -674,7 +684,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
       </Title>
       <p>Order by completing the form. Default values may be provided.</p>
       {wgrParam && wgrError && (
-        <Alert variant="danger" isInline title="Failed to load white glove request" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        <Alert
+          variant="danger"
+          isInline
+          title="Failed to load white glove request"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
           Could not load white glove request data. The form will use default values.
         </Alert>
       )}
@@ -738,8 +753,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     <span
                       style={{
                         fontSize: 'var(--pf-t--global--font--size--xs)',
-                        color:
-                          'var(--pf-t--color--gray--60)',
+                        color: 'var(--pf-t--color--gray--60)',
                         fontStyle: 'italic',
                         fontWeight: 400,
                       }}
@@ -764,7 +778,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                     }}
                     isRequired={formState.salesforceId.required && !formState.salesforceId.skip}
                   />
-                  {formState.conditionChecks.completed && !formState.salesforceId.skip && (!formState.salesforceItems || formState.salesforceItems.length === 0) && purposeObj && purposeObj.sfdcRequired ? (
+                  {formState.conditionChecks.completed &&
+                  !formState.salesforceId.skip &&
+                  (!formState.salesforceItems || formState.salesforceItems.length === 0) &&
+                  purposeObj &&
+                  purposeObj.sfdcRequired ? (
                     <FormHelperText>
                       A valid Salesforce ID is required for the selected activity / purpose
                     </FormHelperText>
@@ -778,7 +796,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         isChecked={formState.salesforceId.skip}
                         isDisabled={
                           // Disable if there are any Salesforce items
-                          (formState.salesforceItems && formState.salesforceItems.length > 0)
+                          formState.salesforceItems && formState.salesforceItems.length > 0
                         }
                         onChange={(_event: unknown, checked: boolean) =>
                           dispatchFormState({
@@ -792,9 +810,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                         content={
                           <div>
                             By checking this box, you agree to provide the required number within 48 hours, in alignment
-                            with Red Hat&apos;s Code of Ethics. It is your responsibility to ensure the accuracy and timely
-                            submission of this information, as it is essential for the integrity and compliance of our
-                            processes.
+                            with Red Hat&apos;s Code of Ethics. It is your responsibility to ensure the accuracy and
+                            timely submission of this information, as it is essential for the integrity and compliance
+                            of our processes.
                           </div>
                         }
                       >
@@ -975,7 +993,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
           </FormGroup>
         ) : null}
 
-        {!isAutoStopDisabled(catalogItem) && !formState.workshop && !formState.selfPacedLab && !catalogItem.spec.externalUrl ? (
+        {!isAutoStopDisabled(catalogItem) &&
+        !formState.workshop &&
+        !formState.selfPacedLab &&
+        !catalogItem.spec.externalUrl ? (
           <FormGroup key="auto-stop" fieldId="auto-stop" label="Auto-stop">
             <div className="catalog-item-form__group-control--single">
               <AutoStopDestroy
@@ -1045,191 +1066,194 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 />
               </div>
             </FormGroup>
-          <div className="catalog-item-form__workshop-section">
-            <div className="catalog-item-form__workshop-section-title">Workshop Settings</div>
-            <div className="catalog-item-form__workshop-form">
-            <FormGroup fieldId="workshopDisplayName" isRequired label="Display Name">
-              <div className="catalog-item-form__group-control--single">
-                <TextInput
-                  id="workshopDisplayName"
-                  onChange={(_event, v) =>
-                    dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, displayName: v } })
-                  }
-                  value={formState.workshop.displayName}
-                />
-                <Tooltip position="right" content={<p>Title shown in the workshop user interface.</p>}>
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Title shown in the workshop user interface"
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
-              </div>
-            </FormGroup>
-            <FormGroup fieldId="workshopAccessPassword" label="Password">
-              <div className="catalog-item-form__group-control--single">
-                <TextInput
-                  id="workshopAccessPassword"
-                  onChange={(_event, v) =>
-                    dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, accessPassword: v } })
-                  }
-                  value={formState.workshop.accessPassword}
-                />
-                <Tooltip
-                  position="right"
-                  content={<p>Password to access credentials, if left empty no password will be required.</p>}
-                >
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Password to access credentials, if left empty no password will be required"
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
-              </div>
-            </FormGroup>
-            <FormGroup fieldId="workshopRegistration" label="User Registration" className="select-wrapper">
-              <div className="catalog-item-form__group-control--single">
-                <Select
-                  isOpen={userRegistrationSelectIsOpen}
-                  onSelect={(_, selected) => {
-                    dispatchFormState({
-                      type: 'workshop',
-                      workshop: {
-                        ...formState.workshop,
-                        userRegistration: typeof selected === 'string' ? selected : selected.toString(),
-                      },
-                    });
-                    setUserRegistrationSelectIsOpen(false);
-                  }}
-                  selected={formState.workshop.userRegistration}
-                  onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
-                  toggle={toggle}
-                >
-                  <SelectList>
-                    <SelectOption value="open">open registration</SelectOption>
-                    <SelectOption value="pre">pre-registration</SelectOption>
-                  </SelectList>
-                </Select>
-                <Tooltip
-                  position="right"
-                  isContentLeftAligned
-                  content={
-                    <ul>
-                      <li>- Open registration: Only the password will be required to access the credentials.</li>
-                      <li>
-                        - Pre-registration: Emails need to be provided before the attendees can access their
-                        credentials, an email and password will be required to access the credentials.
-                      </li>
-                    </ul>
-                  }
-                >
-                  <OutlinedQuestionCircleIcon aria-label="Type of registration" className="tooltip-icon-only" />
-                </Tooltip>
-              </div>
-            </FormGroup>
-            <FormGroup fieldId="workshopDescription" label="Description">
-              <div className="catalog-item-form__group-control--single">
-                <Editor
-                  onChange={(_: EditorState, editor: LexicalEditor) => {
-                    editor.update(() => {
-                      const html = $generateHtmlFromNodes(editor, null);
-                      dispatchFormState({
-                        type: 'workshop',
-                        workshop: { ...formState.workshop, description: html },
-                      });
-                    });
-                  }}
-                  placeholder="Add description"
-                  aria-label="Description"
-                  defaultValue={formState.workshop.description}
-                />
-                <Tooltip position="right" content={<p>Description text visible in the user access page.</p>}>
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Description text visible in the user access page."
-                    className="tooltip-icon-only"
-                  />
-                </Tooltip>
-              </div>
-            </FormGroup>
-            {!formState.selfPacedLab && catalogItem.spec.workshopUserMode !== 'multi' ? (
-              <>
-                <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
+            <div className="catalog-item-form__workshop-section">
+              <div className="catalog-item-form__workshop-section-title">Workshop Settings</div>
+              <div className="catalog-item-form__workshop-form">
+                <FormGroup fieldId="workshopDisplayName" isRequired label="Display Name">
                   <div className="catalog-item-form__group-control--single">
-                    <PatientNumberInput
-                      min={0}
-                      max={workshopInstanceLimit(catalogItem)}
-                      adminModifier={true}
-                      onChange={(v) =>
-                        dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, provisionCount: v } })
+                    <TextInput
+                      id="workshopDisplayName"
+                      onChange={(_event, v) =>
+                        dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, displayName: v } })
                       }
-                      value={formState.workshop.provisionCount}
+                      value={formState.workshop.displayName}
                     />
-                    <Tooltip position="right" content={<p>Number of independent services for the workshop.</p>}>
+                    <Tooltip position="right" content={<p>Title shown in the workshop user interface.</p>}>
                       <OutlinedQuestionCircleIcon
-                        aria-label="Number of independent services for the workshop"
+                        aria-label="Title shown in the workshop user interface"
                         className="tooltip-icon-only"
                       />
                     </Tooltip>
                   </div>
-                  {estimatedCost && formState.workshop.provisionCount > 1 ? (
-                    <AlertGroup style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      <Alert
-                        title={
-                          <p>
-                            Estimated hourly cost for this workshop user count:{' '}
-                            <b>{formatCurrency(formState.workshop.provisionCount * estimatedCost)}</b>
-                          </p>
-                        }
-                        variant="info"
-                        isInline
-                      />
-                    </AlertGroup>
-                  ) : null}
                 </FormGroup>
-                {isAdmin ? (
+                <FormGroup fieldId="workshopAccessPassword" label="Password">
+                  <div className="catalog-item-form__group-control--single">
+                    <TextInput
+                      id="workshopAccessPassword"
+                      onChange={(_event, v) =>
+                        dispatchFormState({ type: 'workshop', workshop: { ...formState.workshop, accessPassword: v } })
+                      }
+                      value={formState.workshop.accessPassword}
+                    />
+                    <Tooltip
+                      position="right"
+                      content={<p>Password to access credentials, if left empty no password will be required.</p>}
+                    >
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Password to access credentials, if left empty no password will be required"
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="workshopRegistration" label="User Registration" className="select-wrapper">
+                  <div className="catalog-item-form__group-control--single">
+                    <Select
+                      isOpen={userRegistrationSelectIsOpen}
+                      onSelect={(_, selected) => {
+                        dispatchFormState({
+                          type: 'workshop',
+                          workshop: {
+                            ...formState.workshop,
+                            userRegistration: typeof selected === 'string' ? selected : selected.toString(),
+                          },
+                        });
+                        setUserRegistrationSelectIsOpen(false);
+                      }}
+                      selected={formState.workshop.userRegistration}
+                      onOpenChange={(isOpen) => setUserRegistrationSelectIsOpen(isOpen)}
+                      toggle={toggle}
+                    >
+                      <SelectList>
+                        <SelectOption value="open">open registration</SelectOption>
+                        <SelectOption value="pre">pre-registration</SelectOption>
+                      </SelectList>
+                    </Select>
+                    <Tooltip
+                      position="right"
+                      isContentLeftAligned
+                      content={
+                        <ul>
+                          <li>- Open registration: Only the password will be required to access the credentials.</li>
+                          <li>
+                            - Pre-registration: Emails need to be provided before the attendees can access their
+                            credentials, an email and password will be required to access the credentials.
+                          </li>
+                        </ul>
+                      }
+                    >
+                      <OutlinedQuestionCircleIcon aria-label="Type of registration" className="tooltip-icon-only" />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                <FormGroup fieldId="workshopDescription" label="Description">
+                  <div className="catalog-item-form__group-control--single">
+                    <Editor
+                      onChange={(_: EditorState, editor: LexicalEditor) => {
+                        editor.update(() => {
+                          const html = $generateHtmlFromNodes(editor, null);
+                          dispatchFormState({
+                            type: 'workshop',
+                            workshop: { ...formState.workshop, description: html },
+                          });
+                        });
+                      }}
+                      placeholder="Add description"
+                      aria-label="Description"
+                      defaultValue={formState.workshop.description}
+                    />
+                    <Tooltip position="right" content={<p>Description text visible in the user access page.</p>}>
+                      <OutlinedQuestionCircleIcon
+                        aria-label="Description text visible in the user access page."
+                        className="tooltip-icon-only"
+                      />
+                    </Tooltip>
+                  </div>
+                </FormGroup>
+                {!formState.selfPacedLab && catalogItem.spec.workshopUserMode !== 'multi' ? (
                   <>
-                    <FormGroup
-                      key="provisionConcurrency"
-                      fieldId="workshopProvisionConcurrency"
-                      label="Provision Concurrency (only visible to admins)"
-                    >
+                    <FormGroup key="provisionCount" fieldId="workshopProvisionCount" label="Workshop User Count">
                       <div className="catalog-item-form__group-control--single">
                         <PatientNumberInput
-                          min={1}
-                          max={30}
+                          min={0}
+                          max={workshopInstanceLimit(catalogItem)}
+                          adminModifier={true}
                           onChange={(v) =>
                             dispatchFormState({
                               type: 'workshop',
-                              workshop: { ...formState.workshop, provisionConcurrency: v },
+                              workshop: { ...formState.workshop, provisionCount: v },
                             })
                           }
-                          value={formState.workshop.provisionConcurrency}
+                          value={formState.workshop.provisionCount}
                         />
+                        <Tooltip position="right" content={<p>Number of independent services for the workshop.</p>}>
+                          <OutlinedQuestionCircleIcon
+                            aria-label="Number of independent services for the workshop"
+                            className="tooltip-icon-only"
+                          />
+                        </Tooltip>
                       </div>
+                      {estimatedCost && formState.workshop.provisionCount > 1 ? (
+                        <AlertGroup style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                          <Alert
+                            title={
+                              <p>
+                                Estimated hourly cost for this workshop user count:{' '}
+                                <b>{formatCurrency(formState.workshop.provisionCount * estimatedCost)}</b>
+                              </p>
+                            }
+                            variant="info"
+                            isInline
+                          />
+                        </AlertGroup>
+                      ) : null}
                     </FormGroup>
-                    <FormGroup
-                      key="provisionStartDelay"
-                      fieldId="workshopProvisionStartDelay"
-                      label="Provision Start Interval (only visible to admins)"
-                    >
-                      <div className="catalog-item-form__group-control--single">
-                        <PatientNumberInput
-                          min={15}
-                          max={600}
-                          onChange={(v) =>
-                            dispatchFormState({
-                              type: 'workshop',
-                              workshop: { ...formState.workshop, provisionStartDelay: v },
-                            })
-                          }
-                          value={formState.workshop.provisionStartDelay}
-                        />
-                      </div>
-                    </FormGroup>
+                    {isAdmin ? (
+                      <>
+                        <FormGroup
+                          key="provisionConcurrency"
+                          fieldId="workshopProvisionConcurrency"
+                          label="Provision Concurrency (only visible to admins)"
+                        >
+                          <div className="catalog-item-form__group-control--single">
+                            <PatientNumberInput
+                              min={1}
+                              max={30}
+                              onChange={(v) =>
+                                dispatchFormState({
+                                  type: 'workshop',
+                                  workshop: { ...formState.workshop, provisionConcurrency: v },
+                                })
+                              }
+                              value={formState.workshop.provisionConcurrency}
+                            />
+                          </div>
+                        </FormGroup>
+                        <FormGroup
+                          key="provisionStartDelay"
+                          fieldId="workshopProvisionStartDelay"
+                          label="Provision Start Interval (only visible to admins)"
+                        >
+                          <div className="catalog-item-form__group-control--single">
+                            <PatientNumberInput
+                              min={15}
+                              max={600}
+                              onChange={(v) =>
+                                dispatchFormState({
+                                  type: 'workshop',
+                                  workshop: { ...formState.workshop, provisionStartDelay: v },
+                                })
+                              }
+                              value={formState.workshop.provisionStartDelay}
+                            />
+                          </div>
+                        </FormGroup>
+                      </>
+                    ) : null}
                   </>
                 ) : null}
-              </>
-            ) : null}
-          </div>
-          </div>
+              </div>
+            </div>
           </>
         ) : null}
 
@@ -1249,7 +1273,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   }
                   value={formState.selfPacedLab.poolSize}
                 />
-                <Tooltip position="right" content={<p>Number of pre-provisioned instances to keep ready in the warm pool.</p>}>
+                <Tooltip
+                  position="right"
+                  content={<p>Number of pre-provisioned instances to keep ready in the warm pool.</p>}
+                >
                   <OutlinedQuestionCircleIcon
                     aria-label="Number of pre-provisioned instances"
                     className="tooltip-icon-only"
@@ -1257,7 +1284,12 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 </Tooltip>
               </div>
             </FormGroup>
-            <FormGroup key="assignedLifespan" fieldId="selfPacedLabAssignedLifespan" isRequired label="Assigned Lifespan">
+            <FormGroup
+              key="assignedLifespan"
+              fieldId="selfPacedLabAssignedLifespan"
+              isRequired
+              label="Assigned Lifespan"
+            >
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="selfPacedLabAssignedLifespan"
@@ -1272,14 +1304,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   placeholder="e.g. 4h, 1d, 8h"
                 />
                 <Tooltip position="right" content={<p>How long a user keeps their assigned instance (e.g. 4h, 1d).</p>}>
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Assigned lifespan duration"
-                    className="tooltip-icon-only"
-                  />
+                  <OutlinedQuestionCircleIcon aria-label="Assigned lifespan duration" className="tooltip-icon-only" />
                 </Tooltip>
               </div>
             </FormGroup>
-            <FormGroup key="unassignedLifespan" fieldId="selfPacedLabUnassignedLifespan" isRequired label="Unassigned Lifespan">
+            <FormGroup
+              key="unassignedLifespan"
+              fieldId="selfPacedLabUnassignedLifespan"
+              isRequired
+              label="Unassigned Lifespan"
+            >
               <div className="catalog-item-form__group-control--single">
                 <TextInput
                   id="selfPacedLabUnassignedLifespan"
@@ -1293,11 +1327,11 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                   }
                   placeholder="e.g. 24h, 2d"
                 />
-                <Tooltip position="right" content={<p>How long an unassigned instance lives before being replaced (e.g. 24h).</p>}>
-                  <OutlinedQuestionCircleIcon
-                    aria-label="Unassigned lifespan duration"
-                    className="tooltip-icon-only"
-                  />
+                <Tooltip
+                  position="right"
+                  content={<p>How long an unassigned instance lives before being replaced (e.g. 24h).</p>}
+                >
+                  <OutlinedQuestionCircleIcon aria-label="Unassigned lifespan duration" className="tooltip-icon-only" />
                 </Tooltip>
               </div>
             </FormGroup>
@@ -1349,66 +1383,71 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         {(isAdmin || isLabDeveloper(groups)) && !catalogItem.spec.externalUrl ? (
           <div className="catalog-item-form__admin-section">
             <div className="catalog-item-form__admin-section-title">Admin Settings</div>
-                {isAdmin && (
-                  <div className="catalog-item-form__group-control--single">
-                    <Switch
-                      id="white-glove-switch"
-                      aria-label="White-Glove Support"
-                      label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-                      isChecked={formState.whiteGloved}
-                      hasCheckIcon
-                      onChange={(_event, isChecked) => {
-                        dispatchFormState({
-                          type: 'whiteGloved',
-                          whiteGloved: isChecked,
-                        });
-                      }}
-                    />
-                  </div>
-                )}
+            {isAdmin && (
+              <div className="catalog-item-form__group-control--single">
+                <Switch
+                  id="white-glove-switch"
+                  aria-label="White-Glove Support"
+                  label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+                  isChecked={formState.whiteGloved}
+                  hasCheckIcon
+                  onChange={(_event, isChecked) => {
+                    dispatchFormState({
+                      type: 'whiteGloved',
+                      whiteGloved: isChecked,
+                    });
+                  }}
+                />
+              </div>
+            )}
 
-                {isAdmin && !catalogItem.spec.externalUrl ? (
-                  <FormGroup fieldId="resource-pool-selector" label="Resource Pool">
-                    <div className="catalog-item-form__group-control--single">
-                      <ResourcePoolSelector
-                        catalogItemName={catalogItemName}
-                        disableAutoSelect={!!formState.workshop}
-                        selectedPool={formState.selectedResourcePool}
-                        onSelect={(poolName) =>
-                          dispatchFormState({
-                            type: 'selectedResourcePool',
-                            selectedResourcePool: poolName,
-                          })
-                        }
-                      />
-                      <Tooltip
-                        position="right"
-                        content={<p>Select a specific resource pool to use for provisioning. Leave empty for automatic pool selection.</p>}
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Select a specific resource pool to use for provisioning"
-                          className="tooltip-icon-only"
-                        />
-                      </Tooltip>
-                    </div>
-                  </FormGroup>
-                ) : null}
-
+            {isAdmin && !catalogItem.spec.externalUrl ? (
+              <FormGroup fieldId="resource-pool-selector" label="Resource Pool">
                 <div className="catalog-item-form__group-control--single">
-                  <Switch
-                    id="auto-detach-switch"
-                    aria-label="Keep instance if provision fails"
-                    label="Keep instance if provision fails"
-                    isChecked={!formState.useAutoDetach}
-                    hasCheckIcon
-                    onChange={(_event, isChecked) => {
+                  <ResourcePoolSelector
+                    catalogItemName={catalogItemName}
+                    disableAutoSelect={!!formState.workshop}
+                    selectedPool={formState.selectedResourcePool}
+                    onSelect={(poolName) =>
                       dispatchFormState({
-                        type: 'useAutoDetach',
-                        useAutoDetach: !isChecked,
-                      });
-                    }}
+                        type: 'selectedResourcePool',
+                        selectedResourcePool: poolName,
+                      })
+                    }
                   />
+                  <Tooltip
+                    position="right"
+                    content={
+                      <p>
+                        Select a specific resource pool to use for provisioning. Leave empty for automatic pool
+                        selection.
+                      </p>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon
+                      aria-label="Select a specific resource pool to use for provisioning"
+                      className="tooltip-icon-only"
+                    />
+                  </Tooltip>
                 </div>
+              </FormGroup>
+            ) : null}
+
+            <div className="catalog-item-form__group-control--single">
+              <Switch
+                id="auto-detach-switch"
+                aria-label="Keep instance if provision fails"
+                label="Keep instance if provision fails"
+                isChecked={!formState.useAutoDetach}
+                hasCheckIcon
+                onChange={(_event, isChecked) => {
+                  dispatchFormState({
+                    type: 'useAutoDetach',
+                    useAutoDetach: !isChecked,
+                  });
+                }}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -1428,10 +1467,21 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         <div>
           {isOrderingBlocked && (
             <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Alert variant="warning" title={formState.workshop ? "Workshop Ordering Temporarily Disabled" : "Service Ordering Temporarily Disabled"} isInline>
-                <p>{orderingBlockedMessage || (formState.workshop 
-                  ? "Workshop ordering is temporarily disabled. Please try again later." 
-                  : "Service ordering is temporarily disabled. Please try again later.")}</p>
+              <Alert
+                variant="warning"
+                title={
+                  formState.workshop
+                    ? 'Workshop Ordering Temporarily Disabled'
+                    : 'Service Ordering Temporarily Disabled'
+                }
+                isInline
+              >
+                <p>
+                  {orderingBlockedMessage ||
+                    (formState.workshop
+                      ? 'Workshop ordering is temporarily disabled. Please try again later.'
+                      : 'Service ordering is temporarily disabled. Please try again later.')}
+                </p>
               </Alert>
             </AlertGroup>
           )}
@@ -1441,8 +1491,9 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
               <Alert variant="warning" title="Service Quota Exceeded" isInline>
                 <p>
                   You have reached your quota of 5 services ({standaloneServicesCount} standalone service
-                  {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
-                  You cannot request any new applications until you retire existing services or workshops.
+                  {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop
+                  {workshopsCount !== 1 ? 's' : ''}). You cannot request any new applications until you retire existing
+                  services or workshops.
                 </p>
               </Alert>
             </AlertGroup>
@@ -1456,31 +1507,36 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             </AlertGroup>
           )}
 
-          {availabilityData && !availabilityLoading && (() => {
-            const queuedResult = availabilityData.results?.find((r) => r.queued);
-            const variant = !availabilityData.overallAvailable ? 'danger' : queuedResult ? 'warning' : 'success';
-            const title = !availabilityData.overallAvailable
-              ? 'Resource Availability: Not Available'
-              : queuedResult
-                ? 'Resource Availability: Available (will be queued)'
-                : 'Resource Availability: Available';
-            return (
-              <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                <Alert variant={variant} title={title} isInline>
-                  <p>{availabilityData.overallMessage}</p>
-                  {queuedResult && (
-                    <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-                      All matching clusters are currently at their provisioning rate limit.
-                      Your request will be placed in a queue and processed automatically.
-                      {queuedResult.queue_position != null && queuedResult.queue_position > 0 && (
-                        <> Current queue position: <strong>{queuedResult.queue_position}</strong>.</>
-                      )}
-                    </p>
-                  )}
-                </Alert>
-              </AlertGroup>
-            );
-          })()}
+          {availabilityData &&
+            !availabilityLoading &&
+            (() => {
+              const queuedResult = availabilityData.results?.find((r) => r.queued);
+              const variant = !availabilityData.overallAvailable ? 'danger' : queuedResult ? 'warning' : 'success';
+              const title = !availabilityData.overallAvailable
+                ? 'Resource Availability: Not Available'
+                : queuedResult
+                  ? 'Resource Availability: Available (will be queued)'
+                  : 'Resource Availability: Available';
+              return (
+                <AlertGroup style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                  <Alert variant={variant} title={title} isInline>
+                    <p>{availabilityData.overallMessage}</p>
+                    {queuedResult && (
+                      <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                        All matching clusters are currently at their provisioning rate limit. Your request will be
+                        placed in a queue and processed automatically.
+                        {queuedResult.queue_position != null && queuedResult.queue_position > 0 && (
+                          <>
+                            {' '}
+                            Current queue position: <strong>{queuedResult.queue_position}</strong>.
+                          </>
+                        )}
+                      </p>
+                    )}
+                  </Alert>
+                </AlertGroup>
+              );
+            })()}
         </div>
 
         <ActionList>

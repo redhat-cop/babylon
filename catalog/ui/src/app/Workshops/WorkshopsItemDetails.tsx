@@ -2,7 +2,23 @@ import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { Link } from 'react-router-dom';
-import { DescriptionList, DescriptionListTerm, DescriptionListGroup, DescriptionListDescription, Tooltip, Switch, MenuToggle, FormGroup, Button, NumberInput, Popover, Label, LabelGroup, Alert, TextInput } from '@patternfly/react-core';
+import {
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
+  Tooltip,
+  Switch,
+  MenuToggle,
+  FormGroup,
+  Button,
+  NumberInput,
+  Popover,
+  Label,
+  LabelGroup,
+  Alert,
+  TextInput,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { Select, SelectOption, SelectList, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/react-core';
 import ExternalLinkAltIcon from '@patternfly/react-icons/dist/js/icons/external-link-alt-icon';
@@ -18,7 +34,14 @@ import {
   optionalFetcher,
   FORBIDDEN_RESPONSE,
 } from '@app/api';
-import type { RequestUsageCost, ResourceClaim, ServiceAccessConfig, Workshop, WorkshopProvision, WorkshopUserAssignment } from '@app/types';
+import type {
+  RequestUsageCost,
+  ResourceClaim,
+  ServiceAccessConfig,
+  Workshop,
+  WorkshopProvision,
+  WorkshopUserAssignment,
+} from '@app/types';
 import { BABYLON_DOMAIN, DEMO_DOMAIN, getWhiteGloved, setSalesforceItems as setSalesforceItemsAnno } from '@app/util';
 import SalesforceItemsList from '@app/components/SalesforceItemsList';
 import SalesforceItemsEditModal from '@app/components/SalesforceItemsEditModal';
@@ -91,20 +114,27 @@ const WorkshopsItemDetails: React.FC<{
   const opsEffortAnnotation = workshop.metadata.annotations?.[`${DEMO_DOMAIN}/ops-effort`];
   const supportLink = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/support-link`];
   const multiworkshopSource = workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`];
-  
+
   const {
     data: serviceAccessConfigResponse,
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace)) ? apiPaths.SERVICE_ACCESS_CONFIG({
-      namespace: workshop.metadata.namespace,
-      name: workshop.metadata.name,
-    }) : null,
+    isAdmin || sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace)
+      ? apiPaths.SERVICE_ACCESS_CONFIG({
+          namespace: workshop.metadata.namespace,
+          name: workshop.metadata.name,
+        })
+      : null,
     optionalFetcher,
   );
-  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
-  const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
+  const canManageCollaborators =
+    (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) &&
+      serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) ||
+    isAdmin;
+  const serviceAccessConfig = canManageCollaborators
+    ? (serviceAccessConfigResponse as ServiceAccessConfig | null)
+    : null;
 
   const serviceAccessUsers = useMemo(() => {
     if (!serviceAccessConfig?.spec?.users) return [];
@@ -292,9 +322,9 @@ const WorkshopsItemDetails: React.FC<{
   async function handleAddServiceAccessUser() {
     const email = newServiceAccessEmail.trim();
     if (!email) return;
-    
+
     const updatedUsers = [...serviceAccessUsers, email];
-    
+
     try {
       if (serviceAccessConfig) {
         const updatedConfig = await patchServiceAccessConfig({
@@ -317,14 +347,14 @@ const WorkshopsItemDetails: React.FC<{
     } catch (error) {
       console.error('Failed to update ServiceAccessConfig:', error);
     }
-    
+
     setNewServiceAccessEmail('');
     setModalAddServiceAccess(false);
   }
 
   async function handleRemoveServiceAccessUser(emailToRemove: string) {
     const updatedUsers = serviceAccessUsers.filter((email: string) => email !== emailToRemove);
-    
+
     try {
       if (updatedUsers.length === 0) {
         await deleteServiceAccessConfig({
@@ -578,7 +608,8 @@ const WorkshopsItemDetails: React.FC<{
         <DescriptionListTerm>Workshop Users Assigned</DescriptionListTerm>
         {workshopUserAssignments ? (
           <DescriptionListDescription>
-            {workshopUserAssignments.filter((item) => item.spec.assignment?.email).length} / {workshopUserAssignments.length}
+            {workshopUserAssignments.filter((item) => item.spec.assignment?.email).length} /{' '}
+            {workshopUserAssignments.length}
           </DescriptionListDescription>
         ) : (
           <DescriptionListDescription>-</DescriptionListDescription>
@@ -613,7 +644,9 @@ const WorkshopsItemDetails: React.FC<{
                   ))}
                 </LabelGroup>
               ) : (
-                <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>No users configured</span>
+                <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
+                  No users configured
+                </span>
               )}
               <Button
                 variant="link"
@@ -655,7 +688,9 @@ const WorkshopsItemDetails: React.FC<{
                     <AutoStopDestroy
                       type="auto-start"
                       variant="extended"
-                      onClick={() => (showModal && !isLocked ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null)}
+                      onClick={() =>
+                        showModal && !isLocked ? showModal({ resourceClaims: [], action: 'scheduleStart' }) : null
+                      }
                       className="workshops-item__schedule-btn"
                       isDisabled={isLocked || !showModal}
                       time={autoStartTime}
@@ -738,7 +773,7 @@ const WorkshopsItemDetails: React.FC<{
             <DescriptionListTerm>
               Auto-Destroy{' '}
               {!isWorkshopStarted(workshop, workshopProvisions) && (
-                <Tooltip 
+                <Tooltip
                   content="The auto-destroy date is automatically adjusted when the start date changes to maintain the workshop lifespan."
                   isVisible={autoDestroyHighlighted}
                 >
@@ -782,7 +817,7 @@ const WorkshopsItemDetails: React.FC<{
             </Button>
           </DescriptionListDescription>
         </DescriptionListGroup>
-      ): null}
+      ) : null}
 
       {isAdmin ? (
         <DescriptionListGroup className="workshops-item-details__admin-section">
@@ -801,9 +836,7 @@ const WorkshopsItemDetails: React.FC<{
               </div>
               <div className="workshops-item-details__admin-field">
                 <div className="workshops-item-details__group-control--single" style={{ maxWidth: 350 }}>
-                  <label htmlFor="ops-effort-input">
-                    Ops Effort
-                  </label>
+                  <label htmlFor="ops-effort-input">Ops Effort</label>
                   <NumberInput
                     id="ops-effort-input"
                     aria-label="Ops Effort"
@@ -847,7 +880,15 @@ const WorkshopsItemDetails: React.FC<{
                 onChange={handleLockedChange}
               />
               {belongsToMultiWorkshop && (
-                <Tooltip position="right" content={<p>When enabled, the start, stop, and destroy dates will be determined by the Multi Asset Workshop parameters.</p>}>
+                <Tooltip
+                  position="right"
+                  content={
+                    <p>
+                      When enabled, the start, stop, and destroy dates will be determined by the Multi Asset Workshop
+                      parameters.
+                    </p>
+                  }
+                >
                   <OutlinedQuestionCircleIcon
                     aria-label="Multi Asset Workshop settings information"
                     className="tooltip-icon-only"
@@ -867,10 +908,7 @@ const WorkshopsItemDetails: React.FC<{
                   selectedPool={selectedResourcePool}
                   onSelect={handleResourcePoolChange}
                 />
-                <Tooltip
-                  position="right"
-                  content={<p>Select a specific resource pool for this workshop.</p>}
-                >
+                <Tooltip position="right" content={<p>Select a specific resource pool for this workshop.</p>}>
                   <OutlinedQuestionCircleIcon
                     aria-label="Select a specific resource pool for this workshop"
                     className="tooltip-icon-only"
@@ -932,8 +970,8 @@ const WorkshopsItemDetails: React.FC<{
         <ModalBody>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
             <Alert variant="info" isInline title="Grant user access">
-              By adding a user&apos;s email, they will gain access to manage this workshop. Please use
-              the email address associated with their account on the Demo platform.
+              By adding a user&apos;s email, they will gain access to manage this workshop. Please use the email address
+              associated with their account on the Demo platform.
             </Alert>
             <FormGroup label="Email address" isRequired fieldId="service-access-email">
               <TextInput

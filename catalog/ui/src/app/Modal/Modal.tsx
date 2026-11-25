@@ -89,7 +89,10 @@ const ModalComponent = ({
   const handleBackdropClick = useCallback(
     (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target && (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))) {
+      if (
+        target &&
+        (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))
+      ) {
         close();
       }
     },
@@ -172,12 +175,7 @@ const ModalComponent = ({
       );
     }
     return (
-      <Button
-        key="confirm"
-        variant="primary"
-        onClick={handleOnConfirm}
-        isDisabled={isDisabled || isLoading}
-      >
+      <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled || isLoading}>
         Close
       </Button>
     );

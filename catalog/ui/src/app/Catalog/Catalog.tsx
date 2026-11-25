@@ -1,7 +1,31 @@
 import React, { Suspense, useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Fuse from 'fuse.js';
 import { Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { Backdrop, Button, Card, CardBody, Drawer, DrawerContent, DrawerContentBody, DrawerPanelContent, EmptyState, PageSection, Sidebar, SidebarContent, SidebarPanel, Split, SplitItem, Stack, StackItem, Title, Tooltip, Select, SelectOption, SelectList, MenuToggle } from '@patternfly/react-core';
+import {
+  Backdrop,
+  Button,
+  Card,
+  CardBody,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent,
+  EmptyState,
+  PageSection,
+  Sidebar,
+  SidebarContent,
+  SidebarPanel,
+  Split,
+  SplitItem,
+  Stack,
+  StackItem,
+  Title,
+  Tooltip,
+  Select,
+  SelectOption,
+  SelectList,
+  MenuToggle,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import DownloadIcon from '@patternfly/react-icons/dist/js/icons/download-icon';
 import ListIcon from '@patternfly/react-icons/dist/js/icons/list-icon';
@@ -133,7 +157,10 @@ function filterFavorites(catalogItem: CatalogItem, favList: Bookmark[] = []) {
   return favList.some((f) => f.asset_uuid === catalogItem.metadata?.labels?.['gpte.redhat.com/asset-uuid']);
 }
 
-export function filterCatalogItemByLabels(catalogItem: CatalogItem, labelFilter: { [attr: string]: string[] }): boolean {
+export function filterCatalogItemByLabels(
+  catalogItem: CatalogItem,
+  labelFilter: { [attr: string]: string[] },
+): boolean {
   for (const [attr, values] of Object.entries(labelFilter)) {
     const matchAttr = attr.toLowerCase();
     const matchValues = values.map((v) => v.toLowerCase());
@@ -369,10 +396,7 @@ const Catalog: React.FC<{ userHasRequiredPropertiesToAccess: boolean }> = ({ use
   );
 
   const isAllCatalogs = catalogNamespaceName === ALL_CATALOGS_NS;
-  const allVisibleNsNames = useMemo(
-    () => visibleCatalogNamespaces.map((ns) => ns.name),
-    [visibleCatalogNamespaces],
-  );
+  const allVisibleNsNames = useMemo(() => visibleCatalogNamespaces.map((ns) => ns.name), [visibleCatalogNamespaces]);
 
   const { data: activeIncidents, isLoading } = useSWRImmutable<CatalogItemIncidents>(
     catalogNamespaceName && !isAllCatalogs

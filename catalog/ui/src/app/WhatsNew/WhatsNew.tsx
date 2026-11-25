@@ -1,7 +1,15 @@
 import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import dompurify from 'dompurify';
-import { Breadcrumb, BreadcrumbItem, EmptyState, EmptyStateBody, PageSection, Spinner, Title } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  EmptyState,
+  EmptyStateBody,
+  PageSection,
+  Spinner,
+  Title,
+} from '@patternfly/react-core';
 import useWhatsNew from './useWhatsNew';
 import UnexpectedError from '@app/components/UnexpectedError';
 
@@ -10,7 +18,10 @@ import './whats-new.css';
 function articleExcerpt(body: string): string {
   const content = dompurify.sanitize(body || '', { USE_PROFILES: { html: true }, RETURN_DOM: true }) as HTMLElement;
   const paragraphs = Array.from(content.querySelectorAll('p'));
-  const paragraph = paragraphs.find((item) => item.textContent?.trim() && item.textContent !== item.querySelector('strong, b')?.textContent) || paragraphs[0];
+  const paragraph =
+    paragraphs.find(
+      (item) => item.textContent?.trim() && item.textContent !== item.querySelector('strong, b')?.textContent,
+    ) || paragraphs[0];
   const text = (paragraph?.textContent || content.textContent || '').replace(/\s+/g, ' ').trim();
   return text.length > 200 ? `${text.slice(0, 200).replace(/\s+\S*$/, '')}…` : text;
 }
@@ -64,11 +75,16 @@ const WhatsNew: React.FC = () => {
   }
 
   return (
-    <PageSection hasBodyWrapper={false} className={`whats-new-page ${pageId ? 'whats-new-page--article' : 'whats-new-page--index'}`}>
+    <PageSection
+      hasBodyWrapper={false}
+      className={`whats-new-page ${pageId ? 'whats-new-page--article' : 'whats-new-page--index'}`}
+    >
       <div className="whats-new-shell">
         {pageId ? (
           <Breadcrumb className="whats-new-breadcrumb" aria-label="News navigation">
-            <BreadcrumbItem><Link to="/whats-new">{data?.title || "What's New"}</Link></BreadcrumbItem>
+            <BreadcrumbItem>
+              <Link to="/whats-new">{data?.title || "What's New"}</Link>
+            </BreadcrumbItem>
             <BreadcrumbItem isActive>{page.title}</BreadcrumbItem>
           </Breadcrumb>
         ) : null}
@@ -92,7 +108,9 @@ const WhatsNew: React.FC = () => {
         </article>
         {!pageId && data?.children?.length ? (
           <section className="whats-new-posts" aria-labelledby="whats-new-posts-title">
-            <h2 id="whats-new-posts-title" className="whats-new-posts-heading">Latest updates</h2>
+            <h2 id="whats-new-posts-title" className="whats-new-posts-heading">
+              Latest updates
+            </h2>
             <ul className="whats-new-post-list">
               {data.children.map((child, index) => (
                 <li key={child.id} className={`whats-new-post ${index === 0 ? 'whats-new-post--latest' : ''}`}>

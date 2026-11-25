@@ -19,7 +19,9 @@ export default function useWhatsNewNotification(latest: WhatsNewPage | undefined
   const createdAt = Date.parse(latest?.createdAt || '');
   const expiresAt = createdAt + NOTIFICATION_LIFETIME;
   const latestPath = latest ? `/whats-new/${encodeURIComponent(latest.id)}` : '/whats-new';
-  const hasUnread = Boolean(user && latest && latest.id !== readId && createdAt <= Date.now() && Date.now() < expiresAt);
+  const hasUnread = Boolean(
+    user && latest && latest.id !== readId && createdAt <= Date.now() && Date.now() < expiresAt,
+  );
 
   useEffect(() => {
     const sync = () => setRead({ key, id: readPageId(key) });

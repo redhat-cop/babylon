@@ -66,9 +66,7 @@ const WorkshopContent: React.FC<{
       </Hero>
       <section className="workshop-content__body">
         <div className="workshop-content__wrapper">
-          <h2 className="workshop-content__section-title">
-            Instructions for {displayName}
-          </h2>
+          <h2 className="workshop-content__section-title">Instructions for {displayName}</h2>
 
           {description ? (
             <div className="workshop-content__card">
@@ -95,9 +93,7 @@ const WorkshopContent: React.FC<{
           ) : null}
 
           {templateHtml ? (
-            <div className="workshop-content__card">
-              {templateHtml}
-            </div>
+            <div className="workshop-content__card">{templateHtml}</div>
           ) : (
             <>
               {userAssignment.messages ? (

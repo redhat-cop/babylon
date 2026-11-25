@@ -45,7 +45,16 @@ const DateTimePicker: React.FC<{
   forceUpdateTimestamp?: number;
   timezone?: string;
   additionalValidators?: Array<(date: Date) => boolean>;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone = getBrowserTimezone(), additionalValidators }) => {
+}> = ({
+  defaultTimestamp,
+  isDisabled = false,
+  onSelect,
+  minDate,
+  maxDate,
+  forceUpdateTimestamp,
+  timezone = getBrowserTimezone(),
+  additionalValidators,
+}) => {
   const dateFormat = (date: Date) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',
@@ -113,7 +122,9 @@ const DateTimePicker: React.FC<{
   };
 
   const onSelectCalendar = (newValueDate: Date) => {
-    const iso = new Date(Date.UTC(newValueDate.getFullYear(), newValueDate.getMonth(), newValueDate.getDate())).toISOString();
+    const iso = new Date(
+      Date.UTC(newValueDate.getFullYear(), newValueDate.getMonth(), newValueDate.getDate()),
+    ).toISOString();
     setValueDate(iso);
     setIsCalendarOpen(!isCalendarOpen);
     setIsTimeOpen(!isTimeOpen);
@@ -144,20 +155,26 @@ const DateTimePicker: React.FC<{
     if (!minDate) return true;
 
     const d = new Date(valueDate);
-    const candidateDate = dateInTimezone(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Number(hour), Number(minute), timezone);
+    const candidateDate = dateInTimezone(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+      Number(hour),
+      Number(minute),
+      timezone,
+    );
     return candidateDate.getTime() >= minDate;
   };
 
-  const timeOptions = hours
-    .flatMap((hour) =>
-      minutes
-        .filter((minute) => isTimeOptionValid(hour, minute))
-        .map((minute) => (
-          <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
-            {formatAmPm(`${hour}:${minute}`)}
-          </DropdownItem>
-        )),
-    );
+  const timeOptions = hours.flatMap((hour) =>
+    minutes
+      .filter((minute) => isTimeOptionValid(hour, minute))
+      .map((minute) => (
+        <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
+          {formatAmPm(`${hour}:${minute}`)}
+        </DropdownItem>
+      )),
+  );
 
   const calendarDate = (() => {
     const d = new Date(valueDate);
@@ -187,8 +204,7 @@ const DateTimePicker: React.FC<{
             padding: '6px 16px',
             ...(isDisabled
               ? {
-                  color:
-                    'var(--pf-v6-global--disabled-color--100)',
+                  color: 'var(--pf-v6-global--disabled-color--100)',
                 }
               : {}),
           }}

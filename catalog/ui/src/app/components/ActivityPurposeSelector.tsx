@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { FormGroup, Radio, TextInput, Tooltip, Select, SelectList, SelectOption, MenuToggle } from '@patternfly/react-core';
+import {
+  FormGroup,
+  Radio,
+  TextInput,
+  Tooltip,
+  Select,
+  SelectList,
+  SelectOption,
+  MenuToggle,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import useSession from '@app/utils/useSession';
@@ -65,7 +74,7 @@ const ActivityPurposeSelector: React.FC<{
             <OutlinedQuestionCircleIcon
               aria-label="Activity for this service."
               className="tooltip-icon-only"
-              style={{ marginLeft: "var(--pf-t--global--spacer--sm)" }}
+              style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
             />
           </Tooltip>
         }
@@ -75,7 +84,7 @@ const ActivityPurposeSelector: React.FC<{
           style={{
             flexDirection: 'column',
             alignItems: 'flex-start',
-            paddingBottom: "var(--pf-t--global--spacer--md)",
+            paddingBottom: 'var(--pf-t--global--spacer--md)',
           }}
         >
           {[...activityOpts.keys()].map((activityOptName) => (
@@ -121,7 +130,10 @@ const ActivityPurposeSelector: React.FC<{
           </Select>
 
           {purposeOpts.find((p) => p.name === purpose)?.requireUserInput && (
-            <div className="catalog-item-form__group-control--single" style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+            <div
+              className="catalog-item-form__group-control--single"
+              style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+            >
               <TextInput
                 aria-label="Specify purpose"
                 placeholder="Specify purpose"

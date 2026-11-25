@@ -36,7 +36,9 @@ const CatalogItemFormStartModal: React.FC<{
       <Form isHorizontal>
         <FormGroup
           fieldId="start-date-modal"
-          label={isWorkshop && useReadyByDate ? 'Ready by' : isWorkshop ? 'Provisioning Date' : 'Start Provisioning Date'}
+          label={
+            isWorkshop && useReadyByDate ? 'Ready by' : isWorkshop ? 'Provisioning Date' : 'Start Provisioning Date'
+          }
         >
           <DateTimePicker
             defaultTimestamp={
@@ -45,9 +47,7 @@ const CatalogItemFormStartModal: React.FC<{
                 : selectedDate?.getTime() || now
             }
             forceUpdateTimestamp={
-              isWorkshop && useReadyByDate
-                ? selectedDate?.getTime() + READY_BY_LEAD_TIME_MS
-                : selectedDate?.getTime()
+              isWorkshop && useReadyByDate ? selectedDate?.getTime() + READY_BY_LEAD_TIME_MS : selectedDate?.getTime()
             }
             onSelect={(d: Date) => {
               if (isWorkshop && useReadyByDate) {

@@ -17,14 +17,15 @@ const SalesforceItemsList: React.FC<SalesforceItemsListProps> = ({ items }) => {
 
   return (
     <List isPlain>
-      {items.filter(item => item.type && item.id).map((item, idx) => (
-        <ListItem key={`${item.id}-${idx}`}>
-          <span style={{ fontWeight: 'bold' }}>{getTypeLabel(item.type)} Id</span>: {item.id}
-        </ListItem>
-      ))}
+      {items
+        .filter((item) => item.type && item.id)
+        .map((item, idx) => (
+          <ListItem key={`${item.id}-${idx}`}>
+            <span style={{ fontWeight: 'bold' }}>{getTypeLabel(item.type)} Id</span>: {item.id}
+          </ListItem>
+        ))}
     </List>
   );
 };
 
 export default SalesforceItemsList;
-

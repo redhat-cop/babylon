@@ -199,7 +199,7 @@ const RatingsList: React.FC = () => {
 
   return (
     <div className="admin-container">
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -219,7 +219,7 @@ const RatingsList: React.FC = () => {
       </PageSection>
 
       {catalogItemsResult.length > 0 ? (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <Table aria-label="Catalog items ratings table" variant="compact">
             <Thead>
               <Tr>

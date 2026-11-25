@@ -13,7 +13,7 @@ import {
   DescriptionListDescription,
   EmptyState,
   Content,
-  } from '@patternfly/react-core';
+} from '@patternfly/react-core';
 import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
 import type { WorkshopUserAssignment } from '@app/types';
@@ -50,7 +50,7 @@ const WorkshopsItemUserAssignments: React.FC<{
     setBulkUserAssignmentMessage(
       unassignedEmails.length === 0
         ? `Assigned ${userAssignments.length} users.`
-        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`
+        : `Assigned ${userAssignments.length} users. Unable to assign ${unassignedEmails.join(', ')}`,
     );
     setBulkUserAssignmentModalIsOpen(false);
     onUserAssignmentsUpdate(workshopUserAssignments);
@@ -77,8 +77,12 @@ const WorkshopsItemUserAssignments: React.FC<{
 
   if (!userAssignments || userAssignments.length === 0) {
     return (
-      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No user assignments available" variant="full">
-        </EmptyState>
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationTriangleIcon}
+        titleText="No user assignments available"
+        variant="full"
+      ></EmptyState>
     );
   }
   const groupAndSortBy = (assignments: WorkshopUserAssignment[]): WorkshopUserAssignment[] => {
@@ -92,7 +96,7 @@ const WorkshopsItemUserAssignments: React.FC<{
         acc[resourceClaimName].push(curr);
         return acc;
       },
-      {}
+      {},
     );
 
     // Sort each group by userName
@@ -104,7 +108,7 @@ const WorkshopsItemUserAssignments: React.FC<{
           a.spec.userName.localeCompare(b.spec.userName, undefined, {
             numeric: true,
             sensitivity: 'base',
-          })
+          }),
         );
       });
 
@@ -199,10 +203,14 @@ const WorkshopsItemUserAssignments: React.FC<{
           })}
         </Tbody>
       </Table>
-      <ActionGroup key="users-actions" style={{ marginTop: "var(--pf-t--global--spacer--md)" }}>
+      <ActionGroup key="users-actions" style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
         <Button onClick={openBulkUserAssignmentModal}>Bulk User Assignment</Button>
       </ActionGroup>
-      {bulkUserAssignmentMessage ? <Content component="p" key="users-message">{bulkUserAssignmentMessage}</Content> : null}
+      {bulkUserAssignmentMessage ? (
+        <Content component="p" key="users-message">
+          {bulkUserAssignmentMessage}
+        </Content>
+      ) : null}
     </>
   );
 };

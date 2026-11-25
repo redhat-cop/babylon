@@ -41,24 +41,24 @@ const SelfPacedLabScheduleAction: React.FC<{
 
   return (
     <>
-    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
-    <Form isHorizontal>
-      <FormGroup fieldId="selfpacedlab-schedule-action" label={actionLabel}>
-        <DateTimePicker
-          defaultTimestamp={selectedDate.getTime()}
-          onSelect={(date) => setSelectedDate(date)}
-          {...minMaxProps}
-          timezone={timezone}
-        />
-      </FormGroup>
-      {selectedDate.getTime() <= Date.now() ? (
-        <Alert
-          variant="warning"
-          isInline
-          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'start'} date and time is in the past.`}
-        />
-      ) : null}
-    </Form>
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
+      <Form isHorizontal>
+        <FormGroup fieldId="selfpacedlab-schedule-action" label={actionLabel}>
+          <DateTimePicker
+            defaultTimestamp={selectedDate.getTime()}
+            onSelect={(date) => setSelectedDate(date)}
+            {...minMaxProps}
+            timezone={timezone}
+          />
+        </FormGroup>
+        {selectedDate.getTime() <= Date.now() ? (
+          <Alert
+            variant="warning"
+            isInline
+            title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'start'} date and time is in the past.`}
+          />
+        ) : null}
+      </Form>
     </>
   );
 };

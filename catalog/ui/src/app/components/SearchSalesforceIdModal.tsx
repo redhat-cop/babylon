@@ -111,17 +111,20 @@ const SearchSalesforceId: React.FC<{
     }
   };
 
-  const onSearchButtonClick = useCallback(async (value: string, sfdcType: SfdcType) => {
-    setIsLoading(true);
-    const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
-    setFilteredItems(accounts);
-    setIsLoading(false);
-  }, [debouncedFetchAccounts]);
+  const onSearchButtonClick = useCallback(
+    async (value: string, sfdcType: SfdcType) => {
+      setIsLoading(true);
+      const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
+      setFilteredItems(accounts);
+      setIsLoading(false);
+    },
+    [debouncedFetchAccounts],
+  );
 
   useEffect(() => {
     onSearchButtonClick(accountValue, sfdcType);
   }, [accountValue, onSearchButtonClick, sfdcType]);
-  
+
   useEffect(() => {
     setAccountValue('');
     setFilteredItems([]);

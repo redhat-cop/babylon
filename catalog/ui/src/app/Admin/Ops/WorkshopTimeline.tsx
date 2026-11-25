@@ -19,9 +19,7 @@ export interface WorkshopTimelineProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (
-    ws: Workshop,
-  ) => {
+  getClusterInfo?: (ws: Workshop) => {
     poolName: string;
     poolNamespace: string;
     clusterName: string;
