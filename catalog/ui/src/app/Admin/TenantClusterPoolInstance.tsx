@@ -37,7 +37,7 @@ import OpenshiftConsoleLink from '@app/components/OpenshiftConsoleLink';
 import TimeInterval from '@app/components/TimeInterval';
 import { useErrorBoundary } from 'react-error-boundary';
 import useSWR from 'swr';
-import { compareK8sObjects, DEMO_DOMAIN } from '@app/util';
+import { compareK8sObjects, DEMO_DOMAIN, getWorkshopOwnerName } from '@app/util';
 import useSession from '@app/utils/useSession';
 import SandboxApiActions from '@app/components/SandboxApiActions';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
@@ -196,6 +196,18 @@ const TenantClusterPoolInstanceComponent: React.FC<{
       setEnabledUpdating(false);
     }
   }, [tenantClusterPoolNamespace, tenantClusterPoolName, spec?.enabled, mutate]);
+
+  // Workshop-owned pools are managed from the workshop detail page, so redirect there.
+  const workshopName = getWorkshopOwnerName(tenantClusterPool);
+  useEffect(() => {
+    if (workshopName) {
+      navigate(`/workshops/${tenantClusterPoolNamespace}/${workshopName}`, { replace: true });
+    }
+  }, [workshopName, tenantClusterPoolNamespace, navigate]);
+
+  if (workshopName) {
+    return null;
+  }
 
   return (
     <>
