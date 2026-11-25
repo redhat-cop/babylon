@@ -11,6 +11,7 @@ const WorkshopDetailStatus: React.FC<{
   expectedCount?: number;
   autoStartTime?: number | null;
 }> = ({ resourceClaims, clusterResourceClaims = [], expectedCount = 0, autoStartTime }) => {
+  // eslint-disable-next-line @eslint-react/purity -- scheduled state must be re-evaluated against the current time on each render (parent SWR refresh) so it flips once start time passes
   const isScheduled = autoStartTime && autoStartTime > Date.now();
   // Before the scheduled start, ordered instances are covered by the scheduled status
   const showInstances = resourceClaims.length > 0 || (!isScheduled && expectedCount > 0);

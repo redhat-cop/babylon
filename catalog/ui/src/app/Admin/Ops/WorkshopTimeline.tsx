@@ -19,9 +19,7 @@ export interface WorkshopTimelineProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (
-    ws: Workshop,
-  ) => {
+  getClusterInfo?: (ws: Workshop) => {
     poolName: string;
     poolNamespace: string;
     clusterName: string;
@@ -260,6 +258,7 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
   }, [dateRange]);
 
   const totalWorkshops = Object.values(groupedWorkshops).reduce((s, arr) => s + arr.length, 0);
+  // eslint-disable-next-line @eslint-react/purity -- 'today' highlight must reflect the current date on every re-render (e.g. across midnight); memoizing would freeze it
   const todayStr = new Date().toDateString();
 
   const nowPercent = useMemo(() => {
@@ -328,13 +327,13 @@ export const WorkshopTimeline: React.FC<WorkshopTimelineProps> = ({
             {nowPercent !== null && (
               <div className="timeline-now-marker" style={{ left: `${nowPercent}%` }} title="Now" />
             )}
-            {dateGrid.map((day, i) => {
+            {dateGrid.map((day) => {
               const isToday = day.toDateString() === todayStr;
               const isWeekend = day.getDay() === 0 || day.getDay() === 6;
               const isSingleDay = dateGrid.length === 1;
               return (
                 <div
-                  key={i}
+                  key={day.getTime()}
                   className={`timeline-date-cell${isToday ? ' timeline-date-cell--today' : ''}${isWeekend ? ' timeline-date-cell--weekend' : ''}${!isSingleDay ? ' timeline-date-cell--clickable' : ''}`}
                   onClick={!isSingleDay ? () => handleDateChange(getStartOfDay(day), getEndOfDay(day)) : undefined}
                   title={

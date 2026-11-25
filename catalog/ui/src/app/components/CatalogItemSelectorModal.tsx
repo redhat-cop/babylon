@@ -3,7 +3,25 @@ import RenderedContent from '@app/components/RenderedContent';
 import Fuse from 'fuse.js';
 import { Grid } from 'react-window';
 import type { CellComponentProps } from 'react-window';
-import { Modal, Button, SearchInput, EmptyState, EmptyStateBody, Title, Dropdown, DropdownItem, DropdownList, MenuToggle, Checkbox, Split, SplitItem, CardBody, CardHeader, Badge, Tooltip } from '@patternfly/react-core';
+import {
+  Modal,
+  Button,
+  SearchInput,
+  EmptyState,
+  EmptyStateBody,
+  Title,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
+  Checkbox,
+  Split,
+  SplitItem,
+  CardBody,
+  CardHeader,
+  Badge,
+  Tooltip,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import LoadingSection from '@app/components/LoadingSection';
 import useSWR from 'swr';
@@ -232,20 +250,24 @@ const CategorySelectorContent: React.FC<{
   catalogItemsFilter?: (items: CatalogItem[]) => CatalogItem[];
   catalogNamespaceNames: string[];
 }> = ({ selectedCatalogNamespace, onSelect, selected, catalogItemsFilter, catalogNamespaceNames }) => {
-
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
     `catalog-items-${selectedCatalogNamespace || `all-catalogs:${catalogNamespaceNames.join(',')}`}`,
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
   const catalogItems: CatalogItem[] = useMemo(
-    () => catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : (catalogItemsArr || []),
+    () => (catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : catalogItemsArr || []),
     [catalogItemsArr, catalogItemsFilter],
   );
 
   return (
     <div style={{ overflowX: 'auto' }}>
-      <CatalogCategorySelector catalogItems={catalogItems} onSelect={onSelect} selected={selected} isHorizontal={true} />
+      <CatalogCategorySelector
+        catalogItems={catalogItems}
+        onSelect={onSelect}
+        selected={selected}
+        isHorizontal={true}
+      />
     </div>
   );
 };
@@ -272,14 +294,13 @@ const CatalogItemsContent: React.FC<{
   catalogItemsFilter,
   catalogNamespaceNames,
 }) => {
-
   const { data: catalogItemsArr } = useSWR<CatalogItem[]>(
     `catalog-items-${selectedCatalogNamespace || `all-catalogs:${catalogNamespaceNames.join(',')}`}`,
     () => fetchCatalog(selectedCatalogNamespace ? [selectedCatalogNamespace] : catalogNamespaceNames),
   );
 
   const allowedCatalogItems = useMemo(
-    () => catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : (catalogItemsArr || []),
+    () => (catalogItemsFilter ? catalogItemsFilter(catalogItemsArr || []) : catalogItemsArr || []),
     [catalogItemsArr, catalogItemsFilter],
   );
 
@@ -411,7 +432,7 @@ const CatalogItemSelectorModal: React.FC<CatalogItemSelectorModalProps> = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(defaultMultiSelect ?? !singleSelect);
-  const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(new Map());
+  const [selectedItems, setSelectedItems] = useState<Map<string, CatalogItem>>(() => new Map());
   const { catalogNamespaces: sessionCatalogNamespaces } = useSession().getSession();
   const catalogNamespaces = useMemo(
     () =>

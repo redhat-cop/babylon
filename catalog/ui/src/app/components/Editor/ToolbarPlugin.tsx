@@ -69,7 +69,7 @@ function FloatingLinkEditor({ editor }) {
   const inputRef = useRef(null);
   const mouseDownRef = useRef(false);
   const [linkUrl, setLinkUrl] = useState('');
-  const [isEditMode, setEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [lastSelection, setLastSelection] = useState(null);
 
   const sanitizeUrl = useCallback((url) => {
@@ -134,7 +134,7 @@ function FloatingLinkEditor({ editor }) {
     } else if (!activeElement || activeElement.className !== 'link-input') {
       positionEditorElement(editorElem, null);
       setLastSelection(null);
-      setEditMode(false);
+      setIsEditMode(false);
       setLinkUrl('');
     }
 
@@ -196,11 +196,11 @@ function FloatingLinkEditor({ editor }) {
                 if (safeUrl !== '') {
                   editor.dispatchCommand(TOGGLE_LINK_COMMAND, safeUrl);
                 }
-                setEditMode(false);
+                setIsEditMode(false);
               }
             } else if (event.key === 'Escape') {
               event.preventDefault();
-              setEditMode(false);
+              setIsEditMode(false);
             }
           }}
         />
@@ -217,7 +217,7 @@ function FloatingLinkEditor({ editor }) {
               onMouseDown={(event) => event.preventDefault()}
               onClick={(e) => {
                 e.preventDefault();
-                setEditMode(true);
+                setIsEditMode(true);
               }}
             />
           </div>
@@ -466,6 +466,7 @@ const ToolbarPlugin: React.FC = () => {
   const [selectedElementKey, setSelectedElementKey] = useState(null);
   const [showBlockOptionsDropDown, setShowBlockOptionsDropDown] = useState(false);
   const [codeLanguage, setCodeLanguage] = useState('');
+  // eslint-disable-next-line @eslint-react/use-state -- value is unused but setIsRTL still triggers a toolbar re-render on RTL change; naming the value would fail no-unused-vars
   const [, setIsRTL] = useState(false);
   const [isLink, setIsLink] = useState(false);
   const [isBold, setIsBold] = useState(false);

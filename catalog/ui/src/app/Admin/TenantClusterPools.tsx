@@ -49,17 +49,23 @@ const ClusterChildRow: React.FC<{
   cluster: TenantClusterPoolStatusCluster;
   namespace: string;
 }> = ({ cluster, namespace }) => {
-  const { status, placementCount, maxPlacements, updating, pendingAction, performAction, resourceClaimCreationTimestamp, isRunning } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+  const {
+    status,
+    placementCount,
+    maxPlacements,
+    updating,
+    pendingAction,
+    performAction,
+    resourceClaimCreationTimestamp,
+    isRunning,
+  } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
 
   if (status === 'loading') {
     return (
       <tr className="tenant-pools-child-row">
         <td></td>
         <td>
-          <Link
-            to={`/services/${namespace}/${cluster.resourceClaimName}`}
-            className="tenant-pools-name-link"
-          >
+          <Link to={`/services/${namespace}/${cluster.resourceClaimName}`} className="tenant-pools-name-link">
             {cluster.resourceClaimName}
           </Link>
         </td>
@@ -74,10 +80,7 @@ const ClusterChildRow: React.FC<{
     <tr className="tenant-pools-child-row">
       <td></td>
       <td>
-        <Link
-          to={`/services/${namespace}/${cluster.resourceClaimName}`}
-          className="tenant-pools-name-link"
-        >
+        <Link to={`/services/${namespace}/${cluster.resourceClaimName}`} className="tenant-pools-name-link">
           {cluster.resourceClaimName}
         </Link>
       </td>
@@ -89,7 +92,9 @@ const ClusterChildRow: React.FC<{
       <td>{`${placementCount}/${maxPlacements ?? '-'}`}</td>
       <td>
         {status === 'available' ? (
-          <span className="tenant-pools-onboarded"><CheckCircleIcon /> Onboarded</span>
+          <span className="tenant-pools-onboarded">
+            <CheckCircleIcon /> Onboarded
+          </span>
         ) : status === 'disabled' ? (
           <span className="tenant-pools-not-onboarded">Disabled</span>
         ) : (
@@ -109,39 +114,40 @@ const ClusterChildRow: React.FC<{
         />
       </td>
       <td></td>
-      <td>
-        {resourceClaimCreationTimestamp ? (
-          <TimeInterval toTimestamp={resourceClaimCreationTimestamp} />
-        ) : '-'}
-      </td>
+      <td>{resourceClaimCreationTimestamp ? <TimeInterval toTimestamp={resourceClaimCreationTimestamp} /> : '-'}</td>
     </tr>
   );
 };
 
 function sandboxApiStateColor(state: string): 'green' | 'yellow' | 'red' | 'grey' {
   switch (state) {
-    case 'available': return 'green';
-    case 'pending': return 'yellow';
-    case 'disabled': return 'red';
-    case 'removed': return 'grey';
-    default: return 'grey';
+    case 'available':
+      return 'green';
+    case 'pending':
+      return 'yellow';
+    case 'disabled':
+      return 'red';
+    case 'removed':
+      return 'grey';
+    default:
+      return 'grey';
   }
 }
 
 const TenantClusterPools: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
-  const [expandedPools, setExpandedPools] = useState<Set<string>>(new Set());
+  const [expandedPools, setExpandedPools] = useState<Set<string>>(() => new Set());
 
   const { data: tenantClusterPools } = useSWR<TenantClusterPool[]>(
     apiPaths.TENANT_CLUSTER_POOLS({ limit: 'ALL' }),
@@ -158,25 +164,16 @@ const TenantClusterPools: React.FC = () => {
     },
   );
 
-  const filterFunction = useCallback(
-    (pool: TenantClusterPool) => filterPool(pool, keywordFilter),
-    [keywordFilter],
-  );
+  const filterFunction = useCallback((pool: TenantClusterPool) => filterPool(pool, keywordFilter), [keywordFilter]);
 
   const filteredPools: TenantClusterPool[] = useMemo(
     () => (tenantClusterPools || []).filter(filterFunction),
     [filterFunction, tenantClusterPools],
   );
 
-  const enabledPools = useMemo(
-    () => filteredPools.filter((pool) => pool.spec.enabled !== false),
-    [filteredPools],
-  );
+  const enabledPools = useMemo(() => filteredPools.filter((pool) => pool.spec.enabled !== false), [filteredPools]);
 
-  const disabledPools = useMemo(
-    () => filteredPools.filter((pool) => pool.spec.enabled === false),
-    [filteredPools],
-  );
+  const disabledPools = useMemo(() => filteredPools.filter((pool) => pool.spec.enabled === false), [filteredPools]);
 
   const togglePool = useCallback((poolKey: string) => {
     setExpandedPools((prev) => {
@@ -217,7 +214,12 @@ const TenantClusterPools: React.FC = () => {
       </PageSection>
       {filteredPools.length === 0 ? (
         <PageSection hasBodyWrapper={false} key="body-empty">
-          <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Tenant Cluster Pools found" variant="full" />
+          <EmptyState
+            headingLevel="h1"
+            icon={ExclamationTriangleIcon}
+            titleText="No Tenant Cluster Pools found"
+            variant="full"
+          />
         </PageSection>
       ) : (
         <PageSection hasBodyWrapper={false} key="body" className="admin-body">
@@ -244,8 +246,10 @@ const TenantClusterPools: React.FC = () => {
                     const clusterCount = clusters.length;
                     const availableCount = clusters.filter((c) => c.sandboxApiState === 'available').length;
                     const occupiedCount = clusterCount - availableCount;
-                    const poolSaturationPercent = clusterCount > 0 ? Math.round((occupiedCount / clusterCount) * 100) : 0;
-                    const saturationColor: 'green' | 'orange' | 'red' = poolSaturationPercent < 70 ? 'green' : poolSaturationPercent < 90 ? 'orange' : 'red';
+                    const poolSaturationPercent =
+                      clusterCount > 0 ? Math.round((occupiedCount / clusterCount) * 100) : 0;
+                    const saturationColor: 'green' | 'orange' | 'red' =
+                      poolSaturationPercent < 70 ? 'green' : poolSaturationPercent < 90 ? 'orange' : 'red';
                     const maxPlacementsPerCluster = pool.spec?.sandboxHost?.max_placements || 50;
                     const maxTotalPlacements = clusterCount * maxPlacementsPerCluster;
 
@@ -276,15 +280,21 @@ const TenantClusterPools: React.FC = () => {
                               {clusterCount} cluster{clusterCount !== 1 ? 's' : ''}
                             </Label>
                           </td>
-                          <td>{availableCount} / {clusterCount} available</td>
+                          <td>
+                            {availableCount} / {clusterCount} available
+                          </td>
                           <td>
                             {clusterCount > 0 ? (
-                              <Tooltip content={`Pool saturation: ${poolSaturationPercent}% (${occupiedCount}/${clusterCount} clusters occupied)`}>
+                              <Tooltip
+                                content={`Pool saturation: ${poolSaturationPercent}% (${occupiedCount}/${clusterCount} clusters occupied)`}
+                              >
                                 <Label isCompact color={saturationColor}>
                                   {poolSaturationPercent}%
                                 </Label>
                               </Tooltip>
-                            ) : '-'}
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td>{maxTotalPlacements}</td>
                           <td></td>
@@ -295,6 +305,7 @@ const TenantClusterPools: React.FC = () => {
                         </tr>
                         {isExpanded
                           ? clusters.map((cluster: TenantClusterPoolStatusCluster, idx: number) => (
+                              // eslint-disable-next-line @eslint-react/no-array-index-key -- cluster name is optional and resourceClaimName uniqueness is not guaranteed; keeping index avoids changing row state retention
                               <ClusterChildRow key={idx} cluster={cluster} namespace={pool.metadata.namespace} />
                             ))
                           : null}

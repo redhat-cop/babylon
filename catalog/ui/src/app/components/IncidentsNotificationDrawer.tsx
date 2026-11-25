@@ -115,6 +115,7 @@ const IncidentsNotificationDrawer: React.FC = () => {
   // Mark all drawer incidents as read when the drawer is opened
   useEffect(() => {
     if (isDrawerExpanded && drawerIncidents.length > 0) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- marks incidents read (and persists to localStorage) in response to the drawer opening / incidents refetch; not derivable
       setReadIncidentIds((prevReadIds) => {
         const currentIncidentIds = new Set(drawerIncidents.map((i) => i.id));
         // Only keep read IDs that are still active (cleanup old ones)

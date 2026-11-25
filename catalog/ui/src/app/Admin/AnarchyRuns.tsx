@@ -1,4 +1,4 @@
-import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
+import React, { useEffect, Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -44,16 +44,16 @@ const AnarchyRuns: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const stateUrlParam = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -171,17 +171,23 @@ const AnarchyRuns: React.FC = () => {
   }
 
   // Fetch all if keywordFilter is defined.
-  if (keywordFilter && anarchyRunsPages.length > 0 && anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue) {
-    if (!isLoadingMore) {
-      if (anarchyRuns.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      anarchyRunsPages.length > 0 &&
+      anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = anarchyRuns.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <div onScroll={scrollHandler} className="admin-container">

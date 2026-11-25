@@ -103,9 +103,11 @@ const AutoStopDestroy: React.FC<{
     }
   }
 
+  // eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (thresholds relative to now); memoizing would freeze it
+  const now = Date.now();
   let showNoAutoStop = false;
   if (type === 'auto-stop') {
-    if (time > Date.now() + 15778800000) {
+    if (time > now + 15778800000) {
       showNoAutoStop = true;
     } else if (resourceClaim?.status?.lifespan?.end) {
       const autoDestroyTime = new Date(resourceClaim.status.lifespan.end).getTime();
@@ -121,7 +123,7 @@ const AutoStopDestroy: React.FC<{
 
   let showNoAutoDestroy = false;
   if (type === 'auto-destroy') {
-    if (time > Date.now() + 31557600000) {
+    if (time > now + 31557600000) {
       showNoAutoDestroy = true;
     }
   }

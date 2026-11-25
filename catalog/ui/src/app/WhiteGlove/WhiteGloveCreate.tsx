@@ -1,7 +1,26 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWRImmutable from 'swr/immutable';
-import { Alert, Breadcrumb, BreadcrumbItem, Button, Checkbox, Form, FormGroup, Label, LabelGroup, MenuToggle, PageSection, Select, SelectList, SelectOption, TextArea, TextInput, Title, Tooltip } from '@patternfly/react-core';
+import {
+  Alert,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  Checkbox,
+  Form,
+  FormGroup,
+  Label,
+  LabelGroup,
+  MenuToggle,
+  PageSection,
+  Select,
+  SelectList,
+  SelectOption,
+  TextArea,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import TimesIcon from '@patternfly/react-icons/dist/js/icons/times-icon';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
@@ -64,6 +83,7 @@ const WhiteGloveCreateContent: React.FC = () => {
 
   const blockedDateValidator = useMemo(() => createBlockedDateValidator(wgBlockedDates), [wgBlockedDates]);
 
+  // eslint-disable-next-line @eslint-react/purity -- lead-time warning must be computed against the current time on each render
   const isShortLeadTime = eventDate.getTime() - Date.now() < FOURTEEN_DAYS_MS;
 
   const defaultCatalogNamespace = catalogNamespaces?.find(
@@ -162,7 +182,14 @@ const WhiteGloveCreateContent: React.FC = () => {
     }
   }
 
-  const isFormValid = !!eventName.trim() && (needConsultation || selectedCatalogItems.length > 0) && !!activity && !!purpose && !!deliveryMode && !!audienceType && salesforceItems.length > 0;
+  const isFormValid =
+    !!eventName.trim() &&
+    (needConsultation || selectedCatalogItems.length > 0) &&
+    !!activity &&
+    !!purpose &&
+    !!deliveryMode &&
+    !!audienceType &&
+    salesforceItems.length > 0;
 
   return (
     <>
@@ -219,7 +246,12 @@ const WhiteGloveCreateContent: React.FC = () => {
                           <CatalogItemIcon catalogItem={item} />
                         </div>
                         <span className="wg-catalog-item__name">{displayName(item)}</span>
-                        <Button variant="plain" aria-label="Remove catalog item" onClick={() => removeCatalogItem(index)} className="wg-catalog-item__remove">
+                        <Button
+                          variant="plain"
+                          aria-label="Remove catalog item"
+                          onClick={() => removeCatalogItem(index)}
+                          className="wg-catalog-item__remove"
+                        >
                           <TimesIcon />
                         </Button>
                       </div>
@@ -300,10 +332,9 @@ const WhiteGloveCreateContent: React.FC = () => {
             <Alert variant="info" isInline title="Some dates are unavailable">
               <ul style={{ margin: 0, paddingLeft: '16px' }}>
                 {wgBlockedDates.map((range, i) => (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- static config list never reordered; date ranges are not guaranteed unique
                   <li key={i}>
-                    {range.startDate === range.endDate
-                      ? range.startDate
-                      : `${range.startDate} to ${range.endDate}`}
+                    {range.startDate === range.endDate ? range.startDate : `${range.startDate} to ${range.endDate}`}
                     {range.message ? ` — ${range.message}` : ''}
                   </li>
                 ))}
@@ -396,7 +427,11 @@ const WhiteGloveCreateContent: React.FC = () => {
                   style={{ width: '100%' }}
                 >
                   {audienceType
-                    ? { 'external-customers': 'External Customers', 'internal-redhat': 'Internal Red Hat', partners: 'Partners' }[audienceType]
+                    ? {
+                        'external-customers': 'External Customers',
+                        'internal-redhat': 'Internal Red Hat',
+                        partners: 'Partners',
+                      }[audienceType]
                     : 'Select audience type...'}
                 </MenuToggle>
               )}
@@ -447,10 +482,7 @@ const WhiteGloveCreateContent: React.FC = () => {
             {shareWith.length > 0 && (
               <LabelGroup style={{ marginTop: '8px' }}>
                 {shareWith.map((email) => (
-                  <Label
-                    key={email}
-                    onClose={() => setShareWith((prev) => prev.filter((e) => e !== email))}
-                  >
+                  <Label key={email} onClose={() => setShareWith((prev) => prev.filter((e) => e !== email))}>
                     {email}
                   </Label>
                 ))}
@@ -493,6 +525,7 @@ const WhiteGloveCreateContent: React.FC = () => {
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
         date={eventDate}
+        // eslint-disable-next-line @eslint-react/purity -- picker min bound is the current time at each render; freezing would allow past dates
         minDate={Date.now()}
         title="Event Start Date"
         additionalValidators={[blockedDateValidator]}

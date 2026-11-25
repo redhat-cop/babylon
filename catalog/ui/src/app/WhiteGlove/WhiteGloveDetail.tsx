@@ -173,6 +173,7 @@ const WhiteGloveDetailContent: React.FC = () => {
   useEffect(() => {
     if (!isAdmin || catalogItemsFetched || !wgr?.spec?.catalogItemNames?.length || !wgr?.spec?.catalogItemNamespace)
       return;
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot guard set before the async catalog item fetch so SWR refreshes of wgr do not refetch
     setCatalogItemsFetched(true);
     Promise.all(
       wgr.spec.catalogItemNames.map(
@@ -1119,6 +1120,7 @@ const WhiteGloveDetailContent: React.FC = () => {
                   <div className="wg-comments-list">
                     {jiraComments.map(
                       (c: { author: string; body: string; created: string; updated: string }, i: number) => (
+                        // eslint-disable-next-line @eslint-react/no-array-index-key -- Jira comments payload has no id field; author/created are not guaranteed unique
                         <div key={i} className="wg-comment">
                           <div className="wg-comment__header">
                             <strong>{c.author}</strong>
@@ -1158,6 +1160,7 @@ const WhiteGloveDetailContent: React.FC = () => {
         <>
           <DateTimePickerModalDialog
             isOpen={isStartDateModalOpen}
+            // eslint-disable-next-line @eslint-react/purity -- fallback "now" for an unset date when opening the picker; must reflect the current time, not mount time
             date={wgr.spec.eventDate ? new Date(wgr.spec.eventDate) : new Date()}
             minDate={0}
             title="Event Start Date"
@@ -1169,6 +1172,7 @@ const WhiteGloveDetailContent: React.FC = () => {
           />
           <DateTimePickerModalDialog
             isOpen={isEndDateModalOpen}
+            // eslint-disable-next-line @eslint-react/purity -- fallback "now" for an unset date when opening the picker; must reflect the current time, not mount time
             date={wgr.spec.eventEndDate ? new Date(wgr.spec.eventEndDate) : new Date()}
             minDate={wgr.spec.eventDate ? new Date(wgr.spec.eventDate).getTime() : 0}
             title="Event End Date"

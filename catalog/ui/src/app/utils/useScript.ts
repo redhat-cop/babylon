@@ -9,6 +9,7 @@ function useScript(src: string): Status {
   useEffect(
     () => {
       if (!src) {
+        // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets status when src is cleared; status mirrors an external DOM script element managed by this effect
         setStatus('idle');
         return undefined;
       }
@@ -32,10 +33,15 @@ function useScript(src: string): Status {
           script?.setAttribute('data-status', event.type === 'load' ? 'ready' : 'error');
         };
 
+        // These listeners intentionally outlive this hook instance: they record load status on the shared
+        // script element so other/later instances can read it even if this one unmounts before load.
+        // eslint-disable-next-line @eslint-react/web-api-no-leaked-event-listener -- persists data-status on the shared script element; removing on unmount would leave it stuck at 'loading'
         script.addEventListener('load', setAttributeFromEvent);
+        // eslint-disable-next-line @eslint-react/web-api-no-leaked-event-listener -- persists data-status on the shared script element; removing on unmount would leave it stuck at 'loading'
         script.addEventListener('error', setAttributeFromEvent);
       } else {
         // Grab existing script status from attribute and set to state.
+        // eslint-disable-next-line @eslint-react/set-state-in-effect -- reads status of a script element already injected by another hook instance (external DOM state)
         setStatus(script.getAttribute('data-status') as Status);
       }
 

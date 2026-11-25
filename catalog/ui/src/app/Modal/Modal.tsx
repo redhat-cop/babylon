@@ -57,14 +57,17 @@ const ModalComponent = ({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- intentionally defers portal rendering until after mount so #modal-root exists
     setDomReady(true);
   }, []);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- title is local state that children can override via the passed setTitle; resync from prop when it changes
     setTitle(title);
   }, [title]);
 
   useLayoutEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- isDisabled is local state that children can override via the passed setIsDisabled; resync from prop when it changes
     setIsDisabled(isDisabled);
   }, [isDisabled]);
 
@@ -89,7 +92,10 @@ const ModalComponent = ({
   const handleBackdropClick = useCallback(
     (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target && (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))) {
+      if (
+        target &&
+        (target.classList.contains('pf-v6-c-backdrop') || target.parentElement?.classList.contains('pf-v6-c-backdrop'))
+      ) {
         close();
       }
     },
@@ -97,13 +103,15 @@ const ModalComponent = ({
   );
 
   useEffect(() => {
+    let backdropTimeout: ReturnType<typeof setTimeout> | undefined;
     if (isOpen) {
       document.addEventListener('keydown', handleEscape, false);
-      setTimeout(() => {
+      backdropTimeout = setTimeout(() => {
         document.addEventListener('click', handleBackdropClick, true);
       }, 100);
     }
     return () => {
+      clearTimeout(backdropTimeout);
       document.removeEventListener('keydown', handleEscape, false);
       document.removeEventListener('click', handleBackdropClick, true);
     };
@@ -130,8 +138,10 @@ const ModalComponent = ({
     }
   }, [close, onConfirm, onConfirmCb, onError, state, type]);
 
+  // eslint-disable-next-line @eslint-react/no-children-map -- public passModifiers API injects modal setters into arbitrary children; replacing needs an API change across all callers
   const childrenWithProps = React.Children.map(children, (child) => {
     if (passModifiers && React.isValidElement(child)) {
+      // eslint-disable-next-line @eslint-react/no-clone-element -- required by the passModifiers API to inject setTitle/setState/setOnConfirmCb/setIsDisabled/close into children
       return React.cloneElement(
         child as React.ReactElement<{
           setTitle: React.Dispatch<React.SetStateAction<string>>;
@@ -172,12 +182,7 @@ const ModalComponent = ({
       );
     }
     return (
-      <Button
-        key="confirm"
-        variant="primary"
-        onClick={handleOnConfirm}
-        isDisabled={isDisabled || isLoading}
-      >
+      <Button key="confirm" variant="primary" onClick={handleOnConfirm} isDisabled={isDisabled || isLoading}>
         Close
       </Button>
     );
@@ -211,6 +216,7 @@ const ModalComponent = ({
             </Modal>
           </Suspense>
         ) : null,
+        // eslint-disable-next-line @eslint-react/purity -- only reached after mount (domReady) and #modal-root is a static node in index.html; read-only DOM lookup
         document.getElementById('modal-root'),
       )
     : null;

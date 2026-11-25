@@ -72,11 +72,13 @@ const ServiceOpenStackConsole: React.FC<{
         }
       }
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- should only open a console session when the selected server changes; adding resourceClaim/servers would start new sessions on every refetch
   }, [selectedServer]);
   useEffect(() => {
     if (serverState?.status === 'ACTIVE') {
       reconnectConsole();
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- reconnects only on server status transitions; reconnectConsole is recreated every render and would cause repeated reconnects
   }, [serverState?.status]);
 
   // Subjects must be started for console access

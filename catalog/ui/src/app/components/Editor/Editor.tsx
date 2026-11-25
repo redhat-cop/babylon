@@ -47,12 +47,8 @@ TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
   if (this.__format & IS_UNDERLINE || this.__format & IS_ITALIC || this.__format & IS_BOLD) {
     let dom: HTMLElement = null;
     if (this.__format & IS_UNDERLINE) {
-      const el = document.createElement('u');
-      if (dom) {
-        getLastChildren(dom).appendChild(el);
-      } else {
-        dom = el;
-      }
+      // Underline is the first wrapper, so it always becomes the root element.
+      dom = document.createElement('u');
     }
     if (this.__format & IS_ITALIC) {
       const el = document.createElement('i');

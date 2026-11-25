@@ -56,6 +56,7 @@ const ServicesScheduleAction: React.FC<{
     maxDate = resourceClaim
       ? Math.min(
           Date.parse(resourceClaim.metadata.creationTimestamp) + parseDuration(resourceClaim.status.lifespan.maximum),
+          // eslint-disable-next-line @eslint-react/purity -- relative maximum lifespan is measured from the current time; must not be frozen at mount
           Date.now() + parseDuration(resourceClaim.status.lifespan.relativeMaximum),
         )
       : workshop
@@ -71,6 +72,7 @@ const ServicesScheduleAction: React.FC<{
         : null;
   }
   const minMaxProps = {
+    // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must not be frozen at mount
     minDate: Date.now(),
     maxDate,
   };
@@ -85,91 +87,91 @@ const ServicesScheduleAction: React.FC<{
 
   return (
     <>
-    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
-    <Form isHorizontal>
-      <FormGroup fieldId="services-schedule-action" label={actionLabel}>
-        <DateTimePicker
-          defaultTimestamp={selectedDate.getTime()}
-          onSelect={(date) => setSelectedDate(date)}
-          {...minMaxProps}
-          isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
-          forceUpdateTimestamp={forceUpdateTimestamp}
-          timezone={timezone}
-        />
-      </FormGroup>
-      {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
-        <Alert
-          variant="warning"
-          isInline
-          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
-        />
-      ) : null}
-      {noAutoStopSwitchIsVisible ? (
-        <Switch
-          id="services-schedule-action__no-auto-stop"
-          aria-label="No auto-stop"
-          label="No auto-stop"
-          isChecked={selectedDate.getTime() >= autoDestroyTime}
-          hasCheckIcon
-          onChange={(_event, isChecked) => {
-            if (isChecked) {
-              setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
-            } else {
-              const _date = new Date(
-                Date.now() +
-                  (resourceClaim
-                    ? getMinDefaultRuntime(resourceClaim) || minDefault
-                    : workshop.resourceClaims
-                      ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
-                      : null),
-              );
-              const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
-              setSelectedDate(date);
-              setForceUpdateTimestamp(date);
-            }
-          }}
-        />
-      ) : null}
-      {extendAutoStopMsgIsVisible ? (
-        <AlertGroup>
-          <Alert
-            title={
-              <p>
-                Any change to auto stop/retirement will increase the cost. The usage costs associated with this order
-                will be charged back to your cost center.
-              </p>
-            }
-            variant="info"
-            isInline
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
+      <Form isHorizontal>
+        <FormGroup fieldId="services-schedule-action" label={actionLabel}>
+          <DateTimePicker
+            defaultTimestamp={selectedDate.getTime()}
+            onSelect={(date) => setSelectedDate(date)}
+            {...minMaxProps}
+            isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
+            forceUpdateTimestamp={forceUpdateTimestamp}
+            timezone={timezone}
           />
-        </AlertGroup>
-      ) : null}
-      {extendLifetimeMsgIsVisible ? (
-        <AlertGroup>
+        </FormGroup>
+        {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
           <Alert
-            title={
-              <>
+            variant="warning"
+            isInline
+            title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
+          />
+        ) : null}
+        {noAutoStopSwitchIsVisible ? (
+          <Switch
+            id="services-schedule-action__no-auto-stop"
+            aria-label="No auto-stop"
+            label="No auto-stop"
+            isChecked={selectedDate.getTime() >= autoDestroyTime}
+            hasCheckIcon
+            onChange={(_event, isChecked) => {
+              if (isChecked) {
+                setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
+              } else {
+                const _date = new Date(
+                  Date.now() +
+                    (resourceClaim
+                      ? getMinDefaultRuntime(resourceClaim) || minDefault
+                      : workshop.resourceClaims
+                        ? Math.min(...workshop.resourceClaims.map((r) => getMinDefaultRuntime(r) || minDefault))
+                        : null),
+                );
+                const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
+                setSelectedDate(date);
+                setForceUpdateTimestamp(date);
+              }
+            }}
+          />
+        ) : null}
+        {extendAutoStopMsgIsVisible ? (
+          <AlertGroup>
+            <Alert
+              title={
                 <p>
                   Any change to auto stop/retirement will increase the cost. The usage costs associated with this order
                   will be charged back to your cost center.
                 </p>
-                {minMaxProps.maxDate === null ? (
+              }
+              variant="info"
+              isInline
+            />
+          </AlertGroup>
+        ) : null}
+        {extendLifetimeMsgIsVisible ? (
+          <AlertGroup>
+            <Alert
+              title={
+                <>
                   <p>
-                    Auto-Destroy can be extended by submitting a{' '}
-                    <a href={helpLink} target="_blank" rel="noopener noreferrer">
-                      support request
-                    </a>
-                    .
+                    Any change to auto stop/retirement will increase the cost. The usage costs associated with this
+                    order will be charged back to your cost center.
                   </p>
-                ) : null}
-              </>
-            }
-            variant="info"
-            isInline
-          />
-        </AlertGroup>
-      ) : null}
-    </Form>
+                  {minMaxProps.maxDate === null ? (
+                    <p>
+                      Auto-Destroy can be extended by submitting a{' '}
+                      <a href={helpLink} target="_blank" rel="noopener noreferrer">
+                        support request
+                      </a>
+                      .
+                    </p>
+                  ) : null}
+                </>
+              }
+              variant="info"
+              isInline
+            />
+          </AlertGroup>
+        ) : null}
+      </Form>
     </>
   );
 };

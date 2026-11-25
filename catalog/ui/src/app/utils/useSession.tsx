@@ -80,6 +80,7 @@ export default function useSession(): {
         }
         return Promise.resolve();
       })(),
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- session fetch promise must only be recreated when email/dispatch change; adding userImpersonated/setImpersonation would trigger a new session fetch
     [dispatch, email],
   );
 
@@ -101,6 +102,7 @@ export default function useSession(): {
       serviceNamespaces,
       userNamespace,
     };
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- keeps existing getSession identity semantics; impersonation changes go through a full page reload (sessionStorage) so userImpersonated is effectively constant per load
   }, [
     authUser,
     email,

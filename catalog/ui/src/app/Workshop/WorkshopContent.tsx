@@ -22,6 +22,7 @@ const WorkshopContent: React.FC<{
   const infoMessageTemplate = JSON.parse(workshop.template) as MessageTemplate;
   let renderEditor = true;
 
+  const userAssignmentDataJson = JSON.stringify(userAssignment.data);
   const templateHtml = useMemo(() => {
     if (!infoMessageTemplate || !userAssignment?.data) return null;
     return (
@@ -39,7 +40,8 @@ const WorkshopContent: React.FC<{
         )}
       </RenderedContent>
     );
-  }, [infoMessageTemplate, JSON.stringify(userAssignment.data)]);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- deep-compares userAssignment.data via its JSON string so a refetch with identical data does not re-render the template
+  }, [infoMessageTemplate, userAssignmentDataJson]);
 
   const userAssignmentMessagesHtml = useMemo(
     () =>
@@ -66,9 +68,7 @@ const WorkshopContent: React.FC<{
       </Hero>
       <section className="workshop-content__body">
         <div className="workshop-content__wrapper">
-          <h2 className="workshop-content__section-title">
-            Instructions for {displayName}
-          </h2>
+          <h2 className="workshop-content__section-title">Instructions for {displayName}</h2>
 
           {description ? (
             <div className="workshop-content__card">
@@ -95,9 +95,7 @@ const WorkshopContent: React.FC<{
           ) : null}
 
           {templateHtml ? (
-            <div className="workshop-content__card">
-              {templateHtml}
-            </div>
+            <div className="workshop-content__card">{templateHtml}</div>
           ) : (
             <>
               {userAssignment.messages ? (

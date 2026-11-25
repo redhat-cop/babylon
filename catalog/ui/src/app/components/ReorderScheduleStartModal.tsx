@@ -21,10 +21,12 @@ const ReorderScheduleStartModal: React.FC<{
     if (!isOpen) {
       return;
     }
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- refreshes now/selection each time the modal is opened, together with the imperative openModal() call
     setNow(Date.now());
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- refreshes now/selection each time the modal is opened, together with the imperative openModal() call
     setSelectedDate(startDate);
     openModal();
-  }, [isOpen, startDate]);
+  }, [isOpen, startDate, openModal]);
 
   return (
     <Modal ref={modalRef} title={title} onClose={onClose} onConfirm={() => onConfirm(selectedDate)}>

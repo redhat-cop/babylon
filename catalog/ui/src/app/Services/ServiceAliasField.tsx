@@ -18,6 +18,7 @@ const ServiceAliasField: React.FC<{
   const [state, setState] = useState<'idle' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the local edit buffer from the saved prop value when it changes upstream (e.g. after save/refetch)
     setDraft(value);
   }, [value]);
 

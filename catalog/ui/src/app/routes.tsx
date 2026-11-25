@@ -462,7 +462,7 @@ const publicRoutes: IAppRoute[] = [
 const _Routes: React.FC = () => {
   return (
     <Routes>
-      {publicRoutes.map(({ path, component: Component, title }: IAppRoute, idx) => (
+      {publicRoutes.map(({ path, component: Component, title }: IAppRoute) => (
         <Route
           path={path}
           element={
@@ -475,13 +475,13 @@ const _Routes: React.FC = () => {
               </ErrorBoundary>
             </Suspense>
           }
-          key={`public-routes-${idx}`}
+          key={`public-routes-${path}`}
         />
       ))}
-      {appRoutes.map(({ path, component: Component, title, accessControl }: IAppRoute, idx) => (
+      {appRoutes.map(({ path, component: Component, title, accessControl }: IAppRoute) => (
         <Route
           path={path}
-          key={`app-routes-${idx}`}
+          key={`app-routes-${path}`}
           element={
             <AppLayout title={title} accessControl={accessControl}>
               <Suspense fallback={<LoadingSection />}>

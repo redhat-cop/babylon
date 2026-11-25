@@ -165,6 +165,7 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
               <Thead>
                 <Tr>
                   {columns.map((column, columnIndex) => (
+                    // eslint-disable-next-line @eslint-react/no-array-index-key -- static support matrix that is never reordered; columns/rows have no stable identity (cells may be JSX or duplicate strings)
                     <Th modifier="wrap" key={columnIndex}>
                       <Content
                         component={ContentVariants.h3}
@@ -184,10 +185,12 @@ const SupportPage: React.FC<{ title: string }> = ({ title }) => {
               </Thead>
               <Tbody>
                 {rows.map((row, rowIndex) => (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- static support matrix that is never reordered; columns/rows have no stable identity (cells may be JSX or duplicate strings)
                   <Tr key={rowIndex}>
                     {columns.map((_, columnIndex) => (
                       <Td
                         width={10}
+                        // eslint-disable-next-line @eslint-react/no-array-index-key -- static support matrix that is never reordered; columns/rows have no stable identity (cells may be JSX or duplicate strings)
                         key={`row-${columnIndex}`}
                         dataLabel={columns[columnIndex]}
                         style={{

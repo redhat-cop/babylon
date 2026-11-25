@@ -1,4 +1,4 @@
-import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
+import React, { useEffect, Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
@@ -44,16 +44,16 @@ function keywordMatch(resourceHandle: ResourceHandle, keyword: string): boolean 
 
 const ResourceHandles: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -154,21 +154,23 @@ const ResourceHandles: React.FC = () => {
   }
 
   // Fetch all if keywordFilter is defined.
-  if (
-    keywordFilter &&
-    resourceHandlesPages.length > 0 &&
-    resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue
-  ) {
-    if (!isLoadingMore) {
-      if (resourceHandles.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      resourceHandlesPages.length > 0 &&
+      resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = resourceHandles.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <>
@@ -277,6 +279,7 @@ const ResourceHandles: React.FC = () => {
                   ),
                   <Fragment key="providers">
                     {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
+                      // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); provider names may repeat
                       <div key={idx}>
                         <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>
                           {resourceHandleSpecResource.provider.name}

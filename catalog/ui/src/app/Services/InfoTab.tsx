@@ -41,6 +41,7 @@ const InfoTab: React.FC<{
   const autoStopTime = getAutoStopTime(resourceClaim);
   const startTime = getStartTime(resourceClaim);
 
+  const resourcesJson = JSON.stringify(resourceClaim.status?.resources);
   const infoHtml = useMemo(() => {
     const provision_vars: object = Object.assign(
       {},
@@ -71,11 +72,8 @@ const InfoTab: React.FC<{
         {(html) => <AdocWrapper html={html.replace(/\s*\{\w[\w-—&;]*\}\s*/g, spinnerSvgString)} />}
       </RenderedContent>
     );
-  }, [
-    infoMessageTemplate.template,
-    infoMessageTemplate.templateFormat,
-    JSON.stringify(resourceClaim.status?.resources),
-  ]);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- memo intentionally keyed on template fields and serialized resources (content equality); adding object deps would re-render RenderedContent on every SWR poll
+  }, [infoMessageTemplate.template, infoMessageTemplate.templateFormat, resourcesJson]);
 
   return (
     <div style={{ padding: '0 24px' }}>
@@ -88,6 +86,7 @@ const InfoTab: React.FC<{
             </DescriptionListDescription>
           </DescriptionListGroup>
 
+          {/* eslint-disable-next-line @eslint-react/purity -- shows the scheduled start only while it is in the future; must stay current as SWR polling re-renders */}
           {startTime && startTime > Date.now() ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Start</DescriptionListTerm>

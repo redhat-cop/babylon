@@ -73,6 +73,7 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the instance counter whenever the modal opens/closes; keeps existing reset timing
     setInstancesToDelete(0);
   }, [isOpen]);
 
@@ -125,7 +126,7 @@ const WorkshopsItemServices: React.FC<{
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims, resourceClaims],
+    [workshopProvisions, unusedResourceClaims, resourceClaims, mutate],
   );
 
   const activeResourceClaimsCount = resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length;

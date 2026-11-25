@@ -45,7 +45,16 @@ const DateTimePicker: React.FC<{
   forceUpdateTimestamp?: number;
   timezone?: string;
   additionalValidators?: Array<(date: Date) => boolean>;
-}> = ({ defaultTimestamp, isDisabled = false, onSelect, minDate, maxDate, forceUpdateTimestamp, timezone = getBrowserTimezone(), additionalValidators }) => {
+}> = ({
+  defaultTimestamp,
+  isDisabled = false,
+  onSelect,
+  minDate,
+  maxDate,
+  forceUpdateTimestamp,
+  timezone = getBrowserTimezone(),
+  additionalValidators,
+}) => {
   const dateFormat = (date: Date) =>
     date.toLocaleDateString([getLang(), 'en-US'], {
       year: 'numeric',
@@ -85,16 +94,22 @@ const DateTimePicker: React.FC<{
   useEffect(() => {
     const currentUtcDate = getDateTimeTz(valueDate, valueTime);
     const parts = getDateTimePartsInTimezone(currentUtcDate, timezone);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- converts the local date/time edit buffer to the new timezone when the timezone prop changes
     setValueDate(new Date(Date.UTC(parts.year, parts.month, parts.day)).toISOString());
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- converts the local date/time edit buffer to the new timezone when the timezone prop changes
     setValueTime(`${('00' + parts.hour).slice(-2)}:${('00' + parts.minute).slice(-2)}`);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- must only run on timezone change; adding valueDate/valueTime (which it sets) or the per-render helper would re-run on every edit
   }, [timezone]);
 
   useEffect(() => {
     if (forceUpdateTimestamp) {
       const parts = getDateAndTimeTz(new Date(forceUpdateTimestamp));
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- overwrites the local edit buffer when the parent forces a new timestamp
       setValueDate(parts.dateIso);
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- overwrites the local edit buffer when the parent forces a new timestamp
       setValueTime(parts.time);
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- getDateAndTimeTz is recreated every render (only depends on timezone, already a dep); adding it would reset the buffer on every render
   }, [forceUpdateTimestamp, timezone]);
 
   const onToggleCalendar = () => {
@@ -113,7 +128,9 @@ const DateTimePicker: React.FC<{
   };
 
   const onSelectCalendar = (newValueDate: Date) => {
-    const iso = new Date(Date.UTC(newValueDate.getFullYear(), newValueDate.getMonth(), newValueDate.getDate())).toISOString();
+    const iso = new Date(
+      Date.UTC(newValueDate.getFullYear(), newValueDate.getMonth(), newValueDate.getDate()),
+    ).toISOString();
     setValueDate(iso);
     setIsCalendarOpen(!isCalendarOpen);
     setIsTimeOpen(!isTimeOpen);
@@ -144,20 +161,26 @@ const DateTimePicker: React.FC<{
     if (!minDate) return true;
 
     const d = new Date(valueDate);
-    const candidateDate = dateInTimezone(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Number(hour), Number(minute), timezone);
+    const candidateDate = dateInTimezone(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+      Number(hour),
+      Number(minute),
+      timezone,
+    );
     return candidateDate.getTime() >= minDate;
   };
 
-  const timeOptions = hours
-    .flatMap((hour) =>
-      minutes
-        .filter((minute) => isTimeOptionValid(hour, minute))
-        .map((minute) => (
-          <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
-            {formatAmPm(`${hour}:${minute}`)}
-          </DropdownItem>
-        )),
-    );
+  const timeOptions = hours.flatMap((hour) =>
+    minutes
+      .filter((minute) => isTimeOptionValid(hour, minute))
+      .map((minute) => (
+        <DropdownItem key={`${hour}-${minute}`} value={formatAmPm(`${hour}:${minute}`)} component="button">
+          {formatAmPm(`${hour}:${minute}`)}
+        </DropdownItem>
+      )),
+  );
 
   const calendarDate = (() => {
     const d = new Date(valueDate);
@@ -187,8 +210,7 @@ const DateTimePicker: React.FC<{
             padding: '6px 16px',
             ...(isDisabled
               ? {
-                  color:
-                    'var(--pf-v6-global--disabled-color--100)',
+                  color: 'var(--pf-v6-global--disabled-color--100)',
                 }
               : {}),
           }}

@@ -12,14 +12,16 @@ const CatalogRedirections: React.FC = () => {
   useEffect(() => {
     if (!userHasRequiredPropertiesToAccess) {
       const count = searchParams.has('c') ? parseInt(searchParams.get('c'), 10) + 1 : 1;
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         if (count < 6) {
           const url = new URL(window.location.href);
           url.searchParams.set('c', count.toString());
           window.location.href = url.toString();
         }
       }, 10000);
+      return () => clearTimeout(timeout);
     }
+    return undefined;
   }, [userHasRequiredPropertiesToAccess, searchParams]);
 
   return <Catalog userHasRequiredPropertiesToAccess={userHasRequiredPropertiesToAccess} />;

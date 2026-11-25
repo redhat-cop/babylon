@@ -27,11 +27,14 @@ const WorkshopScheduleAction: React.FC<{
   const { isAdmin } = useSession().getSession();
   let maxDate: number = null;
   let currentActionDate: Date = null;
+  // Offset from "now" used for the initial selected date when there is no current action date
+  let defaultDateOffset = 0;
   const { end: autoDestroyTime, start: autoStartTime } = getWorkshopLifespan(workshop, workshopProvisions);
   const autoStopTime = getWorkshopAutoStopTime(workshop, resourceClaims);
   if (action === 'retirement' || action === 'start' || action === 'start-date') {
     if (action === 'retirement') {
-      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : new Date(new Date().getTime() + 14400000); // By default: 14400000 = 4h;
+      currentActionDate = autoDestroyTime ? new Date(autoDestroyTime) : null;
+      defaultDateOffset = 14400000; // By default: 14400000 = 4h;
       maxDate = getMaxAutoDestroy(workshop);
     } else if (action === 'start') {
       currentActionDate = autoStartTime ? new Date(autoStartTime) : null;
@@ -41,7 +44,7 @@ const WorkshopScheduleAction: React.FC<{
       if (readyByDate) {
         currentActionDate = new Date(readyByDate);
       } else {
-        currentActionDate = autoStartTime ? new Date(autoStartTime + (6 * 60 * 60 * 1000)) : null;
+        currentActionDate = autoStartTime ? new Date(autoStartTime + 6 * 60 * 60 * 1000) : null;
       }
     }
   } else {
@@ -49,15 +52,15 @@ const WorkshopScheduleAction: React.FC<{
     maxDate = resourceClaims.length > 0 ? Math.min(...resourceClaims.map((r) => getMaxRuntime(r))) : null;
   }
 
-  const [selectedDate, setSelectedDate] = useState(currentActionDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(() => currentActionDate || new Date(Date.now() + defaultDateOffset));
   const [forceUpdateTimestamp, setForceUpdateTimestamp] = useState(null);
   const [timezone, setTimezone] = useState(getBrowserTimezone);
-  
+
   // Convert selected date for setState based on action type
   useEffect(() => {
     if (action === 'start-date') {
       // Convert user start date back to provisioning date (6 hours earlier)
-      const provisioningDate = new Date(selectedDate.getTime() - (6 * 60 * 60 * 1000));
+      const provisioningDate = new Date(selectedDate.getTime() - 6 * 60 * 60 * 1000);
       setState(provisioningDate);
     } else {
       setState(selectedDate);
@@ -78,12 +81,16 @@ const WorkshopScheduleAction: React.FC<{
   }, [setIsDisabled, selectedDate, action]);
 
   const actionLabel =
-    action === 'retirement' ? 'Auto-destroy' : 
-    action === 'start' ? 'Start Provisioning Date' : 
-    action === 'start-date' ? 'Start Date' : 
-    'Auto-stop';
+    action === 'retirement'
+      ? 'Auto-destroy'
+      : action === 'start'
+        ? 'Start Provisioning Date'
+        : action === 'start-date'
+          ? 'Start Date'
+          : 'Auto-stop';
 
   const minMaxProps = {
+    // eslint-disable-next-line @eslint-react/purity -- picker min bound is the current time at each render; freezing would allow past dates in a long-open modal
     minDate: Date.now(),
     maxDate,
   };
@@ -95,45 +102,45 @@ const WorkshopScheduleAction: React.FC<{
 
   return (
     <>
-    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
-    <Form isHorizontal>
-      <FormGroup fieldId="workshop-schedule-action" label={actionLabel}>
-        <DateTimePicker
-          defaultTimestamp={selectedDate.getTime()}
-          onSelect={(date) => setSelectedDate(date)}
-          {...minMaxProps}
-          isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
-          forceUpdateTimestamp={forceUpdateTimestamp}
-          timezone={timezone}
-        />
-      </FormGroup>
-      {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
-        <Alert
-          variant="warning"
-          isInline
-          title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
-        />
-      ) : null}
-      {noAutoStopSwitchIsVisible ? (
-        <Switch
-          id="services-schedule-action__no-auto-stop"
-          aria-label="No auto-stop"
-          label="No auto-stop"
-          isChecked={selectedDate.getTime() >= autoDestroyTime}
-          hasCheckIcon
-          onChange={(_event, isChecked) => {
-            if (isChecked) {
-              setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
-            } else {
-              const _date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || minDefault));
-              const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
-              setSelectedDate(date);
-              setForceUpdateTimestamp(date);
-            }
-          }}
-        />
-      ) : null}
-    </Form>
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
+      <Form isHorizontal>
+        <FormGroup fieldId="workshop-schedule-action" label={actionLabel}>
+          <DateTimePicker
+            defaultTimestamp={selectedDate.getTime()}
+            onSelect={(date) => setSelectedDate(date)}
+            {...minMaxProps}
+            isDisabled={noAutoStopSwitchIsVisible && selectedDate.getTime() >= autoDestroyTime}
+            forceUpdateTimestamp={forceUpdateTimestamp}
+            timezone={timezone}
+          />
+        </FormGroup>
+        {(action === 'stop' || action === 'retirement') && selectedDate.getTime() <= minMaxProps.minDate ? (
+          <Alert
+            variant="warning"
+            isInline
+            title={`The selected ${action === 'retirement' ? 'auto-destroy' : 'auto-stop'} date and time is in the past.`}
+          />
+        ) : null}
+        {noAutoStopSwitchIsVisible ? (
+          <Switch
+            id="services-schedule-action__no-auto-stop"
+            aria-label="No auto-stop"
+            label="No auto-stop"
+            isChecked={selectedDate.getTime() >= autoDestroyTime}
+            hasCheckIcon
+            onChange={(_event, isChecked) => {
+              if (isChecked) {
+                setSelectedDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)));
+              } else {
+                const _date = new Date(Date.now() + (getWorkshopDefaultRuntime(resourceClaims) || minDefault));
+                const date = _date.getTime() > autoDestroyTime ? new Date(Date.now() + minDefault) : _date;
+                setSelectedDate(date);
+                setForceUpdateTimestamp(date);
+              }
+            }}
+          />
+        ) : null}
+      </Form>
     </>
   );
 };

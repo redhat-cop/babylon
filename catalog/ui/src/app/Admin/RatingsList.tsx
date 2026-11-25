@@ -54,6 +54,7 @@ const RatingsModal: React.FC<{ assetUuid: string }> = ({ assetUuid }) => {
       <Tbody>
         {ratingsHistory ? (
           ratingsHistory.map((r, index) => (
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- ratings have no id and email is not guaranteed unique; read-only list in API order
             <Tr key={index}>
               <Td dataLabel="Email">{r.email}</Td>
               <Td dataLabel="Comment">{r.comment ?? ''}</Td>
@@ -173,7 +174,7 @@ const RatingsList: React.FC = () => {
     };
     const catalogItemsFuse = new Fuse(catalogItemsCpy, options);
     return [catalogItemsFuse, catalogItemsCpy];
-  }, [catalogItems]);
+  }, [catalogItems, compareCatalogItems]);
 
   const catalogItemsResult = useMemo(
     () =>
@@ -199,7 +200,7 @@ const RatingsList: React.FC = () => {
 
   return (
     <div className="admin-container">
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Split hasGutter>
           <SplitItem isFilled>
             <Title headingLevel="h4" size="xl">
@@ -219,7 +220,7 @@ const RatingsList: React.FC = () => {
       </PageSection>
 
       {catalogItemsResult.length > 0 ? (
-        <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+        <PageSection hasBodyWrapper={false} key="body" className="admin-body">
           <Table aria-label="Catalog items ratings table" variant="compact">
             <Thead>
               <Tr>

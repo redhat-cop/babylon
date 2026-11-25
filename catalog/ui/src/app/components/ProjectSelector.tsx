@@ -27,7 +27,13 @@ type ProjectRowProps = {
   setIsOpen: (v: boolean) => void;
 };
 
-const ProjectRow = ({ index, style, filteredServiceNamespaces, onSelect, setIsOpen }: RowComponentProps<ProjectRowProps>) => (
+const ProjectRow = ({
+  index,
+  style,
+  filteredServiceNamespaces,
+  onSelect,
+  setIsOpen,
+}: RowComponentProps<ProjectRowProps>) => (
   <div style={style}>
     <DropdownItem
       itemId={filteredServiceNamespaces[index].name}
@@ -84,7 +90,7 @@ const ProjectSelector: React.FC<{
       }
     }
     setIsOpen((v) => !v);
-  }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin]);
+  }, [setIsOpen, setAllNamespaces, allNamespaces, isAdmin, cache, labelSelector]);
 
   const filteredServiceNamespaces = useMemo(
     () =>

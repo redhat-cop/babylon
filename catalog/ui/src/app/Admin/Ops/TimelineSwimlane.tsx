@@ -24,12 +24,25 @@ export interface TimelineSwimlaneProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null;
+  getClusterInfo?: (ws: Workshop) => {
+    poolName: string;
+    poolNamespace: string;
+    clusterName: string;
+    totalClusters: number;
+    availableClusters: number;
+    poolSaturationPercent: number;
+    maxPlacements: number;
+    placementCount: number;
+    maxTotalPlacements: number;
+    placementCapacityPercent: number;
+  } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
   nowPercent: number | null;
-  getSoundcheckBadge?: (ws: WorkshopWithResourceClaims) => { label: string; href: string; title: string; colorClass?: string } | null;
+  getSoundcheckBadge?: (
+    ws: WorkshopWithResourceClaims,
+  ) => { label: string; href: string; title: string; colorClass?: string } | null;
 }
 
 interface WorkshopRow {
@@ -102,21 +115,24 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const rows = useMemo(() => arrangeWorkshopsInRows(workshops), [workshops]);
 
-  const workshopKeys = useMemo(() => workshops.map(ws => wsKey(ws)), [workshops]);
+  const workshopKeys = useMemo(() => workshops.map((ws) => wsKey(ws)), [workshops]);
 
   const allSelected = useMemo(
-    () => workshopKeys.length > 0 && workshopKeys.every(k => selectedWorkshops.has(k)),
-    [workshopKeys, selectedWorkshops]
+    () => workshopKeys.length > 0 && workshopKeys.every((k) => selectedWorkshops.has(k)),
+    [workshopKeys, selectedWorkshops],
   );
 
   const someSelected = useMemo(
-    () => !allSelected && workshopKeys.some(k => selectedWorkshops.has(k)),
-    [allSelected, workshopKeys, selectedWorkshops]
+    () => !allSelected && workshopKeys.some((k) => selectedWorkshops.has(k)),
+    [allSelected, workshopKeys, selectedWorkshops],
   );
 
-  const handleSwimlaneSelect = useCallback((_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    workshopKeys.forEach(k => onSelectWorkshop(k, checked));
-  }, [workshopKeys, onSelectWorkshop]);
+  const handleSwimlaneSelect = useCallback(
+    (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+      workshopKeys.forEach((k) => onSelectWorkshop(k, checked));
+    },
+    [workshopKeys, onSelectWorkshop],
+  );
 
   if (workshops.length === 0) return null;
 
@@ -127,9 +143,7 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
       >
-        <span className="timeline-swimlane__toggle">
-          {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
-        </span>
+        <span className="timeline-swimlane__toggle">{isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}</span>
         <Checkbox
           id={`timeline-swimlane-cb-${status}`}
           isChecked={allSelected ? true : someSelected ? null : false}
@@ -140,7 +154,9 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
         />
         <span className="timeline-swimlane__icon">{STATUS_ICONS[status]}</span>
         <strong>{status}</strong>
-        <Badge isRead className="timeline-swimlane__count">{workshops.length}</Badge>
+        <Badge isRead className="timeline-swimlane__count">
+          {workshops.length}
+        </Badge>
       </button>
 
       {isExpanded && (
@@ -148,10 +164,9 @@ export const TimelineSwimlane: React.FC<TimelineSwimlaneProps> = ({
           className="timeline-swimlane__body"
           style={{ height: rows.length > 0 ? `${rows.length * 46 + 16}px` : '60px' }}
         >
-          {nowPercent !== null && (
-            <div className="timeline-now-line" style={{ left: `${nowPercent}%` }} />
-          )}
+          {nowPercent !== null && <div className="timeline-now-line" style={{ left: `${nowPercent}%` }} />}
           {rows.map((row, rowIndex) => (
+            // eslint-disable-next-line @eslint-react/no-array-index-key -- rows are positional layout lanes computed by packing; they have no identity beyond their index
             <div key={rowIndex} className="timeline-swimlane__row" style={{ top: `${rowIndex * 46 + 8}px` }}>
               {row.workshops.map((workshop) => (
                 <WorkshopBar
