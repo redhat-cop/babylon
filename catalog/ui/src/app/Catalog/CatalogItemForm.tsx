@@ -260,7 +260,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const submitRequestEnabled =
     isOrderingBlocked || isQuotaExceeded
       ? false
-      : incident && incident.disabled && !isAdmin
+      : incident.disabled && !isAdmin
         ? false
         : checkEnableSubmit(formState) && !isLoading;
 
