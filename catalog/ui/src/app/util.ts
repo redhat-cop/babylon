@@ -332,6 +332,14 @@ export function keywordMatch(service: Service, keyword: string): boolean {
   return false;
 }
 
+/**
+ * Returns the name of the Workshop that owns this object (e.g. a TenantClusterPool created
+ * by the workshop-manager for a WorkshopProvision), or null if it is not workshop-owned.
+ */
+export function getWorkshopOwnerName(obj?: K8sObject): string | null {
+  return obj?.metadata?.labels?.[`${BABYLON_DOMAIN}/workshop`] || null;
+}
+
 export const compareK8sObjects = (obj1?: K8sObject, obj2?: K8sObject): boolean => {
   return compareK8sObjectsArr(obj1 ? Array.of(obj1) : null, obj2 ? Array.of(obj2) : null);
 };
