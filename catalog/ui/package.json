@@ -60,7 +60,7 @@
     "jest-fetch-mock": "^4.2.0",
     "postcss": "^8.5.33",
     "postcss-custom-media": "^12.0.4",
-    "postcss-loader": "^7.3.4",
+    "postcss-loader": "^8.2.2",
     "prettier": "^3.10.1",
     "prop-types": "^15.8.1",
     "rimraf": "^6.1.4",
