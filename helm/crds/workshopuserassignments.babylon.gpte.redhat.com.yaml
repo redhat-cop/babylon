@@ -61,6 +61,12 @@ spec:
                     description: >-
                       Email address used to identify workshop participant.
                     type: string
+                  assignedAt:
+                    description: >-
+                      Time the seat was claimed by or assigned to this participant.
+                      Updated whenever the assignment moves to a different email.
+                    type: string
+                    format: date-time
               data:
                 description: >-
                   Any data items reported for the user from the service provisioning.

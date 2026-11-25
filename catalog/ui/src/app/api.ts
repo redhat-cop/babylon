@@ -253,6 +253,11 @@ function addPurposeAndSfdc<T extends K8sObject>(
   return d;
 }
 
+/** Current time as an RFC 3339 UTC timestamp without fractional seconds, matching Kubernetes style. */
+function nowUtcTimestamp(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 export async function assignWorkshopUser({
   resourceClaimName,
   userName,
@@ -297,10 +302,11 @@ export async function assignWorkshopUser({
       value: userAssignment.spec.assignment.email,
     });
     if (email) {
+      // Replace the whole assignment so the claim time reflects the new occupant.
       jsonPatch.push({
         op: 'replace',
-        path: `/spec/assignment/email`,
-        value: email,
+        path: `/spec/assignment`,
+        value: { email: email, assignedAt: nowUtcTimestamp() },
       });
     } else {
       jsonPatch.push({
@@ -312,7 +318,7 @@ export async function assignWorkshopUser({
     jsonPatch.push({
       op: 'add',
       path: `/spec/assignment`,
-      value: { email: email },
+      value: { email: email, assignedAt: nowUtcTimestamp() },
     });
   } else {
     return workshopUserAssignments;
@@ -459,6 +465,7 @@ export async function bulkAssignWorkshopUsers({
     if (!userAssignment.spec.assignment) {
       userAssignment.spec.assignment = {
         email: unassignedEmails.shift(),
+        assignedAt: nowUtcTimestamp(),
       };
       userAssignments.push(userAssignment);
     }

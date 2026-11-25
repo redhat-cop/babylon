@@ -830,6 +830,8 @@ export interface WorkshopUserAssignmentSpec {
   };
   assignment?: {
     email: string;
+    /** UTC timestamp of when the seat was claimed by or assigned to this email. */
+    assignedAt?: string;
   };
 }
 export interface WorkshopUserAssignment extends K8sObject {

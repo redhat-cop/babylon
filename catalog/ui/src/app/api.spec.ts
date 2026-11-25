@@ -1,5 +1,5 @@
-import { FORBIDDEN_RESPONSE, assignSelfPacedLabUser } from './api';
-import type { SelfPacedLabUserAssignment } from './types';
+import { FORBIDDEN_RESPONSE, assignSelfPacedLabUser, assignWorkshopUser } from './api';
+import type { SelfPacedLabUserAssignment, WorkshopUserAssignment } from './types';
 import fetchMock from 'jest-fetch-mock';
 
 const sessionWindow = window as Window & { sessionPromiseInstance?: Promise<{ token: string }> };
@@ -229,5 +229,87 @@ describe('assignSelfPacedLabUser', () => {
     const body = JSON.parse(options?.body as string);
     expect(body).toContainEqual({ op: 'test', path: '/spec/resourceClaimName', value: 'rc-001' });
     expect(body).toContainEqual({ op: 'test', path: '/spec/userName', value: 'user1' });
+  });
+});
+
+describe('assignWorkshopUser', () => {
+  const makeWorkshopUserAssignment = (email?: string, assignedAt?: string): WorkshopUserAssignment => ({
+    apiVersion: 'babylon.gpte.redhat.com/v1',
+    kind: 'WorkshopUserAssignment',
+    metadata: {
+      name: 'wua-001',
+      namespace: 'test-ns',
+      uid: 'uid-001',
+      creationTimestamp: '2026-01-01T00:00:00Z',
+    },
+    spec: {
+      workshopName: 'test-workshop',
+      resourceClaimName: 'rc-001',
+      userName: 'user1',
+      ...(email !== undefined ? { assignment: { email, ...(assignedAt ? { assignedAt } : {}) } } : {}),
+    },
+  });
+
+  beforeEach(() => {
+    fetchMock.resetMocks();
+    jest.useFakeTimers({ now: new Date('2026-11-26T10:15:30.123Z') });
+    sessionWindow.sessionPromiseInstance = Promise.resolve({ token: 'test-token' });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+    delete sessionWindow.sessionPromiseInstance;
+  });
+
+  test('records assignedAt when a free seat is assigned', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(makeWorkshopUserAssignment('new@example.com')));
+
+    await assignWorkshopUser({
+      resourceClaimName: 'rc-001',
+      userName: 'user1',
+      email: 'new@example.com',
+      workshopUserAssignments: [makeWorkshopUserAssignment()],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body).toContainEqual({
+      op: 'add',
+      path: '/spec/assignment',
+      value: { email: 'new@example.com', assignedAt: '2026-11-26T10:15:30Z' },
+    });
+  });
+
+  test('replaces assignedAt when the seat moves to a different email', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(makeWorkshopUserAssignment('new@example.com')));
+
+    await assignWorkshopUser({
+      resourceClaimName: 'rc-001',
+      userName: 'user1',
+      email: 'new@example.com',
+      workshopUserAssignments: [makeWorkshopUserAssignment('old@example.com', '2026-11-20T08:00:00Z')],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body).toContainEqual({ op: 'test', path: '/spec/assignment/email', value: 'old@example.com' });
+    expect(body).toContainEqual({
+      op: 'replace',
+      path: '/spec/assignment',
+      value: { email: 'new@example.com', assignedAt: '2026-11-26T10:15:30Z' },
+    });
+  });
+
+  test('removes the whole assignment, including assignedAt, when the seat is released', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(makeWorkshopUserAssignment()));
+
+    await assignWorkshopUser({
+      resourceClaimName: 'rc-001',
+      userName: 'user1',
+      email: '',
+      workshopUserAssignments: [makeWorkshopUserAssignment('old@example.com', '2026-11-20T08:00:00Z')],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body).toContainEqual({ op: 'remove', path: '/spec/assignment' });
   });
 });

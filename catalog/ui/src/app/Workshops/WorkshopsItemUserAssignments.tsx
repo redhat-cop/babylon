@@ -13,6 +13,7 @@ import {
   DescriptionListDescription,
   EmptyState,
   Content,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Table /* data-codemods */, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { assignWorkshopUser, bulkAssignWorkshopUsers } from '@app/api';
@@ -20,7 +21,21 @@ import type { WorkshopUserAssignment } from '@app/types';
 import BulkUserAssignmentModal from '@app/components/BulkUserAssignmentModal';
 import EditableText from '@app/components/EditableText';
 import LabInterfaceLink from '@app/components/LabInterfaceLink';
+import LocalTimestamp from '@app/components/LocalTimestamp';
+import TimeInterval from '@app/components/TimeInterval';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+
+const AssignedAt: React.FC<{ timestamp: string }> = ({ timestamp }) => {
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return null;
+  return (
+    <Tooltip content={`${date.toISOString().replace(/\.\d{3}Z$/, 'Z')} (UTC)`}>
+      <Content component="small" className="workshops-item-user-assignments__assigned-at" tabIndex={0}>
+        Claimed <LocalTimestamp date={date} /> (<TimeInterval toDate={date} />)
+      </Content>
+    </Tooltip>
+  );
+};
 
 export function getUserSeatsLabel(userAssignments: WorkshopUserAssignment[] = []): string {
   if (userAssignments.length === 0) return 'Users';
@@ -161,6 +176,9 @@ const WorkshopsItemUserAssignments: React.FC<{
                     placeholder="- unassigned -"
                     value={userAssignment.spec.assignment?.email || ''}
                   />
+                  {userAssignment.spec.assignment?.email && userAssignment.spec.assignment.assignedAt ? (
+                    <AssignedAt timestamp={userAssignment.spec.assignment.assignedAt} />
+                  ) : null}
                 </Td>
                 <Td>
                   <DescriptionList isHorizontal>
