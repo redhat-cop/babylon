@@ -14,6 +14,28 @@ import { NotificationDrawerProvider, useNotificationDrawer } from './Notificatio
 
 const optionalFlags = process.env.OPTIONAL_FLAGS ? process.env.OPTIONAL_FLAGS.split(' ') : [];
 
+const PageContent: React.FC<{
+  children: React.ReactNode;
+  masthead: React.ReactNode;
+  sidebar: React.ReactNode;
+  onPageResize: (props: { mobileView: boolean; windowSize: number }) => void;
+}> = ({ children, masthead, sidebar, onPageResize }) => {
+  const notificationDrawerContext = useNotificationDrawer();
+  return (
+    <Page
+      className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
+      mainContainerId="primary-app-container"
+      masthead={masthead}
+      sidebar={sidebar}
+      onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
+      notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
+      isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
+    >
+      {children}
+    </Page>
+  );
+};
+
 const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessControl?: IAppRouteAccessControl }> = ({
   children,
   title,
@@ -84,14 +106,15 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
       document.head.appendChild(el);
     });
 
+    let loaded = 0;
+    const onLoad = () => {
+      loaded++;
+      if (loaded >= newScripts.length) setPartnerScriptsReady(true);
+    };
     if (newScripts.length === 0) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- readiness depends on the DOM script injection done above in this effect; nothing to wait for when all scripts already exist
       setPartnerScriptsReady(true);
     } else {
-      let loaded = 0;
-      const onLoad = () => {
-        loaded++;
-        if (loaded >= newScripts.length) setPartnerScriptsReady(true);
-      };
       newScripts.forEach((el) => {
         el.addEventListener('load', onLoad);
         el.addEventListener('error', onLoad);
@@ -99,6 +122,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     }
 
     return () => {
+      newScripts.forEach((el) => {
+        el.removeEventListener('load', onLoad);
+        el.removeEventListener('error', onLoad);
+      });
       setPartnerScriptsReady(false);
       document.head.querySelectorAll('style[data-rhpc]').forEach((el) => el.remove());
       document.head.querySelectorAll('link[href*="connect.redhat.com"]').forEach((el) => el.remove());
@@ -121,6 +148,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     }, 500);
 
     return () => clearTimeout(timeout);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- login event must fire once when partner scripts become ready; re-dispatching on email/fullName changes is not intended
   }, [partnerScriptsReady]);
 
   if (accessControl === 'admin' && !isAdmin) throw new Error('Access denied');
@@ -141,23 +169,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
     />
   );
 
-  const PageContent = () => {
-    const notificationDrawerContext = useNotificationDrawer();
-    return (
-      <Page
-        className={`app-layout ${optionalFlags.map((flag) => `optional-flags__${flag}`).join(' ')}`}
-        mainContainerId="primary-app-container"
-        masthead={_Header}
-        sidebar={Sidebar}
-        onPageResize={(_event, props: { mobileView: boolean; windowSize: number }) => onPageResize(props)}
-        notificationDrawer={notificationDrawerContext?.notificationDrawer || undefined}
-        isNotificationDrawerExpanded={notificationDrawerContext?.isDrawerExpanded ?? false}
-      >
-        {children}
-      </Page>
-    );
-  };
-
   if (partner_connect_header_enabled && !partnerScriptsReady) {
     return <LoadingSection />;
   }
@@ -172,12 +183,10 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
           >
             <div>
               <div
+                // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml -- partner header HTML is sanitized with dompurify.sanitize before injection
                 dangerouslySetInnerHTML={{
                   __html: dompurify.sanitize(
-                    (partnerHeaderHtml || '').replace(
-                      /(src|href)="(\/[^"]*?)"/g,
-                      '$1="https://connect.redhat.com$2"',
-                    ),
+                    (partnerHeaderHtml || '').replace(/(src|href)="(\/[^"]*?)"/g, '$1="https://connect.redhat.com$2"'),
                     {
                       FORCE_BODY: true,
                       ADD_TAGS: ['svg', 'path'],
@@ -206,7 +215,9 @@ const AppLayout: React.FC<{ children: React.ReactNode; title: string; accessCont
             </div>
           </PageSection>
         ) : null}
-        <PageContent />
+        <PageContent masthead={_Header} sidebar={Sidebar} onPageResize={onPageResize}>
+          {children}
+        </PageContent>
       </Suspense>
     </NotificationDrawerProvider>
   );

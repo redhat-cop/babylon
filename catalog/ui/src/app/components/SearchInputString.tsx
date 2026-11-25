@@ -13,7 +13,8 @@ const SearchInputString: React.FC<
 
   // sync callback with parent
   useEffect(() => {
-    setValueCb && setValueCb(() => setValue);
+    if (setValueCb) setValueCb(() => setValue);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- setValueCb is often an inline parent callback that sets parent state; adding it could loop on every parent render
   }, [setValue]);
 
   return (

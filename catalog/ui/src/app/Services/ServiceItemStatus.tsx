@@ -58,6 +58,7 @@ const ServiceItemStatus: React.FC<{
     undefined,
   );
   const lastRequestDate = lastRequestTimestamp ? Date.parse(lastRequestTimestamp) : null;
+  // eslint-disable-next-line @eslint-react/purity -- elapsed time since last status request must be recomputed against the current time on every render
   const lastRequestMillisecondsAgo = lastRequestDate ? Date.now() - lastRequestDate : null;
 
   // Extract the last status completion from resource status
@@ -108,14 +109,17 @@ const ServiceItemStatus: React.FC<{
   // Immediately request a status check if last check is over 5 minutes ago.
   useEffect(() => {
     if (lastUpdateTimestamp) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- retains the last known completion timestamp because the source value disappears while a check runs
       setSaveLastUpdateTimestamp(lastUpdateTimestamp);
     }
     if ((!checkStatusState && lastRequestMillisecondsAgo === null) || lastRequestMillisecondsAgo > 300000) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- auto-triggers a status check API call when the last check is stale; side effect belongs in an effect
       requestStatusCheck();
     }
   }, [checkStatusState, lastRequestMillisecondsAgo, lastUpdateTimestamp, requestStatusCheck]);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- re-enables the refresh button when a new ResourceClaim version arrives from the server
     setRefreshRequested(false);
   }, [resourceClaim.metadata.resourceVersion]);
 

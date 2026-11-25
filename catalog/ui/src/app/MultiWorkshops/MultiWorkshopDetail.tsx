@@ -29,21 +29,27 @@ import {
   Switch,
   Tooltip,
 } from '@patternfly/react-core';
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-} from '@patternfly/react-table';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import LockedIcon from '@patternfly/react-icons/dist/js/icons/locked-icon';
 import Modal, { useModal } from '@app/Modal/Modal';
 import ButtonCircleIcon from '@app/components/ButtonCircleIcon';
 import { ActionDropdown, ActionDropdownItem } from '@app/components/ActionDropdown';
-import { apiPaths, fetcher, silentFetcher, patchMultiWorkshop, lockWorkshop, lockSelfPacedLab, deleteMultiWorkshop, deleteAssetFromMultiWorkshop, dateToApiString, fetcherItemsInAllPages, addOwnerReferenceToWorkshopAndLock, addOwnerReferenceToSelfPacedLabAndLock } from '@app/api';
+import {
+  apiPaths,
+  fetcher,
+  silentFetcher,
+  patchMultiWorkshop,
+  lockWorkshop,
+  lockSelfPacedLab,
+  deleteMultiWorkshop,
+  deleteAssetFromMultiWorkshop,
+  dateToApiString,
+  fetcherItemsInAllPages,
+  addOwnerReferenceToWorkshopAndLock,
+  addOwnerReferenceToSelfPacedLabAndLock,
+} from '@app/api';
 import type { CatalogItem, MultiWorkshop, ResourceClaim, SelfPacedLab, ServiceAccess, Workshop } from '@app/types';
 import TimeInterval from '@app/components/TimeInterval';
 import EditableText from '@app/components/EditableText';
@@ -59,7 +65,13 @@ import { getBrowserTimezone } from '@app/components/timezones';
 import LoadingIcon from '@app/components/LoadingIcon';
 import LocalTimestamp from '@app/components/LocalTimestamp';
 import useSession from '@app/utils/useSession';
-import { BABYLON_DOMAIN, DEMO_DOMAIN, compareK8sObjectsArr, FETCH_BATCH_LIMIT, getPurposeOptsFromCatalogItem } from '@app/util';
+import {
+  BABYLON_DOMAIN,
+  DEMO_DOMAIN,
+  compareK8sObjectsArr,
+  FETCH_BATCH_LIMIT,
+  getPurposeOptsFromCatalogItem,
+} from '@app/util';
 import OutlinedQuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/outlined-question-circle-icon';
 import ExternalWorkshopModal from './ExternalWorkshopModal';
 import Footer from '@app/components/Footer';
@@ -70,7 +82,11 @@ function stripHtmlTags(html: string): string {
   return html.replace(/[<>]/g, '').trim();
 }
 
-const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; workshop: Workshop }> = ({ workshopName, namespace, workshop }) => {
+const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; workshop: Workshop }> = ({
+  workshopName,
+  namespace,
+  workshop,
+}) => {
   const { data: resourceClaims, isLoading } = useSWR<ResourceClaim[]>(
     workshopName && namespace
       ? apiPaths.RESOURCE_CLAIMS({
@@ -100,6 +116,7 @@ const AssetWorkshopStatus: React.FC<{ workshopName: string; namespace: string; w
   const orderedCount: number = workshop?.status?.provisionCount?.ordered ?? 0;
   const hasStatus = activeResourceClaims.length > 0 || orderedCount > 0;
   const autoStartTime = workshop ? getWorkshopLifespan(workshop).start : null;
+  // eslint-disable-next-line @eslint-react/purity -- compares scheduled start against the current time; must stay current as SWR polling re-renders the page
   const isScheduled = autoStartTime && autoStartTime > Date.now();
 
   if (isScheduled) {
@@ -133,42 +150,44 @@ const MultiWorkshopDetail: React.FC = () => {
   const [timezone] = useState(getBrowserTimezone);
   const [isStartDateModalOpen, setIsStartDateModalOpen] = useState(false);
   const [isEndDateModalOpen, setIsEndDateModalOpen] = useState(false);
-  const [assetToDelete, setAssetToDelete] = useState<{ index: number; asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string } } | null>(null);
+  const [assetToDelete, setAssetToDelete] = useState<{
+    index: number;
+    asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string };
+  } | null>(null);
 
   const { data: multiworkshop, error } = useSWR<MultiWorkshop>(
     namespace && name ? apiPaths.MULTIWORKSHOP({ namespace, multiworkshopName: name }) : null,
     fetcher,
     {
       refreshInterval: 8000,
-    }
+    },
   );
 
   // Fetch workshops in the same namespace as the MultiWorkshop
   const { data: workshops } = useSWR<Workshop[]>(
     namespace ? `workshops-${namespace}` : null,
-    () => fetcherItemsInAllPages((continueId) =>
-      apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-    ),
+    () =>
+      fetcherItemsInAllPages((continueId) => apiPaths.WORKSHOPS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })),
     {
       refreshInterval: 30000,
-    }
+    },
   );
 
   // Fetch workshops shared with the user via ServiceAccess
   const { data: sharedWorkshops } = useSWR<Workshop[]>(
     namespace ? `shared-workshops-${namespace}` : null,
     async () => {
-      const serviceAccesses = await fetcherItemsInAllPages((continueId) =>
-        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-      ) as ServiceAccess[];
+      const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
+        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      )) as ServiceAccess[];
 
       const result: Workshop[] = [];
       for (const sa of serviceAccesses) {
         if (sa.spec.kind === 'Workshop') {
           try {
-            const workshop = await fetcher(
-              apiPaths.WORKSHOP({ namespace: sa.spec.namespace, workshopName: sa.spec.name })
-            ) as Workshop;
+            const workshop = (await fetcher(
+              apiPaths.WORKSHOP({ namespace: sa.spec.namespace, workshopName: sa.spec.name }),
+            )) as Workshop;
             result.push(workshop);
           } catch (e) {
             console.warn(`Failed to fetch shared workshop ${sa.spec.namespace}/${sa.spec.name}:`, e);
@@ -177,33 +196,34 @@ const MultiWorkshopDetail: React.FC = () => {
       }
       return result;
     },
-    { refreshInterval: 30000 }
+    { refreshInterval: 30000 },
   );
 
   // Fetch self-paced labs in the same namespace
   const { data: selfPacedLabs } = useSWR<SelfPacedLab[]>(
     namespace ? `selfpacedlabs-${namespace}` : null,
-    () => fetcherItemsInAllPages((continueId) =>
-      apiPaths.SELF_PACED_LABS({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-    ),
-    { refreshInterval: 30000 }
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.SELF_PACED_LABS({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      ),
+    { refreshInterval: 30000 },
   );
 
   // Fetch self-paced labs shared with the user via ServiceAccess
   const { data: sharedSelfPacedLabs } = useSWR<SelfPacedLab[]>(
     namespace ? `shared-selfpacedlabs-${namespace}` : null,
     async () => {
-      const serviceAccesses = await fetcherItemsInAllPages((continueId) =>
-        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId })
-      ) as ServiceAccess[];
+      const serviceAccesses = (await fetcherItemsInAllPages((continueId) =>
+        apiPaths.SERVICE_ACCESSES({ namespace, limit: FETCH_BATCH_LIMIT, continueId }),
+      )) as ServiceAccess[];
 
       const result: SelfPacedLab[] = [];
       for (const sa of serviceAccesses) {
         if (sa.spec.kind === 'SelfPacedLab') {
           try {
-            const spl = await fetcher(
-              apiPaths.SELF_PACED_LAB({ namespace: sa.spec.namespace, selfPacedLabName: sa.spec.name })
-            ) as SelfPacedLab;
+            const spl = (await fetcher(
+              apiPaths.SELF_PACED_LAB({ namespace: sa.spec.namespace, selfPacedLabName: sa.spec.name }),
+            )) as SelfPacedLab;
             result.push(spl);
           } catch (e) {
             console.warn(`Failed to fetch shared self-paced lab ${sa.spec.namespace}/${sa.spec.name}:`, e);
@@ -212,7 +232,7 @@ const MultiWorkshopDetail: React.FC = () => {
       }
       return result;
     },
-    { refreshInterval: 30000 }
+    { refreshInterval: 30000 },
   );
 
   const firstAsset = multiworkshop?.spec.assets?.find((a) => a.type !== 'external' && a.name && a.namespace);
@@ -244,87 +264,115 @@ const MultiWorkshopDetail: React.FC = () => {
 
   async function updateEventTitle(newTitle: string): Promise<void> {
     if (!multiworkshop) return;
-    
+
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
       namespace: multiworkshop.metadata.namespace,
-      patch: { 
-        spec: { 
+      patch: {
+        spec: {
           displayName: newTitle,
-          name: newTitle
-        } 
+          name: newTitle,
+        },
       },
     });
-    
+
     // Update local data via SWR mutate for immediate UI update
-    mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+    mutate(
+      apiPaths.MULTIWORKSHOP({
+        namespace: multiworkshop.metadata.namespace,
+        multiworkshopName: multiworkshop.metadata.name,
+      }),
+      updatedMultiWorkshop,
+      false,
+    );
   }
 
   async function updateEventDescription(newDescription: string): Promise<void> {
     if (!multiworkshop) return;
-    
+
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
       namespace: multiworkshop.metadata.namespace,
-      patch: { 
-        spec: { 
-          description: newDescription
-        } 
+      patch: {
+        spec: {
+          description: newDescription,
+        },
       },
     });
-    
+
     // Update local data via SWR mutate for immediate UI update
-    mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+    mutate(
+      apiPaths.MULTIWORKSHOP({
+        namespace: multiworkshop.metadata.namespace,
+        multiworkshopName: multiworkshop.metadata.name,
+      }),
+      updatedMultiWorkshop,
+      false,
+    );
   }
 
   async function updateAssetDisplayName(assetIndex: number, newDisplayName: string): Promise<void> {
     if (!multiworkshop || !multiworkshop.spec.assets) return;
-    
+
     const updatedAssets = [...multiworkshop.spec.assets];
     updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], displayName: newDisplayName };
-    
+
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
       namespace: multiworkshop.metadata.namespace,
-      patch: { 
-        spec: { 
-          assets: updatedAssets
-        } 
+      patch: {
+        spec: {
+          assets: updatedAssets,
+        },
       },
     });
-    
+
     // Update local data via SWR mutate for immediate UI update
-    mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+    mutate(
+      apiPaths.MULTIWORKSHOP({
+        namespace: multiworkshop.metadata.namespace,
+        multiworkshopName: multiworkshop.metadata.name,
+      }),
+      updatedMultiWorkshop,
+      false,
+    );
   }
 
   async function updateAssetDescription(assetIndex: number, newDescription: string): Promise<void> {
     if (!multiworkshop || !multiworkshop.spec.assets) return;
-    
+
     const updatedAssets = [...multiworkshop.spec.assets];
     updatedAssets[assetIndex] = { ...updatedAssets[assetIndex], description: newDescription };
-    
+
     const updatedMultiWorkshop = await patchMultiWorkshop({
       name: multiworkshop.metadata.name,
       namespace: multiworkshop.metadata.namespace,
-      patch: { 
-        spec: { 
-          assets: updatedAssets
-        } 
+      patch: {
+        spec: {
+          assets: updatedAssets,
+        },
       },
     });
-    
+
     // Update local data via SWR mutate for immediate UI update
-    mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+    mutate(
+      apiPaths.MULTIWORKSHOP({
+        namespace: multiworkshop.metadata.namespace,
+        multiworkshopName: multiworkshop.metadata.name,
+      }),
+      updatedMultiWorkshop,
+      false,
+    );
   }
 
   async function onDeleteConfirm(): Promise<void> {
     if (!multiworkshop) return;
-    
+
     await deleteMultiWorkshop(multiworkshop);
-    
+
     // Clear workshops cache since associated workshops are also deleted
     mutate(`workshops-${namespace}`, undefined, false);
-    
+
     // Navigate back to the list page
     const currentNamespace = namespace || userNamespace?.name;
     navigate(currentNamespace ? `/multi-workshop/${currentNamespace}` : '/multi-workshop');
@@ -332,16 +380,23 @@ const MultiWorkshopDetail: React.FC = () => {
 
   async function onDeleteAssetConfirm(): Promise<void> {
     if (!multiworkshop || !assetToDelete) return;
-    
+
     try {
       const updatedMultiWorkshop = await deleteAssetFromMultiWorkshop({
         multiworkshop,
         assetIndex: assetToDelete.index,
       });
-      
+
       // Update local data via SWR mutate for immediate UI update
-      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
-      
+      mutate(
+        apiPaths.MULTIWORKSHOP({
+          namespace: multiworkshop.metadata.namespace,
+          multiworkshopName: multiworkshop.metadata.name,
+        }),
+        updatedMultiWorkshop,
+        false,
+      );
+
       // Clear the asset to delete
       setAssetToDelete(null);
     } catch (error) {
@@ -350,19 +405,30 @@ const MultiWorkshopDetail: React.FC = () => {
     }
   }
 
-  function showDeleteAssetModal(index: number, asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string }): void {
+  function showDeleteAssetModal(
+    index: number,
+    asset: { type?: string; displayName?: string; key?: string; workshopName?: string; url?: string; name?: string },
+  ): void {
     setAssetToDelete({ index, asset });
     openModalDeleteAsset();
   }
 
-  async function handleAssetDrop(_event: DragDropSortDragEndEvent, _items: unknown[], oldIndex: number, newIndex: number): Promise<void> {
+  async function handleAssetDrop(
+    _event: DragDropSortDragEndEvent,
+    _items: unknown[],
+    oldIndex: number,
+    newIndex: number,
+  ): Promise<void> {
     if (oldIndex === newIndex || !multiworkshop?.spec.assets) return;
 
     const reorderedAssets = [...multiworkshop.spec.assets];
     const [moved] = reorderedAssets.splice(oldIndex, 1);
     reorderedAssets.splice(newIndex, 0, moved);
 
-    const swrKey = apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name });
+    const swrKey = apiPaths.MULTIWORKSHOP({
+      namespace: multiworkshop.metadata.namespace,
+      multiworkshopName: multiworkshop.metadata.name,
+    });
 
     mutate(swrKey, { ...multiworkshop, spec: { ...multiworkshop.spec, assets: reorderedAssets } }, false);
 
@@ -383,8 +449,8 @@ const MultiWorkshopDetail: React.FC = () => {
     if (!multiworkshop || selectedWorkshops.length === 0) return;
 
     try {
-      const selectedEntries = allAvailableServices.filter(
-        ({ resource }) => selectedWorkshops.includes(resource.metadata.uid),
+      const selectedEntries = allAvailableServices.filter(({ resource }) =>
+        selectedWorkshops.includes(resource.metadata.uid),
       );
 
       const newAssets = selectedEntries.map(({ resource, serviceType }) => {
@@ -444,16 +510,27 @@ const MultiWorkshopDetail: React.FC = () => {
         },
       });
 
-      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+      mutate(
+        apiPaths.MULTIWORKSHOP({
+          namespace: multiworkshop.metadata.namespace,
+          multiworkshopName: multiworkshop.metadata.name,
+        }),
+        updatedMultiWorkshop,
+        false,
+      );
       setSelectedWorkshops([]);
     } catch (error) {
       console.error('Failed to add services:', error);
     }
   }
 
-  async function onAddExternalWorkshopConfirm(data: { url: string; displayName: string; description: string }): Promise<void> {
+  async function onAddExternalWorkshopConfirm(data: {
+    url: string;
+    displayName: string;
+    description: string;
+  }): Promise<void> {
     if (!multiworkshop) return;
-    
+
     try {
       // Create new external asset
       const newExternalAsset = {
@@ -472,15 +549,22 @@ const MultiWorkshopDetail: React.FC = () => {
       const updatedMultiWorkshop = await patchMultiWorkshop({
         name: multiworkshop.metadata.name,
         namespace: multiworkshop.metadata.namespace,
-        patch: { 
-          spec: { 
-            assets: combinedAssets
-          } 
+        patch: {
+          spec: {
+            assets: combinedAssets,
+          },
         },
       });
-      
+
       // Update local data via SWR mutate for immediate UI update
-      mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+      mutate(
+        apiPaths.MULTIWORKSHOP({
+          namespace: multiworkshop.metadata.namespace,
+          multiworkshopName: multiworkshop.metadata.name,
+        }),
+        updatedMultiWorkshop,
+        false,
+      );
     } catch (error) {
       console.error('Failed to add external workshop:', error);
       // You might want to show an error message here
@@ -503,7 +587,10 @@ const MultiWorkshopDetail: React.FC = () => {
       },
     });
     mutate(
-      apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }),
+      apiPaths.MULTIWORKSHOP({
+        namespace: multiworkshop.metadata.namespace,
+        multiworkshopName: multiworkshop.metadata.name,
+      }),
       updatedMultiWorkshop,
       false,
     );
@@ -520,8 +607,8 @@ const MultiWorkshopDetail: React.FC = () => {
 
     const existingAssetKeys = new Set(
       (multiworkshop?.spec.assets || [])
-        .filter(a => (a.type === 'Workshop' || a.type === 'SelfPacedLab') && a.name)
-        .map(a => `${a.namespace || namespace}/${a.name}`),
+        .filter((a) => (a.type === 'Workshop' || a.type === 'SelfPacedLab') && a.name)
+        .map((a) => `${a.namespace || namespace}/${a.name}`),
     );
 
     for (const w of workshops || []) {
@@ -576,12 +663,16 @@ const MultiWorkshopDetail: React.FC = () => {
   if (error) {
     return (
       <PageSection>
-        <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="Error loading multi asset workshop" variant="full">
+        <EmptyState
+          headingLevel="h1"
+          icon={ExclamationTriangleIcon}
+          titleText="Error loading multi asset workshop"
+          variant="full"
+        >
           <EmptyStateBody>
-            {error.status === 404 ? 
-              'The requested multi asset workshop was not found.' : 
-              'An error occurred while loading the multi asset workshop details.'
-            }
+            {error.status === 404
+              ? 'The requested multi asset workshop was not found.'
+              : 'An error occurred while loading the multi asset workshop details.'}
           </EmptyStateBody>
         </EmptyState>
       </PageSection>
@@ -616,9 +707,10 @@ const MultiWorkshopDetail: React.FC = () => {
         onConfirm={onDeleteAssetConfirm}
         title={`Delete asset "${assetToDelete?.asset?.displayName || assetToDelete?.asset?.key || 'Unknown'}"?`}
       >
-        <p>This action cannot be undone. 
-          {assetToDelete?.asset?.type !== 'external' && assetToDelete?.asset?.workshopName 
-            ? ' The associated workshop will also be deleted.' 
+        <p>
+          This action cannot be undone.
+          {assetToDelete?.asset?.type !== 'external' && assetToDelete?.asset?.workshopName
+            ? ' The associated workshop will also be deleted.'
             : ' The asset will be removed from this event.'}
         </p>
       </Modal>
@@ -632,7 +724,14 @@ const MultiWorkshopDetail: React.FC = () => {
             namespace: multiworkshop.metadata.namespace,
             patch: { spec: { startDate: apiDate } },
           });
-          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+          mutate(
+            apiPaths.MULTIWORKSHOP({
+              namespace: multiworkshop.metadata.namespace,
+              multiworkshopName: multiworkshop.metadata.name,
+            }),
+            updatedMultiWorkshop,
+            false,
+          );
         }}
         title="Start provisioning now?"
       >
@@ -668,9 +767,8 @@ const MultiWorkshopDetail: React.FC = () => {
             <EmptyState variant="sm">
               <EmptyStateBody>
                 {allAvailableServices.length === 0
-                  ? "No workshops or self-paced labs available. All existing services may already be included, or none have been shared with you."
-                  : "No services match your search criteria."
-                }
+                  ? 'No workshops or self-paced labs available. All existing services may already be included, or none have been shared with you.'
+                  : 'No services match your search criteria.'}
               </EmptyStateBody>
             </EmptyState>
           ) : (
@@ -691,18 +789,14 @@ const MultiWorkshopDetail: React.FC = () => {
                   const handleSelectionToggle = () => {
                     const isSelected = selectedWorkshops.includes(uid);
                     if (isSelected) {
-                      setSelectedWorkshops(prev => prev.filter(id => id !== uid));
+                      setSelectedWorkshops((prev) => prev.filter((id) => id !== uid));
                     } else {
-                      setSelectedWorkshops(prev => [...prev, uid]);
+                      setSelectedWorkshops((prev) => [...prev, uid]);
                     }
                   };
 
                   return (
-                    <Tr
-                      key={uid}
-                      isSelectable
-                      isRowSelected={selectedWorkshops.includes(uid)}
-                    >
+                    <Tr key={uid} isSelectable isRowSelected={selectedWorkshops.includes(uid)}>
                       <Td>
                         <Checkbox
                           id={`service-${uid}`}
@@ -713,29 +807,33 @@ const MultiWorkshopDetail: React.FC = () => {
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <strong>{resource.spec?.displayName || resource.metadata.name}</strong>
                         {isShared ? (
-                          <Label key="shared-label" tooltipDescription={<div>This service has been shared with you</div>}>
+                          <Label
+                            key="shared-label"
+                            tooltipDescription={<div>This service has been shared with you</div>}
+                          >
                             Shared
                           </Label>
                         ) : null}
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
-                        <Label key="type-label" tooltipDescription={
-                          serviceType === 'SelfPacedLab'
-                            ? <div>Self-paced lab with a warm pool of pre-provisioned instances</div>
-                            : <div>Workshop with provisioned instances per seat</div>
-                        }>
+                        <Label
+                          key="type-label"
+                          tooltipDescription={
+                            serviceType === 'SelfPacedLab' ? (
+                              <div>Self-paced lab with a warm pool of pre-provisioned instances</div>
+                            ) : (
+                              <div>Workshop with provisioned instances per seat</div>
+                            )
+                          }
+                        >
                           {serviceType === 'SelfPacedLab' ? 'Self-Paced Lab' : 'Workshop'}
                         </Label>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                          {resource.metadata.name}
-                        </span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>{resource.metadata.name}</span>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>
-                          {resource.metadata.namespace}
-                        </span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '14px' }}>{resource.metadata.namespace}</span>
                       </Td>
                       <Td onClick={handleSelectionToggle} style={{ cursor: 'pointer' }}>
                         <TimeInterval toTimestamp={resource.metadata.creationTimestamp} />
@@ -748,12 +846,14 @@ const MultiWorkshopDetail: React.FC = () => {
           )}
 
           {selectedWorkshops.length > 0 && (
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: 'var(--pf-t--global--background--color--200)',
-              borderRadius: '4px'
-            }}>
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '12px',
+                backgroundColor: 'var(--pf-t--global--background--color--200)',
+                borderRadius: '4px',
+              }}
+            >
               <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
                 {selectedWorkshops.length} service{selectedWorkshops.length !== 1 ? 's' : ''} selected
               </p>
@@ -762,16 +862,13 @@ const MultiWorkshopDetail: React.FC = () => {
         </div>
       </Modal>
 
-      <ExternalWorkshopModal
-        ref={modalExternalWorkshop}
-        onConfirm={onAddExternalWorkshopConfirm}
-      />
+      <ExternalWorkshopModal ref={modalExternalWorkshop} onConfirm={onAddExternalWorkshopConfirm} />
 
       <PageSection variant="default">
         <Breadcrumb>
           <BreadcrumbItem>
-            <Button 
-              variant="link" 
+            <Button
+              variant="link"
               onClick={() => navigate(currentNamespace ? `/multi-workshop/${currentNamespace}` : '/multi-workshop')}
             >
               Multi Asset Workshop
@@ -779,7 +876,7 @@ const MultiWorkshopDetail: React.FC = () => {
           </BreadcrumbItem>
           <BreadcrumbItem isActive>{getMultiWorkshopDisplayName(multiworkshop)}</BreadcrumbItem>
         </Breadcrumb>
-        
+
         <Split hasGutter className="multiworkshop-detail__header">
           <SplitItem isFilled>
             <Title headingLevel="h1" size="2xl" style={{ display: 'flex', alignItems: 'center' }}>
@@ -807,10 +904,7 @@ const MultiWorkshopDetail: React.FC = () => {
       </PageSection>
 
       <PageSection hasBodyWrapper={false} style={{ paddingTop: 0, flexGrow: 1 }}>
-        <Tabs
-          activeKey={activeTab}
-          onSelect={(e, tabIndex) => setActiveTab(tabIndex as string)}
-        >
+        <Tabs activeKey={activeTab} onSelect={(e, tabIndex) => setActiveTab(tabIndex as string)}>
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             {activeTab === 'details' ? (
               <>
@@ -837,20 +931,21 @@ const MultiWorkshopDetail: React.FC = () => {
                   </DescriptionListGroup>
 
                   {multiworkshop.metadata.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Portal URL</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <Link
-                        to={`/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {`${window.location.origin}/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
-                      </Link>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Portal URL</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <Link
+                          to={`/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {`${window.location.origin}/event/${multiworkshop.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
+                        </Link>
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
                   ) : null}
 
+                  {/* eslint-disable-next-line @eslint-react/purity -- hides the start-date editor once the start time has passed; must stay current as SWR polling re-renders the page */}
                   {(!multiworkshop.spec.startDate || new Date(multiworkshop.spec.startDate).getTime() > Date.now()) && (
                     <DescriptionListGroup>
                       <DescriptionListTerm>Start provisioning date</DescriptionListTerm>
@@ -858,6 +953,7 @@ const MultiWorkshopDetail: React.FC = () => {
                         <Split hasGutter style={{ alignItems: 'center' }}>
                           <SplitItem>
                             <DateTimePickerButton
+                              // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no start date is set; must reflect current time
                               date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
                               timezone={timezone}
                               isDisabled={isLocked}
@@ -865,12 +961,7 @@ const MultiWorkshopDetail: React.FC = () => {
                             />
                           </SplitItem>
                           <SplitItem>
-                            <Button
-                              variant="link"
-                              isInline
-                              isDisabled={isLocked}
-                              onClick={openModalStartNow}
-                            >
+                            <Button variant="link" isInline isDisabled={isLocked} onClick={openModalStartNow}>
                               Start now
                             </Button>
                           </SplitItem>
@@ -883,6 +974,7 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListTerm>End Date</DescriptionListTerm>
                     <DescriptionListDescription>
                       <DateTimePickerButton
+                        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no end date is set; must reflect current time
                         date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
                         timezone={timezone}
                         isDisabled={isLocked}
@@ -913,7 +1005,14 @@ const MultiWorkshopDetail: React.FC = () => {
                             namespace: multiworkshop.metadata.namespace,
                             patch: { spec: { backgroundImage: value } },
                           });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          mutate(
+                            apiPaths.MULTIWORKSHOP({
+                              namespace: multiworkshop.metadata.namespace,
+                              multiworkshopName: multiworkshop.metadata.name,
+                            }),
+                            updatedMultiWorkshop,
+                            false,
+                          );
                         }}
                       />
                     </DescriptionListDescription>
@@ -930,7 +1029,14 @@ const MultiWorkshopDetail: React.FC = () => {
                             namespace: multiworkshop.metadata.namespace,
                             patch: { spec: { logoImage: value } },
                           });
-                          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updatedMultiWorkshop, false);
+                          mutate(
+                            apiPaths.MULTIWORKSHOP({
+                              namespace: multiworkshop.metadata.namespace,
+                              multiworkshopName: multiworkshop.metadata.name,
+                            }),
+                            updatedMultiWorkshop,
+                            false,
+                          );
                         }}
                       />
                     </DescriptionListDescription>
@@ -947,11 +1053,16 @@ const MultiWorkshopDetail: React.FC = () => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Lock{' '}
-                        <Tooltip position="right" content={<p>When enabled, the start date, start now, and auto-destroy (end date) controls are disabled to prevent accidental changes.</p>}>
-                          <OutlinedQuestionCircleIcon
-                            aria-label="Lock information"
-                            className="tooltip-icon-only"
-                          />
+                        <Tooltip
+                          position="right"
+                          content={
+                            <p>
+                              When enabled, the start date, start now, and auto-destroy (end date) controls are disabled
+                              to prevent accidental changes.
+                            </p>
+                          }
+                        >
+                          <OutlinedQuestionCircleIcon aria-label="Lock information" className="tooltip-icon-only" />
                         </Tooltip>
                       </DescriptionListTerm>
                       <DescriptionListDescription>
@@ -1013,7 +1124,6 @@ const MultiWorkshopDetail: React.FC = () => {
                     </DescriptionListGroup>
                   </DescriptionList>
                 </div>
-
               </>
             ) : null}
           </Tab>
@@ -1028,23 +1138,20 @@ const MultiWorkshopDetail: React.FC = () => {
                   </SplitItem>
                   <SplitItem>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         onClick={openModalAddWorkshop}
                         isDisabled={allAvailableServices.length === 0}
                       >
                         Add preprovisioned asset
                       </Button>
-                      <Button 
-                        variant="secondary" 
-                        onClick={openModalExternalWorkshop}
-                      >
+                      <Button variant="secondary" onClick={openModalExternalWorkshop}>
                         Add External Asset
                       </Button>
                     </div>
                   </SplitItem>
                 </Split>
-                
+
                 {multiworkshop.spec.assets && multiworkshop.spec.assets.length > 0 ? (
                   <>
                     <div className="asset-grid asset-grid--header">
@@ -1064,7 +1171,7 @@ const MultiWorkshopDetail: React.FC = () => {
                           <div className="asset-grid asset-grid--row">
                             <div>
                               {asset.type === 'external' ? (
-                                <a 
+                                <a
                                   href={asset.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -1118,27 +1225,35 @@ const MultiWorkshopDetail: React.FC = () => {
                             <div>
                               {(() => {
                                 if (asset.type === 'SelfPacedLab') {
-                                  const spl = selfPacedLabs?.find(s => s.metadata.name === asset.name) || sharedSelfPacedLabs?.find(s => s.metadata.name === asset.name);
+                                  const spl =
+                                    selfPacedLabs?.find((s) => s.metadata.name === asset.name) ||
+                                    sharedSelfPacedLabs?.find((s) => s.metadata.name === asset.name);
                                   const lifespanEnd = spl?.spec?.lifespan?.end;
                                   return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
                                 }
                                 if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
-                                const workshop = workshops?.find(w => w.metadata.name === asset.name) || sharedWorkshops?.find(w => w.metadata.name === asset.name);
+                                const workshop =
+                                  workshops?.find((w) => w.metadata.name === asset.name) ||
+                                  sharedWorkshops?.find((w) => w.metadata.name === asset.name);
                                 const lifespanEnd = workshop?.spec?.lifespan?.end;
                                 return lifespanEnd ? <LocalTimestamp timestamp={lifespanEnd} /> : <span>-</span>;
                               })()}
                             </div>
                             <div>
-                            {(() => {
+                              {(() => {
                                 if (asset.type !== 'Workshop' || !asset.name) return <span>-</span>;
-                                const workshop = workshops?.find(w => w.metadata.name === asset.name) || sharedWorkshops?.find(w => w.metadata.name === asset.name);
+                                const workshop =
+                                  workshops?.find((w) => w.metadata.name === asset.name) ||
+                                  sharedWorkshops?.find((w) => w.metadata.name === asset.name);
                                 if (!workshop) return <span>-</span>;
-                                return <AssetWorkshopStatus
-                                  workshop={workshop}
-                                  workshopName={asset.name}
-                                  namespace={asset.namespace}
-                                />
-                            })()}
+                                return (
+                                  <AssetWorkshopStatus
+                                    workshop={workshop}
+                                    workshopName={asset.name}
+                                    namespace={asset.namespace}
+                                  />
+                                );
+                              })()}
                             </div>
                             <div>
                               <ButtonCircleIcon
@@ -1157,9 +1272,7 @@ const MultiWorkshopDetail: React.FC = () => {
                   </>
                 ) : (
                   <EmptyState variant="lg">
-                    <EmptyStateBody>
-                      No workshop assets configured for this event.
-                    </EmptyStateBody>
+                    <EmptyStateBody>No workshop assets configured for this event.</EmptyStateBody>
                   </EmptyState>
                 )}
               </>
@@ -1181,7 +1294,9 @@ const MultiWorkshopDetail: React.FC = () => {
       <Footer />
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
+        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no start date is set; must reflect current time
         date={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate) : new Date()}
+        // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must stay current as SWR polling re-renders the page
         minDate={Date.now()}
         title="Start provisioning date"
         onConfirm={async (date) => {
@@ -1191,14 +1306,23 @@ const MultiWorkshopDetail: React.FC = () => {
             namespace: multiworkshop.metadata.namespace,
             patch: { spec: { startDate: apiDate } },
           });
-          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updated, false);
+          mutate(
+            apiPaths.MULTIWORKSHOP({
+              namespace: multiworkshop.metadata.namespace,
+              multiworkshopName: multiworkshop.metadata.name,
+            }),
+            updated,
+            false,
+          );
           setIsStartDateModalOpen(false);
         }}
         onClose={() => setIsStartDateModalOpen(false)}
       />
       <DateTimePickerModalDialog
         isOpen={isEndDateModalOpen}
+        // eslint-disable-next-line @eslint-react/purity -- falls back to "now" when no end date is set; must reflect current time
         date={multiworkshop.spec.endDate ? new Date(multiworkshop.spec.endDate) : new Date()}
+        // eslint-disable-next-line @eslint-react/purity -- minimum end date falls back to the current time; must stay current as SWR polling re-renders the page
         minDate={multiworkshop.spec.startDate ? new Date(multiworkshop.spec.startDate).getTime() : Date.now()}
         title="End Date"
         onConfirm={async (date) => {
@@ -1208,7 +1332,14 @@ const MultiWorkshopDetail: React.FC = () => {
             namespace: multiworkshop.metadata.namespace,
             patch: { spec: { endDate: apiDate } },
           });
-          mutate(apiPaths.MULTIWORKSHOP({ namespace: multiworkshop.metadata.namespace, multiworkshopName: multiworkshop.metadata.name }), updated, false);
+          mutate(
+            apiPaths.MULTIWORKSHOP({
+              namespace: multiworkshop.metadata.namespace,
+              multiworkshopName: multiworkshop.metadata.name,
+            }),
+            updated,
+            false,
+          );
           setIsEndDateModalOpen(false);
         }}
         onClose={() => setIsEndDateModalOpen(false)}

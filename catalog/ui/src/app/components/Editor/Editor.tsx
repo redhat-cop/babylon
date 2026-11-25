@@ -47,16 +47,24 @@ TextNode.prototype.exportDOM = function (editor: LexicalEditor) {
   if (this.__format & IS_UNDERLINE || this.__format & IS_ITALIC || this.__format & IS_BOLD) {
     let dom: HTMLElement = null;
     if (this.__format & IS_UNDERLINE) {
-      const el = document.createElement('u');
-      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
+      // Underline is the first wrapper, so it always becomes the root element.
+      dom = document.createElement('u');
     }
     if (this.__format & IS_ITALIC) {
       const el = document.createElement('i');
-      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
+      if (dom) {
+        getLastChildren(dom).appendChild(el);
+      } else {
+        dom = el;
+      }
     }
     if (this.__format & IS_BOLD) {
       const el = document.createElement('b');
-      dom ? getLastChildren(dom).appendChild(el) : (dom = el);
+      if (dom) {
+        getLastChildren(dom).appendChild(el);
+      } else {
+        dom = el;
+      }
     }
     const lastEl = getLastChildren(dom);
     lastEl.textContent = this.__text;

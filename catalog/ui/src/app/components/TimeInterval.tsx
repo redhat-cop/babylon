@@ -30,7 +30,8 @@ const TimeInterval: React.FC<{
         ? toEpochMilliseconds
         : null;
   const intervalMilliseconds: number | null = to
-    ? to - Date.now()
+    ? // eslint-disable-next-line @eslint-react/purity -- relative time must be recomputed on every render (parents re-render via polling); freezing would show stale text
+      to - Date.now()
     : typeof interval === 'string'
       ? parseDuration(interval)
       : typeof interval === 'number'

@@ -1,11 +1,36 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import type { EditorState, LexicalEditor } from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import MonacoEditor from '@monaco-editor/react';
 import * as yaml from 'js-yaml';
 import useSWR, { useSWRConfig } from 'swr';
-import { Breadcrumb, BreadcrumbItem, Bullseye, Button, CodeBlock, CodeBlockCode, DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm, EmptyState, EmptyStateBody, NumberInput, PageSection, Split, SplitItem, Spinner, Switch, Tabs, Tab, TabTitleText, Title, Tooltip, MenuToggle } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Bullseye,
+  Button,
+  CodeBlock,
+  CodeBlockCode,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  EmptyState,
+  EmptyStateBody,
+  NumberInput,
+  PageSection,
+  Split,
+  SplitItem,
+  Spinner,
+  Switch,
+  Tabs,
+  Tab,
+  TabTitleText,
+  Title,
+  Tooltip,
+  MenuToggle,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import {
   Alert,
@@ -40,7 +65,14 @@ import {
   patchServiceAccessConfig,
   SERVICES_KEY,
 } from '@app/api';
-import type { CatalogItem, ResourceClaim, SelfPacedLab, SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType, SelfPacedLabUserAssignmentList, ServiceAccessConfig } from '@app/types';
+import type {
+  CatalogItem,
+  ResourceClaim,
+  SelfPacedLab,
+  SelfPacedLabProvisionItem as SelfPacedLabProvisionItemType,
+  SelfPacedLabUserAssignmentList,
+  ServiceAccessConfig,
+} from '@app/types';
 import {
   BABYLON_DOMAIN,
   DEMO_DOMAIN,
@@ -131,7 +163,9 @@ const SelfPacedLabItemComponent: React.FC<{
     fetcher,
   );
 
-  const { data: selfPacedLabProvisionItems, mutate: mutateSelfPacedLabProvisionItems } = useSWR<SelfPacedLabProvisionItemType[]>(
+  const { data: selfPacedLabProvisionItems, mutate: mutateSelfPacedLabProvisionItems } = useSWR<
+    SelfPacedLabProvisionItemType[]
+  >(
     selfPacedLab
       ? apiPaths.SELF_PACED_LAB_PROVISION_ITEMS({
           namespace: serviceNamespaceName,
@@ -243,12 +277,14 @@ const SelfPacedLabItemComponent: React.FC<{
   const debouncedOpsEffort = useDebounceState(opsEffort, 1000);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the editable (debounced) ops-effort buffer from the annotation after a refetch; deriving would discard in-progress edits
     setOpsEffort(opsEffortFromAnnotation);
   }, [opsEffortFromAnnotation]);
 
   useEffect(() => {
     if (!selfPacedLab || debouncedOpsEffort === opsEffortFromAnnotation) return;
-    const opsEffortValue = typeof debouncedOpsEffort === 'number' ? debouncedOpsEffort : Number(debouncedOpsEffort) || 0;
+    const opsEffortValue =
+      typeof debouncedOpsEffort === 'number' ? debouncedOpsEffort : Number(debouncedOpsEffort) || 0;
     patchSelfPacedLab({
       name: selfPacedLab.metadata.name,
       namespace: selfPacedLab.metadata.namespace,
@@ -260,6 +296,7 @@ const SelfPacedLabItemComponent: React.FC<{
         },
       },
     }).then((updated) => mutateSelfPacedLab(updated));
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- keyed on name/namespace only; depending on the selfPacedLab object or mutate fn would re-run the patch on every SWR refetch
   }, [debouncedOpsEffort, opsEffortFromAnnotation, selfPacedLab?.metadata?.name, selfPacedLab?.metadata?.namespace]);
 
   const whiteGloved = selfPacedLab?.metadata?.labels?.[`${DEMO_DOMAIN}/white-glove`] === 'true';
@@ -318,7 +355,9 @@ const SelfPacedLabItemComponent: React.FC<{
     );
   }
 
-  const debouncedPatchSelfPacedLab = useDebounce(patchSelfPacedLab, 1000) as (...args: unknown[]) => Promise<SelfPacedLab>;
+  const debouncedPatchSelfPacedLab = useDebounce(patchSelfPacedLab, 1000) as (
+    ...args: unknown[]
+  ) => Promise<SelfPacedLab>;
 
   const patchSelfPacedLabSpec = useCallback(
     async (patch: {
@@ -452,7 +491,12 @@ const SelfPacedLabItemComponent: React.FC<{
       >
         <p>All pool instances will be deleted.</p>
       </Modal>
-      <Modal ref={modalSchedule} onConfirm={onModalScheduleConfirm} passModifiers={true} title={displayName(selfPacedLab)}>
+      <Modal
+        ref={modalSchedule}
+        onConfirm={onModalScheduleConfirm}
+        passModifiers={true}
+        title={displayName(selfPacedLab)}
+      >
         <SelfPacedLabScheduleAction
           action={scheduleAction === 'scheduleDelete' ? 'retirement' : 'start'}
           currentDate={scheduleAction === 'scheduleDelete' ? autoDestroyTime : autoStartTime}
@@ -533,7 +577,10 @@ const SelfPacedLabItemComponent: React.FC<{
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(selfPacedLab)}
               {isCollaborator ? (
-                <Label key="selfpacedlab-item__collaborator" tooltipDescription={<div>You have been granted access to this self-paced lab as a collaborator</div>}>
+                <Label
+                  key="selfpacedlab-item__collaborator"
+                  tooltipDescription={<div>You have been granted access to this self-paced lab as a collaborator</div>}
+                >
                   Shared Service
                 </Label>
               ) : null}
@@ -567,9 +614,7 @@ const SelfPacedLabItemComponent: React.FC<{
       <PageSection hasBodyWrapper={false} key="body" className="selfpacedlab-item__body">
         <Tabs
           activeKey={activeTab || 'details'}
-          onSelect={(e, tabIndex) =>
-            navigate(`/selfpacedlabs/${serviceNamespaceName}/${selfPacedLabName}/${tabIndex}`)
-          }
+          onSelect={(e, tabIndex) => navigate(`/selfpacedlabs/${serviceNamespaceName}/${selfPacedLabName}/${tabIndex}`)}
         >
           <Tab eventKey="details" title={<TabTitleText>Details</TabTitleText>}>
             {activeTab === 'details' || !activeTab ? (
@@ -610,6 +655,7 @@ const SelfPacedLabItemComponent: React.FC<{
                 <DescriptionListGroup>
                   <DescriptionListTerm>Status</DescriptionListTerm>
                   <DescriptionListDescription>
+                    {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once start time passes; freezing it would break that */}
                     {autoStartTime && autoStartTime > Date.now() ? (
                       <ScheduledStatus startTime={autoStartTime} />
                     ) : selfPacedLab.status?.poolCount ? (
@@ -720,7 +766,13 @@ const SelfPacedLabItemComponent: React.FC<{
                           variant="link"
                           icon={<PlusCircleIcon />}
                           onClick={() => setModalAddServiceAccess(true)}
-                          style={{ alignSelf: 'flex-start', paddingLeft: 0, paddingTop: 0, paddingBottom: 0, paddingRight: 0 }}
+                          style={{
+                            alignSelf: 'flex-start',
+                            paddingLeft: 0,
+                            paddingTop: 0,
+                            paddingBottom: 0,
+                            paddingRight: 0,
+                          }}
                         >
                           Share service
                         </Button>
@@ -728,6 +780,7 @@ const SelfPacedLabItemComponent: React.FC<{
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 ) : null}
+                {/* eslint-disable-next-line @eslint-react/purity -- current time must be re-read on every render (SWR refresh) so the scheduled state flips once start time passes; freezing it would break that */}
                 {autoStartTime && autoStartTime > Date.now() ? (
                   <DescriptionListGroup>
                     <DescriptionListTerm>Start Date</DescriptionListTerm>
@@ -833,7 +886,10 @@ const SelfPacedLabItemComponent: React.FC<{
                                 }
                               }}
                             />
-                            <Tooltip position="right" content={<div>Operations effort value for this self-paced lab.</div>}>
+                            <Tooltip
+                              position="right"
+                              content={<div>Operations effort value for this self-paced lab.</div>}
+                            >
                               <OutlinedQuestionCircleIcon
                                 aria-label="Operations effort value for this self-paced lab."
                                 className="tooltip-icon-only"
@@ -897,7 +953,9 @@ const SelfPacedLabItemComponent: React.FC<{
                       <DescriptionListDescription>
                         {catalogItem ? (
                           <>
-                            <Link to={`/catalog/${catalogItem.metadata.namespace}?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}>
+                            <Link
+                              to={`/catalog/${catalogItem.metadata.namespace}?item=${catalogItem.metadata.namespace}/${catalogItem.metadata.name}`}
+                            >
                               {displayName(catalogItem)}
                             </Link>
                             {isAdmin ? <OpenshiftConsoleLink resource={catalogItem} /> : null}
@@ -934,7 +992,10 @@ const SelfPacedLabItemComponent: React.FC<{
                           value={item.spec.poolSize}
                           style={{ paddingRight: 'var(--pf-t--global--spacer--md)' }}
                         />
-                        <Tooltip position="right" content={<p>Number of pre-provisioned instances in the warm pool.</p>}>
+                        <Tooltip
+                          position="right"
+                          content={<p>Number of pre-provisioned instances in the warm pool.</p>}
+                        >
                           <OutlinedQuestionCircleIcon
                             aria-label="Number of pre-provisioned instances in the warm pool."
                             className="tooltip-icon-only"
@@ -987,7 +1048,10 @@ const SelfPacedLabItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Assigned Lifespan{' '}
-                        <Tooltip position="right" content={<p>How long an instance stays active after being assigned to a user.</p>}>
+                        <Tooltip
+                          position="right"
+                          content={<p>How long an instance stays active after being assigned to a user.</p>}
+                        >
                           <OutlinedQuestionCircleIcon
                             aria-label="Assigned lifespan duration"
                             className="tooltip-icon-only"
@@ -1012,7 +1076,10 @@ const SelfPacedLabItemComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>
                         Unassigned Lifespan{' '}
-                        <Tooltip position="right" content={<p>How long an unassigned instance stays in the pool before being recycled.</p>}>
+                        <Tooltip
+                          position="right"
+                          content={<p>How long an unassigned instance stays in the pool before being recycled.</p>}
+                        >
                           <OutlinedQuestionCircleIcon
                             aria-label="Unassigned lifespan duration"
                             className="tooltip-icon-only"
@@ -1039,7 +1106,8 @@ const SelfPacedLabItemComponent: React.FC<{
               ) : selfPacedLabProvisionItems ? (
                 <EmptyState headingLevel="h4" titleText="No SelfPacedLabProvisionItems found" variant="sm">
                   <EmptyStateBody>
-                    This indicates an error has occurred. A SelfPacedLabProvisionItem should have been created when this lab was created.
+                    This indicates an error has occurred. A SelfPacedLabProvisionItem should have been created when this
+                    lab was created.
                   </EmptyStateBody>
                 </EmptyState>
               ) : (
@@ -1047,73 +1115,76 @@ const SelfPacedLabItemComponent: React.FC<{
               )
             ) : null}
           </Tab>
-          <Tab eventKey="instances" title={<TabTitleText>Instances ({resourceClaims ? activeResourceClaims.length : '...'})</TabTitleText>}>
+          <Tab
+            eventKey="instances"
+            title={<TabTitleText>Instances ({resourceClaims ? activeResourceClaims.length : '...'})</TabTitleText>}
+          >
             {activeTab === 'instances' ? (
               resourceClaims && activeResourceClaims.length > 0 ? (
                 <SelectableTable
-                    columns={
-                      isAdmin
-                        ? ['Name', 'Status', 'Assignment', 'Created At', 'Actions']
-                        : ['Name', 'Status', 'Assignment', 'Created At']
+                  columns={
+                    isAdmin
+                      ? ['Name', 'Status', 'Assignment', 'Created At', 'Actions']
+                      : ['Name', 'Status', 'Assignment', 'Created At']
+                  }
+                  onSelectAll={(isSelected) => {
+                    if (isSelected) {
+                      setSelectedUids(activeResourceClaims.map((rc) => rc.metadata.uid));
+                    } else {
+                      setSelectedUids([]);
                     }
-                    onSelectAll={(isSelected) => {
-                      if (isSelected) {
-                        setSelectedUids(activeResourceClaims.map((rc) => rc.metadata.uid));
-                      } else {
-                        setSelectedUids([]);
-                      }
-                    }}
-                    rows={activeResourceClaims.map((rc) => {
-                      const userAssignments = userAssignmentsList?.items || [];
-                      return {
-                        cells: [
-                          <>
-                            <Link key="link" to={`/services/${rc.metadata.namespace}/${rc.metadata.name}`}>
-                              {displayName(rc)}
-                            </Link>
-                            {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
-                          </>,
-                          <ServiceStatus key="status" resourceClaim={rc} />,
-                          <>
-                            {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
-                              ? userAssignments
-                                  .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
-                                  .map((uA) => (
-                                    <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>
-                                      {uA.spec.assignment?.email || '-'}
-                                    </p>
-                                  ))
-                              : '-'}
-                          </>,
-                          <>
-                            <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
-                            <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)
-                          </>,
-                          ...(isAdmin
-                            ? [
-                                <ButtonCircleIcon
-                                  key="actions"
-                                  onClick={() => {
-                                    setDeleteTargetRCs([rc]);
-                                    openModalDeleteRC();
-                                  }}
-                                  description="Delete"
-                                  icon={TrashIcon}
-                                />,
-                              ]
-                            : []),
-                        ],
-                        onSelect: (isSelected: boolean) =>
-                          setSelectedUids((uids) => {
-                            if (isSelected) {
-                              return uids.includes(rc.metadata.uid) ? uids : [...uids, rc.metadata.uid];
-                            }
-                            return uids.filter((uid) => uid !== rc.metadata.uid);
-                          }),
-                        selected: selectedUids.includes(rc.metadata.uid),
-                      };
-                    })}
-                  />
+                  }}
+                  rows={activeResourceClaims.map((rc) => {
+                    const userAssignments = userAssignmentsList?.items || [];
+                    return {
+                      cells: [
+                        <Fragment key="name">
+                          <Link key="link" to={`/services/${rc.metadata.namespace}/${rc.metadata.name}`}>
+                            {displayName(rc)}
+                          </Link>
+                          {isAdmin ? <OpenshiftConsoleLink key="console" resource={rc} /> : null}
+                        </Fragment>,
+                        <ServiceStatus key="status" resourceClaim={rc} />,
+                        <Fragment key="assignment">
+                          {userAssignments.some((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                            ? userAssignments
+                                .filter((uA) => uA.spec.resourceClaimName === rc.metadata.name)
+                                .map((uA) => (
+                                  <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>
+                                    {uA.spec.assignment?.email || '-'}
+                                  </p>
+                                ))
+                            : '-'}
+                        </Fragment>,
+                        <Fragment key="created">
+                          <LocalTimestamp key="ts" timestamp={rc.metadata.creationTimestamp} /> (
+                          <TimeInterval key="iv" toTimestamp={rc.metadata.creationTimestamp} />)
+                        </Fragment>,
+                        ...(isAdmin
+                          ? [
+                              <ButtonCircleIcon
+                                key="actions"
+                                onClick={() => {
+                                  setDeleteTargetRCs([rc]);
+                                  openModalDeleteRC();
+                                }}
+                                description="Delete"
+                                icon={TrashIcon}
+                              />,
+                            ]
+                          : []),
+                      ],
+                      onSelect: (isSelected: boolean) =>
+                        setSelectedUids((uids) => {
+                          if (isSelected) {
+                            return uids.includes(rc.metadata.uid) ? uids : [...uids, rc.metadata.uid];
+                          }
+                          return uids.filter((uid) => uid !== rc.metadata.uid);
+                        }),
+                      selected: selectedUids.includes(rc.metadata.uid),
+                    };
+                  })}
+                />
               ) : resourceClaims ? (
                 <EmptyState headingLevel="h4" titleText="No instances" variant="sm">
                   <EmptyStateBody>No pool instances found for this self-paced lab.</EmptyStateBody>

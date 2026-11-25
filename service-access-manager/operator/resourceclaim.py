@@ -34,9 +34,12 @@ class ResourceClaim(K8sObject):
         return self.status.get('serviceAccessConfigs', [])
 
     async def __handle_delete(self, logger):
+        # Imported here to avoid a circular import with serviceaccessconfig.
+        import serviceaccessconfig
+
         for service_access_config_name in self.service_access_config_names:
             try:
-                service_access_config = await service_access_config.ServiceAccessConfig.fetch(
+                service_access_config = await serviceaccessconfig.ServiceAccessConfig.fetch(
                     name=service_access_config_name,
                     namespace=self.namespace,
                 )

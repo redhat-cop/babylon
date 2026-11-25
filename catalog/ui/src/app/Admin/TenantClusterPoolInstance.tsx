@@ -70,7 +70,7 @@ const TenantClusterPoolNumberInput: React.FC<{
   mutate: KeyedMutator<TenantClusterPool>;
 }> = ({ namespace, name, specField, value: defaultValue, min = 0, max = 999, mutate }) => {
   const [value, setValue] = useState(defaultValue);
-  const [timeout, setInputTimeout] = useState<ReturnType<typeof setTimeout>>(null);
+  const [inputTimeout, setInputTimeout] = useState<ReturnType<typeof setTimeout>>(null);
   const [updating, setUpdating] = useState(false);
 
   function handleInputChange(event: React.FormEvent<HTMLInputElement>) {
@@ -81,14 +81,18 @@ const TenantClusterPoolNumberInput: React.FC<{
 
   function queueUpdate(n: number) {
     setValue(n);
-    if (timeout) clearTimeout(timeout);
+    if (inputTimeout) clearTimeout(inputTimeout);
     setInputTimeout(
-      setTimeout(async (val: number) => {
-        setUpdating(true);
-        const updated = await patchTenantClusterPool(namespace, name, { spec: { [specField]: val } });
-        setUpdating(false);
-        mutate(updated);
-      }, 1000, n),
+      setTimeout(
+        async (val: number) => {
+          setUpdating(true);
+          const updated = await patchTenantClusterPool(namespace, name, { spec: { [specField]: val } });
+          setUpdating(false);
+          mutate(updated);
+        },
+        1000,
+        n,
+      ),
     );
   }
 
@@ -111,14 +115,16 @@ const ClusterRow: React.FC<{
   cluster: TenantClusterPoolStatusCluster;
   namespace: string;
 }> = ({ cluster, namespace }) => {
-  const { status, placementCount, maxPlacements, updating, pendingAction, performAction, isRunning } = useSandboxApi(cluster.name, namespace, cluster.resourceClaimName);
+  const { status, placementCount, maxPlacements, updating, pendingAction, performAction, isRunning } = useSandboxApi(
+    cluster.name,
+    namespace,
+    cluster.resourceClaimName,
+  );
 
   return (
     <Tr>
       <Td dataLabel="ResourceClaim">
-        <Link to={`/services/${namespace}/${cluster.resourceClaimName}`}>
-          {cluster.resourceClaimName}
-        </Link>
+        <Link to={`/services/${namespace}/${cluster.resourceClaimName}`}>{cluster.resourceClaimName}</Link>
       </Td>
       <Td dataLabel="Cluster Registration State">
         <Label isCompact color={sandboxApiStateColor(cluster.sandboxApiState)}>
@@ -346,9 +352,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                       />
                       {(spec?.maxClusters ?? 0) === 0 && (spec?.minAvailableSandboxPlacements ?? 0) > 0 ? (
                         <HelperText>
-                          <HelperTextItem variant="warning">
-                            Max Clusters is zero
-                          </HelperTextItem>
+                          <HelperTextItem variant="warning">Max Clusters is zero</HelperTextItem>
                         </HelperText>
                       ) : null}
                     </DescriptionListDescription>
@@ -372,13 +376,16 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                     <DescriptionListGroup>
                       <DescriptionListTerm>Salesforce Items</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {(JSON.parse(tenantClusterPool.metadata.annotations[`${DEMO_DOMAIN}/salesforce-items`]) as SalesforceItem[]).map(
-                          (item, idx) => (
-                            <Label key={idx} isCompact style={{ marginRight: 4 }}>
-                              {item.type}: {item.id}
-                            </Label>
-                          ),
-                        )}
+                        {(
+                          JSON.parse(
+                            tenantClusterPool.metadata.annotations[`${DEMO_DOMAIN}/salesforce-items`],
+                          ) as SalesforceItem[]
+                        ).map((item, idx) => (
+                          // eslint-disable-next-line @eslint-react/no-array-index-key -- parsed from an annotation JSON array; items have no guaranteed-unique field and the list is static
+                          <Label key={idx} isCompact style={{ marginRight: 4 }}>
+                            {item.type}: {item.id}
+                          </Label>
+                        ))}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                   ) : null}
@@ -401,9 +408,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                 <DescriptionList isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm>Max Placements</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {spec?.sandboxHost?.max_placements ?? '-'}
-                    </DescriptionListDescription>
+                    <DescriptionListDescription>{spec?.sandboxHost?.max_placements ?? '-'}</DescriptionListDescription>
                   </DescriptionListGroup>
 
                   <DescriptionListGroup>
@@ -433,6 +438,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                 <StackItem>
                   <Title headingLevel="h3">Tenant Pools</Title>
                   {spec.tenantPools.map((pool, idx) => (
+                    // eslint-disable-next-line @eslint-react/no-array-index-key -- spec.tenantPools entries are positional with no unique identifier
                     <DescriptionList isHorizontal key={idx}>
                       <DescriptionListGroup>
                         <DescriptionListTerm>Provider</DescriptionListTerm>
@@ -471,6 +477,7 @@ const TenantClusterPoolInstanceComponent: React.FC<{
                 </Thead>
                 <Tbody>
                   {clusters.map((cluster, idx) => (
+                    // eslint-disable-next-line @eslint-react/no-array-index-key -- cluster name is optional and resourceClaimName uniqueness is not guaranteed; keeping index avoids changing ClusterRow state retention
                     <ClusterRow key={idx} cluster={cluster} namespace={tenantClusterPoolNamespace} />
                   ))}
                 </Tbody>
@@ -494,7 +501,11 @@ const TenantClusterPoolInstanceComponent: React.FC<{
 };
 
 const TenantClusterPoolInstance: React.FC = () => {
-  const { namespace: tenantClusterPoolNamespace, name: tenantClusterPoolName, tab: activeTab = 'details' } = useParams();
+  const {
+    namespace: tenantClusterPoolNamespace,
+    name: tenantClusterPoolName,
+    tab: activeTab = 'details',
+  } = useParams();
   return (
     <ErrorBoundaryPage name={tenantClusterPoolName} type="TenantClusterPool">
       <TenantClusterPoolInstanceComponent

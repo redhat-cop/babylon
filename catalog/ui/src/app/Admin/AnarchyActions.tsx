@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
@@ -38,16 +38,16 @@ const AnarchyActions: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const actionFilter = searchParams.has('action') ? searchParams.get('action') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -235,11 +235,11 @@ const AnarchyActions: React.FC = () => {
             rows={anarchyActions.map((anarchyAction: AnarchyAction) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchyAction.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchyAction} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchyactions/${anarchyAction.metadata.namespace}/${anarchyAction.metadata.name}`}
@@ -247,8 +247,8 @@ const AnarchyActions: React.FC = () => {
                       {anarchyAction.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyAction} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="subject">
                     <Link
                       key="admin"
                       to={`/admin/anarchysubjects/${anarchyAction.spec.subjectRef.namespace}/${anarchyAction.spec.subjectRef.name}`}
@@ -256,9 +256,9 @@ const AnarchyActions: React.FC = () => {
                       {anarchyAction.spec.subjectRef.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" reference={anarchyAction.spec.subjectRef} />
-                  </>,
+                  </Fragment>,
                   anarchyAction.spec.governorRef ? (
-                    <>
+                    <Fragment key="governor">
                       <Link
                         key="admin"
                         to={`/admin/anarchygovernors/${anarchyAction.spec.governorRef.namespace}/${anarchyAction.spec.governorRef.name}`}
@@ -266,28 +266,28 @@ const AnarchyActions: React.FC = () => {
                         {anarchyAction.spec.governorRef.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={anarchyAction.spec.governorRef} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <>
+                    <Fragment key="governor">
                       <p style={{ color: 'red', fontWeight: 'bold' }}>NO GOVERNOR?!</p>
-                    </>
+                    </Fragment>
                   ),
-                  <>
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       <TimeInterval key="time-interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
                     </span>
-                  </>,
-                  <>{anarchyAction.status?.state || <p>-</p>}</>,
+                  </Fragment>,
+                  <Fragment key="state">{anarchyAction.status?.state || <p>-</p>}</Fragment>,
                   anarchyAction.status?.finishedTimestamp ? (
-                    <>
+                    <Fragment key="finished">
                       <LocalTimestamp key="timestamp" timestamp={anarchyAction.status.finishedTimestamp} />
                       <span key="interval" style={{ padding: '0 6px' }}>
                         <TimeInterval key="time-interval" toTimestamp={anarchyAction.status.finishedTimestamp} />)
                       </span>
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="finished">-</p>
                   ),
                 ],
                 onSelect: (isSelected: boolean) =>

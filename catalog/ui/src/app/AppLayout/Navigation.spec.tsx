@@ -29,9 +29,9 @@ it('places the active What\'s New link between White Glove Requests and Admin', 
   expect(link.closest('li').nextElementSibling).toHaveTextContent('Admin');
 });
 
-it('hides What\'s New from non-admins', () => {
+it('shows What\'s New to non-admins', () => {
   renderNavigation(false);
-  expect(screen.queryByRole('link', { name: "What's New" })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: "What's New" })).toHaveAttribute('href', '/whats-new');
 });
 
 it('preserves the partner interface exclusion', () => {

@@ -76,7 +76,6 @@ export async function fetcherItemsInAllPages(pathFn: (continueId: string) => str
   return items;
 }
 
-
 const MultiWorkshopCreate: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -131,7 +130,8 @@ const MultiWorkshopCreate: React.FC = () => {
         ? items
         : items.filter(
             (item) =>
-              item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`] === 'true',
+              item.metadata?.labels?.[`${CUSTOM_LABELS.MULTI_ASSET.domain}/${CUSTOM_LABELS.MULTI_ASSET.key}`] ===
+              'true',
           );
       return filtered.filter((item) => !item.spec.workshopUiDisabled && getSLA(item) !== SLAs.Unsupported);
     },
@@ -139,9 +139,7 @@ const MultiWorkshopCreate: React.FC = () => {
   );
 
   const { data: whiteGloveRequest } = useSWR<WhiteGloveRequest>(
-    wgrNamespace && wgrName
-      ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName })
-      : null,
+    wgrNamespace && wgrName ? apiPaths.WHITE_GLOVE_REQUEST({ namespace: wgrNamespace, name: wgrName }) : null,
     fetcher,
   );
 
@@ -149,6 +147,7 @@ const MultiWorkshopCreate: React.FC = () => {
   useEffect(() => {
     if (!whiteGloveRequest || wgrApplied) return;
 
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot prefill of the editable form from the async-loaded WhiteGloveRequest; deriving would discard user edits
     setCreateFormData((prev) => ({
       ...prev,
       name: whiteGloveRequest.spec.displayName || prev.name,
@@ -158,31 +157,33 @@ const MultiWorkshopCreate: React.FC = () => {
       activity: whiteGloveRequest.spec.activity || prev.activity,
       purpose: whiteGloveRequest.spec.purpose || prev.purpose,
       explanation: whiteGloveRequest.spec.explanation || prev.explanation,
-      salesforceItems: whiteGloveRequest.spec.salesforceItems?.length > 0
-        ? whiteGloveRequest.spec.salesforceItems
-        : prev.salesforceItems,
-      assets: whiteGloveRequest.spec.catalogItemNames?.length > 0
-        ? whiteGloveRequest.spec.catalogItemNames.map((itemName) => ({
-            key: itemName,
-            name: itemName,
-            namespace: whiteGloveRequest.spec.catalogItemNamespace,
-            displayName: '',
-            description: '',
-            type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
-          }))
-        : prev.assets,
+      salesforceItems:
+        whiteGloveRequest.spec.salesforceItems?.length > 0
+          ? whiteGloveRequest.spec.salesforceItems
+          : prev.salesforceItems,
+      assets:
+        whiteGloveRequest.spec.catalogItemNames?.length > 0
+          ? whiteGloveRequest.spec.catalogItemNames.map((itemName) => ({
+              key: itemName,
+              name: itemName,
+              namespace: whiteGloveRequest.spec.catalogItemNamespace,
+              displayName: '',
+              description: '',
+              type: 'Workshop' as 'Workshop' | 'external' | 'SelfPacedLab',
+            }))
+          : prev.assets,
     }));
 
     // An approver's session may not include the requester's user namespace.
-    const wgrServiceNamespace = serviceNamespaces.find(
-      (ns) => ns.name === whiteGloveRequest.metadata.namespace,
-    ) || {
+    const wgrServiceNamespace = serviceNamespaces.find((ns) => ns.name === whiteGloveRequest.metadata.namespace) || {
       name: whiteGloveRequest.metadata.namespace,
       displayName: whiteGloveRequest.metadata.namespace,
       requester: whiteGloveRequest.metadata.annotations?.[`${DEMO_DOMAIN}/requester`],
     };
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot prefill of the editable namespace selection from the async-loaded WhiteGloveRequest
     setSelectedNamespace(wgrServiceNamespace);
 
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-shot guard so the WhiteGloveRequest prefill runs only once after the SWR fetch resolves
     setWgrApplied(true);
   }, [whiteGloveRequest, wgrApplied, serviceNamespaces]);
 
@@ -207,7 +208,7 @@ const MultiWorkshopCreate: React.FC = () => {
 
   // Check if adding these assets would exceed quota (admins bypass)
   const remainingQuota = Math.max(0, quotaLimit - currentServicesCount);
-  const wouldExceedQuota = !isAdmin && (currentServicesCount + validAssets.length > quotaLimit);
+  const wouldExceedQuota = !isAdmin && currentServicesCount + validAssets.length > quotaLimit;
 
   // Create a stable key for catalog items fetching
   const catalogItemsKey = useMemo(() => {
@@ -455,13 +456,6 @@ const MultiWorkshopCreate: React.FC = () => {
     }
   }
 
-  function updateAsset(index: number, field: string, value: string) {
-    setCreateFormData((prev) => ({
-      ...prev,
-      assets: prev.assets.map((asset, i) => (i === index ? { ...asset, [field]: value } : asset)),
-    }));
-  }
-
   function addAsset() {
     setCreateFormData((prev) => ({
       ...prev,
@@ -550,9 +544,7 @@ const MultiWorkshopCreate: React.FC = () => {
     setCreateFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset, i) =>
-        i === index
-          ? { ...asset, type: enabled ? 'SelfPacedLab' : 'Workshop' }
-          : asset,
+        i === index ? { ...asset, type: enabled ? 'SelfPacedLab' : 'Workshop' } : asset,
       ),
     }));
   }
@@ -626,11 +618,7 @@ const MultiWorkshopCreate: React.FC = () => {
           </p>
           <p style={{ marginTop: '8px' }}>
             If you need assistance or our workshop white glove service, please{' '}
-            <a
-              href={helpLink}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={helpLink} target="_blank" rel="noopener noreferrer">
               raise a ticket with our team
             </a>{' '}
             or reach out via the{' '}
@@ -732,8 +720,12 @@ const MultiWorkshopCreate: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--pf-t--global--spacer--lg)' }}>
             <FormGroup fieldId="provisioningDate" isRequired label="Provisioning Start Date">
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                <DateTimePickerButton date={createFormData.startDate} timezone={timezone}
-                  isDisabled={useDirectProvisioningDate} onClick={() => setIsStartDateModalOpen(true)} />
+                <DateTimePickerButton
+                  date={createFormData.startDate}
+                  timezone={timezone}
+                  isDisabled={useDirectProvisioningDate}
+                  onClick={() => setIsStartDateModalOpen(true)}
+                />
                 <Tooltip position="right" content={<p>Select when you want the workshop provisioning to start.</p>}>
                   <OutlinedQuestionCircleIcon
                     aria-label="Select when you want the workshop provisioning to start."
@@ -780,8 +772,11 @@ const MultiWorkshopCreate: React.FC = () => {
             {isAdmin && useDirectProvisioningDate && (
               <FormGroup fieldId="readyByDate" label="Ready by">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                  <DateTimePickerButton date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
-                    timezone={timezone} onClick={() => setIsReadyByDateModalOpen(true)} />
+                  <DateTimePickerButton
+                    date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+                    timezone={timezone}
+                    onClick={() => setIsReadyByDateModalOpen(true)}
+                  />
                   <Tooltip
                     position="right"
                     content={
@@ -802,7 +797,11 @@ const MultiWorkshopCreate: React.FC = () => {
           </div>
 
           <FormGroup label="Auto-destroy workshops" isRequired fieldId="endDate">
-            <DateTimePickerButton date={createFormData.endDate} timezone={timezone} onClick={() => setIsEndDateModalOpen(true)} />
+            <DateTimePickerButton
+              date={createFormData.endDate}
+              timezone={timezone}
+              onClick={() => setIsEndDateModalOpen(true)}
+            />
           </FormGroup>
 
           <FormGroup label="Number of Seats" fieldId="numberSeats">
@@ -880,6 +879,7 @@ const MultiWorkshopCreate: React.FC = () => {
 
           <FormGroup label="Assets" fieldId="assets">
             {createFormData.assets.map((asset, index) => (
+              // eslint-disable-next-line @eslint-react/no-array-index-key -- asset.key is '' for unselected rows (duplicates possible) and rows are edited/removed by index
               <Card key={index} className="multiworkshop-create__asset-card" style={{ marginBottom: '12px' }}>
                 <CardBody>
                   <div
@@ -912,9 +912,7 @@ const MultiWorkshopCreate: React.FC = () => {
                               const entry = catalogItemsData.data?.find(
                                 (e) => e.asset.key === asset.key && e.asset.namespace === asset.namespace,
                               );
-                              return entry?.catalogItem ? (
-                                <CatalogItemIcon catalogItem={entry.catalogItem} />
-                              ) : null;
+                              return entry?.catalogItem ? <CatalogItemIcon catalogItem={entry.catalogItem} /> : null;
                             })()}
                           </div>
                           <span className="multiworkshop-create__catalog-chip-name">
@@ -928,7 +926,14 @@ const MultiWorkshopCreate: React.FC = () => {
                                 ...prev,
                                 assets: prev.assets.map((a, i) =>
                                   i === index
-                                    ? { ...a, key: '', name: '', namespace: '', displayName: '', type: 'Workshop' as const }
+                                    ? {
+                                        ...a,
+                                        key: '',
+                                        name: '',
+                                        namespace: '',
+                                        displayName: '',
+                                        type: 'Workshop' as const,
+                                      }
                                     : a,
                                 ),
                               }));
@@ -995,8 +1000,8 @@ const MultiWorkshopCreate: React.FC = () => {
                     You have {currentServicesCount} of {quotaLimit} services ({standaloneServicesCount} standalone
                     {standaloneServicesCount !== 1 ? ' services' : ' service'} + {workshopsCount} workshop
                     {workshopsCount !== 1 ? 's' : ''}). Adding {validAssets.length} asset
-                    {validAssets.length !== 1 ? 's' : ''} would exceed your quota. You can add up to{' '}
-                    {remainingQuota} more asset{remainingQuota !== 1 ? 's' : ''}.
+                    {validAssets.length !== 1 ? 's' : ''} would exceed your quota. You can add up to {remainingQuota}{' '}
+                    more asset{remainingQuota !== 1 ? 's' : ''}.
                   </>
                 )}
               </p>
@@ -1092,13 +1097,11 @@ const MultiWorkshopCreate: React.FC = () => {
         title="Select Catalog Item for Workshop"
         catalogItemsFilter={catalogItemsFilter}
       />
-      <UserDisabledModal
-        isOpen={isUserDisabledModalOpen}
-        onClose={() => setIsUserDisabledModalOpen(false)}
-      />
+      <UserDisabledModal isOpen={isUserDisabledModalOpen} onClose={() => setIsUserDisabledModalOpen(false)} />
       <DateTimePickerModalDialog
         isOpen={isStartDateModalOpen}
         date={createFormData.startDate}
+        // eslint-disable-next-line @eslint-react/purity -- minimum selectable date is the current time; must stay current while the page is open
         minDate={Date.now()}
         title="Provisioning Start Date"
         onConfirm={(d) => {
@@ -1114,6 +1117,7 @@ const MultiWorkshopCreate: React.FC = () => {
       <DateTimePickerModalDialog
         isOpen={isReadyByDateModalOpen}
         date={new Date(createFormData.startDate.getTime() + READY_BY_LEAD_TIME_MS)}
+        // eslint-disable-next-line @eslint-react/purity -- minimum ready-by date is relative to the current time; must stay current while the page is open
         minDate={Date.now() + READY_BY_LEAD_TIME_MS}
         title="Ready by"
         onConfirm={(d) => {

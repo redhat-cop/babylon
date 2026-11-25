@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState,  } from '@patternfly/react-core';
+import { EmptyState } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import type { AnarchyAction } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -15,8 +15,12 @@ const AnarchyActionsTable: React.FC<{
 }> = ({ anarchyActions, selectedUids, selectedUidsReducer }) => {
   if (anarchyActions.length === 0) {
     return (
-      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No AnarchyActions found." variant="full">
-        </EmptyState>
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationTriangleIcon}
+        titleText="No AnarchyActions found."
+        variant="full"
+      ></EmptyState>
     );
   }
   return (
@@ -37,7 +41,7 @@ const AnarchyActionsTable: React.FC<{
       rows={anarchyActions.map((anarchyAction: AnarchyAction) => {
         return {
           cells: [
-            <>
+            <Fragment key="name">
               <Link
                 key="admin"
                 to={`/admin/anarchyactions/${anarchyAction.metadata.namespace}/${anarchyAction.metadata.name}`}
@@ -45,13 +49,13 @@ const AnarchyActionsTable: React.FC<{
                 {anarchyAction.metadata.name}
               </Link>
               <OpenshiftConsoleLink key="console" resource={anarchyAction} />
-            </>,
-            <>
+            </Fragment>,
+            <Fragment key="created">
               <LocalTimestamp key="timestamp" timestamp={anarchyAction.metadata.creationTimestamp} />
               <span key="interval" style={{ padding: '0 6px' }}>
                 (<TimeInterval key="time-interval" toTimestamp={anarchyAction.metadata.creationTimestamp} />)
               </span>
-            </>,
+            </Fragment>,
           ],
           onSelect: (isSelected: boolean) =>
             selectedUidsReducer({

@@ -303,6 +303,7 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
             </Thead>
             <Tbody>
               {[...order.history].reverse().map((entry, index) => (
+                // eslint-disable-next-line @eslint-react/no-array-index-key -- history entries have no id and timestamps can repeat; the index disambiguates them
                 <Tr key={`${entry.timestamp}-${index}`}>
                   <Td dataLabel="Time">
                     <OrderTime value={entry.timestamp} />

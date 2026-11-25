@@ -733,32 +733,83 @@ async def create_support(request):
         url=f"{admin_api}/api/admin/v1/workshop/support",
     )
 
+# Salesforce search is meant for picking a specific account/campaign/project
+# while ordering, not for browsing the CRM. Searches must be specific
+# (minimum length, no wildcard characters) and results are capped.
+SFDC_SALES_TYPES = ('campaign', 'project', 'opportunity')
+SFDC_SEARCH_MIN_LENGTH = int(os.environ.get('SFDC_SEARCH_MIN_LENGTH', 3))
+SFDC_SEARCH_MAX_LENGTH = 100
+SFDC_SEARCH_MAX_RESULTS = int(os.environ.get('SFDC_SEARCH_MAX_RESULTS', 25))
+SFDC_SEARCH_DISALLOWED_CHARS = re.compile(r"[%_*?\\'\"]")
+SFDC_ACCOUNT_ID_RE = re.compile(r'^[A-Za-z0-9]{1,40}$')
+
+
+def sfdc_sales_type(request, required=False):
+    sales_type = request.query.get('sales_type')
+    if not sales_type:
+        if required:
+            raise web.HTTPBadRequest(reason="sales_type is required")
+        return None
+    if sales_type not in SFDC_SALES_TYPES:
+        raise web.HTTPBadRequest(reason="Invalid sales_type")
+    return sales_type
+
+
+def sfdc_search_value(value):
+    """Return the normalized search term, or None if it is too broad to send upstream."""
+    value = (value or '').strip()
+    if len(value) > SFDC_SEARCH_MAX_LENGTH:
+        raise web.HTTPBadRequest(reason="Search value is too long")
+    if SFDC_SEARCH_DISALLOWED_CHARS.search(value):
+        return None
+    if len(value) < SFDC_SEARCH_MIN_LENGTH:
+        return None
+    return value
+
+
 @routes.get("/api/salesforce/accounts")
 async def list_sfdc_accounts(request):
-    await get_proxy_user(request)
+    user = await get_proxy_user(request)
+    sales_type = sfdc_sales_type(request, required=True)
+    value = sfdc_search_value(request.query.get("value"))
+    if value is None:
+        return web.json_response({"items": []})
+
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
-    params = {}
-    salesType = request.query.get("sales_type")
-    accountValue = request.query.get("value")
-    if salesType:
-        params["sales_type"] = salesType
-    params["value"] = accountValue if accountValue else "''"
-    return await api_proxy(
-        headers=headers,
-        method="GET",
-        url=f"{reporting_api}/search/accounts?{urlencode(params)}",
-    )
+    params = {"sales_type": sales_type, "value": value}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            f"{reporting_api}/search/accounts?{urlencode(params)}",
+            headers=headers,
+            allow_redirects=False,
+        ) as resp:
+            if resp.status != 200:
+                logging.warning(f"Salesforce account search failed ({resp.status})")
+                raise web.HTTPBadGateway(reason=f"Salesforce search failed: {resp.status}")
+            data = await resp.json()
+
+    items = data.get('items') if isinstance(data, dict) else None
+    if not isinstance(items, list):
+        items = []
+    audit_log('sfdc_account_search', user=user['metadata']['name'], details={
+        'sales_type': sales_type,
+        'results': len(items),
+    })
+    return web.json_response({"items": items[:SFDC_SEARCH_MAX_RESULTS]})
+
 @routes.get("/api/salesforce/accounts/{account_id}")
-async def list_sfdc_accounts(request):
+async def list_sfdc_account_items(request):
     await get_proxy_user(request)
     account_id = request.match_info.get('account_id')
+    if not SFDC_ACCOUNT_ID_RE.match(account_id or ''):
+        raise web.HTTPBadRequest(reason="Invalid Salesforce account id")
     headers = {
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
     params = {"account_id": account_id}
-    salesType = request.query.get("sales_type")
+    salesType = sfdc_sales_type(request)
     if salesType:
         params["sales_type"] = salesType
     return await api_proxy(
@@ -775,7 +826,7 @@ async def salesforce_id_validation(request):
         "Authorization": f"Bearer {reporting_api_authorization_token}"
     }
     params = {"salesforce_id": salesforce_id}
-    salesType = request.query.get("sales_type")
+    salesType = sfdc_sales_type(request)
     if salesType:
         params["sales_type"] = salesType
     return await api_proxy(
@@ -1149,14 +1200,123 @@ _DELIVERY_MODE_MAP = {
     "role": "ROLE",
 }
 
+_WGR_JIRA_TICKET_ID_ANNOTATION = 'demo.redhat.com/jira-ticket-id'
+_WGR_JIRA_TICKET_URL_ANNOTATION = 'demo.redhat.com/jira-ticket-url'
+_WGR_JIRA_TICKET_CLAIM_ANNOTATION = 'demo.redhat.com/jira-ticket-requested-at'
+
+
+def _annotation_patch_path(key):
+    return '/metadata/annotations/' + key.replace('~', '~0').replace('/', '~1')
+
+
+async def _claim_wgr_for_jira_ticket(request, session):
+    """Fetch the caller's WhiteGloveRequest and atomically mark it as having a ticket requested.
+
+    The WGR is read and patched with the caller's impersonated credentials, so
+    Kubernetes RBAC decides whether they own it. A WGR may only ever get one
+    ticket: if it already has a ticket or a pending claim the request is refused,
+    and the claim patch is conditioned on resourceVersion so concurrent calls
+    cannot both succeed.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise web.HTTPBadRequest(reason="Invalid JSON body")
+    namespace = body.get('namespace') if isinstance(body, dict) else None
+    name = body.get('name') if isinstance(body, dict) else None
+    if not isinstance(namespace, str) or not isinstance(name, str) or not namespace or not name:
+        raise web.HTTPBadRequest(reason="namespace and name of the WhiteGloveRequest are required")
+
+    api_client = proxy_api_client(session)
+    custom_api = kubernetes_asyncio.client.CustomObjectsApi(api_client)
+    try:
+        try:
+            wgr = await custom_api.get_namespaced_custom_object(
+                group='babylon.gpte.redhat.com', version='v1', namespace=namespace,
+                plural='whitegloverequests', name=name,
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status in (401, 403, 404):
+                raise web.HTTPForbidden(reason="Access to this WhiteGloveRequest is not permitted")
+            raise
+
+        metadata = wgr.get('metadata', {})
+        annotations = metadata.get('annotations') or {}
+        if annotations.get(_WGR_JIRA_TICKET_ID_ANNOTATION) or annotations.get(_WGR_JIRA_TICKET_CLAIM_ANNOTATION):
+            raise web.HTTPConflict(reason="A Jira ticket has already been requested for this WhiteGloveRequest")
+
+        claimed_at = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        patch = [{"op": "test", "path": "/metadata/resourceVersion", "value": metadata.get('resourceVersion')}]
+        if 'annotations' in metadata and metadata['annotations'] is not None:
+            patch.append({"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_CLAIM_ANNOTATION), "value": claimed_at})
+        else:
+            patch.append({"op": "add", "path": "/metadata/annotations", "value": {_WGR_JIRA_TICKET_CLAIM_ANNOTATION: claimed_at}})
+        try:
+            await custom_api.patch_namespaced_custom_object(
+                group='babylon.gpte.redhat.com', version='v1', namespace=namespace,
+                plural='whitegloverequests', name=name, body=patch,
+            )
+        except kubernetes_asyncio.client.exceptions.ApiException as exception:
+            if exception.status in (409, 422):
+                raise web.HTTPConflict(reason="A Jira ticket has already been requested for this WhiteGloveRequest")
+            if exception.status in (401, 403, 404):
+                raise web.HTTPForbidden(reason="Access to this WhiteGloveRequest is not permitted")
+            raise
+    finally:
+        await api_client.close()
+    return wgr
+
+
+async def _patch_wgr_annotations(session, wgr, ops):
+    api_client = proxy_api_client(session)
+    try:
+        await kubernetes_asyncio.client.CustomObjectsApi(api_client).patch_namespaced_custom_object(
+            group='babylon.gpte.redhat.com', version='v1', namespace=wgr['metadata']['namespace'],
+            plural='whitegloverequests', name=wgr['metadata']['name'], body=ops,
+        )
+    finally:
+        await api_client.close()
+
+
 @routes.post("/api/jira/wgr")
 async def create_jira_wgr_ticket(request):
+    """Create the Jira ticket for one of the caller's WhiteGloveRequests.
+
+    The ticket content comes from the stored WGR spec, not the request body,
+    and each WGR can only get a single ticket.
+    """
     user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
 
     if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
 
-    data = await request.json()
+    wgr = await _claim_wgr_for_jira_ticket(request, session)
+    try:
+        ticket_key, ticket_url = await _create_jira_wgr_ticket(request, user, wgr)
+    except BaseException:
+        try:
+            await _patch_wgr_annotations(session, wgr, [
+                {"op": "remove", "path": _annotation_patch_path(_WGR_JIRA_TICKET_CLAIM_ANNOTATION)},
+            ])
+        except Exception:
+            logging.exception(f"Failed to release Jira ticket claim on WGR {wgr['metadata']['namespace']}/{wgr['metadata']['name']}")
+        raise
+
+    try:
+        await _patch_wgr_annotations(session, wgr, [
+            {"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_ID_ANNOTATION), "value": ticket_key},
+            {"op": "add", "path": _annotation_patch_path(_WGR_JIRA_TICKET_URL_ANNOTATION), "value": ticket_url},
+        ])
+    except Exception:
+        # The ticket exists; the claim annotation stays so no duplicate is created.
+        logging.exception(f"Failed to record Jira ticket {ticket_key} on WGR {wgr['metadata']['namespace']}/{wgr['metadata']['name']}")
+
+    return web.json_response({"key": ticket_key, "url": ticket_url})
+
+
+async def _create_jira_wgr_ticket(request, user, wgr):
+    data = wgr.get('spec') or {}
     display_name = data.get('displayName', 'White Glove Request')
     requester_email = request.headers.get('X-Forwarded-Email') or user['metadata']['name']
 
@@ -1254,7 +1414,7 @@ async def create_jira_wgr_ticket(request):
         if event_date_str:
             jira_fields["duedate"] = event_date_str[:10]  # YYYY-MM-DD
 
-        delivery_mode_raw = data.get('deliveryMode', '').lower()
+        delivery_mode_raw = (data.get('deliveryMode') or '').lower()
         jira_delivery_mode = _DELIVERY_MODE_MAP.get(delivery_mode_raw)
         if jira_delivery_mode:
             jira_fields["customfield_10951"] = [{"value": jira_delivery_mode}]
@@ -1270,14 +1430,53 @@ async def create_jira_wgr_ticket(request):
     audit_log('jira_ticket_created', user=requester_email, details={
         'ticket': ticket_key,
         'display_name': display_name,
+        'wgr': f"{wgr['metadata']['namespace']}/{wgr['metadata']['name']}",
         'reporter_account_id': created_fields.get('reporter', {}).get('accountId'),
     })
 
-    return web.json_response({"key": ticket_key, "url": ticket_url})
+    return ticket_key, ticket_url
+
+async def _authorize_jira_issue_read(request, session, issue_key):
+    """Ensure the session user may read issue_key.
+
+    The Jira integration uses a service account that can read every ticket in
+    the project, so the API must enforce access itself. Admins may read any
+    ticket. Anyone else must name the WhiteGloveRequest that references the
+    ticket; it is fetched as that user, so Kubernetes RBAC decides whether they
+    own it, and its jira-ticket-id annotation must match issue_key.
+    """
+    if session.get('admin'):
+        return
+
+    namespace = request.query.get('namespace')
+    name = request.query.get('name')
+    if not namespace or not name:
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+
+    api_client = proxy_api_client(session)
+    try:
+        wgr = await kubernetes_asyncio.client.CustomObjectsApi(api_client).get_namespaced_custom_object(
+            group='babylon.gpte.redhat.com',
+            version='v1',
+            namespace=namespace,
+            plural='whitegloverequests',
+            name=name,
+        )
+    except kubernetes_asyncio.client.exceptions.ApiException as exception:
+        if exception.status in (401, 403, 404):
+            raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+        raise
+    finally:
+        await api_client.close()
+
+    annotations = wgr.get('metadata', {}).get('annotations') or {}
+    if annotations.get('demo.redhat.com/jira-ticket-id') != issue_key:
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
 
 @routes.get("/api/jira/issue/{issue_key}")
 async def get_jira_issue_details(request):
-    await get_proxy_user(request)
+    user = await get_proxy_user(request)
+    session = await get_user_session(request, user)
 
     if not jira_configured():
         raise web.HTTPServiceUnavailable(reason="Jira integration is not configured")
@@ -1285,6 +1484,10 @@ async def get_jira_issue_details(request):
     issue_key = request.match_info.get('issue_key')
     if not re.match(r'^[A-Z][A-Z0-9]+-\d+$', issue_key):
         raise web.HTTPBadRequest(reason="Invalid Jira issue key format")
+    if not issue_key.startswith(f"{jira_project_key}-"):
+        raise web.HTTPForbidden(reason="Access to this Jira issue is not permitted")
+
+    await _authorize_jira_issue_read(request, session, issue_key)
 
     async with aiohttp.ClientSession() as http_session:
         headers = await jira_auth_headers(http_session)
@@ -1316,7 +1519,6 @@ async def get_jira_issue_details(request):
     if assignee_field:
         assignee = {
             "displayName": assignee_field.get('displayName'),
-            "emailAddress": assignee_field.get('emailAddress'),
         }
 
     comments = []

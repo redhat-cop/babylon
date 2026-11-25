@@ -14,12 +14,23 @@ import {
 
 import type { ResourceClaim } from '@app/types';
 
+type OpenStackServer = {
+  id: string;
+  project_id: string;
+  name: string;
+  status: string;
+};
+type OpenStackServersState = {
+  subjects?: { openStackServers?: OpenStackServer[] }[];
+  err?: unknown;
+};
+
 async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSelectedServer) {
   try {
     const resp = await getOpenStackServersForResourceClaim(resourceClaim);
     setOpenStackServers({ subjects: resp });
     setSelectedServer((s) => {
-      let firstServer: any = {};
+      let firstServer: Partial<OpenStackServer> = {};
       if (resp && resp.length > 0 && resp[0].openStackServers[0]) {
         firstServer = resp[0].openStackServers[0];
       }
@@ -33,7 +44,7 @@ async function fetchOpenStackServers(resourceClaim, setOpenStackServers, setSele
 const ServiceOpenStackConsole: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ resourceClaim }) => {
-  const [openStackServers, setOpenStackServers] = useState<any>([]);
+  const [openStackServers, setOpenStackServers] = useState<OpenStackServersState>({});
   const [serverConsoleUrl, setServerConsoleUrl] = useState<string | null>(null);
   const [serverSelectIsOpen, setServerSelectIsOpen] = useState(false);
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
@@ -61,11 +72,13 @@ const ServiceOpenStackConsole: React.FC<{
         }
       }
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- should only open a console session when the selected server changes; adding resourceClaim/servers would start new sessions on every refetch
   }, [selectedServer]);
   useEffect(() => {
     if (serverState?.status === 'ACTIVE') {
       reconnectConsole();
     }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- reconnects only on server status transitions; reconnectConsole is recreated every render and would cause repeated reconnects
   }, [serverState?.status]);
 
   // Subjects must be started for console access

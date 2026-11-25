@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { useEffect, Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -37,16 +37,16 @@ const AnarchySubjects: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const stateFilter = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -159,21 +159,23 @@ const AnarchySubjects: React.FC = () => {
   }
 
   // Fetch all if keywordFilter is defined.
-  if (
-    keywordFilter &&
-    anarchySubjectsPages.length > 0 &&
-    anarchySubjectsPages[anarchySubjectsPages.length - 1].metadata.continue
-  ) {
-    if (!isLoadingMore) {
-      if (anarchySubjects.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      anarchySubjectsPages.length > 0 &&
+      anarchySubjectsPages[anarchySubjectsPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = anarchySubjects.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <div onScroll={scrollHandler} className="admin-container">
@@ -256,11 +258,11 @@ const AnarchySubjects: React.FC = () => {
             rows={anarchySubjects.map((anarchySubject) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchySubject.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchySubject} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchysubjects/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}
@@ -268,8 +270,8 @@ const AnarchySubjects: React.FC = () => {
                       {anarchySubject.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchySubject} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="governor">
                     <Link
                       key="admin"
                       to={`/admin/anarchygovernors/${anarchySubject.metadata.namespace}/${anarchySubject.spec.governor}`}
@@ -285,23 +287,23 @@ const AnarchySubjects: React.FC = () => {
                         namespace: anarchySubject.metadata.namespace,
                       }}
                     />
-                  </>,
-                  anarchySubject.spec.vars?.current_state || <p>-</p>,
-                  <>
+                  </Fragment>,
+                  anarchySubject.spec.vars?.current_state || <p key="state">-</p>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                   anarchySubject.metadata.deletionTimestamp ? (
-                    <>
+                    <Fragment key="deleted">
                       <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp} />
                       <span key="interval" style={{ padding: '0 6px' }}>
                         (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
                       </span>
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="deleted">-</p>
                   ),
                 ],
                 onSelect: (isSelected) =>

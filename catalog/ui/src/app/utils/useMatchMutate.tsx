@@ -13,7 +13,7 @@ import { useSWRConfig } from 'swr';
 function useMatchMutate(): (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resources: { name: ResourceType; arguments: any; data: any }[],
-) => Promise<any[]> {
+) => Promise<unknown[]> {
   const { cache, mutate } = useSWRConfig();
   return useCallback(
     (resources) => {

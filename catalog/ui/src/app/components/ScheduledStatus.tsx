@@ -13,6 +13,7 @@ const ScheduledStatus: React.FC<{ startTime?: number | null; total?: number }> =
     total={total}
     segments={[{ key: 'scheduled', label: 'scheduled', count: total, variant: 'pending', hideInLegend: true }]}
     caption={
+      // eslint-disable-next-line @eslint-react/purity -- whether the start is still in the future must be re-evaluated on every render
       startTime && startTime > Date.now() ? (
         <span>
           Starts <TimeInterval toEpochMilliseconds={startTime} />

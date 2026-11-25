@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dropdown, DropdownList, DropdownItem, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadBrand, MenuToggle } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  Masthead,
+  MastheadLogo,
+  MastheadContent,
+  MastheadMain,
+  MastheadBrand,
+  MenuToggle,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 import UserInterfaceLogo from '@app/components/UserInterfaceLogo';
@@ -8,18 +18,18 @@ import { useInterface } from '@app/utils/useInterfaceConfig';
 
 import './header.css';
 
+function LogoImg({ onClick }: { onClick: () => void }) {
+  return <UserInterfaceLogo theme="dark" onClick={onClick} style={{ width: '278px' }} />;
+}
+
 const PublicHeader: React.FC = () => {
-  const [isUserHelpDropdownOpen, setUserHelpDropdownOpen] = useState(false);
+  const [isUserHelpDropdownOpen, setIsUserHelpDropdownOpen] = useState(false);
   const { help_link, help_text, status_page_url, feedback_link, learn_more_link } = useInterface('rhpds').data;
   const navigate = useNavigate();
 
-  function LogoImg() {
-    return <UserInterfaceLogo theme="dark" onClick={() => navigate('/')} style={{ width: '278px' }} />;
-  }
-
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     event?.preventDefault();
-    setUserHelpDropdownOpen(false);
+    setIsUserHelpDropdownOpen(false);
     if (value) {
       window.open(value as string, '_blank');
     }
@@ -59,7 +69,7 @@ const PublicHeader: React.FC = () => {
       <Dropdown
         aria-label="Help menu"
         isOpen={isUserHelpDropdownOpen}
-        onOpenChange={(isOpen: boolean) => setUserHelpDropdownOpen(isOpen)}
+        onOpenChange={(isOpen: boolean) => setIsUserHelpDropdownOpen(isOpen)}
         onSelect={onSelect}
         isScrollable
         popperProps={{ position: 'right' }}
@@ -67,7 +77,7 @@ const PublicHeader: React.FC = () => {
           <MenuToggle
             ref={toggleRef}
             variant="plain"
-            onClick={() => setUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
+            onClick={() => setIsUserHelpDropdownOpen(!isUserHelpDropdownOpen)}
             isExpanded={isUserHelpDropdownOpen}
             style={{ width: 'auto' }}
             icon={<QuestionCircleIcon style={{ fill: '#fff' }} />}
@@ -94,7 +104,7 @@ const PublicHeader: React.FC = () => {
       <MastheadMain>
         <MastheadBrand data-codemods>
           <MastheadLogo data-codemods>
-            <LogoImg />
+            <LogoImg onClick={() => navigate('/')} />
           </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>

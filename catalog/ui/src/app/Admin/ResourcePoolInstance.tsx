@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { Fragment, useEffect, useReducer, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -22,7 +22,7 @@ import {
   TabTitleText,
   Title,
   Spinner,
-  } from '@patternfly/react-core';
+} from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import TrashIcon from '@patternfly/react-icons/dist/js/icons/trash-icon';
 import Editor from '@monaco-editor/react';
@@ -119,30 +119,30 @@ const CreateResourcePoolScalingForm: React.FC<{
 
   return (
     <>
-    <TimezoneSelector timezone={timezone} onChange={setTimezone} />
-    <Form>
-      <FormGroup label="Number of ResourceHandles to add" isRequired fieldId="scaling-count">
-        <NumberInput
-          id="scaling-count"
-          value={count}
-          min={1}
-          onMinus={() => setCount(Math.max(1, count - 1))}
-          onPlus={() => setCount(count + 1)}
-          onChange={(event: React.FormEvent<HTMLInputElement>) => {
-            const val = parseInt((event.target as HTMLInputElement).value, 10);
-            if (!isNaN(val) && val >= 1) setCount(val);
-          }}
-        />
-      </FormGroup>
-      <FormGroup label="Scheduled time" fieldId="scaling-time">
-        <DateTimePicker
-          defaultTimestamp={now}
-          onSelect={(date) => setScheduledDate(date)}
-          minDate={now}
-          timezone={timezone}
-        />
-      </FormGroup>
-    </Form>
+      <TimezoneSelector timezone={timezone} onChange={setTimezone} />
+      <Form>
+        <FormGroup label="Number of ResourceHandles to add" isRequired fieldId="scaling-count">
+          <NumberInput
+            id="scaling-count"
+            value={count}
+            min={1}
+            onMinus={() => setCount(Math.max(1, count - 1))}
+            onPlus={() => setCount(count + 1)}
+            onChange={(event: React.FormEvent<HTMLInputElement>) => {
+              const val = parseInt((event.target as HTMLInputElement).value, 10);
+              if (!isNaN(val) && val >= 1) setCount(val);
+            }}
+          />
+        </FormGroup>
+        <FormGroup label="Scheduled time" fieldId="scaling-time">
+          <DateTimePicker
+            defaultTimestamp={now}
+            onSelect={(date) => setScheduledDate(date)}
+            minDate={now}
+            timezone={timezone}
+          />
+        </FormGroup>
+      </Form>
     </>
   );
 };
@@ -279,17 +279,14 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
         onConfirm={async () => {
           if (!scalingToDelete) return;
           await deleteResourcePoolScaling(scalingToDelete);
-          mutateScalings(
-            (prev) => (prev || []).filter((s) => s.metadata.uid !== scalingToDelete.metadata.uid),
-            false,
-          );
+          mutateScalings((prev) => (prev || []).filter((s) => s.metadata.uid !== scalingToDelete.metadata.uid), false);
           setScalingToDelete(null);
         }}
         confirmText="Delete"
       >
         <p>This will remove the scaling request from the ResourcePool.</p>
       </Modal>
-      <PageSection hasBodyWrapper={false} key="header" className="admin-header" >
+      <PageSection hasBodyWrapper={false} key="header" className="admin-header">
         <Breadcrumb>
           <BreadcrumbItem
             render={({ className }) => (
@@ -357,7 +354,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           </SplitItem>
         </Split>
       </PageSection>
-      <PageSection hasBodyWrapper={false} key="body"  className="admin-body">
+      <PageSection hasBodyWrapper={false} key="body" className="admin-body">
         <Tabs
           activeKey={activeTab}
           onSelect={(e, tabIndex) => navigate(`/admin/resourcepools/${resourcePoolName}/${tabIndex}`)}
@@ -434,6 +431,7 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
               {resourcePool.spec.resources.map((resourcePoolSpecResource, idx) => {
                 const resourceName = resourcePoolSpecResource.name || resourcePoolSpecResource.provider.name;
                 return (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); name is optional and may repeat, list is never reordered
                   <StackItem key={idx}>
                     <Title headingLevel="h3">
                       {resourceName === 'babylon'
@@ -467,8 +465,12 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
           </Tab>
           <Tab eventKey="resourcehandles" title={<TabTitleText>ResourceHandles</TabTitleText>}>
             {resourceHandles.length === 0 ? (
-              <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No ResourceHandles found." variant="full">
-                </EmptyState>
+              <EmptyState
+                headingLevel="h1"
+                icon={ExclamationTriangleIcon}
+                titleText="No ResourceHandles found."
+                variant="full"
+              ></EmptyState>
             ) : (
               <SelectableTable
                 columns={['Name', 'Service Namespace', 'ResourceClaim', 'Created At']}
@@ -487,13 +489,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                 rows={resourceHandles.map((resourceHandle: ResourceHandle) => {
                   return {
                     cells: [
-                      <>
+                      <Fragment key="name">
                         <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}>
                           {resourceHandle.metadata.name}
                         </Link>
                         <OpenshiftConsoleLink key="console" resource={resourceHandle} />
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="service-namespace">
                         {resourceHandle.spec.resourceClaim ? (
                           [
                             <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
@@ -508,8 +510,8 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         ) : (
                           <p>-</p>
                         )}
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="service-name">
                         {resourceHandle.spec.resourceClaim ? (
                           [
                             <Link
@@ -523,13 +525,13 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         ) : (
                           <p>-</p>
                         )}
-                      </>,
-                      <>
+                      </Fragment>,
+                      <Fragment key="created">
                         <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
                         <span key="interval" style={{ padding: '0 6px' }}>
                           (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
                         </span>
-                      </>,
+                      </Fragment>,
                     ],
                     onSelect: (isSelected: boolean) =>
                       reduceResourceHandleSelectedUids({
@@ -556,7 +558,12 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
               </StackItem>
               <StackItem>
                 {!resourcePoolScalings || resourcePoolScalings.length === 0 ? (
-                  <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No ResourcePoolScalings found." variant="full" />
+                  <EmptyState
+                    headingLevel="h1"
+                    icon={ExclamationTriangleIcon}
+                    titleText="No ResourcePoolScalings found."
+                    variant="full"
+                  />
                 ) : (
                   <SelectableTable
                     columns={['Name', 'Requested Count', 'Current Count', 'State', 'Created At', '']}
@@ -570,52 +577,56 @@ const ResourcePoolInstanceComponent: React.FC<{ resourcePoolName: string; active
                         reduceScalingSelectedUids({ type: 'clear' });
                       }
                     }}
-                    rows={[...resourcePoolScalings].sort((a, b) =>
-                      new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
-                    ).map((scaling: ResourcePoolScaling) => ({
-                      cells: [
-                        <>
-                          {scaling.metadata.name}
-                          <OpenshiftConsoleLink key="console" resource={scaling} />
-                        </>,
-                        <>{scaling.spec.count}</>,
-                        <>{scaling.status?.count ?? '-'}</>,
-                        <>
-                          {scaling.status?.state === 'waiting' && scaling.spec.at ? (
-                            <>
-                              Scheduled at <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
-                              <span key="interval" style={{ padding: '0 6px' }}>
-                                (<TimeInterval key="time-interval" toTimestamp={scaling.spec.at} />)
-                              </span>
-                            </>
-                          ) : (
-                            scaling.status?.state || '-'
-                          )}
-                        </>,
-                        <>
-                          <LocalTimestamp key="timestamp" timestamp={scaling.metadata.creationTimestamp} />
-                          <span key="interval" style={{ padding: '0 6px' }}>
-                            (<TimeInterval key="time-interval" toTimestamp={scaling.metadata.creationTimestamp} />)
-                          </span>
-                        </>,
-                        <div key="actions">
-                          <ButtonCircleIcon
-                            onClick={() => {
-                              setScalingToDelete(scaling);
-                              openDeleteScalingModal();
-                            }}
-                            description="Delete"
-                            icon={TrashIcon}
-                          />
-                        </div>,
-                      ],
-                      onSelect: (isSelected: boolean) =>
-                        reduceScalingSelectedUids({
-                          type: isSelected ? 'add' : 'remove',
-                          uids: [scaling.metadata.uid],
-                        }),
-                      selected: selectedScalingUids.includes(scaling.metadata.uid),
-                    }))}
+                    rows={[...resourcePoolScalings]
+                      .sort(
+                        (a, b) =>
+                          new Date(b.metadata.creationTimestamp).getTime() -
+                          new Date(a.metadata.creationTimestamp).getTime(),
+                      )
+                      .map((scaling: ResourcePoolScaling) => ({
+                        cells: [
+                          <Fragment key="name">
+                            {scaling.metadata.name}
+                            <OpenshiftConsoleLink key="console" resource={scaling} />
+                          </Fragment>,
+                          <Fragment key="requested-count">{scaling.spec.count}</Fragment>,
+                          <Fragment key="current-count">{scaling.status?.count ?? '-'}</Fragment>,
+                          <Fragment key="state">
+                            {scaling.status?.state === 'waiting' && scaling.spec.at ? (
+                              <>
+                                Scheduled at <LocalTimestamp key="timestamp" timestamp={scaling.spec.at} />
+                                <span key="interval" style={{ padding: '0 6px' }}>
+                                  (<TimeInterval key="time-interval" toTimestamp={scaling.spec.at} />)
+                                </span>
+                              </>
+                            ) : (
+                              scaling.status?.state || '-'
+                            )}
+                          </Fragment>,
+                          <Fragment key="created">
+                            <LocalTimestamp key="timestamp" timestamp={scaling.metadata.creationTimestamp} />
+                            <span key="interval" style={{ padding: '0 6px' }}>
+                              (<TimeInterval key="time-interval" toTimestamp={scaling.metadata.creationTimestamp} />)
+                            </span>
+                          </Fragment>,
+                          <div key="actions">
+                            <ButtonCircleIcon
+                              onClick={() => {
+                                setScalingToDelete(scaling);
+                                openDeleteScalingModal();
+                              }}
+                              description="Delete"
+                              icon={TrashIcon}
+                            />
+                          </div>,
+                        ],
+                        onSelect: (isSelected: boolean) =>
+                          reduceScalingSelectedUids({
+                            type: isSelected ? 'add' : 'remove',
+                            uids: [scaling.metadata.uid],
+                          }),
+                        selected: selectedScalingUids.includes(scaling.metadata.uid),
+                      }))}
                   />
                 )}
               </StackItem>

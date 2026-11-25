@@ -38,10 +38,20 @@ jobs:
       - name: Install packages
         working-directory: ./catalog/ui
         run: pnpm install --frozen-lockfile
+      - name: Lint
+        working-directory: ./catalog/ui
+        run: pnpm run lint
+        shell: bash
       - name: Run integration tests
         working-directory: ./catalog/ui
         run: pnpm run test
         shell: bash
+      - name: Build production bundle
+        working-directory: ./catalog/ui
+        run: pnpm run build
+        shell: bash
+        env:
+          NODE_ENV: production
   deploy:
     needs: test
     name: "Publish image in quay"

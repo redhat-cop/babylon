@@ -12,7 +12,7 @@ import useMatchMutate from '@app/utils/useMatchMutate';
 const formFieldStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'row',
-  gap: "var(--pf-t--global--spacer--sm)",
+  gap: 'var(--pf-t--global--spacer--sm)',
   alignItems: 'center',
 };
 
@@ -285,6 +285,7 @@ const CreateResourcePoolFromResourceHandleModal: React.FC<{
         const resourceLabel =
           resourceName === 'babylon' ? 'Babylon Legacy CloudForms Integration' : `Resource: ${resourceName}`;
         return (
+          // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); name is optional and may repeat, list is never reordered
           <FormGroup key={idx} label={`${resourceLabel} - Job vars`} fieldId={`resource-${idx}`}>
             <div style={formFieldStyle}>
               <TextArea

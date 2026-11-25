@@ -23,7 +23,20 @@ export interface WorkshopBarProps {
   getProvisionProgress: (ws: Workshop) => ProvisionProgress | null;
   getCurrentCount: (ws: Workshop) => number | null;
   getCluster?: (ws: Workshop) => string | null;
-  getClusterInfo?: (ws: Workshop) => { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null;
+  getClusterInfo?: (
+    ws: Workshop,
+  ) => {
+    poolName: string;
+    poolNamespace: string;
+    clusterName: string;
+    totalClusters: number;
+    availableClusters: number;
+    poolSaturationPercent: number;
+    maxPlacements: number;
+    placementCount: number;
+    maxTotalPlacements: number;
+    placementCapacityPercent: number;
+  } | null;
   multiWorkshopsByName: Map<string, MultiWorkshop>;
   isMultiNs: boolean;
   timezone: string;
@@ -35,7 +48,7 @@ function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'f
   const now = Date.now();
   const resourceClaims = workshop.resourceClaims || [];
 
-  const hasFailed = resourceClaims.some(rc => {
+  const hasFailed = resourceClaims.some((rc) => {
     const state = rc.status?.resources?.[0]?.state;
     if (!state || state.kind !== 'AnarchySubject') return false;
     const provisionState = state.spec?.vars?.current_state;
@@ -46,9 +59,10 @@ function getWorkshopStatus(workshop: WorkshopWithResourceClaims): 'running' | 'f
 
   if (workshop.spec?.provisionDisabled) return 'stopped';
 
-  const hasStarted = resourceClaims.some(rc =>
-    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
-    rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete'
+  const hasStarted = resourceClaims.some(
+    (rc) =>
+      rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'started' ||
+      rc.status?.resources?.[0]?.state?.spec?.vars?.current_state === 'provision-complete',
   );
 
   const startDate = workshop.spec?.actionSchedule?.start || workshop.spec?.lifespan?.start;
@@ -81,9 +95,7 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   getSeats,
   getProvisionProgress,
   getCurrentCount,
-  getCluster,
   getClusterInfo,
-  multiWorkshopsByName,
   isMultiNs,
   timezone,
   soundcheckBadge,
@@ -91,7 +103,6 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const navigate = useNavigate();
   const { start: workshopStart, end: workshopEnd } = getWorkshopDates(workshop);
   const status = getWorkshopStatus(workshop);
-  const clusterName = useMemo(() => getCluster?.(workshop) || null, [getCluster, workshop]);
   const clusterInfo = useMemo(() => getClusterInfo?.(workshop) || null, [getClusterInfo, workshop]);
 
   // Calculate cluster capacity state using placement capacity as primary metric
@@ -126,11 +137,12 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
   const stopUrgency = dateUrgency(stopIso);
   const destroyUrgency = dateUrgency(destroyIso);
 
-  const worstUrgency = stopUrgency === 'critical' || destroyUrgency === 'critical'
-    ? 'critical'
-    : stopUrgency === 'warning' || destroyUrgency === 'warning'
-      ? 'warning'
-      : null;
+  const worstUrgency =
+    stopUrgency === 'critical' || destroyUrgency === 'critical'
+      ? 'critical'
+      : stopUrgency === 'warning' || destroyUrgency === 'warning'
+        ? 'warning'
+        : null;
 
   const urgencyTag = useMemo(() => {
     if (status === 'stopped' || status === 'scheduled') return null;
@@ -143,37 +155,56 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
 
   const handleCheckboxChange = useCallback(
     (checked: boolean) => onSelect(workshopKey, checked),
-    [onSelect, workshopKey]
+    [onSelect, workshopKey],
   );
 
   const handleBarClick = useCallback(() => onClick(workshopKey), [onClick, workshopKey]);
 
-  const handleClusterBadgeClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Don't trigger workshop bar click
-    if (clusterInfo) {
-      navigate(`/admin/tenantclusterpools/${clusterInfo.poolNamespace}/${clusterInfo.poolName}`);
-    }
-  }, [navigate, clusterInfo]);
+  const handleClusterBadgeClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation(); // Don't trigger workshop bar click
+      if (clusterInfo) {
+        navigate(`/admin/tenantclusterpools/${clusterInfo.poolNamespace}/${clusterInfo.poolName}`);
+      }
+    },
+    [navigate, clusterInfo],
+  );
 
   const seatText = seats ? `${seats.assigned}/${seats.total}` : null;
-  const instanceText = instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
+  const instanceText =
+    instanceCount !== null ? `${instanceCount}` : progress ? `${progress.claimed}/${progress.desired}` : null;
 
-  const formatShortDate = useCallback((d: Date): string => {
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: timezone });
-  }, [timezone]);
+  const formatShortDate = useCallback(
+    (d: Date): string => {
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: timezone,
+      });
+    },
+    [timezone],
+  );
 
-  const formatFullDate = useCallback((iso: string): string => {
-    const d = new Date(iso);
-    return d.toLocaleString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-      timeZone: timezone,
-    });
-  }, [timezone]);
+  const formatFullDate = useCallback(
+    (iso: string): string => {
+      const d = new Date(iso);
+      return d.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
+        timeZone: timezone,
+      });
+    },
+    [timezone],
+  );
 
-  const barUrgencyClass = worstUrgency && status !== 'stopped' && status !== 'scheduled'
-    ? ` timeline-bar--urgency-${worstUrgency}`
-    : '';
-
+  const barUrgencyClass =
+    worstUrgency && status !== 'stopped' && status !== 'scheduled' ? ` timeline-bar--urgency-${worstUrgency}` : '';
 
   const tooltipContent = (
     <div className="timeline-bar-tooltip">
@@ -181,34 +212,103 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
       <div className="timeline-bar-tooltip-meta">{workshop.metadata.name}</div>
       <table className="timeline-bar-tooltip-table">
         <tbody>
-          <tr><td>Namespace</td><td>{ns}</td></tr>
-          <tr><td>Status</td><td style={{ textTransform: 'capitalize' }}>{status}</td></tr>
-          {stage && <tr><td>Stage</td><td>{stage}</td></tr>}
-          {clusterInfo && <tr><td>Tenant Pool</td><td><code>{clusterInfo.poolName}</code></td></tr>}
+          <tr>
+            <td>Namespace</td>
+            <td>{ns}</td>
+          </tr>
+          <tr>
+            <td>Status</td>
+            <td style={{ textTransform: 'capitalize' }}>{status}</td>
+          </tr>
+          {stage && (
+            <tr>
+              <td>Stage</td>
+              <td>{stage}</td>
+            </tr>
+          )}
+          {clusterInfo && (
+            <tr>
+              <td>Tenant Pool</td>
+              <td>
+                <code>{clusterInfo.poolName}</code>
+              </td>
+            </tr>
+          )}
           {clusterInfo && (
             <>
               <tr>
                 <td>Pool Saturation</td>
-                <td>{clusterInfo.totalClusters - clusterInfo.availableClusters}/{clusterInfo.totalClusters} clusters occupied ({clusterInfo.poolSaturationPercent}%)</td>
+                <td>
+                  {clusterInfo.totalClusters - clusterInfo.availableClusters}/{clusterInfo.totalClusters} clusters
+                  occupied ({clusterInfo.poolSaturationPercent}%)
+                </td>
               </tr>
               <tr>
                 <td>Placement Capacity</td>
-                <td className={capacityState === 'critical' ? 'timeline-tooltip-critical' : capacityState === 'warning' ? 'timeline-tooltip-warning' : ''}>
-                  {clusterInfo.placementCount}/{clusterInfo.maxTotalPlacements} workshops ({clusterInfo.placementCapacityPercent}% utilized)
+                <td
+                  className={
+                    capacityState === 'critical'
+                      ? 'timeline-tooltip-critical'
+                      : capacityState === 'warning'
+                        ? 'timeline-tooltip-warning'
+                        : ''
+                  }
+                >
+                  {clusterInfo.placementCount}/{clusterInfo.maxTotalPlacements} workshops (
+                  {clusterInfo.placementCapacityPercent}% utilized)
                 </td>
               </tr>
             </>
           )}
-          {isMultiAsset && <tr><td>Type</td><td>Multi-Asset</td></tr>}
-          {seats && <tr><td>Seats</td><td>{seats.assigned} / {seats.total} assigned</td></tr>}
-          {progress && <tr><td>Instances</td><td>{progress.claimed} / {progress.desired}{progress.failed > 0 ? ` (${progress.failed} failed)` : ''}</td></tr>}
-          {progress && progress.concurrency > 0 && <tr><td>Concurrency</td><td>{progress.concurrency}</td></tr>}
-          <tr><td>Start</td><td>{formatShortDate(workshopStart)}</td></tr>
-          <tr><td>End</td><td>{formatShortDate(workshopEnd)}</td></tr>
+          {isMultiAsset && (
+            <tr>
+              <td>Type</td>
+              <td>Multi-Asset</td>
+            </tr>
+          )}
+          {seats && (
+            <tr>
+              <td>Seats</td>
+              <td>
+                {seats.assigned} / {seats.total} assigned
+              </td>
+            </tr>
+          )}
+          {progress && (
+            <tr>
+              <td>Instances</td>
+              <td>
+                {progress.claimed} / {progress.desired}
+                {progress.failed > 0 ? ` (${progress.failed} failed)` : ''}
+              </td>
+            </tr>
+          )}
+          {progress && progress.concurrency > 0 && (
+            <tr>
+              <td>Concurrency</td>
+              <td>{progress.concurrency}</td>
+            </tr>
+          )}
+          <tr>
+            <td>Start</td>
+            <td>{formatShortDate(workshopStart)}</td>
+          </tr>
+          <tr>
+            <td>End</td>
+            <td>{formatShortDate(workshopEnd)}</td>
+          </tr>
           {stopIso && (
             <tr>
               <td>Auto-Stop</td>
-              <td className={stopUrgency === 'critical' ? 'timeline-tooltip-critical' : stopUrgency === 'warning' ? 'timeline-tooltip-warning' : ''}>
+              <td
+                className={
+                  stopUrgency === 'critical'
+                    ? 'timeline-tooltip-critical'
+                    : stopUrgency === 'warning'
+                      ? 'timeline-tooltip-warning'
+                      : ''
+                }
+              >
                 {formatFullDate(stopIso)} ({relativeTime(stopIso)})
               </td>
             </tr>
@@ -216,17 +316,38 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
           {destroyIso && (
             <tr>
               <td>Auto-Destroy</td>
-              <td className={destroyUrgency === 'critical' ? 'timeline-tooltip-critical' : destroyUrgency === 'warning' ? 'timeline-tooltip-warning' : ''}>
+              <td
+                className={
+                  destroyUrgency === 'critical'
+                    ? 'timeline-tooltip-critical'
+                    : destroyUrgency === 'warning'
+                      ? 'timeline-tooltip-warning'
+                      : ''
+                }
+              >
                 {formatFullDate(destroyIso)} ({relativeTime(destroyIso)})
               </td>
             </tr>
           )}
           {workshop.spec?.accessPassword && (
-            <tr><td>Password</td><td><code className="timeline-tooltip-password">{workshop.spec.accessPassword}</code></td></tr>
+            <tr>
+              <td>Password</td>
+              <td>
+                <code className="timeline-tooltip-password">{workshop.spec.accessPassword}</code>
+              </td>
+            </tr>
           )}
-          {workshop.spec?.openRegistration !== false
-            ? <tr><td>Registration</td><td>Open</td></tr>
-            : <tr><td>Registration</td><td>Pre-registration</td></tr>}
+          {workshop.spec?.openRegistration !== false ? (
+            <tr>
+              <td>Registration</td>
+              <td>Open</td>
+            </tr>
+          ) : (
+            <tr>
+              <td>Registration</td>
+              <td>Pre-registration</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -267,7 +388,9 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
             </a>
           )}
           {urgencyTag && (
-            <span className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}>
+            <span
+              className={`timeline-bar__badge timeline-bar__badge--urgency timeline-bar__badge--urgency-${worstUrgency}`}
+            >
               {urgencyTag}
             </span>
           )}
@@ -282,25 +405,21 @@ export const WorkshopBar: React.FC<WorkshopBarProps> = ({
             </span>
           )}
           {isMultiNs && (
-            <span className="timeline-bar__badge timeline-bar__badge--ns">{ns.replace(/^user-|-redhat-com.*$/g, '').slice(0, 20)}</span>
+            <span className="timeline-bar__badge timeline-bar__badge--ns">
+              {ns.replace(/^user-|-redhat-com.*$/g, '').slice(0, 20)}
+            </span>
           )}
-          {isMultiAsset && (
-            <span className="timeline-bar__badge timeline-bar__badge--multi">MA</span>
-          )}
+          {isMultiAsset && <span className="timeline-bar__badge timeline-bar__badge--multi">MA</span>}
           {seatText && (
-            <span className={`timeline-bar__badge timeline-bar__badge--seats${seats && seats.assigned >= seats.total ? ' timeline-bar__badge--seats-full' : ''}`}>
+            <span
+              className={`timeline-bar__badge timeline-bar__badge--seats${seats && seats.assigned >= seats.total ? ' timeline-bar__badge--seats-full' : ''}`}
+            >
               {seatText}
             </span>
           )}
-          {instanceText && (
-            <span className="timeline-bar__badge timeline-bar__badge--inst">
-              {instanceText}
-            </span>
-          )}
+          {instanceText && <span className="timeline-bar__badge timeline-bar__badge--inst">{instanceText}</span>}
           {progress && progress.failed > 0 && (
-            <span className="timeline-bar__badge timeline-bar__badge--fail">
-              {progress.failed}
-            </span>
+            <span className="timeline-bar__badge timeline-bar__badge--fail">{progress.failed}</span>
           )}
         </span>
       </div>

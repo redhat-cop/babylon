@@ -22,8 +22,11 @@ import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-ta
 import type { Opportunity, SalesforceAccount, SfdcType } from '@app/types';
 import useDebounce from '@app/utils/useDebounce';
 
+// Mirrors the API: searches must be specific, so short terms are not sent.
+const SFDC_SEARCH_MIN_LENGTH = 3;
+
 async function fetchAccounts(accountValue: string, sfdcType: SfdcType): Promise<SalesforceAccount[]> {
-  if (!sfdcType) return [];
+  if (!sfdcType || accountValue.trim().length < SFDC_SEARCH_MIN_LENGTH) return [];
   const acc = await fetcher(apiPaths.SFDC_ACCOUNTS({ sales_type: sfdcType, account_value: accountValue }));
   return acc.items;
 }
@@ -108,19 +111,24 @@ const SearchSalesforceId: React.FC<{
     }
   };
 
-  const onSearchButtonClick = useCallback(async (value: string, sfdcType: SfdcType) => {
-    setIsLoading(true);
-    const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
-    setFilteredItems(accounts);
-    setIsLoading(false);
-  }, [debouncedFetchAccounts]);
+  const onSearchButtonClick = useCallback(
+    async (value: string, sfdcType: SfdcType) => {
+      setIsLoading(true);
+      const accounts = (await debouncedFetchAccounts(value, sfdcType)) as SalesforceAccount[];
+      setFilteredItems(accounts);
+      setIsLoading(false);
+    },
+    [debouncedFetchAccounts],
+  );
 
   useEffect(() => {
     onSearchButtonClick(accountValue, sfdcType);
   }, [accountValue, onSearchButtonClick, sfdcType]);
-  
+
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets search input and results when the Salesforce type changes
     setAccountValue('');
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets search input and results when the Salesforce type changes
     setFilteredItems([]);
   }, [sfdcType]);
 
@@ -152,7 +160,7 @@ const SearchSalesforceId: React.FC<{
               <InputGroupItem isFill>
                 <SearchInput
                   value={accountValue}
-                  placeholder={selectedAccount?.name || 'Search'}
+                  placeholder={selectedAccount?.name || `Search (at least ${SFDC_SEARCH_MIN_LENGTH} characters)`}
                   onChange={(_event, value) => setAccountValue(value)}
                   aria-labelledby="pf-v6-context-selector-search-button-id-1"
                 />
@@ -167,9 +175,9 @@ const SearchSalesforceId: React.FC<{
               <LoadingIcon />
             </DropdownItem>
           ) : null}
-          {filteredItems.map((u, index: number) => {
+          {filteredItems.map((u) => {
             return (
-              <DropdownItem itemId={u.id} key={index} value={u.name} isDisabled={!u.is_valid}>
+              <DropdownItem itemId={u.id} key={u.id} value={u.name} isDisabled={!u.is_valid}>
                 {u.name}
                 <span style={{ opacity: 0.7, fontSize: '10px', paddingLeft: '12px' }}>id: {u.id}</span>
               </DropdownItem>
@@ -202,9 +210,11 @@ const SearchSalesforceIdModal: React.FC<{
     }
   }, [isOpen, openModal]);
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the user-editable type from the defaultSfdcType prop when the parent changes it
     setSfdcType(defaultSfdcType);
   }, [defaultSfdcType]);
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- clears the selected account when the type changes (selectedAccount is also user-set)
     setSelectedAccount(null);
   }, [sfdcType]);
   const onSelectFn = (id: string) => {

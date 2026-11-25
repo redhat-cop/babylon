@@ -1,9 +1,9 @@
 import React from 'react';
 import { SWRConfig } from 'swr';
 import { generateSession, render, waitFor, screen } from '../utils/test-utils';
-import { within } from '@testing-library/react';
+import { within, render as rtlRender } from '@testing-library/react';
+import { EmptyState as PFEmptyState } from '@patternfly/react-core';
 import Ops, { getWorkshopScheduleStartMs, getWorkshopStopMs, getWorkshopDestroyMs } from './Ops';
-import { apiPaths, fetcher, deleteResourceClaim, lockWorkshop, patchWorkshop, patchWorkshopProvision } from '@app/api';
 import type { Workshop, WorkshopProvision, WorkshopUserAssignment, ResourceClaim } from '@app/types';
 import userEvent from '@testing-library/user-event';
 
@@ -43,21 +43,23 @@ jest.mock('@app/utils/useSession', () =>
 const BABYLON_DOMAIN = 'babylon.gpte.redhat.com';
 const DEMO_DOMAIN = 'demo.redhat.com';
 
-function makeWorkshop(overrides: Partial<{
-  name: string;
-  displayName: string;
-  locked: boolean;
-  accessPassword: string;
-  openRegistration: boolean;
-  provisionDisabled: boolean;
-  stopDate: string;
-  startDate: string;
-  destroyDate: string;
-  workshopId: string;
-  multiworkshopSource: string;
-  namespace: string;
-  whiteGlove: boolean;
-}>): Workshop {
+function makeWorkshop(
+  overrides: Partial<{
+    name: string;
+    displayName: string;
+    locked: boolean;
+    accessPassword: string;
+    openRegistration: boolean;
+    provisionDisabled: boolean;
+    stopDate: string;
+    startDate: string;
+    destroyDate: string;
+    workshopId: string;
+    multiworkshopSource: string;
+    namespace: string;
+    whiteGlove: boolean;
+  }>,
+): Workshop {
   const {
     name = 'ws-test',
     displayName = 'Test Workshop',
@@ -95,18 +97,25 @@ function makeWorkshop(overrides: Partial<{
       accessPassword,
       openRegistration,
       provisionDisabled,
-      ...((stopDate || startDate) ? {
-        actionSchedule: {
-          ...(stopDate ? { stop: stopDate } : {}),
-          ...(startDate ? { start: startDate } : {}),
-        },
-      } : { actionSchedule: undefined }),
+      ...(stopDate || startDate
+        ? {
+            actionSchedule: {
+              ...(stopDate ? { stop: stopDate } : {}),
+              ...(startDate ? { start: startDate } : {}),
+            },
+          }
+        : { actionSchedule: undefined }),
       lifespan: destroyDate ? { end: destroyDate } : undefined,
     },
   };
 }
 
-function makeProvision(workshopName: string, count: number, namespace = TEST_NAMESPACE, failedCount = 0): WorkshopProvision {
+function makeProvision(
+  workshopName: string,
+  count: number,
+  namespace = TEST_NAMESPACE,
+  failedCount = 0,
+): WorkshopProvision {
   return {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'WorkshopProvision',
@@ -138,20 +147,44 @@ function makeResourceClaim(workshopName: string, state: string, idx = 0, namespa
   return {
     apiVersion: 'poolboy.gpte.redhat.com/v1',
     kind: 'ResourceClaim',
-    metadata: { name: `rc-${workshopName}-${idx}`, namespace, uid: `rc-uid-${workshopName}-${idx}`, creationTimestamp: new Date().toISOString(), labels: { [`${BABYLON_DOMAIN}/workshop`]: workshopName } },
+    metadata: {
+      name: `rc-${workshopName}-${idx}`,
+      namespace,
+      uid: `rc-uid-${workshopName}-${idx}`,
+      creationTimestamp: new Date().toISOString(),
+      labels: { [`${BABYLON_DOMAIN}/workshop`]: workshopName },
+    },
     spec: { resources: [] },
     status: { summary: { state } },
   } as unknown as ResourceClaim;
 }
 
-const ws1 = makeWorkshop({ name: 'ws-ansible', displayName: 'Ansible Lab', locked: true, accessPassword: 'redhat123', workshopId: 'abc123', stopDate: new Date(Date.now() + 48 * 3600000).toISOString(), destroyDate: new Date(Date.now() + 96 * 3600000).toISOString() });
-const ws2 = makeWorkshop({ name: 'ws-openshift', displayName: 'OpenShift AI', stopDate: new Date(Date.now() + 30 * 60000).toISOString(), destroyDate: new Date(Date.now() + 2 * 3600000).toISOString() });
+const ws1 = makeWorkshop({
+  name: 'ws-ansible',
+  displayName: 'Ansible Lab',
+  locked: true,
+  accessPassword: 'redhat123',
+  workshopId: 'abc123',
+  stopDate: new Date(Date.now() + 48 * 3600000).toISOString(),
+  destroyDate: new Date(Date.now() + 96 * 3600000).toISOString(),
+});
+const ws2 = makeWorkshop({
+  name: 'ws-openshift',
+  displayName: 'OpenShift AI',
+  stopDate: new Date(Date.now() + 30 * 60000).toISOString(),
+  destroyDate: new Date(Date.now() + 2 * 3600000).toISOString(),
+});
 const ws3 = makeWorkshop({ name: 'ws-stopped', displayName: 'Stopped Workshop', provisionDisabled: true });
 const ws4 = makeWorkshop({ name: 'ws-ansible-2', displayName: 'Ansible Lab', workshopId: 'abc456' });
-const wsMulti = makeWorkshop({ name: 'ws-multi-child', displayName: 'Multi Child', multiworkshopSource: 'parent-multi' });
+const wsMulti = makeWorkshop({
+  name: 'ws-multi-child',
+  displayName: 'Multi Child',
+  multiworkshopSource: 'parent-multi',
+});
 const wsFailed = makeWorkshop({ name: 'ws-failed-prov', displayName: 'Failed Provision Workshop' });
 const wsNoAutoStop = makeWorkshop({
-  name: 'ws-no-autostop', displayName: 'No AutoStop WS',
+  name: 'ws-no-autostop',
+  displayName: 'No AutoStop WS',
   stopDate: new Date(Date.now() + 200 * 86400000).toISOString(),
   destroyDate: new Date(Date.now() + 365 * 86400000).toISOString(),
 });
@@ -216,9 +249,7 @@ const mockMultiWorkshop = {
   spec: {
     displayName: 'Multi Asset Event',
     numberSeats: 20,
-    assets: [
-      { key: 'asset-1', name: wsMulti.metadata.name, namespace: TEST_NAMESPACE, displayName: 'Multi Child' },
-    ],
+    assets: [{ key: 'asset-1', name: wsMulti.metadata.name, namespace: TEST_NAMESPACE, displayName: 'Multi Child' }],
   },
 };
 
@@ -302,9 +333,12 @@ describe('Ops Component', () => {
 
     test('renders "All Workshops" default in scope selector', async () => {
       await renderOps();
-      await waitFor(() => {
-        expect(screen.getAllByText(/All Workshops/i).length).toBeGreaterThanOrEqual(1);
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/All Workshops/i).length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 5000 },
+      );
     });
 
     test('renders stage filter chips (prod, event, dev, test)', async () => {
@@ -511,7 +545,9 @@ describe('Ops Component', () => {
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
       const scaleBtn = await waitFor(() => {
-        const btn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
+        const btn = within(scaleCard)
+          .getAllByRole('button')
+          .find((b) => b.textContent === 'Scale');
         if (!btn) throw new Error('Scale button not found');
         return btn;
       });
@@ -526,7 +562,9 @@ describe('Ops Component', () => {
       await expandActions();
       const scaleCard = getScaleWorkshopsCard();
       const scaleBtn = await waitFor(() => {
-        const btn = within(scaleCard).getAllByRole('button').find(b => b.textContent === 'Scale');
+        const btn = within(scaleCard)
+          .getAllByRole('button')
+          .find((b) => b.textContent === 'Scale');
         if (!btn) throw new Error('Scale button not found');
         return btn;
       });
@@ -557,7 +595,7 @@ describe('Ops Component', () => {
       await expandActions();
       await waitFor(() => screen.getByText(/Removes/));
       const btn = await waitFor(() => {
-        const found = screen.getAllByRole('button').find(b => {
+        const found = screen.getAllByRole('button').find((b) => {
           const text = b.textContent?.trim();
           return text === 'Disable Auto-Stop' && b.closest('.pf-v6-c-card__body');
         });
@@ -575,7 +613,9 @@ describe('Ops Component', () => {
       await expandActions();
       await waitFor(() => expect(screen.getAllByText(/Extend Stop/).length).toBeGreaterThanOrEqual(1));
       const extendStopBtn = await waitFor(() => {
-        const btn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Stop' && b.closest('.pf-v6-c-card__body'));
+        const btn = screen
+          .getAllByRole('button')
+          .find((b) => b.textContent === 'Extend Stop' && b.closest('.pf-v6-c-card__body'));
         if (!btn) throw new Error('Extend Stop button not found');
         return btn;
       });
@@ -587,7 +627,9 @@ describe('Ops Component', () => {
       await expandActions();
       await waitFor(() => expect(screen.getAllByText(/Extend Destroy/).length).toBeGreaterThanOrEqual(1));
       const extendDestroyBtn = await waitFor(() => {
-        const btn = screen.getAllByRole('button').find(b => b.textContent === 'Extend Destroy' && b.closest('.pf-v6-c-card__body'));
+        const btn = screen
+          .getAllByRole('button')
+          .find((b) => b.textContent === 'Extend Destroy' && b.closest('.pf-v6-c-card__body'));
         if (!btn) throw new Error('Extend Destroy button not found');
         return btn;
       });
@@ -642,11 +684,7 @@ describe('Ops Component', () => {
 
   describe('Empty State', () => {
     test('empty state component renders correctly when given no data', () => {
-      const { EmptyState: PFEmptyState } = require('@patternfly/react-core');
-      const { render: rtlRender } = require('@testing-library/react');
-      const result = rtlRender(
-        <PFEmptyState titleText="No workshops found" headingLevel="h4" />
-      );
+      const result = rtlRender(<PFEmptyState titleText="No workshops found" headingLevel="h4" />);
       expect(result.getByText('No workshops found')).toBeInTheDocument();
     });
   });
@@ -711,7 +749,7 @@ describe('Ops Component', () => {
       expect(clickSpy).toHaveBeenCalled();
 
       (document.createElement as jest.Mock).mockRestore();
-      delete (window.URL as any).createObjectURL;
+      delete (window.URL as Partial<typeof window.URL>).createObjectURL;
     });
   });
 
@@ -771,5 +809,4 @@ describe('Ops Component', () => {
       expect(getWorkshopDestroyMs(ws)).toBeNull();
     });
   });
-
 });

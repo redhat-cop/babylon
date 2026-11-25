@@ -36,19 +36,41 @@ import '@app/WhiteGlove/white-glove.css';
 function statusIcon(state: string) {
   switch (state) {
     case 'pending-approval':
-      return <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}><ClockIcon /> Pending Approval</span>;
+      return (
+        <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}>
+          <ClockIcon /> Pending Approval
+        </span>
+      );
     case 'approved':
-      return <span className="service-status--running" style={{ textTransform: 'capitalize' }}><CheckCircleIcon /> Approved</span>;
+      return (
+        <span className="service-status--running" style={{ textTransform: 'capitalize' }}>
+          <CheckCircleIcon /> Approved
+        </span>
+      );
     case 'rejected':
-      return <span className="service-status--failed" style={{ textTransform: 'capitalize' }}><ExclamationCircleIcon /> Rejected</span>;
+      return (
+        <span className="service-status--failed" style={{ textTransform: 'capitalize' }}>
+          <ExclamationCircleIcon /> Rejected
+        </span>
+      );
     default:
-      return <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}><ClockIcon /> {state || 'Pending Approval'}</span>;
+      return (
+        <span className="service-status--waiting" style={{ textTransform: 'capitalize' }}>
+          <ClockIcon /> {state || 'Pending Approval'}
+        </span>
+      );
   }
 }
 
-const JiraAssigneeCell: React.FC<{ jiraTicketId: string; fallback: string }> = ({ jiraTicketId, fallback }) => {
+const JiraAssigneeCell: React.FC<{ jiraTicketId: string; wgr: WhiteGloveRequest; fallback: string }> = ({
+  jiraTicketId,
+  wgr,
+  fallback,
+}) => {
   const { data } = useSWR(
-    jiraTicketId ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId }) : null,
+    jiraTicketId
+      ? apiPaths.JIRA_ISSUE({ issueKey: jiraTicketId, namespace: wgr.metadata.namespace, name: wgr.metadata.name })
+      : null,
     silentFetcher,
     { refreshInterval: 30000 },
   );
@@ -113,20 +135,10 @@ const BlockedDatesManager: React.FC = () => {
         <Form>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <FormGroup label="Start Date" fieldId="blocked-start">
-              <TextInput
-                type="date"
-                id="blocked-start"
-                value={newStartDate}
-                onChange={(_e, v) => setNewStartDate(v)}
-              />
+              <TextInput type="date" id="blocked-start" value={newStartDate} onChange={(_e, v) => setNewStartDate(v)} />
             </FormGroup>
             <FormGroup label="End Date" fieldId="blocked-end">
-              <TextInput
-                type="date"
-                id="blocked-end"
-                value={newEndDate}
-                onChange={(_e, v) => setNewEndDate(v)}
-              />
+              <TextInput type="date" id="blocked-end" value={newEndDate} onChange={(_e, v) => setNewEndDate(v)} />
             </FormGroup>
             <FormGroup label="Message" fieldId="blocked-msg">
               <TextInput
@@ -159,6 +171,7 @@ const BlockedDatesManager: React.FC = () => {
             </Thead>
             <Tbody>
               {wgBlockedDates.map((range, i) => (
+                // eslint-disable-next-line @eslint-react/no-array-index-key -- blocked ranges have no id and may duplicate; deletion is index-based and rows hold no local state
                 <Tr key={i}>
                   <Td dataLabel="Start">{range.startDate}</Td>
                   <Td dataLabel="End">{range.endDate}</Td>
@@ -192,11 +205,9 @@ const WhiteGloveAdminListContent: React.FC = () => {
     [openModalAction],
   );
 
-  const { data, mutate } = useSWR<WhiteGloveRequestList>(
-    apiPaths.WHITE_GLOVE_REQUESTS({}),
-    fetcher,
-    { refreshInterval: 8000 },
-  );
+  const { data, mutate } = useSWR<WhiteGloveRequestList>(apiPaths.WHITE_GLOVE_REQUESTS({}), fetcher, {
+    refreshInterval: 8000,
+  });
   const requests = (data?.items || []).sort(
     (a, b) => new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime(),
   );
@@ -270,28 +281,36 @@ const WhiteGloveAdminListContent: React.FC = () => {
                   <Td dataLabel="Requester" style={{ fontSize: '13px' }}>
                     {ann[`${DEMO_DOMAIN}/requester`] || '—'}
                   </Td>
-                  <Td dataLabel="Status">
-                    {statusIcon(ann[`${DEMO_DOMAIN}/state`] || 'pending-approval')}
-                  </Td>
-                  <Td dataLabel="Submitted" style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  <Td dataLabel="Status">{statusIcon(ann[`${DEMO_DOMAIN}/state`] || 'pending-approval')}</Td>
+                  <Td
+                    dataLabel="Submitted"
+                    style={{ fontSize: '13px', color: 'var(--pf-t--global--text--color--subtle)' }}
+                  >
                     <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
                   </Td>
                   <Td dataLabel="Assignee" style={{ fontSize: '13px' }}>
-                    <JiraAssigneeCell jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]} fallback={ann[`${DEMO_DOMAIN}/assignee`]} />
+                    <JiraAssigneeCell
+                      jiraTicketId={ann[`${DEMO_DOMAIN}/jira-ticket-id`]}
+                      wgr={wgr}
+                      fallback={ann[`${DEMO_DOMAIN}/assignee`]}
+                    />
                   </Td>
                   <Td dataLabel="Jira">
                     {ann[`${DEMO_DOMAIN}/jira-ticket-id`] ? (
-                      <a href={ann[`${DEMO_DOMAIN}/jira-ticket-url`] || '#'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px' }}>
+                      <a
+                        href={ann[`${DEMO_DOMAIN}/jira-ticket-url`] || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '13px' }}
+                      >
                         {ann[`${DEMO_DOMAIN}/jira-ticket-id`]}
                       </a>
-                    ) : '—'}
+                    ) : (
+                      '—'
+                    )}
                   </Td>
                   <Td dataLabel="Actions">
-                    <ButtonCircleIcon
-                      onClick={() => showDeleteModal(wgr)}
-                      description="Delete"
-                      icon={TrashIcon}
-                    />
+                    <ButtonCircleIcon onClick={() => showDeleteModal(wgr)} description="Delete" icon={TrashIcon} />
                   </Td>
                 </Tr>
               );

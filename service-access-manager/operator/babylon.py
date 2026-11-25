@@ -8,6 +8,8 @@ class Babylon():
     poolboy_api_version = os.environ.get('POOLBOY_API_VERSION', 'v1')
     poolboy_namespace = os.environ.get('POOLBOY_NAMESPACE', 'poolboy')
     workshop_label = f"{babylon_domain}/workshop"
+    workshop_uid_label = f"{babylon_domain}/workshop-uid"
+    tenant_cluster_pool_label = f"{babylon_domain}/tenant-cluster-pool"
 
     babylon_ignore_label = f"{babylon_domain}/ignore"
     resource_broker_ignore_label = f"{poolboy_domain}/ignore"

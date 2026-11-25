@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { useEffect, Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
@@ -44,16 +44,16 @@ function keywordMatch(resourceHandle: ResourceHandle, keyword: string): boolean 
 
 const ResourceHandles: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
 
@@ -154,21 +154,23 @@ const ResourceHandles: React.FC = () => {
   }
 
   // Fetch all if keywordFilter is defined.
-  if (
-    keywordFilter &&
-    resourceHandlesPages.length > 0 &&
-    resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue
-  ) {
-    if (!isLoadingMore) {
-      if (resourceHandles.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      resourceHandlesPages.length > 0 &&
+      resourceHandlesPages[resourceHandlesPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = resourceHandles.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <>
@@ -232,24 +234,24 @@ const ResourceHandles: React.FC = () => {
             rows={resourceHandles.map((resourceHandle) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="name">
                     <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}>
                       {resourceHandle.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={resourceHandle} />
-                  </>,
+                  </Fragment>,
                   resourceHandle.spec.resourcePool ? (
-                    <>
+                    <Fragment key="resource-pool">
                       <Link key="admin" to={`/admin/resourcepools/${resourceHandle.spec.resourcePool.name}`}>
                         {resourceHandle.spec.resourcePool.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourcePool} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="resource-pool">-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
-                    <>
+                    <Fragment key="service-namespace">
                       <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
                         {resourceHandle.spec.resourceClaim.namespace}
                       </Link>
@@ -258,12 +260,12 @@ const ResourceHandles: React.FC = () => {
                         reference={resourceHandle.spec.resourceClaim}
                         linkToNamespace={true}
                       />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="service-namespace">-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
-                    <>
+                    <Fragment key="service-name">
                       <Link
                         key="admin"
                         to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
@@ -271,12 +273,13 @@ const ResourceHandles: React.FC = () => {
                         {resourceHandle.spec.resourceClaim.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="service-name">-</p>
                   ),
-                  <>
+                  <Fragment key="providers">
                     {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
+                      // eslint-disable-next-line @eslint-react/no-array-index-key -- resources are positional (spec.resources[idx]); provider names may repeat
                       <div key={idx}>
                         <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>
                           {resourceHandleSpecResource.provider.name}
@@ -284,13 +287,13 @@ const ResourceHandles: React.FC = () => {
                         <OpenshiftConsoleLink key="console" reference={resourceHandleSpecResource.provider} />
                       </div>
                     ))}
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({

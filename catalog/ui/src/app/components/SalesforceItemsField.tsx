@@ -18,17 +18,20 @@ type SalesforceItemWithOptionalType = Omit<SalesforceItem, 'type'> & {
   message?: string;
 };
 
-const validateItem = async (item: SalesforceItemWithOptionalType, existingItems: SalesforceItem[]): Promise<SalesforceItemWithOptionalType> => {
+const validateItem = async (
+  item: SalesforceItemWithOptionalType,
+  existingItems: SalesforceItem[],
+): Promise<SalesforceItemWithOptionalType> => {
   if (!item?.id || !item?.type) {
     return { ...item, validating: false, valid: false, message: '' };
   }
-  
+
   // Check if ID already exists
-  const duplicateExists = existingItems.some(existingItem => existingItem.id === item.id);
+  const duplicateExists = existingItems.some((existingItem) => existingItem.id === item.id);
   if (duplicateExists) {
     return { ...item, validating: false, valid: false, message: 'This Salesforce ID already exists' };
   }
-  
+
   const { valid, message } = await checkSalesforceId(item.id, apiFetch, item.type);
   return { ...item, validating: false, valid, message: valid ? '' : message };
 };
@@ -42,12 +45,21 @@ const SalesforceItemsField: React.FC<{
   fieldId?: string;
   standalone?: boolean;
   allowDelete?: boolean;
-}> = ({ label = 'Salesforce items', helperText, items, onChange, isRequired = false, fieldId = 'salesforce-items', standalone = true, allowDelete = true }) => {
+}> = ({
+  label = 'Salesforce items',
+  helperText,
+  items,
+  onChange,
+  isRequired = false,
+  fieldId = 'salesforce-items',
+  standalone = true,
+  allowDelete = true,
+}) => {
   const { sfdc_enabled } = useInterfaceConfig();
-  
+
   // Existing items (from props) - these are read-only
   const existingItems = useMemo(() => items || [], [items]);
-  
+
   // New item being added - this is the form state
   const [newItem, setNewItem] = useState<SalesforceItemWithOptionalType>({
     id: '',
@@ -59,57 +71,70 @@ const SalesforceItemsField: React.FC<{
   const [showAddForm, setShowAddForm] = useState(existingItems.length === 0);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
-  const debouncedValidate = useDebounce(async (item: SalesforceItemWithOptionalType, currentItems: SalesforceItem[]) => {
-    const validated = await validateItem({ ...item, validating: true }, currentItems);
-    setNewItem(validated);
-    
-    // Auto-add if valid
-    if (validated.valid && validated.id && validated.type) {
-      onChange([...currentItems, { id: validated.id, type: validated.type as SfdcType }]);
-      setNewItem({ id: '', type: null, validating: false, valid: false, message: '' });
-      setShowAddForm(false);
-    }
-  }, 600);
+  const debouncedValidate = useDebounce(
+    async (item: SalesforceItemWithOptionalType, currentItems: SalesforceItem[]) => {
+      const validated = await validateItem({ ...item, validating: true }, currentItems);
+      setNewItem(validated);
 
-  const handleTypeChange = useCallback((type: SfdcType) => {
-    setNewItem(prev => {
-      const updated = { ...prev, type, validating: !!prev.id };
-      if (prev.id) {
-        debouncedValidate({ ...prev, type }, existingItems);
+      // Auto-add if valid
+      if (validated.valid && validated.id && validated.type) {
+        onChange([...currentItems, { id: validated.id, type: validated.type as SfdcType }]);
+        setNewItem({ id: '', type: null, validating: false, valid: false, message: '' });
+        setShowAddForm(false);
       }
-      return updated;
-    });
-  }, [debouncedValidate, existingItems]);
+    },
+    600,
+  );
 
-  const handleIdChange = useCallback((id: string) => {
-    setNewItem(prev => {
-      const updated = { ...prev, id, validating: !!prev.type };
-      if (prev.type) {
-        debouncedValidate({ ...prev, id }, existingItems);
-      }
-      return updated;
-    });
-  }, [debouncedValidate, existingItems]);
+  const handleTypeChange = useCallback(
+    (type: SfdcType) => {
+      setNewItem((prev) => {
+        const updated = { ...prev, type, validating: !!prev.id };
+        if (prev.id) {
+          debouncedValidate({ ...prev, type }, existingItems);
+        }
+        return updated;
+      });
+    },
+    [debouncedValidate, existingItems],
+  );
 
-  const onSearchResult = useCallback((selectedId: string, selectedType: SfdcType) => {
-    const updatedItem = { ...newItem, id: selectedId, type: selectedType, validating: false };
-    setNewItem(updatedItem);
-    setSearchModalOpen(false);
-    debouncedValidate(updatedItem, existingItems);
-  }, [newItem, debouncedValidate, existingItems]);
+  const handleIdChange = useCallback(
+    (id: string) => {
+      setNewItem((prev) => {
+        const updated = { ...prev, id, validating: !!prev.type };
+        if (prev.type) {
+          debouncedValidate({ ...prev, id }, existingItems);
+        }
+        return updated;
+      });
+    },
+    [debouncedValidate, existingItems],
+  );
+
+  const onSearchResult = useCallback(
+    (selectedId: string, selectedType: SfdcType) => {
+      const updatedItem = { ...newItem, id: selectedId, type: selectedType, validating: false };
+      setNewItem(updatedItem);
+      setSearchModalOpen(false);
+      debouncedValidate(updatedItem, existingItems);
+    },
+    [newItem, debouncedValidate, existingItems],
+  );
 
   // Show the form when there are no existing items
   useEffect(() => {
     if (existingItems.length === 0 && !showAddForm) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- latches the add form open when the list becomes empty; it must stay open after items are added, so it is not derivable
       setShowAddForm(true);
     }
   }, [existingItems.length, showAddForm]);
-
 
   const content = (
     <>
       {/* Display existing items as read-only input fields */}
       {existingItems.map((item, idx) => (
+        // eslint-disable-next-line @eslint-react/no-array-index-key -- rows are fully controlled (no local state) and ids from saved data are not guaranteed unique; idx is also used for removal
         <div key={`existing-${idx}`} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -142,11 +167,7 @@ const SalesforceItemsField: React.FC<{
               </Tooltip>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
-              <Button
-                variant="secondary"
-                icon={<SearchIcon />}
-                style={{ minWidth: '120px', flexShrink: 0 }}
-              >
+              <Button variant="secondary" icon={<SearchIcon />} style={{ minWidth: '120px', flexShrink: 0 }}>
                 Id Finder
               </Button>
               <TextInput
@@ -160,9 +181,9 @@ const SalesforceItemsField: React.FC<{
                 <OutlinedQuestionCircleIcon className="tooltip-icon-only" style={{ flexShrink: 0 }} />
               </Tooltip>
               {allowDelete && (
-                <Button 
-                  variant="plain" 
-                  aria-label="Remove" 
+                <Button
+                  variant="plain"
+                  aria-label="Remove"
                   onClick={() => onChange(existingItems.filter((_, i) => i !== idx))}
                   icon={<TrashIcon />}
                 />
@@ -205,7 +226,10 @@ const SalesforceItemsField: React.FC<{
                 label="Project"
                 id={`${fieldId}-project-new`}
               />
-              <Tooltip position="right" content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}>
+              <Tooltip
+                position="right"
+                content={<div>Salesforce ID type: Opportunity ID, Campaign ID or Project ID.</div>}
+              >
                 <OutlinedQuestionCircleIcon
                   aria-label="Salesforce ID type: Opportunity ID, Campaign ID or Project ID."
                   className="tooltip-icon-only"
@@ -227,7 +251,9 @@ const SalesforceItemsField: React.FC<{
                 id={fieldId}
                 value={newItem.id || ''}
                 onChange={(_e, v) => handleIdChange(v as string)}
-                validated={!newItem.id ? 'default' : newItem.validating ? 'default' : newItem.valid ? 'success' : 'error'}
+                validated={
+                  !newItem.id ? 'default' : newItem.validating ? 'default' : newItem.valid ? 'success' : 'error'
+                }
                 placeholder="Enter Salesforce ID..."
               />
               <Tooltip position="right" content={<div>Salesforce Opportunity ID, Campaign ID or Project ID.</div>}>
@@ -254,7 +280,9 @@ const SalesforceItemsField: React.FC<{
       )}
 
       {helperText ? (
-        <div style={{ marginTop: 12, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 14, maxWidth: '600px' }}>
+        <div
+          style={{ marginTop: 12, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 14, maxWidth: '600px' }}
+        >
           {helperText}
         </div>
       ) : null}
@@ -269,7 +297,11 @@ const SalesforceItemsField: React.FC<{
         </FormGroup>
       ) : (
         <>
-          {label && <label htmlFor={fieldId} style={{ display: 'none' }}>{label}</label>}
+          {label && (
+            <label htmlFor={fieldId} style={{ display: 'none' }}>
+              {label}
+            </label>
+          )}
           {content}
         </>
       )}

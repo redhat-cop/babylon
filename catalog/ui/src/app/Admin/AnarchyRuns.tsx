@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { useEffect, Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -44,16 +44,16 @@ const AnarchyRuns: React.FC = () => {
   const location = useLocation();
   const { namespace } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const stateUrlParam = searchParams.has('state') ? searchParams.get('state') : null;
   const [selectedUids, reduceSelectedUids] = useReducer(selectedUidsReducer, []);
@@ -171,17 +171,23 @@ const AnarchyRuns: React.FC = () => {
   }
 
   // Fetch all if keywordFilter is defined.
-  if (keywordFilter && anarchyRunsPages.length > 0 && anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue) {
-    if (!isLoadingMore) {
-      if (anarchyRuns.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      anarchyRunsPages.length > 0 &&
+      anarchyRunsPages[anarchyRunsPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = anarchyRuns.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <div onScroll={scrollHandler} className="admin-container">
@@ -264,11 +270,11 @@ const AnarchyRuns: React.FC = () => {
             rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchyRun.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}
@@ -276,9 +282,11 @@ const AnarchyRuns: React.FC = () => {
                       {anarchyRun.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} />
-                  </>,
-                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="runner-state">
+                    {anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
+                  </Fragment>,
+                  <Fragment key="subject">
                     {anarchyRun.spec.subject ? (
                       <>
                         <Link
@@ -292,9 +300,9 @@ const AnarchyRuns: React.FC = () => {
                     ) : (
                       <p>-</p>
                     )}
-                  </>,
+                  </Fragment>,
                   anarchyRun.spec.action ? (
-                    <>
+                    <Fragment key="action">
                       <Link
                         key="admin"
                         to={`/admin/anarchyactions/${anarchyRun.spec.action.namespace}/${anarchyRun.spec.action.name}`}
@@ -302,16 +310,16 @@ const AnarchyRuns: React.FC = () => {
                         {anarchyRun.spec.action.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="action">-</p>
                   ),
-                  <>
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
 import useSWRInfinite from 'swr/infinite';
@@ -264,21 +264,23 @@ const ResourceClaims: React.FC = () => {
   );
 
   // Fetch all if keywordFilter is defined.
-  if (
-    keywordFilter &&
-    resourceClaimsPages.length > 0 &&
-    resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue
-  ) {
-    if (!isLoadingMore) {
-      if (resourceClaims.length > 0) {
-        setTimeout(() => {
-          setSize(size + 1);
-        }, 5000);
-      } else {
-        setSize(size + 1);
-      }
-    }
+  const shouldFetchMore =
+    !!(
+      keywordFilter &&
+      resourceClaimsPages.length > 0 &&
+      resourceClaimsPages[resourceClaimsPages.length - 1].metadata.continue
+    ) && !isLoadingMore;
+  const hasLoadedItems = resourceClaims.length > 0;
+  if (shouldFetchMore && !hasLoadedItems) {
+    setSize(size + 1);
   }
+  useEffect(() => {
+    if (!shouldFetchMore || !hasLoadedItems) return undefined;
+    const timeout = setTimeout(() => {
+      setSize(size + 1);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [shouldFetchMore, hasLoadedItems, size, setSize]);
 
   return (
     <div onScroll={scrollHandler} className="admin-container">

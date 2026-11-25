@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
-import { Checkbox, MenuToggle, NumberInput, Radio, Select, SelectList, SelectOption, TextInput } from '@patternfly/react-core';
+import {
+  Checkbox,
+  MenuToggle,
+  NumberInput,
+  Radio,
+  Select,
+  SelectList,
+  SelectOption,
+  TextInput,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
+import type { CatalogItemSpecParameter } from '@app/types';
 
 const DynamicFormInput: React.FC<{
   id?: string;
   isDisabled?: boolean;
-  onChange: any;
-  parameter: any;
+  onChange: (value: boolean | number | string, isValid?: boolean) => void;
+  parameter: CatalogItemSpecParameter;
   validationResult?: boolean;
-  value?: any;
+  value?: boolean | number | string;
   isGroup?: boolean;
 }> = ({ id, isDisabled, onChange, parameter, validationResult, value, isGroup = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   if (parameter.openAPIV3Schema?.enum || parameter.openAPIV3Schema?.['x-form-options']) {
     if (parameter.openAPIV3Schema?.['x-display'] === 'radio') {
-      return (parameter.openAPIV3Schema?.enum).map((v: string | number) => (
+      return parameter.openAPIV3Schema.enum.map((v: string | number) => (
         <Radio
           key={String(v)}
           isChecked={value === v}
@@ -32,9 +42,7 @@ const DynamicFormInput: React.FC<{
           isOpen={isOpen}
           selected={value}
           maxMenuHeight={
-            (parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).length > 10
-              ? '360px'
-              : null
+            (parameter.openAPIV3Schema['x-form-options'] || parameter.openAPIV3Schema.enum).length > 10 ? '360px' : null
           }
           style={{ overflowY: 'auto' }}
           onSelect={(_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
@@ -61,7 +69,7 @@ const DynamicFormInput: React.FC<{
           aria-label={parameter.description}
         >
           <SelectList>
-            {(parameter.openAPIV3Schema?.['x-form-options'] || parameter.openAPIV3Schema?.enum).map(
+            {(parameter.openAPIV3Schema['x-form-options'] || parameter.openAPIV3Schema.enum).map(
               (option: string | number | { name: string; value: string }) =>
                 typeof option === 'string' || typeof option === 'number' ? (
                   <SelectOption key={String(option)} value={option}>
@@ -84,7 +92,7 @@ const DynamicFormInput: React.FC<{
         id={parameter.name}
         name={parameter.name}
         label={parameter.formLabel || parameter.name}
-        isChecked={value}
+        isChecked={value as boolean}
         isDisabled={isDisabled}
         onChange={(_event, checked) => onChange(checked)}
       />
@@ -98,8 +106,9 @@ const DynamicFormInput: React.FC<{
         min={parameter.openAPIV3Schema.minimum || 0}
         max={parameter.openAPIV3Schema.maximum}
         // TODO: value does not exist
-        onChange={(event: any) => {
-          const n = isNaN(event.target.value) ? parameter.openAPIV3Schema.default : parseInt(event.target.value);
+        onChange={(event: React.FormEvent<HTMLInputElement>) => {
+          const inputValue = (event.target as HTMLInputElement).value;
+          const n = isNaN(Number(inputValue)) ? parameter.openAPIV3Schema.default : parseInt(inputValue);
           onChange(
             n < parameter.openAPIV3Schema.minimum
               ? parameter.openAPIV3Schema.minimum
@@ -108,15 +117,19 @@ const DynamicFormInput: React.FC<{
                 : n,
           );
         }}
-        onMinus={() => onChange(parseInt(value) - 1)}
-        onPlus={() => onChange(parseInt(value) + 1)}
-        value={value || 0}
+        onMinus={() => onChange(parseInt(value as string) - 1)}
+        onPlus={() => onChange(parseInt(value as string) + 1)}
+        value={(value as number) || 0}
       />
     );
   } else {
     const validationRegExp = parameter.openAPIV3Schema?.pattern ? new RegExp(parameter.openAPIV3Schema.pattern) : null;
     const textValidationResult =
-      validationResult !== undefined ? validationResult : validationRegExp ? validationRegExp.test(value) : null;
+      validationResult !== undefined
+        ? validationResult
+        : validationRegExp
+          ? validationRegExp.test(value as string)
+          : null;
     const validated =
       value === undefined || (!parameter.required && value === '')
         ? 'default'
@@ -139,7 +152,7 @@ const DynamicFormInput: React.FC<{
           id={id}
           isDisabled={isDisabled}
           onChange={(_event, v) => onChange(v, validationRegExp ? validationRegExp.test(v) : null)}
-          value={value || ''}
+          value={(value as string) || ''}
           validated={validated}
         />
       </>

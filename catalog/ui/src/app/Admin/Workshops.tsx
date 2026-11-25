@@ -47,16 +47,16 @@ const Workshops: React.FC = () => {
   const { namespace } = useParams();
   const [modalAction, openModalAction] = useModal();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search');
   const keywordFilter = useMemo(
     () =>
-      searchParams.has('search')
-        ? searchParams
-            .get('search')
+      searchParam !== null
+        ? searchParam
             .trim()
             .split(/ +/)
             .filter((w) => w != '')
         : null,
-    [searchParams.get('search')],
+    [searchParam],
   );
   const [modalState, setModalState] = useState<{ action?: string; workshop?: Workshop }>({});
   const [selectedUids, setSelectedUids] = useState([]);

@@ -1,7 +1,9 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, FC, LazyExoticComponent } from 'react';
 
 export interface AnarchyAction extends K8sObject {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   spec: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   status?: any;
 }
 
@@ -11,7 +13,9 @@ export interface AnarchyActionList {
 }
 
 export interface AnarchyGovernor extends K8sObject {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   spec: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   status?: any;
 }
 
@@ -21,7 +25,9 @@ export interface AnarchyGovernorList {
 }
 
 export interface AnarchyRun extends K8sObject {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   spec: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   status?: any;
 }
 
@@ -31,8 +37,8 @@ export interface AnarchyRunList {
 }
 
 export interface AnarchyRunner extends K8sObject {
-  spec: any;
-  status?: any;
+  spec: unknown;
+  status?: unknown;
 }
 
 export interface AnarchyRunnerList {
@@ -43,6 +49,7 @@ export interface AnarchyRunnerList {
 export interface AnarchySubject extends K8sObject {
   spec: AnarchySubjectSpec;
   status?: AnarchySubjectStatus;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   data?: any;
 }
 
@@ -59,9 +66,10 @@ export interface AnarchySubjectSpec {
     action_schedule?: AnarchySubjectSpecActionSchedule;
     current_state: string;
     desired_state: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
     provision_data?: any;
     status_messages?: string[];
-    status_data?: any;
+    status_data?: unknown;
     job_vars?: {
       guid: string;
       uuid: string;
@@ -117,11 +125,7 @@ export interface CatalogItem extends K8sObject {
 }
 
 export type CatalogItemIncidentStatus =
-  | 'Degraded performance'
-  | 'Operational'
-  | 'Under maintenance'
-  | 'Partial outage'
-  | 'Major outage';
+  'Degraded performance' | 'Operational' | 'Under maintenance' | 'Partial outage' | 'Major outage';
 
 export interface CatalogItemIncident {
   created_by: string;
@@ -176,7 +180,8 @@ export interface CatalogItemSpec {
   multiuser?: boolean;
   accessControl?: AccessControl;
   agnosticvRepo?: AgnosticVRepo;
-  bookbag?: any;
+  bookbag?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   linkedComponents?: any;
   messageTemplates?: {
     user?: MessageTemplate;
@@ -192,10 +197,10 @@ export interface CatalogItemSpec {
   workshopUserMode?: string;
   parameters?: CatalogItemSpecParameter[];
   provisionTimeEstimate?: string;
-  resources?: any[];
+  resources?: unknown[];
   supportLink?: string;
   termsOfService?: string;
-  userData?: any;
+  userData?: unknown;
   lifespan?: CatalogItemSpecLifespan;
   lastUpdate?: CatalogItemSpecLastUpdate;
   runtime?: CatalogItemSpecRuntime;
@@ -252,6 +257,7 @@ export interface CatalogItemSpecParameter {
   formHideCondition?: string;
   formRequireCondition?: string;
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   openAPIV3Schema?: any;
   required?: boolean;
   resourceIndexes?: (number | '@')[];
@@ -267,18 +273,19 @@ export interface CatalogNamespace {
   name: string;
 }
 
-export interface JSONPatch extends Array<JSONPatchOperation> {}
+export type JSONPatch = JSONPatchOperation[];
 export interface JSONPatchOperation {
   op: 'add' | 'copy' | 'remove' | 'replace' | 'test';
   from?: string;
   path: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface K8sObject {
   apiVersion: string;
   kind: string;
   metadata: K8sObjectMeta;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   data?: any;
 }
 
@@ -321,7 +328,7 @@ export interface K8sOwnerReference {
   uid: string;
 }
 
-export interface Namespace extends K8sObject {}
+export type Namespace = K8sObject;
 
 export interface UserNamespace {
   displayName: string;
@@ -350,6 +357,7 @@ export interface ResourceClaim extends K8sObject {
 }
 
 export interface ResrouceClaimSummary {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   provision_data?: any;
   runtime_default?: string;
   runtime_maximum?: string;
@@ -397,8 +405,8 @@ export type ResourceClaimSpecResourceTemplate = {
       desired_state?: string;
     };
   };
-  metadata?: any;
-  data?: any;
+  metadata?: unknown;
+  data?: unknown;
 };
 
 export interface ResourceClaimSpecResource {
@@ -440,6 +448,7 @@ export interface ResourceHandleSpecResource {
   name?: string;
   provider: K8sObjectReference;
   reference?: K8sObjectReference;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   template?: any;
 }
 
@@ -470,6 +479,7 @@ export interface ResourcePoolSpecLifespan {
 export interface ResourcePoolSpecResource {
   name?: string;
   provider: K8sObjectReference;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   template?: any;
 }
 
@@ -547,10 +557,10 @@ export interface ResourceProviderList {
 }
 
 export interface ResourceProviderSpec {
-  default?: any;
+  default?: unknown;
   lifespan?: ResourceProviderSpecLifespan;
   matchIgnore?: string[];
-  override?: any;
+  override?: unknown;
   resourceRequiresClaim?: boolean;
   template?: ResourceProviderSpecTemplate;
   updateFilters?: ResourceProviderSpecUpdateFilter[];
@@ -603,7 +613,7 @@ export interface ResourceProviderSpecUpdateFilter {
 }
 
 export interface ResourceProviderSpecValidation {
-  openAPIV3Schema?: any;
+  openAPIV3Schema?: unknown;
 }
 
 export interface ServiceNamespace {
@@ -612,7 +622,7 @@ export interface ServiceNamespace {
   requester?: string;
 }
 
-export interface User extends K8sObject {}
+export type User = K8sObject;
 
 export interface UserList {
   items: User[];
@@ -621,6 +631,7 @@ export interface UserList {
 
 export interface Workshop extends K8sObject {
   spec: WorkshopSpec;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   status?: any;
 }
 
@@ -631,6 +642,7 @@ export interface WorkshopList {
 
 export interface WorkshopProvision extends K8sObject {
   spec: WorkshopProvisionSpec;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   status?: any;
 }
 
@@ -646,6 +658,7 @@ export interface WorkshopProvisionSpec {
   };
   concurrency: number;
   count: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   parameters: any;
   startDelay?: number;
   workshopName: string;
@@ -725,6 +738,7 @@ export interface SelfPacedLabProvisionItemSpec {
     namespace: string;
   };
   concurrency?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped k8s/API payload; consumers access nested fields directly
   parameters?: any;
   poolSize: number;
   selfPacedLabName: string;
@@ -733,7 +747,7 @@ export interface SelfPacedLabProvisionItemSpec {
 }
 
 export interface SelfPacedLabUserAssignmentSpec {
-  data?: any;
+  data?: Record<string, unknown>;
   messages?: string;
   resourceClaimName?: string;
   userName?: string;
@@ -751,7 +765,7 @@ export interface SelfPacedLabUserAssignmentSpec {
 
 export interface SelfPacedLabUserAssignment extends K8sObject {
   spec: SelfPacedLabUserAssignmentSpec;
-  status?: any;
+  status?: unknown;
 }
 
 export interface SelfPacedLabUserAssignmentList {
@@ -803,7 +817,7 @@ export interface ServiceAccessList {
 }
 
 export interface WorkshopUserAssignmentSpec {
-  data?: any;
+  data?: Record<string, unknown>;
   messages?: string;
   resourceClaimName?: string;
   userName?: string;
@@ -820,12 +834,12 @@ export interface WorkshopUserAssignmentSpec {
 }
 export interface WorkshopUserAssignment extends K8sObject {
   spec: WorkshopUserAssignmentSpec;
-  status?: any;
+  status?: unknown;
 }
 
 export interface MultiWorkshop extends K8sObject {
   spec: MultiWorkshopSpec;
-  status?: any;
+  status?: unknown;
 }
 
 export interface MultiWorkshopList {
@@ -886,8 +900,8 @@ export type Nullable<T> = T | null;
 
 export type IAppRouteAccessControl = 'admin';
 export type IAppRoute = {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  component: React.LazyExoticComponent<React.FC<any>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- route components have heterogeneous props; FC<any> is needed for assignability
+  component: LazyExoticComponent<FC<any>>;
   path: string;
   title: string;
   accessControl?: IAppRouteAccessControl;

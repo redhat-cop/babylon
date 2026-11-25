@@ -71,16 +71,21 @@ export default function useSession(): {
   const isImpersonating = useAppSelector(selectIsImpersonating);
   const { userImpersonated, setImpersonation } = useImpersonateUser();
 
-  const promise = useMemo(async () => {
-    if (userImpersonated && !email) {
-      const session = getSessionFn(dispatch);
-      await setImpersonation(userImpersonated);
-      return session;
-    } else if (!email) {
-      return getSessionFn(dispatch);
-    }
-    return Promise.resolve();
-  }, [dispatch, email]);
+  const promise = useMemo(
+    () =>
+      (async () => {
+        if (userImpersonated && !email) {
+          const session = getSessionFn(dispatch);
+          await setImpersonation(userImpersonated);
+          return session;
+        } else if (!email) {
+          return getSessionFn(dispatch);
+        }
+        return Promise.resolve();
+      })(),
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- session fetch promise must only be recreated when email/dispatch change; adding userImpersonated/setImpersonation would trigger a new session fetch
+    [dispatch, email],
+  );
 
   const getSession = useCallback(() => {
     if (!email) {
@@ -101,6 +106,7 @@ export default function useSession(): {
       userNamespace,
       isImpersonating,
     };
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- keeps existing getSession identity semantics; impersonation changes go through a full page reload (sessionStorage) so userImpersonated is effectively constant per load
   }, [
     authUser,
     email,

@@ -23,7 +23,7 @@ agnosticv:
   operator:
     image:
       repository: quay.io/rhpds/babylon-agnosticv-operator
-      tag: v2.8.4
+      tag: v2.8.5
       pullPolicy: IfNotPresent
     resources:
       limits:
@@ -98,7 +98,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-api
-        tag: v1.3.8
+        tag: v1.3.9
       loggingLevel: INFO
       replicaCount: 1
       resources:
@@ -150,7 +150,7 @@ catalog:
       image:
         pullPolicy: IfNotPresent
         repository: quay.io/redhat-gpte/babylon-catalog-ui
-        tag: v0.35.18
+        tag: v0.35.19
       replicaCount: 1
       resources:
         requests:

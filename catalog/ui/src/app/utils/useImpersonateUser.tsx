@@ -46,6 +46,7 @@ const useImpersonateUser = (): {
 
   return {
     setImpersonation,
+    // eslint-disable-next-line @eslint-react/purity -- sessionStorage is the source of truth across reloads and is only changed right before a full page reload; read-only lookup
     userImpersonated: sessionStorage.getItem(KEY) || userImpersonated,
     clearImpersonation,
   };

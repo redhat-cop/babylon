@@ -1,6 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dropdown, DropdownList, DropdownItem, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadToggle, MastheadBrand, MenuToggle, PageToggleButton, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import {
+  Dropdown,
+  DropdownList,
+  DropdownItem,
+  Masthead,
+  MastheadLogo,
+  MastheadContent,
+  MastheadMain,
+  MastheadToggle,
+  MastheadBrand,
+  MenuToggle,
+  PageToggleButton,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+} from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import QuestionCircleIcon from '@patternfly/react-icons/dist/js/icons/question-circle-icon';
 
@@ -16,6 +32,23 @@ import IncidentsNotificationDrawer from '@app/components/IncidentsNotificationDr
 
 import './header.css';
 
+function LogoImg({
+  theme,
+  userInterface,
+  onClick,
+}: {
+  theme: 'dark' | 'light200';
+  userInterface: string;
+  onClick: () => void;
+}) {
+  if (userInterface == 'summit') {
+    return (
+      <img src={summitLogo} onClick={onClick} alt="Red Hat Summit" className="summit-logo" style={{ height: '48px' }} />
+    );
+  }
+  return <UserInterfaceLogo onClick={onClick} theme={theme} />;
+}
+
 const Header: React.FC<{
   onNavToggleMobile: () => void;
   onNavToggle: () => void;
@@ -30,28 +63,13 @@ const Header: React.FC<{
   const navigate = useNavigate();
   const helpLink = useHelpLink();
   const menuRef = React.useRef<HTMLDivElement>(null);
-  const { help_text, status_page_url, feedback_link, learn_more_link } =
-    useInterfaceConfig();
+  const { help_text, status_page_url, feedback_link, learn_more_link } = useInterfaceConfig();
 
   function clearUserImpersonation() {
     clearImpersonation();
     setIsUserControlDropdownOpen(false);
   }
 
-  function LogoImg({ theme }: { theme: 'dark' | 'light200' }) {
-    if (userInterface == 'summit') {
-      return (
-        <img
-          src={summitLogo}
-          onClick={() => navigate('/')}
-          alt="Red Hat Summit"
-          className="summit-logo"
-          style={{ height: '48px' }}
-        />
-      );
-    }
-    return <UserInterfaceLogo onClick={() => navigate('/')} theme={theme} />;
-  }
   const onSelect = (event?: React.MouseEvent<Element, MouseEvent>, value?: string | number) => {
     if (!value) return;
     event.preventDefault();
@@ -219,7 +237,7 @@ const Header: React.FC<{
           </MastheadToggle>
           <MastheadBrand data-codemods>
             <MastheadLogo data-codemods href="/" style={{ display: 'flex', alignItems: 'center' }}>
-              <LogoImg theme="light200" />
+              <LogoImg theme="light200" userInterface={userInterface} onClick={() => navigate('/')} />
             </MastheadLogo>
           </MastheadBrand>
         </MastheadMain>

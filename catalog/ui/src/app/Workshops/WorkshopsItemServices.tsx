@@ -73,6 +73,7 @@ const WorkshopsItemServices: React.FC<{
 
   useEffect(() => {
     // sync with initial value
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the instance counter whenever the modal opens/closes; keeps existing reset timing
     setInstancesToDelete(0);
   }, [isOpen]);
 
@@ -125,11 +126,11 @@ const WorkshopsItemServices: React.FC<{
       setIsLoading(false);
       setIsOpen(false);
     },
-    [workshopProvisions, unusedResourceClaims, resourceClaims],
+    [workshopProvisions, unusedResourceClaims, resourceClaims, mutate],
   );
 
   const activeResourceClaimsCount = resourceClaims.filter((r) => !r.metadata.deletionTimestamp).length;
-  
+
   if (activeResourceClaimsCount == 0) {
     return (
       <EmptyState headingLevel="h1" icon={ExclamationTriangleIcon} titleText="No Services Found" variant="full">
@@ -201,12 +202,17 @@ const WorkshopsItemServices: React.FC<{
               resources
                 .map((r) => {
                   const data = r?.kind === 'AnarchySubject' ? r.spec?.vars?.provision_data : r?.data;
-                  return data?.labUserInterfaceUrl || data?.lab_ui_url || data?.bookbag_url || data?.showroom_primary_view_url;
+                  return (
+                    data?.labUserInterfaceUrl ||
+                    data?.lab_ui_url ||
+                    data?.bookbag_url ||
+                    data?.showroom_primary_view_url
+                  );
                 })
                 .find((u) => u != null);
             const cells: unknown[] = [
               // Name
-              <>
+              <React.Fragment key="name">
                 <Link
                   key="services"
                   to={`/services/${resourceClaim.metadata.namespace}/${resourceClaim.metadata.name}`}
@@ -214,9 +220,9 @@ const WorkshopsItemServices: React.FC<{
                   {displayName(resourceClaim)}
                 </Link>
                 {isAdmin ? <OpenshiftConsoleLink key="console" resource={resourceClaim} /> : null}
-              </>,
+              </React.Fragment>,
               // GUID
-              <>
+              <React.Fragment key="guid">
                 {guid ? (
                   isAdmin && resourceHandle ? (
                     [
@@ -236,26 +242,28 @@ const WorkshopsItemServices: React.FC<{
                     <small>{cluster}</small>
                   </div>
                 ) : null}
-              </>,
+              </React.Fragment>,
 
               // Status
               <ServiceStatus key="status" resourceClaim={resourceClaim} />,
 
               // User
-              <>
+              <React.Fragment key="user">
                 {userAssignments.some((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
                   ? userAssignments
                       .filter((uA) => uA.spec.resourceClaimName === resourceClaim.metadata.name)
-                      .map((uA) => <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>)
+                      .map((uA) => (
+                        <p key={`user-${uA.spec.assignment?.email || 'unassigned'}`}>{uA.spec.assignment?.email}</p>
+                      ))
                   : '-'}
-              </>,
+              </React.Fragment>,
 
               // Created
-              <>
+              <React.Fragment key="created">
                 <LocalTimestamp key="timestamp" timestamp={resourceClaim.metadata.creationTimestamp} />
                 <br key="break" />
                 (<TimeInterval key="interval" toTimestamp={resourceClaim.metadata.creationTimestamp} />)
-              </>,
+              </React.Fragment>,
               // Actions
               <React.Fragment key="actions">
                 <div

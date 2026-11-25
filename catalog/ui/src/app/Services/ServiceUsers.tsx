@@ -35,7 +35,9 @@ const UserMessage: React.FC<{
           <DescriptionListGroup>
             <DescriptionListTerm>Lab URL</DescriptionListTerm>
             <DescriptionListDescription>
-              <a href={userLabUrl} target="_blank" rel="noopener noreferrer">{userLabUrl} <ExternalLinkAltIcon /></a>
+              <a href={userLabUrl} target="_blank" rel="noopener noreferrer">
+                {userLabUrl} <ExternalLinkAltIcon />
+              </a>
             </DescriptionListDescription>
           </DescriptionListGroup>
         ) : null}
@@ -80,7 +82,7 @@ const UserMessage: React.FC<{
 const ServiceUsers: React.FC<{
   resourceClaim: ResourceClaim;
 }> = ({ resourceClaim }) => {
-  const users = {};
+  let users = {};
   const labUserInterfaceUrls = JSON.parse(
     resourceClaim.metadata.annotations?.[`${BABYLON_DOMAIN}/labUserInterfaceUrls`] || '{}',
   );
@@ -88,35 +90,55 @@ const ServiceUsers: React.FC<{
   for (const status_resource of resourceClaim?.status?.resources || []) {
     const resource_users = status_resource.state?.spec?.vars?.provision_data?.users;
     if (resource_users) {
-      Object.assign(users, resource_users);
+      users = { ...users, ...resource_users };
     }
   }
   if (resourceClaim?.status?.summary) {
     const resource_users = resourceClaim.status.summary.provision_data?.users;
     if (resource_users) {
-      Object.assign(users, resource_users);
+      users = { ...users, ...resource_users };
     }
   }
 
   return (
     <>
-      {Object.entries(users).map(([userName, userData]: [userName: string, userData: {labUserInterfaceUrl?: string, lab_ui_url?: string, bookbag_url?: string, showroom_primary_view_url?: string, msg?: string}]) => {
-        const userLabUrl =
-          labUserInterfaceUrls[userName] || userData.labUserInterfaceUrl || userData.lab_ui_url || userData.bookbag_url || userData.showroom_primary_view_url;
-        const userDataEntries = Object.entries(userData).filter(
-          ([key]) => key !== 'bookbag_url' && key !== 'lab_ui_url' && key !== 'labUserInterfaceUrl' && key !== 'msg' && key !== 'showroom_primary_view_url',
-        );
-        const userMessages: string = userData.msg;
-        return (
-          <UserMessage
-            key={userLabUrl || userMessages}
-            userMessages={userMessages}
-            userDataEntries={userDataEntries}
-            userLabUrl={userLabUrl}
-            userName={userName}
-          />
-        );
-      })}
+      {Object.entries(users).map(
+        ([userName, userData]: [
+          userName: string,
+          userData: {
+            labUserInterfaceUrl?: string;
+            lab_ui_url?: string;
+            bookbag_url?: string;
+            showroom_primary_view_url?: string;
+            msg?: string;
+          },
+        ]) => {
+          const userLabUrl =
+            labUserInterfaceUrls[userName] ||
+            userData.labUserInterfaceUrl ||
+            userData.lab_ui_url ||
+            userData.bookbag_url ||
+            userData.showroom_primary_view_url;
+          const userDataEntries = Object.entries(userData).filter(
+            ([key]) =>
+              key !== 'bookbag_url' &&
+              key !== 'lab_ui_url' &&
+              key !== 'labUserInterfaceUrl' &&
+              key !== 'msg' &&
+              key !== 'showroom_primary_view_url',
+          );
+          const userMessages: string = userData.msg;
+          return (
+            <UserMessage
+              key={userLabUrl || userMessages}
+              userMessages={userMessages}
+              userDataEntries={userDataEntries}
+              userLabUrl={userLabUrl}
+              userName={userName}
+            />
+          );
+        },
+      )}
     </>
   );
 };

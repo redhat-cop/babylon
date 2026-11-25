@@ -25,6 +25,7 @@ const CatalogItemFormStartModal: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- resets the modal's editable date buffer to the parent's startDate each time the modal opens, alongside the imperative openModal()
       setSelectedDate(startDate);
       openModal();
     }
@@ -36,7 +37,9 @@ const CatalogItemFormStartModal: React.FC<{
       <Form isHorizontal>
         <FormGroup
           fieldId="start-date-modal"
-          label={isWorkshop && useReadyByDate ? 'Ready by' : isWorkshop ? 'Provisioning Date' : 'Start Provisioning Date'}
+          label={
+            isWorkshop && useReadyByDate ? 'Ready by' : isWorkshop ? 'Provisioning Date' : 'Start Provisioning Date'
+          }
         >
           <DateTimePicker
             defaultTimestamp={
@@ -45,9 +48,7 @@ const CatalogItemFormStartModal: React.FC<{
                 : selectedDate?.getTime() || now
             }
             forceUpdateTimestamp={
-              isWorkshop && useReadyByDate
-                ? selectedDate?.getTime() + READY_BY_LEAD_TIME_MS
-                : selectedDate?.getTime()
+              isWorkshop && useReadyByDate ? selectedDate?.getTime() + READY_BY_LEAD_TIME_MS : selectedDate?.getTime()
             }
             onSelect={(d: Date) => {
               if (isWorkshop && useReadyByDate) {

@@ -6,7 +6,7 @@ const ResourceClaimStopModal: React.FC<{
   onConfirm: () => Promise<void>;
   resourceClaims: ResourceClaim[];
   setTitle?: React.Dispatch<React.SetStateAction<string>>;
-  setOnConfirmCb?: (_: any) => Promise<void>;
+  setOnConfirmCb?: (_: unknown) => Promise<void>;
 }> = ({ onConfirm, resourceClaims, setTitle, setOnConfirmCb }) => {
   useEffect(() => {
     setOnConfirmCb(() => onConfirm);

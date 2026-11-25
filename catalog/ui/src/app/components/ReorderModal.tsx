@@ -13,20 +13,12 @@ import type { TDatesTypes } from '@app/Catalog/CatalogItemFormAutoStopDestroyMod
 import ReorderScheduleStartModal from '@app/components/ReorderScheduleStartModal';
 import { isAutoStopDisabled } from '@app/Catalog/catalog-utils';
 import type { CatalogItem } from '@app/types';
-import {
-  getInitialReorderSchedule,
-  isValidReorderSchedule,
-  parseCatalogDuration,
-} from '@app/reorder-utils';
+import { getInitialReorderSchedule, isValidReorderSchedule, parseCatalogDuration } from '@app/reorder-utils';
 import type { ReorderSchedule } from '@app/reorder-utils';
 
 type ScheduleModalType = 'start' | TDatesTypes | null;
 
-function getConfirmedStopDate(
-  stopDate: Date | undefined,
-  endDate: Date,
-  previousStopDate?: Date,
-): Date | undefined {
+function getConfirmedStopDate(stopDate: Date | undefined, endDate: Date, previousStopDate?: Date): Date | undefined {
   const resolvedStopDate = stopDate ?? previousStopDate;
   if (!resolvedStopDate || resolvedStopDate.getTime() >= endDate.getTime()) {
     return undefined;
@@ -65,8 +57,7 @@ const ReorderModal: React.FC<{
     parseCatalogDuration(catalogItem.spec.lifespan?.relativeMaximum) ?? parseDuration('7d'),
   );
   const maxAutoStopTime = parseCatalogDuration(catalogItem.spec.runtime?.maximum);
-  const defaultRuntimeTimestamp =
-    parseCatalogDuration(catalogItem.spec.runtime?.default) ?? parseDuration('4h');
+  const defaultRuntimeTimestamp = parseCatalogDuration(catalogItem.spec.runtime?.default) ?? parseDuration('4h');
 
   const validationMessage = useMemo(() => {
     const now = Date.now();
@@ -106,8 +97,7 @@ const ReorderModal: React.FC<{
     setScheduleDates((current) => ({ ...current, [field]: date }));
   };
 
-  const stopDestroyModalType =
-    scheduleModal === 'auto-stop' || scheduleModal === 'auto-destroy' ? scheduleModal : null;
+  const stopDestroyModalType = scheduleModal === 'auto-stop' || scheduleModal === 'auto-destroy' ? scheduleModal : null;
 
   return (
     <>
@@ -141,11 +131,7 @@ const ReorderModal: React.FC<{
               <AutoStopDestroy
                 type="auto-stop"
                 onClick={() => setScheduleModal('auto-stop')}
-                time={
-                  scheduleDates.stopDate
-                    ? scheduleDates.stopDate.getTime()
-                    : scheduleDates.endDate.getTime()
-                }
+                time={scheduleDates.stopDate ? scheduleDates.stopDate.getTime() : scheduleDates.endDate.getTime()}
                 variant="extended"
                 destroyTimestamp={scheduleDates.endDate.getTime()}
               />
@@ -183,13 +169,14 @@ const ReorderModal: React.FC<{
         autoStopDate={scheduleDates.stopDate}
         autoDestroyDate={scheduleDates.endDate}
         isAutoStopDisabled={isAutoStopDisabled(catalogItem)}
-        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : maxAutoStopTime ?? undefined}
+        maxRuntimeTimestamp={isAdmin ? maxAutoDestroyTime : (maxAutoStopTime ?? undefined)}
         defaultRuntimeTimestamp={defaultRuntimeTimestamp}
         maxDestroyTimestamp={
           isAdmin
             ? null
             : isWorkshop
-              ? scheduleDates.startDate.getTime() - Date.now() + parseDuration('5d')
+              ? // eslint-disable-next-line @eslint-react/purity -- max duration is relative to the current time and must be recomputed on each render
+                scheduleDates.startDate.getTime() - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
         onConfirm={(dates) => {

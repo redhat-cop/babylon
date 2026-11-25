@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import RenderedContent from '@app/components/RenderedContent';
 import parseDuration from 'parse-duration';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   DescriptionList,
@@ -78,7 +78,10 @@ enum CatalogItemAccess {
   RequestInformation,
 }
 
-const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({ catalogItem: catalogItemProp, onClose }) => {
+const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => void }> = ({
+  catalogItem: catalogItemProp,
+  onClose,
+}) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -172,23 +175,22 @@ const CatalogItemDetails: React.FC<{ catalogItem: CatalogItem; onClose: () => vo
       autoStopTime = null;
     }
   }
-  const catalogItemAccess: CatalogItemAccess =
-    isAdmin
-      ? CatalogItemAccess.Allow
-      : accessCheckResult === 'deny'
+  const catalogItemAccess: CatalogItemAccess = isAdmin
+    ? CatalogItemAccess.Allow
+    : accessCheckResult === 'deny'
+      ? CatalogItemAccess.Deny
+      : isQuotaExceeded
         ? CatalogItemAccess.Deny
-        : isQuotaExceeded
-          ? CatalogItemAccess.Deny
-          : accessCheckResult === 'allow'
-            ? CatalogItemAccess.Allow
-            : CatalogItemAccess.RequestInformation;
+        : accessCheckResult === 'allow'
+          ? CatalogItemAccess.Allow
+          : CatalogItemAccess.RequestInformation;
   const catalogItemAccessDenyReason =
     catalogItemAccess !== CatalogItemAccess.Deny ? null : isQuotaExceeded ? (
       <p>
         You have reached your quota of 5 services ({standaloneServicesCount} standalone service
-        {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}).
-        You will not be able to request any new applications until you retire existing services or workshops.
-        If you feel this is an error, please{' '}
+        {standaloneServicesCount !== 1 ? 's' : ''} + {workshopsCount} workshop{workshopsCount !== 1 ? 's' : ''}). You
+        will not be able to request any new applications until you retire existing services or workshops. If you feel
+        this is an error, please{' '}
         <a href={helpLink} target="_blank" rel="noopener noreferrer">
           contact us
         </a>

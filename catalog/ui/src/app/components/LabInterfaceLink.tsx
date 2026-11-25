@@ -5,9 +5,9 @@ import ButtonCircleIcon from './ButtonCircleIcon';
 import useSession from '@app/utils/useSession';
 import useImpersonateUser from '@app/utils/useImpersonateUser';
 
-function submitFormFromLink(e: any) {
+function submitFormFromLink(e: React.MouseEvent) {
   e.preventDefault();
-  e.target.closest('form').submit();
+  (e.target as Element).closest('form').submit();
 }
 
 const LabInterfaceLink: React.FC<{

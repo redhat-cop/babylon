@@ -30,7 +30,17 @@ import {
   stopAllResourcesInResourceClaim,
   stopWorkshop,
 } from '@app/api';
-import type { ResourceClaim, ResourceClaimWithCollaborator, SelfPacedLab, SelfPacedLabWithResourceClaims, Service, ServiceAccess, ServiceActionActions, Workshop, WorkshopWithResourceClaims } from '@app/types';
+import type {
+  ResourceClaim,
+  ResourceClaimWithCollaborator,
+  SelfPacedLab,
+  SelfPacedLabWithResourceClaims,
+  Service,
+  ServiceAccess,
+  ServiceActionActions,
+  Workshop,
+  WorkshopWithResourceClaims,
+} from '@app/types';
 import { fetcher } from '@app/api';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import {
@@ -137,7 +147,10 @@ async function fetchServices(namespace: string): Promise<Service[]> {
           sharedServices.push(selfPacedLabWithCollaborator);
         }
       } catch (error) {
-        console.warn(`Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`, error);
+        console.warn(
+          `Failed to fetch shared ${serviceAccess.spec.kind} ${serviceAccess.spec.namespace}/${serviceAccess.spec.name}:`,
+          error,
+        );
       }
     }
 
@@ -188,9 +201,7 @@ async function fetchServices(namespace: string): Promise<Service[]> {
   return services;
 }
 
-async function fetchWorkshopResourceClaims(
-  workshopNamespaces: string[],
-): Promise<Record<string, ResourceClaim[]>> {
+async function fetchWorkshopResourceClaims(workshopNamespaces: string[]): Promise<Record<string, ResourceClaim[]>> {
   const result: Record<string, ResourceClaim[]> = {};
   const promises = workshopNamespaces.map(async (namespace) => {
     const rcs = (await fetcherItemsInAllPages((continueId) =>
@@ -214,9 +225,7 @@ async function fetchWorkshopResourceClaims(
   return result;
 }
 
-async function fetchSelfPacedLabResourceClaims(
-  namespaces: string[],
-): Promise<Record<string, ResourceClaim[]>> {
+async function fetchSelfPacedLabResourceClaims(namespaces: string[]): Promise<Record<string, ResourceClaim[]>> {
   const result: Record<string, ResourceClaim[]> = {};
   const promises = namespaces.map(async (namespace) => {
     const rcs = (await fetcherItemsInAllPages((continueId) =>
@@ -283,11 +292,7 @@ const ServicesList: React.FC<{
 
   const workshopNamespaces = useMemo(() => {
     if (!_services) return [];
-    return [...new Set(
-      _services
-        .filter((s) => s.kind === 'Workshop')
-        .map((s) => s.metadata.namespace),
-    )].sort();
+    return [...new Set(_services.filter((s) => s.kind === 'Workshop').map((s) => s.metadata.namespace))].sort();
   }, [_services]);
 
   const { data: workshopRCsMap } = useSWR<Record<string, ResourceClaim[]>>(
@@ -308,11 +313,7 @@ const ServicesList: React.FC<{
 
   const selfPacedLabNamespaces = useMemo(() => {
     if (!_services) return [];
-    return [...new Set(
-      _services
-        .filter((s) => s.kind === 'SelfPacedLab')
-        .map((s) => s.metadata.namespace),
-    )].sort();
+    return [...new Set(_services.filter((s) => s.kind === 'SelfPacedLab').map((s) => s.metadata.namespace))].sort();
   }, [_services]);
 
   const { data: selfPacedLabRCsMap } = useSWR<Record<string, ResourceClaim[]>>(
@@ -387,37 +388,34 @@ const ServicesList: React.FC<{
     [keywordFilter, isAdmin],
   );
 
-  const services = useMemo(
-    () => {
-      const enriched = (_services ?? []).map((service) => {
-        if (service.kind === 'Workshop') {
-          const ws = service as WorkshopWithResourceClaims;
-          const key = `${ws.metadata.namespace}/${ws.metadata.name}`;
-          const rcs = workshopRCsMap?.[key];
-          if (rcs !== undefined) {
-            return { ...ws, resourceClaims: rcs } as WorkshopWithResourceClaims;
-          }
-          return ws;
+  const services = useMemo(() => {
+    const enriched = (_services ?? []).map((service) => {
+      if (service.kind === 'Workshop') {
+        const ws = service as WorkshopWithResourceClaims;
+        const key = `${ws.metadata.namespace}/${ws.metadata.name}`;
+        const rcs = workshopRCsMap?.[key];
+        if (rcs !== undefined) {
+          return { ...ws, resourceClaims: rcs } as WorkshopWithResourceClaims;
         }
-        if (service.kind === 'SelfPacedLab') {
-          const spl = service as SelfPacedLabWithResourceClaims;
-          const key = `${spl.metadata.namespace}/${spl.metadata.name}`;
-          const rcs = selfPacedLabRCsMap?.[key];
-          if (rcs !== undefined) {
-            return { ...spl, resourceClaims: rcs } as SelfPacedLabWithResourceClaims;
-          }
-          return spl;
+        return ws;
+      }
+      if (service.kind === 'SelfPacedLab') {
+        const spl = service as SelfPacedLabWithResourceClaims;
+        const key = `${spl.metadata.namespace}/${spl.metadata.name}`;
+        const rcs = selfPacedLabRCsMap?.[key];
+        if (rcs !== undefined) {
+          return { ...spl, resourceClaims: rcs } as SelfPacedLabWithResourceClaims;
         }
-        return service;
-      });
-      return enriched
-        .filter(filterFn)
-        .sort(
-          (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
-        );
-    },
-    [filterFn, _services, workshopRCsMap, selfPacedLabRCsMap],
-  );
+        return spl;
+      }
+      return service;
+    });
+    return enriched
+      .filter(filterFn)
+      .sort(
+        (a, b) => new Date(b.metadata.creationTimestamp).valueOf() - new Date(a.metadata.creationTimestamp).valueOf(),
+      );
+  }, [filterFn, _services, workshopRCsMap, selfPacedLabRCsMap]);
 
   const revalidate = useCallback(
     ({ updatedItems, action }: { updatedItems: Service[]; action: 'update' | 'delete' }) => {
@@ -522,7 +520,7 @@ const ServicesList: React.FC<{
         return Promise.resolve(null);
       }
     },
-    [cache, modalState.action, modalState.workshop, revalidate, mutate],
+    [modalState.action],
   );
 
   const performModalActionForSelfPacedLab = useCallback(
@@ -651,9 +649,11 @@ const ServicesList: React.FC<{
   }
 
   // Check if any selected service is a collaborator service (can't delete those)
-  const selectedHasCollaborator = selectedUids.length > 0 && services.some(
-    (service) => selectedUids.includes(service.metadata.uid) && 'isCollaborator' in service && service.isCollaborator
-  );
+  const selectedHasCollaborator =
+    selectedUids.length > 0 &&
+    services.some(
+      (service) => selectedUids.includes(service.metadata.uid) && 'isCollaborator' in service && service.isCollaborator,
+    );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flexGrow: 1 }}>
@@ -746,7 +746,7 @@ const ServicesList: React.FC<{
                       if (s.kind === 'ResourceClaim' && isResourceClaimLocked(s as ResourceClaim)) return false;
                       return true;
                     })
-                    .map((s) => s.metadata.uid)
+                    .map((s) => s.metadata.uid),
                 );
               } else {
                 setSelectedUids([]);
@@ -792,7 +792,11 @@ const ServicesList: React.FC<{
               if (service.kind === 'SelfPacedLab') {
                 return Object.assign(
                   selectObj,
-                  renderSelfPacedLabRow({ selfPacedLab: service as SelfPacedLabWithResourceClaims, showModal, isAdmin }),
+                  renderSelfPacedLabRow({
+                    selfPacedLab: service as SelfPacedLabWithResourceClaims,
+                    showModal,
+                    isAdmin,
+                  }),
                 );
               }
               return null;

@@ -1,5 +1,5 @@
+import type React from 'react';
 import type { ReactElement } from 'react';
-import React from 'react';
 
 type ConditionalWrapperProps = {
   children: ReactElement;
@@ -7,6 +7,6 @@ type ConditionalWrapperProps = {
   wrapper: (children: ReactElement) => ReactElement;
 };
 const ConditionalWrapper: React.FC<ConditionalWrapperProps> = ({ condition, wrapper, children }) =>
-  condition ? React.cloneElement(wrapper(children)) : children;
+  condition ? wrapper(children) : children;
 
 export default ConditionalWrapper;

@@ -9,15 +9,15 @@ export default function useModal(): [
   openModalFn: () => void,
   closeModalFn: () => void,
 ] {
-  const modalInstance = useRef(null);
+  const modalInstanceRef = useRef(null);
 
   const openModalFn = useCallback(() => {
-    modalInstance.current?.open();
+    modalInstanceRef.current?.open();
   }, []);
 
   const closeModalFn = useCallback(() => {
-    modalInstance.current?.close();
+    modalInstanceRef.current?.close();
   }, []);
 
-  return [modalInstance, openModalFn, closeModalFn];
+  return [modalInstanceRef, openModalFn, closeModalFn];
 }

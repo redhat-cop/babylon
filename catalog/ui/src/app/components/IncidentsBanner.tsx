@@ -26,7 +26,7 @@ const IncidentsBanner: React.FC = () => {
       suspense: false,
     },
   );
-  const [closedItemsStr, setClosedItemsStr] = useState(localStorage.getItem(STORAGE_KEY));
+  const [closedItemsStr, setClosedItemsStr] = useState(() => localStorage.getItem(STORAGE_KEY));
   const closedItems: { id: number; timestamp: number }[] = useMemo(() => {
     try {
       return JSON.parse(closedItemsStr) || [];

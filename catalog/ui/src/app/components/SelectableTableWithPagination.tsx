@@ -62,6 +62,7 @@ const SelectableTableWithPagination: React.FC<{
               }}
             />
             {columns.map((column, index) => (
+              // eslint-disable-next-line @eslint-react/no-array-index-key -- column headers are plain strings that may repeat (e.g. empty) and are positional
               <Th key={index}>{column}</Th>
             ))}
           </Tr>
@@ -79,6 +80,7 @@ const SelectableTableWithPagination: React.FC<{
                   }}
                 />
                 {row.cells.map((cell: React.ReactNode, cellIndex: number) => (
+                  // eslint-disable-next-line @eslint-react/no-array-index-key -- cells are positional within a row
                   <Td key={cellIndex} dataLabel={columns[cellIndex]}>
                     {cell}
                   </Td>

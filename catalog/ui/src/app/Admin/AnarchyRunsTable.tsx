@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState,  } from '@patternfly/react-core';
+import { EmptyState } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import type { AnarchyRun } from '@app/types';
 import LocalTimestamp from '@app/components/LocalTimestamp';
@@ -15,8 +15,12 @@ const AnarchyRunsTable: React.FC<{
 }> = ({ anarchyRuns, selectedUids, selectedUidsReducer }) => {
   if (anarchyRuns.length === 0) {
     return (
-      <EmptyState  headingLevel="h1" icon={ExclamationTriangleIcon}  titleText="No AnarchyRuns found." variant="full">
-        </EmptyState>
+      <EmptyState
+        headingLevel="h1"
+        icon={ExclamationTriangleIcon}
+        titleText="No AnarchyRuns found."
+        variant="full"
+      ></EmptyState>
     );
   }
   return (
@@ -37,17 +41,19 @@ const AnarchyRunsTable: React.FC<{
       rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
         return {
           cells: [
-            <>
+            <Fragment key="name">
               <Link key="admin" to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}>
                 {anarchyRun.metadata.name}
               </Link>
               <OpenshiftConsoleLink key="console" resource={anarchyRun} />
-            </>,
-            <>{anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
-            <>
+            </Fragment>,
+            <Fragment key="runner-state">
+              {anarchyRun.metadata.labels['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
+            </Fragment>,
+            <Fragment key="created">
               <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} /> (
               <TimeInterval key="interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
-            </>,
+            </Fragment>,
           ],
           onSelect: (isSelected: boolean) =>
             selectedUidsReducer({

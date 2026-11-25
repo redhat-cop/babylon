@@ -38,17 +38,17 @@ const ConfirmActionContent: React.FC<Omit<Props, 'isOpen'>> = ({
 }) => {
   const [comment, setComment] = useState('');
   const [isBusy, setIsBusy] = useState(false);
-  const inFlight = useRef(false);
+  const inFlightRef = useRef(false);
   const tooLong = comment.length > MAX_COMMENT_LENGTH;
 
   async function confirm() {
-    if (inFlight.current || tooLong) return;
-    inFlight.current = true;
+    if (inFlightRef.current || tooLong) return;
+    inFlightRef.current = true;
     setIsBusy(true);
     try {
       await onConfirm(comment);
     } finally {
-      inFlight.current = false;
+      inFlightRef.current = false;
       setIsBusy(false);
     }
   }

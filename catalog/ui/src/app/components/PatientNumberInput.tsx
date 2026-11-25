@@ -30,19 +30,21 @@ const PatientNumberInput: React.FC<
   const [inputValue, setInputValue] = useState(value);
   const [error, setError] = useState<string>();
   const errorId = useId();
-  const timeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { isAdmin } = useSession().getSession();
   const _max = useMemo(() => (adminModifier && isAdmin ? 999 : max), [isAdmin, max, adminModifier]);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the local throttled edit buffer from the value prop (and clears error) when props change; deriving would discard in-progress edits
     setInputValue(value);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- syncs the local throttled edit buffer from the value prop (and clears error) when props change; deriving would discard in-progress edits
     setError(undefined);
-    return () => clearTimeout(timeout.current);
+    return () => clearTimeout(timeoutRef.current);
   }, [value, min, _max, isDisabled]);
 
   const onValueChange = useCallback(
     (newValue: number) => {
-      clearTimeout(timeout.current);
+      clearTimeout(timeoutRef.current);
       if (isDisabled) return;
       if (
         rejectOutOfRange &&
@@ -61,7 +63,7 @@ const PatientNumberInput: React.FC<
         min !== undefined && newValue < min ? min : _max !== undefined && newValue > _max ? _max : newValue;
       setError(undefined);
       setInputValue(validatedValue);
-      timeout.current = setTimeout(() => onChange?.(validatedValue), onChangeDelay ?? 1000);
+      timeoutRef.current = setTimeout(() => onChange?.(validatedValue), onChangeDelay ?? 1000);
     },
     [_max, min, onChange, onChangeDelay, rejectOutOfRange, isDisabled, value],
   );

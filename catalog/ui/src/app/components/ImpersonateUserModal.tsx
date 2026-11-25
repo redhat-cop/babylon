@@ -53,7 +53,9 @@ const ImpersonateUserModal: React.FC<{
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- re-filters the snapshot list on search input; filteredItems is also replaced by fetchUsers and Enter, so deriving it would change behavior
     onSearchButtonClick();
+    // eslint-disable-next-line @eslint-react/exhaustive-deps -- onSearchButtonClick is recreated every render; adding it would re-filter on every render instead of on search changes
   }, [userSearchValue]);
 
   const onSearchButtonClick = () => {
@@ -128,9 +130,9 @@ const ImpersonateUserModal: React.FC<{
           <DropdownList>
             {filteredItems
               .filter((u) => u.metadata.name != authUser)
-              .map((u, index) => {
+              .map((u) => {
                 return (
-                  <DropdownItem itemId={u.metadata.name} key={index} value={u.metadata.name}>
+                  <DropdownItem itemId={u.metadata.name} key={u.metadata.name} value={u.metadata.name}>
                     {u.metadata.name}
                   </DropdownItem>
                 );
