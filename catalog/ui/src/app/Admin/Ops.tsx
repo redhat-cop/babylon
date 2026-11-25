@@ -164,6 +164,7 @@ import {
   type OpsHistoryAction,
   type OpsHistoryEntry,
 } from '@app/Admin/Ops/opsHistory';
+import { ALERT_AUTO_DISMISS_MS, shouldAutoDismiss } from '@app/Admin/Ops/alertPolicy';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as Window & { __TIMELINE__?: unknown }).__TIMELINE__ = WorkshopTimeline;
 
@@ -476,7 +477,9 @@ const Ops: React.FC = () => {
   const addAlert = useCallback((variant: AlertVariant, title: string, description?: string) => {
     const key = ++alertKeyCounter;
     setAlerts((prev) => [{ key, variant, title, description }, ...prev]);
-    setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== key)), 8000);
+    if (shouldAutoDismiss(variant)) {
+      setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== key)), ALERT_AUTO_DISMISS_MS);
+    }
   }, []);
 
   const removeAlert = useCallback((key: number) => {
