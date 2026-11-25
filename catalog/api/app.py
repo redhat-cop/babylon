@@ -1955,7 +1955,10 @@ async def workshop_post(request):
     for user_assignment in workshop_user_assignments.get('items', []):
         if not 'assignment' in user_assignment['spec']:
             try:
-                user_assignment['spec']['assignment'] = {"email": email}
+                user_assignment['spec']['assignment'] = {
+                    "email": email,
+                    "assignedAt": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                }
                 await custom_objects_api.replace_namespaced_custom_object(
                     body=user_assignment,
                     group='babylon.gpte.redhat.com',

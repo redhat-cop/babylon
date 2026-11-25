@@ -172,6 +172,11 @@ spec:
                           description: >-
                             Email address used to identify workshop participant.
                           type: string
+                        assignedAt:
+                          description: >-
+                            Time the seat was claimed by or assigned to this participant.
+                          type: string
+                          format: date-time
                     resourceClaimName:
                       description: >-
                         ResourceClaim name.
