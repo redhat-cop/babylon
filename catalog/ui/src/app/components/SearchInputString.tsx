@@ -13,7 +13,7 @@ const SearchInputString: React.FC<
 
   // sync callback with parent
   useEffect(() => {
-    setValueCb && setValueCb(() => setValue);
+    if (setValueCb) setValueCb(() => setValue);
   }, [setValue]);
 
   return (

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import useSWRInfinite from 'swr/infinite';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
@@ -232,24 +232,24 @@ const ResourceHandles: React.FC = () => {
             rows={resourceHandles.map((resourceHandle) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="name">
                     <Link key="admin" to={`/admin/resourcehandles/${resourceHandle.metadata.name}`}>
                       {resourceHandle.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={resourceHandle} />
-                  </>,
+                  </Fragment>,
                   resourceHandle.spec.resourcePool ? (
-                    <>
+                    <Fragment key="resource-pool">
                       <Link key="admin" to={`/admin/resourcepools/${resourceHandle.spec.resourcePool.name}`}>
                         {resourceHandle.spec.resourcePool.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourcePool} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="resource-pool">-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
-                    <>
+                    <Fragment key="service-namespace">
                       <Link key="admin" to={`/services/${resourceHandle.spec.resourceClaim.namespace}`}>
                         {resourceHandle.spec.resourceClaim.namespace}
                       </Link>
@@ -258,12 +258,12 @@ const ResourceHandles: React.FC = () => {
                         reference={resourceHandle.spec.resourceClaim}
                         linkToNamespace={true}
                       />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="service-namespace">-</p>
                   ),
                   resourceHandle.spec.resourceClaim ? (
-                    <>
+                    <Fragment key="service-name">
                       <Link
                         key="admin"
                         to={`/services/${resourceHandle.spec.resourceClaim.namespace}/${resourceHandle.spec.resourceClaim.name}`}
@@ -271,11 +271,11 @@ const ResourceHandles: React.FC = () => {
                         {resourceHandle.spec.resourceClaim.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={resourceHandle.spec.resourceClaim} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="service-name">-</p>
                   ),
-                  <>
+                  <Fragment key="providers">
                     {resourceHandle.spec.resources.map((resourceHandleSpecResource, idx) => (
                       <div key={idx}>
                         <Link key="admin" to={`/admin/resourceproviders/${resourceHandleSpecResource.provider.name}`}>
@@ -284,13 +284,13 @@ const ResourceHandles: React.FC = () => {
                         <OpenshiftConsoleLink key="console" reference={resourceHandleSpecResource.provider} />
                       </div>
                     ))}
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={resourceHandle.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={resourceHandle.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({

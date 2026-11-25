@@ -7,13 +7,8 @@ const CatalogItemIcon: React.FC<{
 }> = ({ catalogItem }) => {
   const iconConfig = catalogItem.spec.icon;
 
-  if (iconConfig) {
-    try {
-      if (iconConfig.url)
-        return <img className="catalog-item-icon" alt={iconConfig.alt} src={iconConfig.url} style={iconConfig.style} />;
-    } catch {
-      //
-    }
+  if (iconConfig?.url) {
+    return <img className="catalog-item-icon" alt={iconConfig.alt} src={iconConfig.url} style={iconConfig.style} />;
   }
 
   return <PackageIcon className="catalog-item-icon" />;

@@ -6,7 +6,7 @@ import type { SVGIconProps } from '@patternfly/react-icons/dist/js/createIcon';
 import './action-dropdown.css';
 
 const ActionDropdown: React.FC<{
-  actionDropdownItems: any;
+  actionDropdownItems: React.ReactNode[];
   className?: string;
   isDisabled?: boolean;
   position?: 'right' | 'left' | 'center' | 'end' | 'start';
@@ -33,7 +33,7 @@ const ActionDropdown: React.FC<{
         </MenuToggle>
       )}
     >
-      <DropdownList>{actionDropdownItems.map((item: any) => item)}</DropdownList>
+      <DropdownList>{actionDropdownItems.map((item) => item)}</DropdownList>
     </Dropdown>
   );
 };

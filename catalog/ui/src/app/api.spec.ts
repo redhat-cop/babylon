@@ -2,6 +2,8 @@ import { FORBIDDEN_RESPONSE, assignSelfPacedLabUser } from './api';
 import type { SelfPacedLabUserAssignment } from './types';
 import fetchMock from 'jest-fetch-mock';
 
+const sessionWindow = window as Window & { sessionPromiseInstance?: Promise<{ token: string }> };
+
 describe('optionalFetcher', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -104,12 +106,12 @@ describe('assignSelfPacedLabUser', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    (window as any).sessionPromiseInstance = Promise.resolve({ token: 'test-token' });
+    sessionWindow.sessionPromiseInstance = Promise.resolve({ token: 'test-token' });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
-    delete (window as any).sessionPromiseInstance;
+    delete sessionWindow.sessionPromiseInstance;
   });
 
   test('should return original array when assignment is not found', async () => {

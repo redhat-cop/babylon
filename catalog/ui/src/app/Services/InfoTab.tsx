@@ -15,7 +15,6 @@ import {
   createAsciiDocAttributes,
   getAutoStopTime,
   getInfoMessageTemplate,
-  getMostRelevantResourceAndTemplate,
   getStartTime,
   isResourceClaimLocked,
 } from './service-utils';
@@ -36,8 +35,6 @@ const InfoTab: React.FC<{
   }) => void;
 }> = ({ resourceClaim, showModal }) => {
   const infoMessageTemplate = getInfoMessageTemplate(resourceClaim);
-  const { resource: mostRelevantResource, template: mostRelevantTemplate } =
-    getMostRelevantResourceAndTemplate(resourceClaim);
   const externalPlatformUrl = resourceClaim.metadata?.annotations?.[`${BABYLON_DOMAIN}/internalPlatformUrl`];
   const isPartOfWorkshop = isResourceClaimPartOfWorkshop(resourceClaim);
   const isLocked = isResourceClaimLocked(resourceClaim);
@@ -131,7 +128,9 @@ const InfoTab: React.FC<{
             </DescriptionListDescription>
           </DescriptionListGroup>
 
-          {!externalPlatformUrl && !isPartOfWorkshop && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+          {!externalPlatformUrl &&
+          !isPartOfWorkshop &&
+          (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
             <DescriptionListGroup>
               <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
               <DescriptionListDescription>
@@ -148,7 +147,8 @@ const InfoTab: React.FC<{
                   variant="extended"
                   resourceClaim={resourceClaim}
                 >
-                  {resourceClaim.status?.lifespan?.end && resourceClaim.spec?.lifespan?.end &&
+                  {resourceClaim.status?.lifespan?.end &&
+                  resourceClaim.spec?.lifespan?.end &&
                   resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
                     <>
                       {' '}

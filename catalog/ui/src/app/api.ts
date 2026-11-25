@@ -190,7 +190,7 @@ export async function fetcher(path: string, opt?: Record<string, unknown>) {
 export async function silentFetcher(path: string, opt?: Record<string, unknown>) {
   try {
     return await fetcher(path, opt);
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -798,9 +798,7 @@ export async function createWorkshop({
         ...(catalogItem.spec.supportLink ? { [`${BABYLON_DOMAIN}/support-link`]: catalogItem.spec.supportLink } : {}),
         ...(customAnnotations || {}),
       },
-      ...(customOwnerReferences && customOwnerReferences.length > 0
-        ? { ownerReferences: customOwnerReferences }
-        : {}),
+      ...(customOwnerReferences && customOwnerReferences.length > 0 ? { ownerReferences: customOwnerReferences } : {}),
     },
     spec: {
       multiuserServices: catalogItem.spec.workshopUserMode !== 'none',
@@ -1660,7 +1658,10 @@ export async function deleteWhiteGloveRequest(wgr: WhiteGloveRequest) {
  * Create the Jira ticket for an existing WhiteGloveRequest. The API builds the ticket
  * from the stored WGR and records the ticket id/url annotations on it.
  */
-export async function createJiraTicketForWgr(wgr: { namespace: string; name: string }): Promise<{ key: string; url: string }> {
+export async function createJiraTicketForWgr(wgr: {
+  namespace: string;
+  name: string;
+}): Promise<{ key: string; url: string }> {
   const response = await apiFetch('/api/jira/wgr', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2666,7 +2667,8 @@ export async function createServiceAccessConfig({
   serviceKind?: 'Workshop' | 'ResourceClaim' | 'SelfPacedLab';
   users: string[];
 }): Promise<ServiceAccessConfig> {
-  const labelKey = serviceKind === 'Workshop' ? 'workshop' : serviceKind === 'SelfPacedLab' ? 'selfpacedlab' : 'resourceclaim';
+  const labelKey =
+    serviceKind === 'Workshop' ? 'workshop' : serviceKind === 'SelfPacedLab' ? 'selfpacedlab' : 'resourceclaim';
   const definition: ServiceAccessConfig = {
     apiVersion: `${BABYLON_DOMAIN}/v1`,
     kind: 'ServiceAccessConfig',
@@ -2805,7 +2807,15 @@ export const apiPaths = {
     }`,
   SELF_PACED_LAB: ({ namespace, selfPacedLabName }: { namespace: string; selfPacedLabName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/selfpacedlabs/${selfPacedLabName}`,
-  SELF_PACED_LABS: ({ namespace, limit, continueId }: { namespace?: string; limit?: number | string; continueId?: string }) =>
+  SELF_PACED_LABS: ({
+    namespace,
+    limit,
+    continueId,
+  }: {
+    namespace?: string;
+    limit?: number | string;
+    continueId?: string;
+  }) =>
     `/apis/${BABYLON_DOMAIN}/v1${namespace ? `/namespaces/${namespace}` : ''}/selfpacedlabs?${
       limit ? `limit=${limit}` : ''
     }${continueId ? `&continue=${continueId}` : ''}`,
@@ -2852,8 +2862,7 @@ export const apiPaths = {
     }${continueId ? `&continue=${continueId}` : ''}${labelSelector ? `&labelSelector=${labelSelector}` : ''}`,
   MULTIWORKSHOP: ({ namespace, multiworkshopName }: { namespace: string; multiworkshopName: string }) =>
     `/apis/${BABYLON_DOMAIN}/v1/namespaces/${namespace}/multiworkshops/${multiworkshopName}`,
-  PUBLIC_MULTIWORKSHOP: ({ multiWorkshopId }: { multiWorkshopId: string }) =>
-    `/api/event/${multiWorkshopId}`,
+  PUBLIC_MULTIWORKSHOP: ({ multiWorkshopId }: { multiWorkshopId: string }) => `/api/event/${multiWorkshopId}`,
   MULTIWORKSHOPS: ({
     namespace,
     limit,
@@ -2905,7 +2914,15 @@ export const apiPaths = {
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepools?${limit ? `limit=${limit}` : ''}${
       continueId ? `&continue=${continueId}` : ''
     }`,
-  RESOURCE_POOL_SCALINGS: ({ labelSelector, limit, continueId }: { labelSelector?: string; limit?: number | string; continueId?: string }) =>
+  RESOURCE_POOL_SCALINGS: ({
+    labelSelector,
+    limit,
+    continueId,
+  }: {
+    labelSelector?: string;
+    limit?: number | string;
+    continueId?: string;
+  }) =>
     `/apis/poolboy.gpte.redhat.com/v1/namespaces/poolboy/resourcepoolscalings?${
       labelSelector ? `labelSelector=${labelSelector}` : ''
     }${limit ? `&limit=${limit}` : ''}${continueId ? `&continue=${continueId}` : ''}`,

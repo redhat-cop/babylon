@@ -3,12 +3,25 @@ import * as yaml from 'js-yaml';
 
 import './ansible-run-log.css';
 
-export interface AnsibleRunTaskHost {
-  args?: any;
+export interface AnsibleRunResult {
+  changed?: boolean;
+  [key: string]: unknown;
+}
+
+export interface AnsibleRunTaskHostItem {
   failed?: boolean;
-  items?: any[];
+  item?: React.ReactNode;
   ok?: boolean;
-  result?: any;
+  result?: AnsibleRunResult;
+  skipped?: boolean;
+}
+
+export interface AnsibleRunTaskHost {
+  args?: unknown;
+  failed?: boolean;
+  items?: AnsibleRunTaskHostItem[];
+  ok?: boolean;
+  result?: AnsibleRunResult;
   skipped?: boolean;
 }
 
@@ -66,7 +79,7 @@ const AnsibleRunLog: React.FunctionComponent<AnsibleRunLogProps> = ({ ansibleRun
                 <div key={hostname} className="ansible-run-log-task-host">
                   {(host.items || []).length > 0 ? (
                     <div className="ansible-run-log-task-host-items">
-                      {host.items.map((item: any, item_number) =>
+                      {host.items.map((item, item_number) =>
                         item.result?.changed ? (
                           <div key={item_number} className="ansible-run-log-task-host-item-changed">
                             changed: [{hostname}] (item={item.item})

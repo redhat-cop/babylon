@@ -81,7 +81,7 @@ function FloatingLinkEditor({ editor }) {
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
         return parsed.href;
       }
-    } catch (e) {
+    } catch {
       // Invalid URL; fall through and return empty string.
     }
     return '';
@@ -144,9 +144,12 @@ function FloatingLinkEditor({ editor }) {
   useEffect(() => {
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          updateLinkEditor();
-        }, { editor });
+        editorState.read(
+          () => {
+            updateLinkEditor();
+          },
+          { editor },
+        );
       }),
 
       editor.registerCommand(
@@ -161,9 +164,12 @@ function FloatingLinkEditor({ editor }) {
   }, [editor, updateLinkEditor]);
 
   useEffect(() => {
-    editor.getEditorState().read(() => {
-      updateLinkEditor();
-    }, { editor });
+    editor.getEditorState().read(
+      () => {
+        updateLinkEditor();
+      },
+      { editor },
+    );
   }, [editor, updateLinkEditor]);
 
   useEffect(() => {
@@ -511,9 +517,12 @@ const ToolbarPlugin: React.FC = () => {
   useEffect(() => {
     return mergeRegister(
       editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          updateToolbar();
-        }, { editor });
+        editorState.read(
+          () => {
+            updateToolbar();
+          },
+          { editor },
+        );
       }),
       editor.registerCommand(
         SELECTION_CHANGE_COMMAND,

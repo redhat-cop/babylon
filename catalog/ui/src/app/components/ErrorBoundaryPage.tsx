@@ -13,9 +13,9 @@ const ErrorBoundaryPage: React.FC<{
 }> = ({ name, namespace, type, includeFooter = true, children }) => (
   <ErrorBoundary
     onError={(err) => window['newrelic'] && window['newrelic'].noticeError(err)}
-    fallbackRender={({ error }: { error: any }) => (
+    fallbackRender={({ error }) => (
       <>
-        {error?.status === 404 ? (
+        {typeof error === 'object' && error !== null && 'status' in error && error.status === 404 ? (
           <NotFoundComponent name={name} namespace={namespace} type={type} />
         ) : (
           <UnexpectedError />

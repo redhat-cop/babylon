@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
@@ -185,24 +185,24 @@ const ResourcePools: React.FC = () => {
             rows={_resourcePools.map((resourcePool) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="name">
                     <Link key="admin" to={`/admin/resourcepools/${resourcePool.metadata.name}`}>
                       {resourcePool.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={resourcePool} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={resourcePool.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={resourcePool.metadata.creationTimestamp} />)
                     </span>
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="stats">
                     <ResourcePoolStats
                       resourcePoolName={resourcePool.metadata.name}
                       minAvailable={resourcePool.spec.minAvailable}
                     />
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) => {
                   reduceSelectedUids({

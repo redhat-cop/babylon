@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -264,11 +264,11 @@ const AnarchyRuns: React.FC = () => {
             rows={anarchyRuns.map((anarchyRun: AnarchyRun) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchyRun.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchyruns/${anarchyRun.metadata.namespace}/${anarchyRun.metadata.name}`}
@@ -276,9 +276,11 @@ const AnarchyRuns: React.FC = () => {
                       {anarchyRun.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchyRun} />
-                  </>,
-                  <>{anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}</>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="runner-state">
+                    {anarchyRun.metadata.labels?.['anarchy.gpte.redhat.com/runner'] || <p>-</p>}
+                  </Fragment>,
+                  <Fragment key="subject">
                     {anarchyRun.spec.subject ? (
                       <>
                         <Link
@@ -292,9 +294,9 @@ const AnarchyRuns: React.FC = () => {
                     ) : (
                       <p>-</p>
                     )}
-                  </>,
+                  </Fragment>,
                   anarchyRun.spec.action ? (
-                    <>
+                    <Fragment key="action">
                       <Link
                         key="admin"
                         to={`/admin/anarchyactions/${anarchyRun.spec.action.namespace}/${anarchyRun.spec.action.name}`}
@@ -302,16 +304,16 @@ const AnarchyRuns: React.FC = () => {
                         {anarchyRun.spec.action.name}
                       </Link>
                       <OpenshiftConsoleLink key="console" reference={anarchyRun.spec.subject} />
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="action">-</p>
                   ),
-                  <>
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchyRun.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={anarchyRun.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                 ],
                 onSelect: (isSelected: boolean) =>
                   reduceSelectedUids({

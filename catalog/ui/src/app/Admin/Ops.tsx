@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import {
   Alert,
   AlertGroup,
@@ -89,14 +89,21 @@ import {
   scheduleStopForAllResourcesInResourceClaim,
 } from '@app/api';
 import type {
-  Workshop, WorkshopList, WorkshopProvision, WorkshopProvisionList,
-  WorkshopUserAssignment, WorkshopUserAssignmentList,
-  ResourceClaim, ResourceClaimList,
-  MultiWorkshop, MultiWorkshopList,
-  TenantClusterPool, TenantClusterPoolList,
+  Workshop,
+  WorkshopList,
+  WorkshopProvision,
+  WorkshopProvisionList,
+  WorkshopUserAssignment,
+  WorkshopUserAssignmentList,
+  ResourceClaim,
+  ResourceClaimList,
+  MultiWorkshop,
+  MultiWorkshopList,
+  TenantClusterPoolList,
   ServiceNamespace,
   WorkshopWithResourceClaims,
   K8sObject,
+  Namespace,
 } from '@app/types';
 import {
   displayName,
@@ -117,7 +124,14 @@ import {
   workshopCalendarLocalizer,
   workshopToCalendarEventOps,
 } from '@app/Admin/workshopCalendarEvents';
-import WorkshopTimeline, { getWorkshopStatus, getWorkshopPrimaryRegion, getWorkshopActiveRegions, REGIONS, type StatusKey, type RegionKey } from '@app/Admin/Ops/WorkshopTimeline';
+import WorkshopTimeline, {
+  getWorkshopStatus,
+  getWorkshopPrimaryRegion,
+  getWorkshopActiveRegions,
+  REGIONS,
+  type StatusKey,
+  type RegionKey,
+} from '@app/Admin/Ops/WorkshopTimeline';
 import { getMonday, getSunday, getStartOfDay, getEndOfDay } from '@app/Admin/Ops/TimelineControls';
 import {
   buildSoundcheckCheckUrl,
@@ -151,7 +165,7 @@ import {
   type OpsHistoryEntry,
 } from '@app/Admin/Ops/opsHistory';
 // Force webpack to include Timeline
-if (typeof window !== 'undefined') (window as any).__TIMELINE__ = WorkshopTimeline;
+if (typeof window !== 'undefined') (window as Window & { __TIMELINE__?: unknown }).__TIMELINE__ = WorkshopTimeline;
 
 import './admin.css';
 import './ops.css';
@@ -170,12 +184,14 @@ export function distributeProvisionCounts(oldCounts: number[], newTotal: number)
   if (n === 0) return [];
   const oldSum = oldCounts.reduce((a, b) => a + b, 0);
   if (oldSum === 0) return oldCounts.map(() => 0);
-  const exact = oldCounts.map(c => (c * newTotal) / oldSum);
-  const floors = exact.map(x => Math.floor(x));
+  const exact = oldCounts.map((c) => (c * newTotal) / oldSum);
+  const floors = exact.map((x) => Math.floor(x));
   let rem = newTotal - floors.reduce((a, b) => a + b, 0);
-  const order = oldCounts.map((_, i) => i).sort((i, j) => {
-    return (exact[j] - floors[j]) - (exact[i] - floors[i]);
-  });
+  const order = oldCounts
+    .map((_, i) => i)
+    .sort((i, j) => {
+      return exact[j] - floors[j] - (exact[i] - floors[i]);
+    });
   for (const i of order) {
     if (rem <= 0) break;
     floors[i]++;
@@ -185,7 +201,7 @@ export function distributeProvisionCounts(oldCounts: number[], newTotal: number)
 }
 
 export function workshopProvisionAssignedCount(p: WorkshopProvision): number {
-  return (p.status as any)?.assignedCount ?? 0;
+  return p.status?.assignedCount ?? 0;
 }
 
 export function distributeProvisionCountsRespectingAssigned(
@@ -197,7 +213,9 @@ export function distributeProvisionCountsRespectingAssigned(
   const result = base.map((v, i) => Math.max(v, assignedPerProv[i] ?? 0));
   let excess = result.reduce((a, b) => a + b, 0) - targetTotal;
   if (excess > 0) {
-    const sorted = result.map((_, i) => i).sort((a, b) => (result[b] - (assignedPerProv[b] ?? 0)) - (result[a] - (assignedPerProv[a] ?? 0)));
+    const sorted = result
+      .map((_, i) => i)
+      .sort((a, b) => result[b] - (assignedPerProv[b] ?? 0) - (result[a] - (assignedPerProv[a] ?? 0)));
     for (const i of sorted) {
       if (excess <= 0) break;
       const canRemove = result[i] - (assignedPerProv[i] ?? 0);
@@ -208,7 +226,6 @@ export function distributeProvisionCountsRespectingAssigned(
   }
   return result;
 }
-
 
 function seatColorClass(assigned: number, total: number): string {
   if (total <= 0 || assigned <= 0) return '';
@@ -229,21 +246,25 @@ const TIMELINE_STORAGE_KEY = 'opsTimelineDateRange';
 const FETCH_LIMIT = 500;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-const ONE_DAY_MS = TWENTY_FOUR_HOURS_MS;
 /** ~6 months — matches AutoStopDestroy.tsx (15778800000ms) */
 const SIX_MONTHS_MS = 15778800000;
 
-/** Paginate workshop *groups* (rows), not individual asset lines */
-const OPS_GROUP_PAGE_DEFAULT = 18;
-
-export type OpsSortMode = 'start-asc' | 'start-desc' | 'users-desc' | 'name-asc' | 'name-desc' | 'stop-asc' | 'destroy-asc' | 'status-asc' | 'lock-asc' | 'instances-desc' | 'seats-desc';
+export type OpsSortMode =
+  | 'start-asc'
+  | 'start-desc'
+  | 'users-desc'
+  | 'name-asc'
+  | 'name-desc'
+  | 'stop-asc'
+  | 'destroy-asc'
+  | 'status-asc'
+  | 'lock-asc'
+  | 'instances-desc'
+  | 'seats-desc';
 
 /** Start time for sorting / schedule filters: workshop start, lifespan start, or creation time */
 export function getWorkshopScheduleStartMs(ws: Workshop): number | null {
-  const iso =
-    ws.spec?.actionSchedule?.start ||
-    ws.spec?.lifespan?.start ||
-    ws.metadata?.creationTimestamp;
+  const iso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start || ws.metadata?.creationTimestamp;
   if (!iso) return null;
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? t : null;
@@ -262,8 +283,6 @@ export function getWorkshopDestroyMs(ws: Workshop): number | null {
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? t : null;
 }
-
-
 
 function compareWorkshopsForSort(
   a: Workshop,
@@ -309,7 +328,7 @@ function compareWorkshopsForSort(
       return nameCmp();
     }
     case 'status-asc': {
-      const order: Record<string, number> = { 'Running': 0, 'Failed': 1, 'Scheduled': 2, 'Stopped': 3 };
+      const order: Record<string, number> = { Running: 0, Failed: 1, Scheduled: 2, Stopped: 3 };
       const sa = order[getWorkshopStatus(a as WorkshopWithResourceClaims)] ?? 4;
       const sb = order[getWorkshopStatus(b as WorkshopWithResourceClaims)] ?? 4;
       if (sa !== sb) return sa - sb;
@@ -410,24 +429,6 @@ function wsDetailPath(ws: Workshop): string {
 }
 
 /**
- * Check if a ResourceClaim is in a failed provision state.
- */
-function isResourceClaimFailed(rc: ResourceClaim): boolean {
-  // Check for provision failure states
-  const state = rc.status?.resources?.[0]?.state;
-  if (!state) return false;
-
-  // AnarchySubject with failed provision
-  if (state.kind === 'AnarchySubject') {
-    const provisionState = state.spec?.vars?.current_state;
-    return provisionState === 'provision-failed' ||
-           provisionState === 'provision-error';
-  }
-
-  return false;
-}
-
-/**
  * Parse multi-term search input into individual search terms.
  * Supports comma-separated, space-separated, or mixed formats.
  * Examples:
@@ -441,8 +442,8 @@ function parseSearchTerms(input: string): string[] {
   // Split by comma or whitespace, trim each term, filter empty strings
   const terms = input
     .split(/[,\s]+/)
-    .map(term => term.trim().toLowerCase())
-    .filter(term => term.length > 0);
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term.length > 0);
 
   // Deduplicate terms
   return Array.from(new Set(terms));
@@ -454,9 +455,7 @@ function getProvisionJobUrl(rc: ResourceClaim): string | null {
   const provJob = state.status?.towerJobs?.provision;
   if (!provJob) return null;
   if (provJob.towerJobURL) {
-    return provJob.towerJobURL.startsWith('https://')
-      ? provJob.towerJobURL
-      : `https://${provJob.towerJobURL}`;
+    return provJob.towerJobURL.startsWith('https://') ? provJob.towerJobURL : `https://${provJob.towerJobURL}`;
   }
   if (provJob.towerHost && provJob.deployerJob) {
     return `https://${provJob.towerHost}/#/jobs/${provJob.deployerJob}/`;
@@ -468,7 +467,6 @@ const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
   const { isAdmin } = useSession().getSession();
-  const { mutate } = useSWRConfig();
   const soundcheckBase = normalizeSoundcheckBase();
 
   // ---------- Alerts ----------
@@ -477,12 +475,12 @@ const Ops: React.FC = () => {
 
   const addAlert = useCallback((variant: AlertVariant, title: string, description?: string) => {
     const key = ++alertKeyCounter;
-    setAlerts(prev => [{ key, variant, title, description }, ...prev]);
-    setTimeout(() => setAlerts(prev => prev.filter(a => a.key !== key)), 8000);
+    setAlerts((prev) => [{ key, variant, title, description }, ...prev]);
+    setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== key)), 8000);
   }, []);
 
   const removeAlert = useCallback((key: number) => {
-    setAlerts(prev => prev.filter(a => a.key !== key));
+    setAlerts((prev) => prev.filter((a) => a.key !== key));
   }, []);
 
   // ---------- Operations history (localStorage) ----------
@@ -510,30 +508,33 @@ const Ops: React.FC = () => {
   const scStatusCacheRef = useRef<SoundcheckStatusCache>({});
   scStatusCacheRef.current = scStatusCache;
 
-  const recordHistory = useCallback((
-    action: OpsHistoryAction,
-    workshops: Workshop[],
-    ok: number,
-    fail: number,
-    opts?: { skipped?: number; detail?: string; label?: string; status?: OpsHistoryEntry['status'] },
-  ) => {
-    const names = workshops.map((ws) => displayName(ws) || ws.metadata.name);
-    setOpsHistory((prev) => {
-      const next = appendOpsHistory(prev, {
-        action,
-        label: opts?.label || actionDisplayName(action),
-        workshopCount: workshops.length,
-        workshopNames: names,
-        ok,
-        fail,
-        skipped: opts?.skipped,
-        detail: opts?.detail,
-        status: opts?.status,
+  const recordHistory = useCallback(
+    (
+      action: OpsHistoryAction,
+      workshops: Workshop[],
+      ok: number,
+      fail: number,
+      opts?: { skipped?: number; detail?: string; label?: string; status?: OpsHistoryEntry['status'] },
+    ) => {
+      const names = workshops.map((ws) => displayName(ws) || ws.metadata.name);
+      setOpsHistory((prev) => {
+        const next = appendOpsHistory(prev, {
+          action,
+          label: opts?.label || actionDisplayName(action),
+          workshopCount: workshops.length,
+          workshopNames: names,
+          ok,
+          fail,
+          skipped: opts?.skipped,
+          detail: opts?.detail,
+          status: opts?.status,
+        });
+        saveOpsHistory(next);
+        return next;
       });
-      saveOpsHistory(next);
-      return next;
-    });
-  }, []);
+    },
+    [],
+  );
 
   const clearOpsHistory = useCallback(() => {
     setOpsHistory([]);
@@ -555,7 +556,7 @@ const Ops: React.FC = () => {
   const [showPlatformConfirm, setShowPlatformConfirm] = useState(false);
 
   // Fetch all user namespaces for multi-ns picker
-  const { data: allNsData } = useSWR<{ items: any[] }>(
+  const { data: allNsData } = useSWR<{ items: Namespace[] }>(
     multiNsMode ? apiPaths.NAMESPACES({ labelSelector: 'usernamespace.gpte.redhat.com/user-uid' }) : null,
     fetcher,
   );
@@ -567,8 +568,10 @@ const Ops: React.FC = () => {
   const filteredNsOptions = useMemo(() => {
     const q = nsSearchText.trim().toLowerCase();
     return allNamespaces
-      .filter(ns => ns.name !== namespace && !extraNamespaces.includes(ns.name))
-      .filter(ns => !q || ns.name.toLowerCase().includes(q) || (ns.displayName && ns.displayName.toLowerCase().includes(q)))
+      .filter((ns) => ns.name !== namespace && !extraNamespaces.includes(ns.name))
+      .filter(
+        (ns) => !q || ns.name.toLowerCase().includes(q) || (ns.displayName && ns.displayName.toLowerCase().includes(q)),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [allNamespaces, namespace, extraNamespaces, nsSearchText]);
 
@@ -612,7 +615,11 @@ const Ops: React.FC = () => {
   // ---------- Dark mode ----------
 
   const [darkMode, setDarkMode] = useState(() => {
-    try { return localStorage.getItem('ops-dark-mode') === 'true'; } catch { return false; }
+    try {
+      return localStorage.getItem('ops-dark-mode') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   useEffect(() => {
@@ -622,13 +629,19 @@ const Ops: React.FC = () => {
     } else {
       el.classList.remove('pf-v6-theme-dark');
     }
-    return () => { el.classList.remove('pf-v6-theme-dark'); };
+    return () => {
+      el.classList.remove('pf-v6-theme-dark');
+    };
   }, [darkMode]);
 
   const toggleDarkMode = useCallback(() => {
-    setDarkMode(prev => {
+    setDarkMode((prev) => {
       const next = !prev;
-      try { localStorage.setItem('ops-dark-mode', String(next)); } catch { /* noop */ }
+      try {
+        localStorage.setItem('ops-dark-mode', String(next));
+      } catch {
+        /* noop */
+      }
       return next;
     });
   }, []);
@@ -637,45 +650,57 @@ const Ops: React.FC = () => {
 
   const [timezone, setTimezone] = useState(getBrowserTimezone);
 
-  const fmtDate = useCallback((iso?: string) => {
-    if (!iso) return null;
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
-      timeZone: timezone,
-    });
-  }, [timezone]);
+  const fmtDate = useCallback(
+    (iso?: string) => {
+      if (!iso) return null;
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
+        timeZone: timezone,
+      });
+    },
+    [timezone],
+  );
 
   // ---------- Data fetching (multi-namespace aware) ----------
 
   const workshopUrls = useMemo(
-    () => platformMode
-      ? [apiPaths.WORKSHOPS({ limit: FETCH_LIMIT })]
-      : activeNamespaces.map(ns => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
+    () =>
+      platformMode
+        ? [apiPaths.WORKSHOPS({ limit: FETCH_LIMIT })]
+        : activeNamespaces.map((ns) => apiPaths.WORKSHOPS({ namespace: ns, limit: FETCH_LIMIT })),
     [activeNamespaces, platformMode],
   );
-  const { data: allWsData, mutate: mutateWorkshops, isValidating: wsValidating } = useSWR<WorkshopList[]>(
+  const {
+    data: allWsData,
+    mutate: mutateWorkshops,
+    isValidating: wsValidating,
+  } = useSWR<WorkshopList[]>(
     workshopUrls.length > 0 ? workshopUrls : null,
-    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopList>)),
+    (urls: string[]) => Promise.all(urls.map((u) => fetcher(u) as Promise<WorkshopList>)),
     { refreshInterval: 30000 },
   );
   const workshops = useMemo(() => {
     if (!allWsData) return [];
-    return allWsData
-      .flatMap(d => d?.items ?? [])
-      .filter(ws => !ws.metadata.deletionTimestamp); // Filter out ghost workshops being deleted
+    return allWsData.flatMap((d) => d?.items ?? []).filter((ws) => !ws.metadata.deletionTimestamp); // Filter out ghost workshops being deleted
   }, [allWsData]);
 
   // Fetch MultiWorkshop resources for multi-asset parent info
   const multiWorkshopUrls = useMemo(
-    () => platformMode
-      ? [apiPaths.MULTIWORKSHOPS({ limit: 500 })]
-      : activeNamespaces.map(ns => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
+    () =>
+      platformMode
+        ? [apiPaths.MULTIWORKSHOPS({ limit: 500 })]
+        : activeNamespaces.map((ns) => apiPaths.MULTIWORKSHOPS({ namespace: ns, limit: 500 })),
     [activeNamespaces, platformMode],
   );
   const { data: allMwData } = useSWR<MultiWorkshopList[]>(
     multiWorkshopUrls.length > 0 ? multiWorkshopUrls : null,
-    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<MultiWorkshopList>)),
+    (urls: string[]) => Promise.all(urls.map((u) => fetcher(u) as Promise<MultiWorkshopList>)),
     { refreshInterval: 30000 },
   );
   const multiWorkshopsByName = useMemo(() => {
@@ -683,7 +708,8 @@ const Ops: React.FC = () => {
     if (allMwData) {
       for (const list of allMwData) {
         for (const mw of list?.items ?? []) {
-          if (!mw.metadata.deletionTimestamp) { // Filter out deleted MultiWorkshops
+          if (!mw.metadata.deletionTimestamp) {
+            // Filter out deleted MultiWorkshops
             map.set(`${mw.metadata.namespace}/${mw.metadata.name}`, mw);
           }
         }
@@ -701,12 +727,22 @@ const Ops: React.FC = () => {
 
   // Build lookup map: resourceClaimName → { poolName, poolNamespace, clusterName, capacity }
   const tenantClusterLookup = useMemo(() => {
-    const map = new Map<string, { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; maxPlacements: number }>();
+    const map = new Map<
+      string,
+      {
+        poolName: string;
+        poolNamespace: string;
+        clusterName: string;
+        totalClusters: number;
+        availableClusters: number;
+        maxPlacements: number;
+      }
+    >();
     if (allTcpData?.items) {
       for (const pool of allTcpData.items) {
         if (pool.status?.clusters) {
           const totalClusters = pool.status.clusters.length;
-          const availableClusters = pool.status.clusters.filter(c => c.sandboxApiState === 'available').length;
+          const availableClusters = pool.status.clusters.filter((c) => c.sandboxApiState === 'available').length;
           const maxPlacements = pool.spec?.sandboxHost?.max_placements || 50;
 
           for (const cluster of pool.status.clusters) {
@@ -729,22 +765,34 @@ const Ops: React.FC = () => {
 
   // Platform mode: one paginated cluster-wide list per resource type instead of N per-workshop requests.
   // The key is the first-page URL; fetcherItemsInAllPages follows `continue` so nothing is truncated.
-  const { data: platformProvItems, mutate: mutatePlatformProv, isValidating: platformProvValidating } = useSWR<WorkshopProvision[]>(
+  const {
+    data: platformProvItems,
+    mutate: mutatePlatformProv,
+    isValidating: platformProvValidating,
+  } = useSWR<WorkshopProvision[]>(
     platformMode ? apiPaths.WORKSHOP_PROVISIONS_ALL({ limit: FETCH_LIMIT }) : null,
-    () => fetcherItemsInAllPages(continueId =>
-      apiPaths.WORKSHOP_PROVISIONS_ALL({ limit: FETCH_LIMIT, continueId }),
-    ) as Promise<WorkshopProvision[]>,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.WORKSHOP_PROVISIONS_ALL({ limit: FETCH_LIMIT, continueId }),
+      ) as Promise<WorkshopProvision[]>,
     { refreshInterval: 30000 },
   );
   const perWsProvisionKeys = useMemo(
-    () => !platformMode && workshops.length > 0
-      ? workshops.map(w => apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
-      : null,
+    () =>
+      !platformMode && workshops.length > 0
+        ? workshops.map((w) =>
+            apiPaths.WORKSHOP_PROVISIONS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }),
+          )
+        : null,
     [workshops, platformMode],
   );
-  const { data: perWsProvData, mutate: mutatePerWsProv, isValidating: perWsProvValidating } = useSWR<WorkshopProvisionList[]>(
+  const {
+    data: perWsProvData,
+    mutate: mutatePerWsProv,
+    isValidating: perWsProvValidating,
+  } = useSWR<WorkshopProvisionList[]>(
     perWsProvisionKeys,
-    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopProvisionList>)),
+    (urls: string[]) => Promise.all(urls.map((u) => fetcher(u) as Promise<WorkshopProvisionList>)),
     { refreshInterval: 30000 },
   );
   const mutateProvisions = useCallback(
@@ -753,24 +801,28 @@ const Ops: React.FC = () => {
   );
   const provValidating = platformMode ? platformProvValidating : perWsProvValidating;
   const provisionsByWorkshop = useMemo(
-    () => platformMode
-      ? groupByWorkshopLabel(platformProvItems ?? [])
-      : groupPerWorkshopResults(workshops, perWsProvData),
+    () =>
+      platformMode ? groupByWorkshopLabel(platformProvItems ?? []) : groupPerWorkshopResults(workshops, perWsProvData),
     [workshops, perWsProvData, platformProvItems, platformMode],
   );
 
+  const getCurrentCount = useCallback(
+    (ws: Workshop): number | null => {
+      const provs = provisionsByWorkshop.get(wsKey(ws));
+      if (!provs || provs.length === 0) return null;
+      return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
+    },
+    [provisionsByWorkshop],
+  );
 
-  const getCurrentCount = useCallback((ws: Workshop): number | null => {
-    const provs = provisionsByWorkshop.get(wsKey(ws));
-    if (!provs || provs.length === 0) return null;
-    return provs.reduce((sum, p) => sum + (p.spec?.count ?? 0), 0);
-  }, [provisionsByWorkshop]);
-
-  const getFailedCount = useCallback((ws: Workshop): number => {
-    const provs = provisionsByWorkshop.get(wsKey(ws));
-    if (!provs || provs.length === 0) return 0;
-    return provs.reduce((sum, p) => sum + ((p.status as any)?.failedCount ?? 0), 0);
-  }, [provisionsByWorkshop]);
+  const getFailedCount = useCallback(
+    (ws: Workshop): number => {
+      const provs = provisionsByWorkshop.get(wsKey(ws));
+      if (!provs || provs.length === 0) return 0;
+      return provs.reduce((sum, p) => sum + (p.status?.failedCount ?? 0), 0);
+    },
+    [provisionsByWorkshop],
+  );
 
   interface ProvisionProgress {
     desired: number;
@@ -779,34 +831,48 @@ const Ops: React.FC = () => {
     concurrency: number;
   }
 
-  const getProvisionProgress = useCallback((ws: Workshop): ProvisionProgress | null => {
-    const provs = provisionsByWorkshop.get(wsKey(ws));
-    if (!provs || provs.length === 0) return null;
-    return {
-      desired: provs.reduce((s, p) => s + (p.spec?.count ?? 0), 0),
-      claimed: provs.reduce((s, p) => s + ((p.status as any)?.resourceClaimCount ?? 0), 0),
-      failed: provs.reduce((s, p) => s + ((p.status as any)?.failedCount ?? 0), 0),
-      concurrency: provs.reduce((s, p) => s + (p.spec?.concurrency ?? 1), 0),
-    };
-  }, [provisionsByWorkshop]);
+  const getProvisionProgress = useCallback(
+    (ws: Workshop): ProvisionProgress | null => {
+      const provs = provisionsByWorkshop.get(wsKey(ws));
+      if (!provs || provs.length === 0) return null;
+      return {
+        desired: provs.reduce((s, p) => s + (p.spec?.count ?? 0), 0),
+        claimed: provs.reduce((s, p) => s + (p.status?.resourceClaimCount ?? 0), 0),
+        failed: provs.reduce((s, p) => s + (p.status?.failedCount ?? 0), 0),
+        concurrency: provs.reduce((s, p) => s + (p.spec?.concurrency ?? 1), 0),
+      };
+    },
+    [provisionsByWorkshop],
+  );
 
-
-  const { data: platformAssignItems, mutate: mutatePlatformAssign, isValidating: platformAssignValidating } = useSWR<WorkshopUserAssignment[]>(
+  const {
+    data: platformAssignItems,
+    mutate: mutatePlatformAssign,
+    isValidating: platformAssignValidating,
+  } = useSWR<WorkshopUserAssignment[]>(
     platformMode ? apiPaths.WORKSHOP_USER_ASSIGNMENTS_ALL({ limit: FETCH_LIMIT }) : null,
-    () => fetcherItemsInAllPages(continueId =>
-      apiPaths.WORKSHOP_USER_ASSIGNMENTS_ALL({ limit: FETCH_LIMIT, continueId }),
-    ) as Promise<WorkshopUserAssignment[]>,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.WORKSHOP_USER_ASSIGNMENTS_ALL({ limit: FETCH_LIMIT, continueId }),
+      ) as Promise<WorkshopUserAssignment[]>,
     { refreshInterval: 30000 },
   );
   const perWsAssignmentKeys = useMemo(
-    () => !platformMode && workshops.length > 0
-      ? workshops.map(w => apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }))
-      : null,
+    () =>
+      !platformMode && workshops.length > 0
+        ? workshops.map((w) =>
+            apiPaths.WORKSHOP_USER_ASSIGNMENTS({ workshopName: w.metadata.name, namespace: w.metadata.namespace }),
+          )
+        : null,
     [workshops, platformMode],
   );
-  const { data: perWsAssignData, mutate: mutatePerWsAssign, isValidating: perWsAssignValidating } = useSWR<WorkshopUserAssignmentList[]>(
+  const {
+    data: perWsAssignData,
+    mutate: mutatePerWsAssign,
+    isValidating: perWsAssignValidating,
+  } = useSWR<WorkshopUserAssignmentList[]>(
     perWsAssignmentKeys,
-    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
+    (urls: string[]) => Promise.all(urls.map((u) => fetcher(u) as Promise<WorkshopUserAssignmentList>)),
     { refreshInterval: 30000 },
   );
   const mutateAssignments = useCallback(
@@ -815,40 +881,48 @@ const Ops: React.FC = () => {
   );
   const assignValidating = platformMode ? platformAssignValidating : perWsAssignValidating;
   const assignmentsByWorkshop = useMemo(
-    () => platformMode
-      ? groupByWorkshopLabel(platformAssignItems ?? [])
-      : groupPerWorkshopResults(workshops, perWsAssignData),
+    () =>
+      platformMode
+        ? groupByWorkshopLabel(platformAssignItems ?? [])
+        : groupPerWorkshopResults(workshops, perWsAssignData),
     [workshops, perWsAssignData, platformAssignItems, platformMode],
   );
 
-  const getSeats = useCallback((ws: Workshop): { assigned: number; total: number } | null => {
-    const assignments = assignmentsByWorkshop.get(wsKey(ws));
-    if (!assignments || assignments.length === 0) return null;
-    const assigned = assignments.filter(a => a.spec?.assignment).length;
-    return { assigned, total: assignments.length };
-  }, [assignmentsByWorkshop]);
+  const getSeats = useCallback(
+    (ws: Workshop): { assigned: number; total: number } | null => {
+      const assignments = assignmentsByWorkshop.get(wsKey(ws));
+      if (!assignments || assignments.length === 0) return null;
+      const assigned = assignments.filter((a) => a.spec?.assignment).length;
+      return { assigned, total: assignments.length };
+    },
+    [assignmentsByWorkshop],
+  );
 
   // ResourceClaims per workshop — for real instance-level status (Running / Provisioning / Failed)
   const { data: platformRcItems, mutate: mutatePlatformRc } = useSWR<ResourceClaim[]>(
     platformMode ? apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: FETCH_LIMIT }) : null,
-    () => fetcherItemsInAllPages(continueId =>
-      apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: FETCH_LIMIT, continueId }),
-    ) as Promise<ResourceClaim[]>,
+    () =>
+      fetcherItemsInAllPages((continueId) =>
+        apiPaths.RESOURCE_CLAIMS({ labelSelector: `${BABYLON_DOMAIN}/workshop`, limit: FETCH_LIMIT, continueId }),
+      ) as Promise<ResourceClaim[]>,
     { refreshInterval: 30000 },
   );
   const perWsResourceClaimKeys = useMemo(
-    () => !platformMode && workshops.length > 0
-      ? workshops.map(w => apiPaths.RESOURCE_CLAIMS({
-          namespace: w.metadata.namespace,
-          labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
-          limit: 500,
-        }))
-      : null,
+    () =>
+      !platformMode && workshops.length > 0
+        ? workshops.map((w) =>
+            apiPaths.RESOURCE_CLAIMS({
+              namespace: w.metadata.namespace,
+              labelSelector: `${BABYLON_DOMAIN}/workshop=${w.metadata.name}`,
+              limit: 500,
+            }),
+          )
+        : null,
     [workshops, platformMode],
   );
   const { data: perWsRcData, mutate: mutatePerWsRc } = useSWR<ResourceClaimList[]>(
     perWsResourceClaimKeys,
-    (urls: string[]) => Promise.all(urls.map(u => fetcher(u) as Promise<ResourceClaimList>)),
+    (urls: string[]) => Promise.all(urls.map((u) => fetcher(u) as Promise<ResourceClaimList>)),
     { refreshInterval: 30000 },
   );
   const mutateResourceClaims = useCallback(
@@ -856,9 +930,8 @@ const Ops: React.FC = () => {
     [platformMode, mutatePlatformRc, mutatePerWsRc],
   );
   const resourceClaimsByWorkshop = useMemo(
-    () => platformMode
-      ? groupByWorkshopLabel(platformRcItems ?? [])
-      : groupPerWorkshopResults(workshops, perWsRcData),
+    () =>
+      platformMode ? groupByWorkshopLabel(platformRcItems ?? []) : groupPerWorkshopResults(workshops, perWsRcData),
     [workshops, perWsRcData, platformRcItems, platformMode],
   );
 
@@ -885,7 +958,9 @@ const Ops: React.FC = () => {
   const [sortMode, setSortMode] = useState<OpsSortMode>('start-asc');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(20); // Changed from OPS_GROUP_PAGE_DEFAULT (18) to align with pagination options
-  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline' | 'monitoring' | 'soundcheck'>('table');
+  const [workshopView, setWorkshopView] = useState<'table' | 'calendar' | 'timeline' | 'monitoring' | 'soundcheck'>(
+    'table',
+  );
   const [soundcheckFrameUrl, setSoundcheckFrameUrl] = useState<string>('');
   const [infraExpanded, setInfraExpanded] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
@@ -903,18 +978,25 @@ const Ops: React.FC = () => {
         const parsed = JSON.parse(stored);
         return { start: new Date(parsed.start), end: new Date(parsed.end) };
       }
-    } catch (e) { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     const today = new Date();
     return { start: getStartOfDay(getMonday(today)), end: getEndOfDay(getSunday(today)) };
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem(TIMELINE_STORAGE_KEY, JSON.stringify({
-        start: timelineDateRange.start.toISOString(),
-        end: timelineDateRange.end.toISOString(),
-      }));
-    } catch (e) { /* ignore */ }
+      localStorage.setItem(
+        TIMELINE_STORAGE_KEY,
+        JSON.stringify({
+          start: timelineDateRange.start.toISOString(),
+          end: timelineDateRange.end.toISOString(),
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
   }, [timelineDateRange]);
 
   const handleTimelineDateChange = useCallback((start: Date, end: Date) => {
@@ -923,56 +1005,78 @@ const Ops: React.FC = () => {
 
   // Attach resource claims to workshops for accurate status detection
   const workshopsWithRc = useMemo((): WorkshopWithResourceClaims[] => {
-    return workshops.map(ws => ({
-      ...ws,
-      resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
-    } as WorkshopWithResourceClaims));
+    return workshops.map(
+      (ws) =>
+        ({
+          ...ws,
+          resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
+        }) as WorkshopWithResourceClaims,
+    );
   }, [workshops, resourceClaimsByWorkshop]);
 
   // Helper to get full tenant cluster info for a workshop
-  const getWorkshopClusterInfo = useCallback((ws: WorkshopWithResourceClaims): { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null => {
-    const rcs = ws.resourceClaims || [];
-    for (const rc of rcs) {
-      const handleName = rc.status?.resourceHandle?.name;
-      if (handleName) {
-        const cluster = tenantClusterLookup.get(handleName);
-        if (cluster) {
-          // Pool saturation (cluster allocation)
-          const poolSaturationPercent = cluster.totalClusters > 0
-            ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
-            : 0;
+  const getWorkshopClusterInfo = useCallback(
+    (
+      ws: WorkshopWithResourceClaims,
+    ): {
+      poolName: string;
+      poolNamespace: string;
+      clusterName: string;
+      totalClusters: number;
+      availableClusters: number;
+      poolSaturationPercent: number;
+      maxPlacements: number;
+      placementCount: number;
+      maxTotalPlacements: number;
+      placementCapacityPercent: number;
+    } | null => {
+      const rcs = ws.resourceClaims || [];
+      for (const rc of rcs) {
+        const handleName = rc.status?.resourceHandle?.name;
+        if (handleName) {
+          const cluster = tenantClusterLookup.get(handleName);
+          if (cluster) {
+            // Pool saturation (cluster allocation)
+            const poolSaturationPercent =
+              cluster.totalClusters > 0
+                ? Math.round(((cluster.totalClusters - cluster.availableClusters) / cluster.totalClusters) * 100)
+                : 0;
 
-          // Placement capacity (workshop slots)
-          // Count workshops on this cluster by checking all workshops for matching cluster
-          const placementCount = workshopsWithRc.filter(w => {
-            const wRcs = w.resourceClaims || [];
-            return wRcs.some(wRc => wRc.status?.resourceHandle?.name === handleName);
-          }).length;
+            // Placement capacity (workshop slots)
+            // Count workshops on this cluster by checking all workshops for matching cluster
+            const placementCount = workshopsWithRc.filter((w) => {
+              const wRcs = w.resourceClaims || [];
+              return wRcs.some((wRc) => wRc.status?.resourceHandle?.name === handleName);
+            }).length;
 
-          const maxTotalPlacements = cluster.totalClusters * cluster.maxPlacements;
-          const placementCapacityPercent = maxTotalPlacements > 0
-            ? Math.round((placementCount / maxTotalPlacements) * 100)
-            : 0;
+            const maxTotalPlacements = cluster.totalClusters * cluster.maxPlacements;
+            const placementCapacityPercent =
+              maxTotalPlacements > 0 ? Math.round((placementCount / maxTotalPlacements) * 100) : 0;
 
-          return {
-            ...cluster,
-            poolSaturationPercent,
-            placementCount,
-            maxTotalPlacements,
-            placementCapacityPercent,
-          };
+            return {
+              ...cluster,
+              poolSaturationPercent,
+              placementCount,
+              maxTotalPlacements,
+              placementCapacityPercent,
+            };
+          }
         }
       }
-    }
-    return null;
-  }, [tenantClusterLookup, workshopsWithRc]);
+      return null;
+    },
+    [tenantClusterLookup, workshopsWithRc],
+  );
 
   // Helper to get tenant pool name for a workshop
-  const getWorkshopCluster = useCallback((ws: WorkshopWithResourceClaims): string | null => {
-    const info = getWorkshopClusterInfo(ws);
-    if (!info) return null;
-    return info.poolName;
-  }, [getWorkshopClusterInfo]);
+  const getWorkshopCluster = useCallback(
+    (ws: WorkshopWithResourceClaims): string | null => {
+      const info = getWorkshopClusterInfo(ws);
+      if (!info) return null;
+      return info.poolName;
+    },
+    [getWorkshopClusterInfo],
+  );
 
   const availablePurposes = useMemo(() => {
     const counts = new Map<string, number>();
@@ -992,22 +1096,18 @@ const Ops: React.FC = () => {
     if (workshopSearchText) {
       const searchTerms = parseSearchTerms(workshopSearchText);
       if (searchTerms.length > 0) {
-        list = list.filter(w => {
+        list = list.filter((w) => {
           const name = displayName(w).toLowerCase();
           const wsName = w.metadata?.name?.toLowerCase() || '';
           const ns = w.metadata?.namespace?.toLowerCase() || '';
-          return searchTerms.some(term =>
-            name.includes(term) ||
-            wsName.includes(term) ||
-            ns.includes(term)
-          );
+          return searchTerms.some((term) => name.includes(term) || wsName.includes(term) || ns.includes(term));
         });
       }
     }
-    if (stageFilter) list = list.filter(w => getStageFromK8sObject(w) === stageFilter);
-    if (whiteGloveMode) list = list.filter(ws => getWhiteGloved(ws));
+    if (stageFilter) list = list.filter((w) => getStageFromK8sObject(w) === stageFilter);
+    if (whiteGloveMode) list = list.filter((ws) => getWhiteGloved(ws));
     if (purposeFilter.size > 0) {
-      list = list.filter(w => {
+      list = list.filter((w) => {
         const p = w.metadata.annotations?.[`${DEMO_DOMAIN}/purpose`];
         return p !== undefined && purposeFilter.has(p);
       });
@@ -1019,15 +1119,17 @@ const Ops: React.FC = () => {
     let list: Workshop[] = baseFilteredWorkshops;
 
     // Search, stage, and white-glove already applied in baseFilteredWorkshops
-    if (failedFilter) list = list.filter(w => getFailedCount(w) > 0);
-    if (statusFilter !== 'all') list = list.filter(w => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
-    if (attentionFilter) list = list.filter(w => {
-      const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
-      const destroyUrg = dateUrgency(w.spec?.lifespan?.end);
-      return stopUrg === 'critical' || destroyUrg === 'critical';
-    });
+    if (failedFilter) list = list.filter((w) => getFailedCount(w) > 0);
+    if (statusFilter !== 'all')
+      list = list.filter((w) => getWorkshopStatus(w as WorkshopWithResourceClaims) === statusFilter);
+    if (attentionFilter)
+      list = list.filter((w) => {
+        const stopUrg = dateUrgency(w.spec?.actionSchedule?.stop);
+        const destroyUrg = dateUrgency(w.spec?.lifespan?.end);
+        return stopUrg === 'critical' || destroyUrg === 'critical';
+      });
     if (tableRegionFilter !== 'all') {
-      list = list.filter(w => {
+      list = list.filter((w) => {
         const wsWithRc = w as WorkshopWithResourceClaims;
         const primary = getWorkshopPrimaryRegion(wsWithRc);
         const active = getWorkshopActiveRegions(wsWithRc);
@@ -1035,14 +1137,14 @@ const Ops: React.FC = () => {
       });
     }
     if (clusterFilter !== 'all') {
-      list = list.filter(w => {
+      list = list.filter((w) => {
         const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
         if (clusterFilter === 'none') return cluster === null;
         return cluster === clusterFilter;
       });
     }
     if (tenantAssignmentFilter !== 'all') {
-      list = list.filter(w => {
+      list = list.filter((w) => {
         const cluster = getWorkshopCluster(w as WorkshopWithResourceClaims);
         if (tenantAssignmentFilter === 'with-tenant') return cluster !== null;
         if (tenantAssignmentFilter === 'no-tenant') return cluster === null;
@@ -1067,10 +1169,7 @@ const Ops: React.FC = () => {
   ]);
 
   const opsCalendarEvents = useMemo(
-    () =>
-      targets
-        .map(ws => workshopToCalendarEventOps(ws, wsDetailPath(ws), isMultiNs))
-        .filter(Boolean),
+    () => targets.map((ws) => workshopToCalendarEventOps(ws, wsDetailPath(ws), isMultiNs)).filter(Boolean),
     [targets, isMultiNs],
   );
 
@@ -1088,18 +1187,18 @@ const Ops: React.FC = () => {
   const hasSelection = selectedWs.size > 0;
   const operationTargets = useMemo(() => {
     if (!hasSelection) return targets;
-    return targets.filter(ws => selectedWs.has(wsKey(ws)));
+    return targets.filter((ws) => selectedWs.has(wsKey(ws)));
   }, [targets, selectedWs, hasSelection]);
 
   const toggleSelectGroup = useCallback((group: { items: Workshop[] }) => {
-    setSelectedWs(prev => {
+    setSelectedWs((prev) => {
       const next = new Set(prev);
-      const groupKeys = group.items.map(ws => wsKey(ws));
-      const allGroupSelected = groupKeys.every(k => next.has(k));
+      const groupKeys = group.items.map((ws) => wsKey(ws));
+      const allGroupSelected = groupKeys.every((k) => next.has(k));
       if (allGroupSelected) {
-        groupKeys.forEach(k => next.delete(k));
+        groupKeys.forEach((k) => next.delete(k));
       } else {
-        groupKeys.forEach(k => next.add(k));
+        groupKeys.forEach((k) => next.add(k));
       }
       return next;
     });
@@ -1136,7 +1235,10 @@ const Ops: React.FC = () => {
     // Multi-asset groups first, using the MultiWorkshop displayName as group name
     for (const [key, items] of mwGroups) {
       const mw = multiWorkshopsByName.get(key);
-      const name = mw?.spec?.displayName || items[0].metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] || displayName(items[0]);
+      const name =
+        mw?.spec?.displayName ||
+        items[0].metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] ||
+        displayName(items[0]);
       result.push({ name, items, multiWorkshop: mw });
     }
 
@@ -1169,21 +1271,21 @@ const Ops: React.FC = () => {
   }, [tablePage, maxTablePage]);
 
   const allSelected = useMemo(
-    () => workshopKeysOnPage.length > 0 && workshopKeysOnPage.every(k => selectedWs.has(k)),
-    [workshopKeysOnPage, selectedWs]
+    () => workshopKeysOnPage.length > 0 && workshopKeysOnPage.every((k) => selectedWs.has(k)),
+    [workshopKeysOnPage, selectedWs],
   );
 
   const toggleSelectAll = useCallback(() => {
     if (allSelected) {
-      setSelectedWs(prev => {
+      setSelectedWs((prev) => {
         const next = new Set(prev);
-        workshopKeysOnPage.forEach(k => next.delete(k));
+        workshopKeysOnPage.forEach((k) => next.delete(k));
         return next;
       });
     } else {
-      setSelectedWs(prev => {
+      setSelectedWs((prev) => {
         const next = new Set(prev);
-        workshopKeysOnPage.forEach(k => next.add(k));
+        workshopKeysOnPage.forEach((k) => next.add(k));
         return next;
       });
     }
@@ -1192,7 +1294,7 @@ const Ops: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroup = useCallback((name: string) => {
-    setExpandedGroups(prev => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -1201,20 +1303,46 @@ const Ops: React.FC = () => {
   }, []);
 
   const scopeLabel = useMemo(() => {
-    const nsLabel = platformMode ? 'all namespaces' :
-                    isMultiNs ? `${activeNamespaces.length} namespace(s)` :
-                    namespace || 'unknown namespace';
+    const nsLabel = platformMode
+      ? 'all namespaces'
+      : isMultiNs
+        ? `${activeNamespaces.length} namespace(s)`
+        : namespace || 'unknown namespace';
     if (workshopSearchText) {
       const searchTerms = parseSearchTerms(workshopSearchText);
-      const displayTerms = searchTerms.length > 3
-        ? `${searchTerms.slice(0, 3).join(', ')}... (${searchTerms.length} terms)`
-        : searchTerms.join(', ');
-      return <>Search &ldquo;{displayTerms}&rdquo; ({targets.length}) in {nsLabel}</>;
+      const displayTerms =
+        searchTerms.length > 3
+          ? `${searchTerms.slice(0, 3).join(', ')}... (${searchTerms.length} terms)`
+          : searchTerms.join(', ');
+      return (
+        <>
+          Search &ldquo;{displayTerms}&rdquo; ({targets.length}) in {nsLabel}
+        </>
+      );
     }
     if (hasSelection) return <>{selectedWs.size} selected</>;
-    if (whiteGloveMode) return <>White Glove ({targets.length}) in {nsLabel}</>;
-    return <>{targets.length} in {nsLabel}</>;
-  }, [workshopSearchText, targets.length, isMultiNs, activeNamespaces.length, namespace, hasSelection, selectedWs.size, whiteGloveMode, platformMode]);
+    if (whiteGloveMode)
+      return (
+        <>
+          White Glove ({targets.length}) in {nsLabel}
+        </>
+      );
+    return (
+      <>
+        {targets.length} in {nsLabel}
+      </>
+    );
+  }, [
+    workshopSearchText,
+    targets.length,
+    isMultiNs,
+    activeNamespaces.length,
+    namespace,
+    hasSelection,
+    selectedWs.size,
+    whiteGloveMode,
+    platformMode,
+  ]);
 
   // Namespace breakdown for modals
   const namespaceCounts = useMemo(() => {
@@ -1231,14 +1359,13 @@ const Ops: React.FC = () => {
     if (!filterText && !stageFilter && !whiteGloveMode && purposeFilter.size === 0) return null;
 
     const searchTerms = workshopSearchText ? parseSearchTerms(workshopSearchText) : [];
-    const searchMsg = searchTerms.length > 1
-      ? `search terms "${searchTerms.join('", "')}"`
-      : filterText ? `"${filterText}"` : null;
+    const searchMsg =
+      searchTerms.length > 1 ? `search terms "${searchTerms.join('", "')}"` : filterText ? `"${filterText}"` : null;
 
     return (
       <>
-        No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}.{' '}
-        Try another workshop name, stage, purpose, or white glove mode.
+        No workshops match your current filters{searchMsg ? ` (${searchMsg})` : ''}. Try another workshop name, stage,
+        purpose, or white glove mode.
       </>
     );
   }, [workshopSearchText, stageFilter, whiteGloveMode, purposeFilter]);
@@ -1248,19 +1375,31 @@ const Ops: React.FC = () => {
   const modalScopeDescription = useMemo(() => {
     const filterText = workshopSearchText;
     if (!isMultiNs) {
-      return filterText
-        ? <> matching &ldquo;{filterText}&rdquo; in <code>{namespace}</code></>
-        : <> in <code>{namespace}</code></>;
+      return filterText ? (
+        <>
+          {' '}
+          matching &ldquo;{filterText}&rdquo; in <code>{namespace}</code>
+        </>
+      ) : (
+        <>
+          {' '}
+          in <code>{namespace}</code>
+        </>
+      );
     }
     return (
       <>
         {filterText ? <> matching &ldquo;{filterText}&rdquo;</> : null}
         {' across '}
-        <strong>{namespaceCounts.size} namespace{namespaceCounts.size !== 1 ? 's' : ''}</strong>
+        <strong>
+          {namespaceCounts.size} namespace{namespaceCounts.size !== 1 ? 's' : ''}
+        </strong>
         :
         <ul className="ops-ns-breakdown">
           {Array.from(namespaceCounts.entries()).map(([ns, count]) => (
-            <li key={ns}><code>{ns}</code> &mdash; {count} workshop{count !== 1 ? 's' : ''}</li>
+            <li key={ns}>
+              <code>{ns}</code> &mdash; {count} workshop{count !== 1 ? 's' : ''}
+            </li>
           ))}
         </ul>
       </>
@@ -1271,12 +1410,10 @@ const Ops: React.FC = () => {
 
   const effectiveGroups = useMemo(() => {
     if (!hasSelection) return workshopGroups;
-    return workshopGroups.filter(g => g.items.some(ws => selectedWs.has(wsKey(ws))));
+    return workshopGroups.filter((g) => g.items.some((ws) => selectedWs.has(wsKey(ws))));
   }, [workshopGroups, hasSelection, selectedWs]);
 
-  const multiAssetGroupCount = useMemo(() =>
-    effectiveGroups.filter(g => g.multiWorkshop).length,
-  [effectiveGroups]);
+  const multiAssetGroupCount = useMemo(() => effectiveGroups.filter((g) => g.multiWorkshop).length, [effectiveGroups]);
 
   const effectiveTargets = hasSelection ? operationTargets : targets;
 
@@ -1313,13 +1450,29 @@ const Ops: React.FC = () => {
       if (stopUrg === 'critical' || destroyUrg === 'critical') attentionCount++;
     }
 
-    return { totalInstances, seatsAssigned, seatsTotal, lockedCount, activeCount, failedCount, attentionCount, failedWorkshops };
+    return {
+      totalInstances,
+      seatsAssigned,
+      seatsTotal,
+      lockedCount,
+      activeCount,
+      failedCount,
+      attentionCount,
+      failedWorkshops,
+    };
   }, [effectiveTargets, getCurrentCount, getSeats, getFailedCount]);
 
   const DAILY_SUPPORT_LIMIT = 5;
   const regionStats = useMemo(() => {
-    const emptyRecord = (): Record<RegionKey, number> => ({ 'all': 0, 'emea': 0, 'na-east': 0, 'na-west': 0, 'apac-india': 0, 'apac-aus': 0 });
-    const counts = emptyRecord();   // deploy region (primary)
+    const emptyRecord = (): Record<RegionKey, number> => ({
+      all: 0,
+      emea: 0,
+      'na-east': 0,
+      'na-west': 0,
+      'apac-india': 0,
+      'apac-aus': 0,
+    });
+    const counts = emptyRecord(); // deploy region (primary)
     const instances = emptyRecord();
     const deploying = emptyRecord();
     const running = emptyRecord();
@@ -1356,9 +1509,10 @@ const Ops: React.FC = () => {
         const dayStart = new Date(day);
         dayStart.setUTCHours(0, 0, 0, 0);
         const bizStartMs = dayStart.getTime() + r.startUtcH * 3600000;
-        const bizEndMs = r.endUtcH > 24
-          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
-          : dayStart.getTime() + r.endUtcH * 3600000;
+        const bizEndMs =
+          r.endUtcH > 24
+            ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+            : dayStart.getTime() + r.endUtcH * 3600000;
         let dayCount = 0;
         for (const ws of baseFilteredWorkshops) {
           const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
@@ -1383,9 +1537,10 @@ const Ops: React.FC = () => {
         const dayStart = new Date(day);
         dayStart.setUTCHours(0, 0, 0, 0);
         const bizStartMs2 = dayStart.getTime() + r.startUtcH * 3600000;
-        const bizEndMs2 = r.endUtcH > 24
-          ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
-          : dayStart.getTime() + r.endUtcH * 3600000;
+        const bizEndMs2 =
+          r.endUtcH > 24
+            ? dayStart.getTime() + (r.endUtcH - 24) * 3600000 + 86400000
+            : dayStart.getTime() + r.endUtcH * 3600000;
         let dayCount2 = 0;
         for (const ws of baseFilteredWorkshops) {
           const startIso = ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start;
@@ -1406,7 +1561,7 @@ const Ops: React.FC = () => {
       }
     }
     // Deduplicate — keep highest count per date+region, then sort by date
-    const busyDayMap = new Map<string, typeof busyDays[0]>();
+    const busyDayMap = new Map<string, (typeof busyDays)[0]>();
     for (const bd of busyDays) {
       const key = `${bd.date.toISOString().split('T')[0]}:${bd.region}`;
       const existing = busyDayMap.get(key);
@@ -1421,7 +1576,7 @@ const Ops: React.FC = () => {
     // Cross-region overlap
     const spanning: Record<string, number> = {};
     for (const r of REGIONS) {
-      spanning[r.key] = baseFilteredWorkshops.filter(ws => {
+      spanning[r.key] = baseFilteredWorkshops.filter((ws) => {
         const active = getWorkshopActiveRegions(ws);
         return active.includes(r.key) && active.length > 1;
       }).length;
@@ -1461,27 +1616,34 @@ const Ops: React.FC = () => {
 
   const poolFleetStats = useMemo(() => {
     if (!allTcpData?.items) return [];
-    return allTcpData.items.map(pool => {
-      const clusters = pool.status?.clusters ?? [];
-      const total = clusters.length;
-      const available = clusters.filter(c => c.sandboxApiState === 'available').length;
-      const pending = clusters.filter(c => c.sandboxApiState === 'pending').length;
-      const disabled = clusters.filter(c => c.sandboxApiState === 'disabled').length;
-      const workshopCount = clusterStats.clusterCounts[pool.metadata.name] ?? 0;
-      return {
-        name: pool.metadata.name,
-        total,
-        available,
-        pending,
-        disabled,
-        workshopCount,
-        saturationPct: total > 0 ? Math.round(((total - available) / total) * 100) : 0,
-      };
-    }).sort((a, b) => b.total - a.total);
+    return allTcpData.items
+      .map((pool) => {
+        const clusters = pool.status?.clusters ?? [];
+        const total = clusters.length;
+        const available = clusters.filter((c) => c.sandboxApiState === 'available').length;
+        const pending = clusters.filter((c) => c.sandboxApiState === 'pending').length;
+        const disabled = clusters.filter((c) => c.sandboxApiState === 'disabled').length;
+        const workshopCount = clusterStats.clusterCounts[pool.metadata.name] ?? 0;
+        return {
+          name: pool.metadata.name,
+          total,
+          available,
+          pending,
+          disabled,
+          workshopCount,
+          saturationPct: total > 0 ? Math.round(((total - available) / total) * 100) : 0,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
   }, [allTcpData, clusterStats]);
 
   const failedInstancesAnalysis = useMemo(() => {
-    const failedWorkshops: { workshop: Workshop; failedClaims: ResourceClaim[]; failedCount: number; jobUrls: string[] }[] = [];
+    const failedWorkshops: {
+      workshop: Workshop;
+      failedClaims: ResourceClaim[];
+      failedCount: number;
+      jobUrls: string[];
+    }[] = [];
     const allJobUrls: string[] = [];
 
     for (const ws of operationTargets) {
@@ -1516,7 +1678,7 @@ const Ops: React.FC = () => {
   const failedJobsTooltip = useMemo(() => {
     if (failedInstancesAnalysis.totalFailed === 0) return '';
     const breakdown = failedInstancesAnalysis.failedWorkshops
-      .map(fw => `${displayName(fw.workshop)} (${fw.jobUrls.length})`)
+      .map((fw) => `${displayName(fw.workshop)} (${fw.jobUrls.length})`)
       .join(', ');
     return `Opens AAP2 jobs for ${failedInstancesAnalysis.totalFailed} failed instances across: ${breakdown}`;
   }, [failedInstancesAnalysis]);
@@ -1553,13 +1715,27 @@ const Ops: React.FC = () => {
 
   const [scaleConfirmText, setScaleConfirmText] = useState('');
 
-  const anyLoading = lockLoading || unlockLoading || extStopLoading || extDestroyLoading || noAutostopLoading || scaleLoading || redeployLoading || soundcheckLoading;
+  const anyLoading =
+    lockLoading ||
+    unlockLoading ||
+    extStopLoading ||
+    extDestroyLoading ||
+    noAutostopLoading ||
+    scaleLoading ||
+    redeployLoading ||
+    soundcheckLoading;
 
   const scaleAnalysis = useMemo(() => {
-    let up = 0, down = 0, same = 0, unknown = 0;
+    let up = 0,
+      down = 0,
+      same = 0,
+      unknown = 0;
     for (const ws of operationTargets) {
       const cur = getCurrentCount(ws);
-      if (cur === null) { unknown++; continue; }
+      if (cur === null) {
+        unknown++;
+        continue;
+      }
       if (scaleCount > cur) up++;
       else if (scaleCount < cur) down++;
       else same++;
@@ -1584,15 +1760,34 @@ const Ops: React.FC = () => {
       if (!iso) return '';
       const d = new Date(iso);
       return d.toLocaleString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
         timeZone: timezone,
       });
     };
 
-    const header = ['Group', 'Name', 'K8s Name', 'Namespace', 'Stage', 'Locked',
-      'Instances', 'Concurrency', 'Seats Assigned', 'Seats Total',
-      'Registration', 'Password', 'Auto-Stop', 'Auto-Destroy', 'Workshop URL', 'White glove'];
+    const header = [
+      'Group',
+      'Name',
+      'K8s Name',
+      'Namespace',
+      'Stage',
+      'Locked',
+      'Instances',
+      'Concurrency',
+      'Seats Assigned',
+      'Seats Total',
+      'Registration',
+      'Password',
+      'Auto-Stop',
+      'Auto-Destroy',
+      'Workshop URL',
+      'White glove',
+    ];
 
     const rows: string[][] = [];
     for (const group of workshopGroups) {
@@ -1614,19 +1809,26 @@ const Ops: React.FC = () => {
         const nameLabel = isMultiAsset && assetKey ? `${displayName(ws)} (${assetKey})` : displayName(ws);
 
         rows.push([
-          groupLabel, nameLabel, ws.metadata.name, ws.metadata.namespace, stage,
+          groupLabel,
+          nameLabel,
+          ws.metadata.name,
+          ws.metadata.namespace,
+          stage,
           locked ? 'Yes' : 'No',
           progress ? String(progress.desired) : '',
           progress ? String(progress.concurrency) : '',
           seats ? String(seats.assigned) : '',
           seats ? String(seats.total) : '',
-          reg, password,
-          stop ? (() => {
-            const stopT = new Date(stop).getTime();
-            if (stopT > Date.now() + SIX_MONTHS_MS) return 'No auto-stop';
-            if (destroy && stopT >= new Date(destroy).getTime()) return 'No auto-stop';
-            return fmtDateCSV(stop);
-          })() : '',
+          reg,
+          password,
+          stop
+            ? (() => {
+                const stopT = new Date(stop).getTime();
+                if (stopT > Date.now() + SIX_MONTHS_MS) return 'No auto-stop';
+                if (destroy && stopT >= new Date(destroy).getTime()) return 'No auto-stop';
+                return fmtDateCSV(stop);
+              })()
+            : '',
           destroy ? fmtDateCSV(destroy) : '',
           wsUrl,
           getWhiteGloved(ws) ? 'Yes' : 'No',
@@ -1634,7 +1836,7 @@ const Ops: React.FC = () => {
       }
     }
 
-    const csv = [header, ...rows].map(r => r.map(csvEsc).join(',')).join('\n');
+    const csv = [header, ...rows].map((r) => r.map(csvEsc).join(',')).join('\n');
     const url = window.URL.createObjectURL(new Blob([csv], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.style.display = 'none';
@@ -1650,9 +1852,15 @@ const Ops: React.FC = () => {
   const handleLock = async () => {
     setShowLockConfirm(false);
     setLockLoading(true);
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     for (const ws of operationTargets) {
-      try { await lockWorkshop(ws); ok++; } catch { fail++; }
+      try {
+        await lockWorkshop(ws);
+        ok++;
+      } catch {
+        fail++;
+      }
     }
     setLockLoading(false);
     mutateWorkshops();
@@ -1664,7 +1872,8 @@ const Ops: React.FC = () => {
   const handleUnlock = async () => {
     setShowUnlockConfirm(false);
     setUnlockLoading(true);
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     for (const ws of operationTargets) {
       try {
         await patchWorkshop({
@@ -1673,7 +1882,9 @@ const Ops: React.FC = () => {
           patch: { metadata: { labels: { [`${DEMO_DOMAIN}/lock-enabled`]: 'false' } } },
         });
         ok++;
-      } catch { fail++; }
+      } catch {
+        fail++;
+      }
     }
     setUnlockLoading(false);
     mutateWorkshops();
@@ -1684,14 +1895,22 @@ const Ops: React.FC = () => {
 
   const handleExtendStop = async () => {
     if (extStopDays === 0 && extStopHours === 0) return;
-    if (!showExtStopConfirm) { setShowExtStopConfirm(true); return; }
+    if (!showExtStopConfirm) {
+      setShowExtStopConfirm(true);
+      return;
+    }
     setShowExtStopConfirm(false);
     setExtStopLoading(true);
     const addMs = (extStopDays * 24 + extStopHours) * 3600_000;
-    let ok = 0, fail = 0, skip = 0;
+    let ok = 0,
+      fail = 0,
+      skip = 0;
     for (const ws of operationTargets) {
       const currentStop = ws.spec?.actionSchedule?.stop;
-      if (!currentStop) { skip++; continue; }
+      if (!currentStop) {
+        skip++;
+        continue;
+      }
       try {
         const newDate = new Date(new Date(currentStop).getTime() + addMs);
         await patchWorkshop({
@@ -1700,7 +1919,9 @@ const Ops: React.FC = () => {
           patch: { spec: { actionSchedule: { stop: dateToApiString(newDate) } } },
         });
         ok++;
-      } catch { fail++; }
+      } catch {
+        fail++;
+      }
     }
     setExtStopLoading(false);
     mutateWorkshops();
@@ -1709,20 +1930,32 @@ const Ops: React.FC = () => {
       skipped: skip,
       detail: `+${extStopDays}d ${extStopHours}h${skipMsg}`,
     });
-    if (fail === 0) addAlert(AlertVariant.success, `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`);
+    if (fail === 0)
+      addAlert(
+        AlertVariant.success,
+        `Extended stop on ${ok} workshop(s) by ${extStopDays}d ${extStopHours}h${skipMsg}`,
+      );
     else addAlert(AlertVariant.danger, `Extend stop: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleExtendDestroy = async () => {
     if (extDestroyDays === 0 && extDestroyHours === 0) return;
-    if (!showExtDestroyConfirm) { setShowExtDestroyConfirm(true); return; }
+    if (!showExtDestroyConfirm) {
+      setShowExtDestroyConfirm(true);
+      return;
+    }
     setShowExtDestroyConfirm(false);
     setExtDestroyLoading(true);
     const addMs = (extDestroyDays * 24 + extDestroyHours) * 3600_000;
-    let ok = 0, fail = 0, skip = 0;
+    let ok = 0,
+      fail = 0,
+      skip = 0;
     for (const ws of operationTargets) {
       const currentEnd = ws.spec?.lifespan?.end;
-      if (!currentEnd) { skip++; continue; }
+      if (!currentEnd) {
+        skip++;
+        continue;
+      }
       try {
         const newDate = new Date(new Date(currentEnd).getTime() + addMs);
         await patchWorkshop({
@@ -1731,7 +1964,9 @@ const Ops: React.FC = () => {
           patch: { spec: { lifespan: { end: dateToApiString(newDate) } } },
         });
         ok++;
-      } catch { fail++; }
+      } catch {
+        fail++;
+      }
     }
     setExtDestroyLoading(false);
     mutateWorkshops();
@@ -1740,16 +1975,24 @@ const Ops: React.FC = () => {
       skipped: skip,
       detail: `+${extDestroyDays}d ${extDestroyHours}h${skipMsg}`,
     });
-    if (fail === 0) addAlert(AlertVariant.success, `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`);
+    if (fail === 0)
+      addAlert(
+        AlertVariant.success,
+        `Extended destroy on ${ok} workshop(s) by ${extDestroyDays}d ${extDestroyHours}h${skipMsg}`,
+      );
     else addAlert(AlertVariant.danger, `Extend destroy: ${ok} succeeded, ${fail} failed${skipMsg}`);
   };
 
   const handleDisableAutostop = async () => {
-    if (!showNoAutostopConfirm) { setShowNoAutostopConfirm(true); return; }
+    if (!showNoAutostopConfirm) {
+      setShowNoAutostopConfirm(true);
+      return;
+    }
     setShowNoAutostopConfirm(false);
     setNoAutostopLoading(true);
     const farFuture = new Date(Date.now() + 365 * 24 * 3600_000);
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     for (const ws of operationTargets) {
       try {
         await patchWorkshop({
@@ -1757,15 +2000,19 @@ const Ops: React.FC = () => {
           namespace: ws.metadata.namespace,
           patch: { spec: { actionSchedule: { stop: dateToApiString(farFuture) } } },
         });
-        const rcResp = await fetcher(apiPaths.RESOURCE_CLAIMS({
-          namespace: ws.metadata.namespace,
-          labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
-          limit: 500,
-        })) as ResourceClaimList;
-        const liveRCs = (rcResp?.items || []).filter(rc => !rc.metadata?.deletionTimestamp);
-        await Promise.all(liveRCs.map(rc => scheduleStopForAllResourcesInResourceClaim(rc, farFuture)));
+        const rcResp = (await fetcher(
+          apiPaths.RESOURCE_CLAIMS({
+            namespace: ws.metadata.namespace,
+            labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
+            limit: 500,
+          }),
+        )) as ResourceClaimList;
+        const liveRCs = (rcResp?.items || []).filter((rc) => !rc.metadata?.deletionTimestamp);
+        await Promise.all(liveRCs.map((rc) => scheduleStopForAllResourcesInResourceClaim(rc, farFuture)));
         ok++;
-      } catch { fail++; }
+      } catch {
+        fail++;
+      }
     }
     setNoAutostopLoading(false);
     mutateWorkshops();
@@ -1785,13 +2032,16 @@ const Ops: React.FC = () => {
     setShowScaleConfirm(false);
     setScaleConfirmText('');
     setScaleLoading(true);
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     for (const ws of operationTargets) {
       try {
-        const provResp = await fetcher(apiPaths.WORKSHOP_PROVISIONS({
-          workshopName: ws.metadata.name,
-          namespace: ws.metadata.namespace,
-        })) as WorkshopProvisionList;
+        const provResp = (await fetcher(
+          apiPaths.WORKSHOP_PROVISIONS({
+            workshopName: ws.metadata.name,
+            namespace: ws.metadata.namespace,
+          }),
+        )) as WorkshopProvisionList;
         const provs = provResp.items;
         const isSingle = provs.length === 1;
 
@@ -1806,8 +2056,8 @@ const Ops: React.FC = () => {
             });
           }
         } else if (provs.length > 1) {
-          const oldCounts = provs.map(p => p.spec?.count ?? 0);
-          const assignedPerProv = provs.map(p => workshopProvisionAssignedCount(p));
+          const oldCounts = provs.map((p) => p.spec?.count ?? 0);
+          const assignedPerProv = provs.map((p) => workshopProvisionAssignedCount(p));
           const newCounts = distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv);
           for (let i = 0; i < provs.length; i++) {
             if (newCounts[i] !== oldCounts[i]) {
@@ -1821,48 +2071,57 @@ const Ops: React.FC = () => {
         }
 
         if (isScaleDown || isScaleZero) {
-          const rcResp = await fetcher(apiPaths.RESOURCE_CLAIMS({
-            namespace: ws.metadata.namespace,
-            labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
-            limit: 500,
-          })) as ResourceClaimList;
-          const liveRcs = rcResp.items.filter(rc => !rc.metadata.deletionTimestamp);
+          const rcResp = (await fetcher(
+            apiPaths.RESOURCE_CLAIMS({
+              namespace: ws.metadata.namespace,
+              labelSelector: `${BABYLON_DOMAIN}/workshop=${ws.metadata.name}`,
+              limit: 500,
+            }),
+          )) as ResourceClaimList;
+          const liveRcs = rcResp.items.filter((rc) => !rc.metadata.deletionTimestamp);
 
           const totalNewCount = isSingle
             ? scaleCount
             : (() => {
-                const oldCounts = provs.map(p => p.spec?.count ?? 0);
-                const assignedPerProv = provs.map(p => workshopProvisionAssignedCount(p));
-                return distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv)
-                  .reduce((a, b) => a + b, 0);
+                const oldCounts = provs.map((p) => p.spec?.count ?? 0);
+                const assignedPerProv = provs.map((p) => workshopProvisionAssignedCount(p));
+                return distributeProvisionCountsRespectingAssigned(oldCounts, scaleCount, assignedPerProv).reduce(
+                  (a, b) => a + b,
+                  0,
+                );
               })();
 
           const excess = liveRcs.length - totalNewCount;
           if (excess > 0) {
             const assignments = assignmentsByWorkshop.get(wsKey(ws)) ?? [];
-            const assignedRcNames = new Set(assignments.filter(a => a.spec?.assignment).map(a =>
-              a.spec?.resourceClaimName
-            ).filter(Boolean));
+            const assignedRcNames = new Set(
+              assignments
+                .filter((a) => a.spec?.assignment)
+                .map((a) => a.spec?.resourceClaimName)
+                .filter(Boolean),
+            );
 
             const sorted = [...liveRcs].sort((a, b) => {
               const aAssigned = assignedRcNames.has(a.metadata.name) ? 1 : 0;
               const bAssigned = assignedRcNames.has(b.metadata.name) ? 1 : 0;
-              return scaleDownPreference === 'unused'
-                ? aAssigned - bAssigned
-                : bAssigned - aAssigned;
+              return scaleDownPreference === 'unused' ? aAssigned - bAssigned : bAssigned - aAssigned;
             });
 
             const toDelete = sorted.slice(0, excess);
             for (const rc of toDelete) {
               try {
                 await deleteResourceClaim(rc);
-              } catch { /* best-effort */ }
+              } catch {
+                /* best-effort */
+              }
             }
           }
         }
 
         ok++;
-      } catch { fail++; }
+      } catch {
+        fail++;
+      }
     }
     setScaleLoading(false);
     mutateWorkshops();
@@ -1909,10 +2168,7 @@ const Ops: React.FC = () => {
         `Redeployed ${succeeded} failed instance(s) across ${failedInstancesAnalysis.failedWorkshops.length} workshop(s)`,
       );
     } else {
-      addAlert(
-        AlertVariant.danger,
-        `Redeploy: ${succeeded} succeeded, ${failed} failed`,
-      );
+      addAlert(AlertVariant.danger, `Redeploy: ${succeeded} succeeded, ${failed} failed`);
     }
   };
 
@@ -1964,7 +2220,11 @@ const Ops: React.FC = () => {
 
   // One batched DB lookup for the current page/timeline (TTL cache). Does not start new checks.
   useEffect(() => {
-    if (!showSoundcheckCol || (workshopView !== 'table' && workshopView !== 'timeline') || visibleSoundcheckIds.length === 0) {
+    if (
+      !showSoundcheckCol ||
+      (workshopView !== 'table' && workshopView !== 'timeline') ||
+      visibleSoundcheckIds.length === 0
+    ) {
       return undefined;
     }
     const need = idsNeedingStatusFetch(visibleSoundcheckIds, scStatusCacheRef.current);
@@ -1995,40 +2255,43 @@ const Ops: React.FC = () => {
   );
 
   /** Re-run Soundcheck for a single workshop row. Clones the existing session if available. */
-  const handleSingleSoundcheck = useCallback(async (workshopId: string, existingSessionId?: string) => {
-    if (scRowLoading[workshopId]) return;
-    setScRowLoading((prev) => ({ ...prev, [workshopId]: true }));
-    setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
-    try {
-      let newSessionId: string;
-      if (existingSessionId) {
-        newSessionId = await cloneSoundcheckSession(soundcheckBase, existingSessionId);
-      } else {
-        const result = await kickoffSoundcheck(soundcheckBase, [workshopId], { openWindow: false });
-        if (!result.sessionId) {
-          window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
-          return;
+  const handleSingleSoundcheck = useCallback(
+    async (workshopId: string, existingSessionId?: string) => {
+      if (scRowLoading[workshopId]) return;
+      setScRowLoading((prev) => ({ ...prev, [workshopId]: true }));
+      setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
+      try {
+        let newSessionId: string;
+        if (existingSessionId) {
+          newSessionId = await cloneSoundcheckSession(soundcheckBase, existingSessionId);
+        } else {
+          const result = await kickoffSoundcheck(soundcheckBase, [workshopId], { openWindow: false });
+          if (!result.sessionId) {
+            window.open(result.sessionUrl, '_blank', 'noopener,noreferrer');
+            return;
+          }
+          newSessionId = result.sessionId;
         }
-        newSessionId = result.sessionId;
+        const ac = new AbortController();
+        connectSoundcheckSSE(soundcheckBase, newSessionId, {
+          signal: ac.signal,
+          onComplete: () => {
+            setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
+            setScStatusRefresh((n) => n + 1);
+            setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
+            ac.abort();
+          },
+          onError: () => {
+            setScStatusRefresh((n) => n + 1);
+            setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
+          },
+        });
+      } catch {
+        setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
       }
-      const ac = new AbortController();
-      connectSoundcheckSSE(soundcheckBase, newSessionId, {
-        signal: ac.signal,
-        onComplete: () => {
-          setScStatusCache((prev) => invalidateStatusCache(prev, [workshopId]));
-          setScStatusRefresh((n) => n + 1);
-          setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
-          ac.abort();
-        },
-        onError: () => {
-          setScStatusRefresh((n) => n + 1);
-          setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
-        },
-      });
-    } catch {
-      setScRowLoading((prev) => ({ ...prev, [workshopId]: false }));
-    }
-  }, [soundcheckBase, scRowLoading]);
+    },
+    [soundcheckBase, scRowLoading],
+  );
 
   const renderSoundcheckCell = useCallback(
     (workshopIds: string[]) => {
@@ -2036,11 +2299,12 @@ const Ops: React.FC = () => {
       const ids = workshopIds.map((id) => id?.trim()).filter(Boolean) as string[];
       const entries = ids.map((id) => getCachedScStatus(id));
       const worst = worstSoundcheckStatus(entries);
-      const url = ids.length > 0
-        ? buildSoundcheckCheckUrl(soundcheckBase, ids)
-        : worst?.session_id
-          ? buildSoundcheckSessionUrl(soundcheckBase, worst.session_id)
-          : soundcheckBase;
+      const url =
+        ids.length > 0
+          ? buildSoundcheckCheckUrl(soundcheckBase, ids)
+          : worst?.session_id
+            ? buildSoundcheckSessionUrl(soundcheckBase, worst.session_id)
+            : soundcheckBase;
 
       const openEmbedded = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -2056,15 +2320,26 @@ const Ops: React.FC = () => {
           <button
             type="button"
             className="ops-ws-link pf-v5-u-p-0"
-            style={{ background: 'none', border: 'none', cursor: rowLoading ? 'default' : 'pointer', opacity: rowLoading ? 0.5 : 1 }}
-            onClick={(e) => { e.stopPropagation(); void handleSingleSoundcheck(primaryId, worst?.session_id); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: rowLoading ? 'default' : 'pointer',
+              opacity: rowLoading ? 0.5 : 1,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleSingleSoundcheck(primaryId, worst?.session_id);
+            }}
             disabled={rowLoading}
             aria-label="Re-run Soundcheck"
           >
-            {rowLoading
-              ? <InProgressIcon style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--color--status--info--default)' }} />
-              : <RedoIcon style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
-            }
+            {rowLoading ? (
+              <InProgressIcon
+                style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--color--status--info--default)' }}
+              />
+            ) : (
+              <RedoIcon style={{ fontSize: '0.7rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
+            )}
           </button>
         </Tooltip>
       ) : null;
@@ -2075,13 +2350,28 @@ const Ops: React.FC = () => {
             {primaryId ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Tooltip content="Open Soundcheck for this workshop (embedded view; use link icon for new tab)">
-                  <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
-                    <Label isCompact color={rowLoading ? 'blue' : 'grey'}>{rowLoading ? 'running' : 'check'}</Label>
+                  <button
+                    type="button"
+                    className="ops-ws-link pf-v5-u-p-0"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    onClick={openEmbedded}
+                  >
+                    <Label isCompact color={rowLoading ? 'blue' : 'grey'}>
+                      {rowLoading ? 'running' : 'check'}
+                    </Label>
                   </button>
                 </Tooltip>
                 {rerunBtn}
-                <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
-                  <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Open Soundcheck in new tab"
+                >
+                  <ExternalLinkAltIcon
+                    style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }}
+                  />
                 </a>
               </span>
             ) : (
@@ -2094,14 +2384,27 @@ const Ops: React.FC = () => {
         <td>
           <Tooltip content={`Last Soundcheck · ${worst.status} · click to open embedded, link icon for new tab`}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <button type="button" className="ops-ws-link pf-v5-u-p-0" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={openEmbedded}>
+              <button
+                type="button"
+                className="ops-ws-link pf-v5-u-p-0"
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={openEmbedded}
+              >
                 <Label isCompact color={rowLoading ? 'blue' : soundcheckStatusLabelColor(worst.status)}>
                   {rowLoading ? 'running' : worst.status}
                 </Label>
               </button>
               {rerunBtn}
-              <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Open Soundcheck in new tab">
-                <ExternalLinkAltIcon style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }} />
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title="Open Soundcheck in new tab"
+              >
+                <ExternalLinkAltIcon
+                  style={{ fontSize: '0.65rem', color: 'var(--pf-t--global--text--color--subtle)' }}
+                />
               </a>
             </span>
           </Tooltip>
@@ -2132,9 +2435,7 @@ const Ops: React.FC = () => {
       return {
         label: status || 'check',
         href,
-        title: status
-          ? `Last Soundcheck · ${status} · open or start a new check`
-          : 'Run Soundcheck for this workshop',
+        title: status ? `Last Soundcheck · ${status} · open or start a new check` : 'Run Soundcheck for this workshop',
         colorClass: color,
       };
     },
@@ -2143,7 +2444,10 @@ const Ops: React.FC = () => {
 
   const handleSoundcheck = async () => {
     if (!hasSelection) {
-      addAlert(AlertVariant.info, 'Select one or more workshops first — Soundcheck never runs against the whole platform view');
+      addAlert(
+        AlertVariant.info,
+        'Select one or more workshops first — Soundcheck never runs against the whole platform view',
+      );
       return;
     }
     const ids = soundcheckWorkshopIds;
@@ -2178,9 +2482,7 @@ const Ops: React.FC = () => {
       recordHistory('soundcheck', operationTargets, ids.length, 0, {
         detail: [
           result.mode === 'api' ? `session ${result.sessionId.slice(0, 8)}…` : 'deep-link',
-          summarizeWorkshopNames(
-            operationTargets.map((ws) => displayName(ws) || ws.metadata.name),
-          ),
+          summarizeWorkshopNames(operationTargets.map((ws) => displayName(ws) || ws.metadata.name)),
           `ids: ${ids.slice(0, 4).join(', ')}${ids.length > 4 ? ` +${ids.length - 4}` : ''}`,
         ]
           .filter(Boolean)
@@ -2265,9 +2567,12 @@ const Ops: React.FC = () => {
     window.open(soundcheckBase, '_blank', 'noopener,noreferrer');
   };
 
-  useEffect(() => () => {
-    soundcheckAbortRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      soundcheckAbortRef.current?.abort();
+    },
+    [],
+  );
 
   // ---------- No namespace selected ----------
 
@@ -2277,13 +2582,12 @@ const Ops: React.FC = () => {
         <PageSection key="header" className="admin-header" variant="default">
           <Split hasGutter style={{ alignItems: 'center' }}>
             <SplitItem>
-              <ProjectSelector
-                currentNamespaceName={namespace}
-                onSelect={(n) => navigate(`/admin/ops/${n.name}`)}
-              />
+              <ProjectSelector currentNamespaceName={namespace} onSelect={(n) => navigate(`/admin/ops/${n.name}`)} />
             </SplitItem>
             <SplitItem isFilled>
-              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>Operations Workshop Control</Title>
+              <Title headingLevel="h4" style={{ display: 'inline-block', lineHeight: '36px' }}>
+                Operations Workshop Control
+              </Title>
             </SplitItem>
             <SplitItem>
               <Tooltip content={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -2297,8 +2601,7 @@ const Ops: React.FC = () => {
         <PageSection key="body" className="admin-body" variant="default">
           <EmptyState titleText="Select a namespace" headingLevel="h4">
             <EmptyStateBody>
-              Choose a project from the selector above, then perform bulk operations
-              on all workshops in that namespace.
+              Choose a project from the selector above, then perform bulk operations on all workshops in that namespace.
             </EmptyStateBody>
           </EmptyState>
         </PageSection>
@@ -2333,7 +2636,9 @@ const Ops: React.FC = () => {
     if (noAutoStop) {
       return (
         <Tooltip content={`Actual: ${fmtDate(stopIso)} (${relativeTime(stopIso)})`}>
-          <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>No auto-stop</Label>
+          <Label color="yellow" isCompact icon={<OutlinedClockIcon />}>
+            No auto-stop
+          </Label>
         </Tooltip>
       );
     }
@@ -2382,15 +2687,15 @@ const Ops: React.FC = () => {
 
   const multiNsBanner = isMultiNs ? (
     <Alert variant="warning" isInline title="Multi-namespace mode active" className="ops-multi-ns-banner">
-      Operations will affect workshops across <strong>{platformMode ? 'all' : activeNamespaces.length}</strong> namespaces.
-      Double-check the scope before executing any operation.
+      Operations will affect workshops across <strong>{platformMode ? 'all' : activeNamespaces.length}</strong>{' '}
+      namespaces. Double-check the scope before executing any operation.
     </Alert>
   ) : null;
 
   return (
     <div className="admin-container">
       <AlertGroup isToast isLiveRegion className="ops-toast-group">
-        {alerts.map(a => (
+        {alerts.map((a) => (
           <Alert
             key={a.key}
             variant={a.variant}
@@ -2407,7 +2712,10 @@ const Ops: React.FC = () => {
           <SplitItem>
             <ProjectSelector
               currentNamespaceName={namespace}
-              onSelect={(n) => { setWorkshopSearchText(''); navigate(`/admin/ops/${n.name}`); }}
+              onSelect={(n) => {
+                setWorkshopSearchText('');
+                navigate(`/admin/ops/${n.name}`);
+              }}
             />
           </SplitItem>
           <SplitItem isFilled>
@@ -2415,7 +2723,11 @@ const Ops: React.FC = () => {
               <CogIcon className="ops-page-title-icon" />
               Operations Workshop Control
               <code className="ops-page-ns">{namespace}</code>
-              {isMultiNs && <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>+{extraNamespaces.length} NS</Label>}
+              {isMultiNs && (
+                <Label color="orange" isCompact style={{ marginLeft: 8, verticalAlign: 'middle' }}>
+                  +{extraNamespaces.length} NS
+                </Label>
+              )}
             </Title>
           </SplitItem>
           <SplitItem>
@@ -2427,8 +2739,13 @@ const Ops: React.FC = () => {
           </SplitItem>
           <SplitItem>
             <Tooltip content={`Last refreshed: ${lastRefresh.toLocaleTimeString()}. Auto-refreshes every 30s.`}>
-              <Button variant="plain" onClick={handleRefresh} isDisabled={isRefreshing}
-                aria-label="Refresh data" className={isRefreshing ? 'ops-spin' : undefined}>
+              <Button
+                variant="plain"
+                onClick={handleRefresh}
+                isDisabled={isRefreshing}
+                aria-label="Refresh data"
+                className={isRefreshing ? 'ops-spin' : undefined}
+              >
                 <SyncAltIcon />
               </Button>
             </Tooltip>
@@ -2451,7 +2768,11 @@ const Ops: React.FC = () => {
             {workshops.length > 0 && (
               <Label isCompact color={platformMode ? 'orange' : 'blue'}>
                 {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
-                {platformMode ? ' (platform-wide)' : isMultiNs && activeNamespaces.length > 1 ? ` across ${activeNamespaces.length} namespaces` : ''}
+                {platformMode
+                  ? ' (platform-wide)'
+                  : isMultiNs && activeNamespaces.length > 1
+                    ? ` across ${activeNamespaces.length} namespaces`
+                    : ''}
               </Label>
             )}
           </SplitItem>
@@ -2461,16 +2782,18 @@ const Ops: React.FC = () => {
       <PageSection key="body" className="admin-body" variant="default">
         {/* View mode + namespace bar */}
         {isAdmin && (
-          <div className={`ops-mode-bar ${(multiNsMode || platformMode) ? 'ops-mode-bar--multi-active' : ''}`}>
+          <div className={`ops-mode-bar ${multiNsMode || platformMode ? 'ops-mode-bar--multi-active' : ''}`}>
             <Split hasGutter style={{ alignItems: 'center' }}>
               <SplitItem>
-                <Tooltip content={
-                  platformMode
-                    ? 'Filtering all workshops on the platform'
-                    : isMultiNs && activeNamespaces.length > 1
-                      ? `Filtering workshops across ${activeNamespaces.length} namespaces`
-                      : `Filtering workshops in ${namespace}`
-                }>
+                <Tooltip
+                  content={
+                    platformMode
+                      ? 'Filtering all workshops on the platform'
+                      : isMultiNs && activeNamespaces.length > 1
+                        ? `Filtering workshops across ${activeNamespaces.length} namespaces`
+                        : `Filtering workshops in ${namespace}`
+                  }
+                >
                   <ToggleGroup aria-label="Workshop view mode" isCompact className="ops-view-mode-toggle">
                     <ToggleGroupItem
                       icon={<ListIcon />}
@@ -2511,7 +2834,11 @@ const Ops: React.FC = () => {
                 <Tooltip content="Load every workshop across all namespaces on the platform. Use with caution — can be slow and operations affect everything.">
                   <Switch
                     id="platform-mode-toggle"
-                    label={<><GlobeIcon /> All Workshops (Platform)</>}
+                    label={
+                      <>
+                        <GlobeIcon /> All Workshops (Platform)
+                      </>
+                    }
                     isChecked={platformMode}
                     onChange={(_e, checked) => {
                       if (checked) {
@@ -2530,7 +2857,7 @@ const Ops: React.FC = () => {
                     onSelect={(_e, val) => {
                       const ns = val as string;
                       if (ns && !extraNamespaces.includes(ns)) {
-                        setExtraNamespaces(prev => [...prev, ns]);
+                        setExtraNamespaces((prev) => [...prev, ns]);
                       }
                       setNsSearchText('');
                     }}
@@ -2539,7 +2866,12 @@ const Ops: React.FC = () => {
                       if (!open) setNsSearchText('');
                     }}
                     toggle={(toggleRef) => (
-                      <MenuToggle ref={toggleRef} onClick={() => setNsSearchOpen(p => !p)} isExpanded={nsSearchOpen} style={{ minWidth: 360 }}>
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setNsSearchOpen((p) => !p)}
+                        isExpanded={nsSearchOpen}
+                        style={{ minWidth: 360 }}
+                      >
                         {extraNamespaces.length > 0
                           ? `${extraNamespaces.length} extra namespace${extraNamespaces.length !== 1 ? 's' : ''}`
                           : 'Add namespaces…'}
@@ -2567,11 +2899,13 @@ const Ops: React.FC = () => {
                         <SelectOption isDisabled value="">
                           {nsSearchText ? 'No matching namespaces' : 'Loading…'}
                         </SelectOption>
-                      ) : filteredNsOptions.slice(0, 100).map(ns => (
-                        <SelectOption key={ns.name} value={ns.name}>
-                          {ns.displayName && ns.displayName !== ns.name ? `${ns.displayName} (${ns.name})` : ns.name}
-                        </SelectOption>
-                      ))}
+                      ) : (
+                        filteredNsOptions.slice(0, 100).map((ns) => (
+                          <SelectOption key={ns.name} value={ns.name}>
+                            {ns.displayName && ns.displayName !== ns.name ? `${ns.displayName} (${ns.name})` : ns.name}
+                          </SelectOption>
+                        ))
+                      )}
                     </SelectList>
                   </Select>
                 </SplitItem>
@@ -2580,9 +2914,17 @@ const Ops: React.FC = () => {
             {multiNsMode && extraNamespaces.length > 0 && (
               <div className="ops-ns-chips">
                 <span className="ops-ns-chips-label">Selected:</span>
-                <Label isCompact color="blue" style={{ marginRight: 4 }}>{namespace} (primary)</Label>
-                {extraNamespaces.map(ns => (
-                  <Label key={ns} isCompact color="orange" onClose={() => setExtraNamespaces(prev => prev.filter(n => n !== ns))} style={{ marginRight: 4 }}>
+                <Label isCompact color="blue" style={{ marginRight: 4 }}>
+                  {namespace} (primary)
+                </Label>
+                {extraNamespaces.map((ns) => (
+                  <Label
+                    key={ns}
+                    isCompact
+                    color="orange"
+                    onClose={() => setExtraNamespaces((prev) => prev.filter((n) => n !== ns))}
+                    style={{ marginRight: 4 }}
+                  >
                     {ns}
                   </Label>
                 ))}
@@ -2603,8 +2945,17 @@ const Ops: React.FC = () => {
         {workshops.length === 0 ? (
           <EmptyState titleText="No workshops found" headingLevel="h4" status="info">
             <EmptyStateBody>
-              No workshops exist in {isMultiNs ? 'the selected namespaces' : <><code>{namespace}</code></>}.
-              <br />Deploy workshops first, then return here for bulk operations.
+              No workshops exist in{' '}
+              {isMultiNs ? (
+                'the selected namespaces'
+              ) : (
+                <>
+                  <code>{namespace}</code>
+                </>
+              )}
+              .
+              <br />
+              Deploy workshops first, then return here for bulk operations.
             </EmptyStateBody>
           </EmptyState>
         ) : (
@@ -2624,7 +2975,7 @@ const Ops: React.FC = () => {
                   aria-label="Search workshops"
                 />
                 <div className="ops-stage-filters">
-                  {STAGE_FILTERS.map(f => (
+                  {STAGE_FILTERS.map((f) => (
                     <Label
                       key={f.value}
                       color={stageFilter === f.value ? f.color : 'grey'}
@@ -2643,7 +2994,7 @@ const Ops: React.FC = () => {
                     toggle={(toggleRef) => (
                       <MenuToggle
                         ref={toggleRef}
-                        onClick={() => setPurposeFilterOpen(o => !o)}
+                        onClick={() => setPurposeFilterOpen((o) => !o)}
                         isExpanded={purposeFilterOpen}
                         badge={purposeFilter.size > 0 ? <Badge isRead>{purposeFilter.size}</Badge> : undefined}
                         style={{ minWidth: 130 }}
@@ -2660,7 +3011,7 @@ const Ops: React.FC = () => {
                           hasCheckbox
                           isSelected={purposeFilter.has(name)}
                           onClick={() => {
-                            setPurposeFilter(prev => {
+                            setPurposeFilter((prev) => {
                               const next = new Set(prev);
                               if (next.has(name)) next.delete(name);
                               else next.add(name);
@@ -2668,7 +3019,10 @@ const Ops: React.FC = () => {
                             });
                           }}
                         >
-                          {name} <Badge isRead style={{ marginLeft: 6 }}>{count}</Badge>
+                          {name}{' '}
+                          <Badge isRead style={{ marginLeft: 6 }}>
+                            {count}
+                          </Badge>
                         </SelectOption>
                       ))}
                     </SelectList>
@@ -2677,7 +3031,10 @@ const Ops: React.FC = () => {
                         <Divider />
                         <SelectOption
                           value="__clear__"
-                          onClick={() => { setPurposeFilter(new Set()); setPurposeFilterOpen(false); }}
+                          onClick={() => {
+                            setPurposeFilter(new Set());
+                            setPurposeFilterOpen(false);
+                          }}
                         >
                           Clear filter
                         </SelectOption>
@@ -2687,12 +3044,18 @@ const Ops: React.FC = () => {
                 )}
                 {purposeFilter.size > 0 && (
                   <div className="ops-stage-filters" style={{ flexWrap: 'wrap', gap: 4 }}>
-                    {Array.from(purposeFilter).map(p => (
+                    {Array.from(purposeFilter).map((p) => (
                       <Label
                         key={p}
                         color="teal"
                         isCompact
-                        onClose={() => setPurposeFilter(prev => { const next = new Set(prev); next.delete(p); return next; })}
+                        onClose={() =>
+                          setPurposeFilter((prev) => {
+                            const next = new Set(prev);
+                            next.delete(p);
+                            return next;
+                          })
+                        }
                         className="ops-stage-chip"
                       >
                         {p}
@@ -2705,8 +3068,14 @@ const Ops: React.FC = () => {
                   {hasSelection && (
                     <span style={{ marginLeft: 8 }}>
                       <Badge isRead>{selectedWs.size} selected</Badge>
-                      <Button variant="link" isInline style={{ marginLeft: 4, fontSize: '0.78rem' }}
-                        onClick={() => setSelectedWs(new Set())}>clear</Button>
+                      <Button
+                        variant="link"
+                        isInline
+                        style={{ marginLeft: 4, fontSize: '0.78rem' }}
+                        onClick={() => setSelectedWs(new Set())}
+                      >
+                        clear
+                      </Button>
                     </span>
                   )}
                 </span>
@@ -2718,7 +3087,7 @@ const Ops: React.FC = () => {
                   onChange={(_e, val) => setTimezone(val)}
                   className="ops-tz-select"
                 >
-                  {COMMON_TIMEZONES.map(tz => (
+                  {COMMON_TIMEZONES.map((tz) => (
                     <FormSelectOption key={tz.value} value={tz.value} label={tz.label} />
                   ))}
                 </FormSelect>
@@ -2759,28 +3128,34 @@ const Ops: React.FC = () => {
                 <span className="ops-stat-value">
                   <span className={`ops-seats-assigned ${seatColorClass(summary.seatsAssigned, summary.seatsTotal)}`}>
                     {summary.seatsAssigned}
-                  </span>
-                  {' '}<span className="ops-stat-of">/ {summary.seatsTotal}</span>
+                  </span>{' '}
+                  <span className="ops-stat-of">/ {summary.seatsTotal}</span>
                 </span>
                 <span className="ops-stat-label">Seats filled</span>
               </div>
               {summary.failedCount > 0 && (
                 <>
                   <div className="ops-stat-divider" />
-                  <Tooltip content={
-                    <div>
-                      {summary.failedWorkshops.map(fw => (
-                        <div key={fw.name}>{fw.name}: {fw.failed} failed</div>
-                      ))}
-                    </div>
-                  }>
+                  <Tooltip
+                    content={
+                      <div>
+                        {summary.failedWorkshops.map((fw) => (
+                          <div key={fw.name}>
+                            {fw.name}: {fw.failed} failed
+                          </div>
+                        ))}
+                      </div>
+                    }
+                  >
                     <div
                       className={`ops-stat ops-stat-failed ${failedFilter ? 'ops-stat-active-filter' : ''}`}
                       style={{ cursor: 'pointer' }}
-                      onClick={() => setFailedFilter(f => !f)}
+                      onClick={() => setFailedFilter((f) => !f)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setFailedFilter(f => !f); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setFailedFilter((f) => !f);
+                      }}
                     >
                       <span className="ops-stat-value">{summary.failedCount}</span>
                       <span className="ops-stat-label">Failed{failedFilter ? ' (filtered)' : ''}</span>
@@ -2794,10 +3169,12 @@ const Ops: React.FC = () => {
                   <div
                     className={`ops-stat ops-stat-attention ${attentionFilter ? 'ops-stat-active-filter' : ''}`}
                     style={{ cursor: 'pointer' }}
-                    onClick={() => setAttentionFilter(f => !f)}
+                    onClick={() => setAttentionFilter((f) => !f)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setAttentionFilter(f => !f); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setAttentionFilter((f) => !f);
+                    }}
                   >
                     <span className="ops-stat-value">{summary.attentionCount}</span>
                     <span className="ops-stat-label">Need attention{attentionFilter ? ' (filtered)' : ''}</span>
@@ -2825,86 +3202,265 @@ const Ops: React.FC = () => {
             >
               <div className="ops-grid ops-operations-grid">
                 <Card>
-                  <CardTitle><LockIcon className="ops-card-icon" /> Resource Lock</CardTitle>
+                  <CardTitle>
+                    <LockIcon className="ops-card-icon" /> Resource Lock
+                  </CardTitle>
                   <CardBody>
-                    <p className="ops-desc">Toggle <code>lock-enabled</code> on workshops.</p>
+                    <p className="ops-desc">
+                      Toggle <code>lock-enabled</code> on workshops.
+                    </p>
                     <div className="ops-button-row">
-                      <Button variant="warning" onClick={() => setShowLockConfirm(true)} isLoading={lockLoading} isDisabled={anyLoading}>Lock</Button>
-                      <Button variant="warning" onClick={() => setShowUnlockConfirm(true)} isLoading={unlockLoading} isDisabled={anyLoading}>Unlock</Button>
+                      <Button
+                        variant="warning"
+                        onClick={() => setShowLockConfirm(true)}
+                        isLoading={lockLoading}
+                        isDisabled={anyLoading}
+                      >
+                        Lock
+                      </Button>
+                      <Button
+                        variant="warning"
+                        onClick={() => setShowUnlockConfirm(true)}
+                        isLoading={unlockLoading}
+                        isDisabled={anyLoading}
+                      >
+                        Unlock
+                      </Button>
                     </div>
                   </CardBody>
                 </Card>
                 <Card>
-                  <CardTitle><Tooltip content="Push back the auto-stop time."><span><OutlinedClockIcon className="ops-card-icon" /> Extend Stop</span></Tooltip></CardTitle>
+                  <CardTitle>
+                    <Tooltip content="Push back the auto-stop time.">
+                      <span>
+                        <OutlinedClockIcon className="ops-card-icon" /> Extend Stop
+                      </span>
+                    </Tooltip>
+                  </CardTitle>
                   <CardBody>
                     <div className="ops-extend-row">
-                      <NumberInput value={extStopDays} min={0} onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))} onPlus={() => setExtStopDays(extStopDays + 1)} onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
-                      <NumberInput value={extStopHours} min={0} onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))} onPlus={() => setExtStopHours(extStopHours + 1)} onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                      <NumberInput
+                        value={extStopDays}
+                        min={0}
+                        onMinus={() => setExtStopDays(Math.max(0, extStopDays - 1))}
+                        onPlus={() => setExtStopDays(extStopDays + 1)}
+                        onChange={(e) => setExtStopDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                        widthChars={2}
+                        unit="days"
+                        aria-label="Days"
+                      />
+                      <NumberInput
+                        value={extStopHours}
+                        min={0}
+                        onMinus={() => setExtStopHours(Math.max(0, extStopHours - 1))}
+                        onPlus={() => setExtStopHours(extStopHours + 1)}
+                        onChange={(e) => setExtStopHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                        widthChars={2}
+                        unit="hrs"
+                        aria-label="Hours"
+                      />
                     </div>
-                    <Button variant="warning" onClick={handleExtendStop} isLoading={extStopLoading} isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}>Extend Stop</Button>
+                    <Button
+                      variant="warning"
+                      onClick={handleExtendStop}
+                      isLoading={extStopLoading}
+                      isDisabled={anyLoading || (extStopDays === 0 && extStopHours === 0)}
+                    >
+                      Extend Stop
+                    </Button>
                   </CardBody>
                 </Card>
                 <Card>
-                  <CardTitle><Tooltip content="Push back the auto-destroy deadline."><span><ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy</span></Tooltip></CardTitle>
+                  <CardTitle>
+                    <Tooltip content="Push back the auto-destroy deadline.">
+                      <span>
+                        <ExclamationTriangleIcon className="ops-card-icon" /> Extend Destroy
+                      </span>
+                    </Tooltip>
+                  </CardTitle>
                   <CardBody>
                     <div className="ops-extend-row">
-                      <NumberInput value={extDestroyDays} min={0} onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))} onPlus={() => setExtDestroyDays(extDestroyDays + 1)} onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="days" aria-label="Days" />
-                      <NumberInput value={extDestroyHours} min={0} onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))} onPlus={() => setExtDestroyHours(extDestroyHours + 1)} onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={2} unit="hrs" aria-label="Hours" />
+                      <NumberInput
+                        value={extDestroyDays}
+                        min={0}
+                        onMinus={() => setExtDestroyDays(Math.max(0, extDestroyDays - 1))}
+                        onPlus={() => setExtDestroyDays(extDestroyDays + 1)}
+                        onChange={(e) => setExtDestroyDays(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                        widthChars={2}
+                        unit="days"
+                        aria-label="Days"
+                      />
+                      <NumberInput
+                        value={extDestroyHours}
+                        min={0}
+                        onMinus={() => setExtDestroyHours(Math.max(0, extDestroyHours - 1))}
+                        onPlus={() => setExtDestroyHours(extDestroyHours + 1)}
+                        onChange={(e) => setExtDestroyHours(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                        widthChars={2}
+                        unit="hrs"
+                        aria-label="Hours"
+                      />
                     </div>
-                    <Button variant="warning" onClick={handleExtendDestroy} isLoading={extDestroyLoading} isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}>Extend Destroy</Button>
+                    <Button
+                      variant="warning"
+                      onClick={handleExtendDestroy}
+                      isLoading={extDestroyLoading}
+                      isDisabled={anyLoading || (extDestroyDays === 0 && extDestroyHours === 0)}
+                    >
+                      Extend Destroy
+                    </Button>
                   </CardBody>
                 </Card>
                 <Card>
-                  <CardTitle><Tooltip content="Remove auto-stop schedule."><span><PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop</span></Tooltip></CardTitle>
+                  <CardTitle>
+                    <Tooltip content="Remove auto-stop schedule.">
+                      <span>
+                        <PauseCircleIcon className="ops-card-icon" /> Disable Auto-Stop
+                      </span>
+                    </Tooltip>
+                  </CardTitle>
                   <CardBody>
-                    <p className="ops-desc">Removes <code>actionSchedule.stop</code> so workshops remain running.</p>
-                    <Button variant="warning" onClick={handleDisableAutostop} isLoading={noAutostopLoading} isDisabled={anyLoading}>Disable Auto-Stop</Button>
+                    <p className="ops-desc">
+                      Removes <code>actionSchedule.stop</code> so workshops remain running.
+                    </p>
+                    <Button
+                      variant="warning"
+                      onClick={handleDisableAutostop}
+                      isLoading={noAutostopLoading}
+                      isDisabled={anyLoading}
+                    >
+                      Disable Auto-Stop
+                    </Button>
                   </CardBody>
                 </Card>
                 <Card className={isScaleDown || isScaleZero ? 'ops-scale-danger' : undefined}>
-                  <CardTitle><SyncAltIcon className="ops-card-icon" /> Scale</CardTitle>
+                  <CardTitle>
+                    <SyncAltIcon className="ops-card-icon" /> Scale
+                  </CardTitle>
                   <CardBody>
                     <div style={{ marginBottom: 6 }}>
-                      <NumberInput value={scaleCount} min={0} onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))} onPlus={() => setScaleCount(scaleCount + 1)} onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))} widthChars={4} aria-label="New instance count" />
-                      <div style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}>New instance count</div>
+                      <NumberInput
+                        value={scaleCount}
+                        min={0}
+                        onMinus={() => setScaleCount(Math.max(0, scaleCount - 1))}
+                        onPlus={() => setScaleCount(scaleCount + 1)}
+                        onChange={(e) => setScaleCount(Math.max(0, Number((e.target as HTMLInputElement).value)))}
+                        widthChars={4}
+                        aria-label="New instance count"
+                      />
+                      <div
+                        style={{ marginTop: 2, fontSize: '0.72rem', color: 'var(--pf-t--global--text--color--subtle)' }}
+                      >
+                        New instance count
+                      </div>
                     </div>
                     {(scaleAnalysis.up > 0 || scaleAnalysis.down > 0 || scaleAnalysis.same > 0) && (
-                      <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--xs)', flexWrap: 'wrap', marginBottom: 6 }}>
-                        {scaleAnalysis.up > 0 && <Label color="blue" isCompact>{scaleAnalysis.up} up</Label>}
-                        {scaleAnalysis.down > 0 && <Label color="orange" isCompact>{scaleAnalysis.down} down</Label>}
-                        {scaleAnalysis.same > 0 && <Label color="grey" isCompact>{scaleAnalysis.same} same</Label>}
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 'var(--pf-t--global--spacer--xs)',
+                          flexWrap: 'wrap',
+                          marginBottom: 6,
+                        }}
+                      >
+                        {scaleAnalysis.up > 0 && (
+                          <Label color="blue" isCompact>
+                            {scaleAnalysis.up} up
+                          </Label>
+                        )}
+                        {scaleAnalysis.down > 0 && (
+                          <Label color="orange" isCompact>
+                            {scaleAnalysis.down} down
+                          </Label>
+                        )}
+                        {scaleAnalysis.same > 0 && (
+                          <Label color="grey" isCompact>
+                            {scaleAnalysis.same} same
+                          </Label>
+                        )}
                       </div>
                     )}
                     {(isScaleDown || isScaleZero) && (
                       <div style={{ marginBottom: 6 }}>
-                        <FormSelect aria-label="Scale down preference" value={scaleDownPreference} onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')} className="ops-scale-pref-select">
+                        <FormSelect
+                          aria-label="Scale down preference"
+                          value={scaleDownPreference}
+                          onChange={(_e, val) => setScaleDownPreference(val as 'unused' | 'used')}
+                          className="ops-scale-pref-select"
+                        >
                           <FormSelectOption value="unused" label="Unused first (safest)" />
                           <FormSelectOption value="used" label="Used first (DANGEROUS)" />
                         </FormSelect>
                       </div>
                     )}
-                    <Button variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'} onClick={openScaleConfirm} isLoading={scaleLoading} isDisabled={anyLoading}>
+                    <Button
+                      variant={isScaleZero ? 'danger' : isScaleDown ? 'warning' : 'primary'}
+                      onClick={openScaleConfirm}
+                      isLoading={scaleLoading}
+                      isDisabled={anyLoading}
+                    >
                       {isScaleZero ? 'Scale to Zero' : isScaleDown ? 'Scale Down' : 'Scale'}
                     </Button>
                   </CardBody>
                 </Card>
                 <Card className="ops-redeploy-failed">
-                  <CardTitle><RedoIcon className="ops-card-icon" /> Redeploy Failed</CardTitle>
+                  <CardTitle>
+                    <RedoIcon className="ops-card-icon" /> Redeploy Failed
+                  </CardTitle>
                   <CardBody>
                     {failedInstancesAnalysis.totalFailed > 0 ? (
                       <>
                         <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                          <strong>{failedInstancesAnalysis.totalFailed}</strong> failed across <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
+                          <strong>{failedInstancesAnalysis.totalFailed}</strong> failed across{' '}
+                          <strong>{failedInstancesAnalysis.failedWorkshops.length}</strong> workshop(s)
                         </p>
                         <div style={{ display: 'flex', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                          <Button variant="warning" onClick={() => setShowRedeployConfirm(true)} isLoading={redeployLoading} isDisabled={anyLoading}>Redeploy</Button>
+                          <Button
+                            variant="warning"
+                            onClick={() => setShowRedeployConfirm(true)}
+                            isLoading={redeployLoading}
+                            isDisabled={anyLoading}
+                          >
+                            Redeploy
+                          </Button>
                           <Tooltip content={failedJobsTooltip}>
-                            <Dropdown isOpen={isBatchMenuOpen} onSelect={() => setIsBatchMenuOpen(false)} onOpenChange={setIsBatchMenuOpen}
-                              toggle={(toggleRef) => (<MenuToggle ref={toggleRef} onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)} isDisabled={failedInstancesAnalysis.allJobUrls.length === 0} variant="secondary" icon={<ExternalLinkAltIcon />}>Jobs ({failedInstancesAnalysis.allJobUrls.length})</MenuToggle>)}>
+                            <Dropdown
+                              isOpen={isBatchMenuOpen}
+                              onSelect={() => setIsBatchMenuOpen(false)}
+                              onOpenChange={setIsBatchMenuOpen}
+                              toggle={(toggleRef) => (
+                                <MenuToggle
+                                  ref={toggleRef}
+                                  onClick={() => setIsBatchMenuOpen(!isBatchMenuOpen)}
+                                  isDisabled={failedInstancesAnalysis.allJobUrls.length === 0}
+                                  variant="secondary"
+                                  icon={<ExternalLinkAltIcon />}
+                                >
+                                  Jobs ({failedInstancesAnalysis.allJobUrls.length})
+                                </MenuToggle>
+                              )}
+                            >
                               <DropdownList>
-                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}>Open 10</DropdownItem>
-                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}>Open 20</DropdownItem>
-                                <DropdownItem onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, failedInstancesAnalysis.allJobUrls.length)}>Open All ({failedInstancesAnalysis.allJobUrls.length})</DropdownItem>
+                                <DropdownItem
+                                  onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 10)}
+                                >
+                                  Open 10
+                                </DropdownItem>
+                                <DropdownItem
+                                  onClick={() => handleOpenFailedJobs(failedInstancesAnalysis.allJobUrls, 20)}
+                                >
+                                  Open 20
+                                </DropdownItem>
+                                <DropdownItem
+                                  onClick={() =>
+                                    handleOpenFailedJobs(
+                                      failedInstancesAnalysis.allJobUrls,
+                                      failedInstancesAnalysis.allJobUrls.length,
+                                    )
+                                  }
+                                >
+                                  Open All ({failedInstancesAnalysis.allJobUrls.length})
+                                </DropdownItem>
                               </DropdownList>
                             </Dropdown>
                           </Tooltip>
@@ -2918,12 +3474,15 @@ const Ops: React.FC = () => {
                 <Card>
                   <CardTitle>
                     <Tooltip content="One batched Soundcheck session for selected workshop-id labels (deep showroom health). Falls back to deep-link if the API is blocked by CORS.">
-                      <span><ExternalLinkAltIcon className="ops-card-icon" /> Soundcheck</span>
+                      <span>
+                        <ExternalLinkAltIcon className="ops-card-icon" /> Soundcheck
+                      </span>
                     </Tooltip>
                   </CardTitle>
                   <CardBody>
                     <p className="ops-desc">
-                      Batch-check <strong>selected</strong> workshops only (one Soundcheck session — not per-row, not on scroll/refresh)
+                      Batch-check <strong>selected</strong> workshops only (one Soundcheck session — not per-row, not on
+                      scroll/refresh)
                       {soundcheckWorkshopIds.length > 0
                         ? ` · ${soundcheckWorkshopIds.length} workshop-id${soundcheckWorkshopIds.length !== 1 ? 's' : ''}`
                         : ' · tick workshops in the table first'}
@@ -2938,7 +3497,9 @@ const Ops: React.FC = () => {
                     <div className="ops-button-row">
                       <Button
                         variant="primary"
-                        onClick={() => { void handleSoundcheck(); }}
+                        onClick={() => {
+                          void handleSoundcheck();
+                        }}
                         isLoading={soundcheckLoading}
                         isDisabled={anyLoading || soundcheckWorkshopIds.length === 0}
                       >
@@ -2981,9 +3542,15 @@ const Ops: React.FC = () => {
                               ) : null}
                               <span className="ops-muted">
                                 Session {soundcheckRun.status} · {soundcheckRun.mode}
-                                {soundcheckRun.status === 'running' || soundcheckRun.status === 'pending'
-                                  ? <> · <Label isCompact color="blue">Live</Label></>
-                                  : null}
+                                {soundcheckRun.status === 'running' || soundcheckRun.status === 'pending' ? (
+                                  <>
+                                    {' '}
+                                    ·{' '}
+                                    <Label isCompact color="blue">
+                                      Live
+                                    </Label>
+                                  </>
+                                ) : null}
                               </span>
                             </div>
                             {(soundcheckRun.failedTargets?.length ?? 0) > 0 && (
@@ -2991,15 +3558,17 @@ const Ops: React.FC = () => {
                                 {soundcheckRun.failedTargets!.map((t, i) => (
                                   <li key={i}>
                                     <strong>{t.label}</strong>
-                                    {t.errorMessage ? <span className="ops-muted"> — {t.errorMessage}</span> : null}
-                                    {' '}
+                                    {t.errorMessage ? (
+                                      <span className="ops-muted"> — {t.errorMessage}</span>
+                                    ) : null}{' '}
                                     <a
                                       href={t.sessionHref}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="ops-ws-link"
                                     >
-                                      Open <ExternalLinkAltIcon style={{ fontSize: '0.75em', verticalAlign: 'middle' }} />
+                                      Open{' '}
+                                      <ExternalLinkAltIcon style={{ fontSize: '0.75em', verticalAlign: 'middle' }} />
                                     </a>
                                   </li>
                                 ))}
@@ -3022,11 +3591,16 @@ const Ops: React.FC = () => {
               style={{ marginTop: 8 }}
             >
               {opsHistory.length === 0 ? (
-                <p className="ops-muted">No operations yet this browser session. Lock, extend, scale, redeploy, and Soundcheck are recorded here.</p>
+                <p className="ops-muted">
+                  No operations yet this browser session. Lock, extend, scale, redeploy, and Soundcheck are recorded
+                  here.
+                </p>
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                    <Button variant="link" isInline onClick={clearOpsHistory}>Clear history</Button>
+                    <Button variant="link" isInline onClick={clearOpsHistory}>
+                      Clear history
+                    </Button>
                   </div>
                   <ul className="ops-history-list" aria-label="Operations history">
                     {opsHistory.map((entry) => (
@@ -3035,9 +3609,12 @@ const Ops: React.FC = () => {
                           <span className="ops-history-time">{formatOpsHistoryTime(entry.ts)}</span>
                           <Label
                             color={
-                              entry.status === 'success' ? 'green'
-                                : entry.status === 'failed' ? 'red'
-                                  : entry.status === 'partial' ? 'orange'
+                              entry.status === 'success'
+                                ? 'green'
+                                : entry.status === 'failed'
+                                  ? 'red'
+                                  : entry.status === 'partial'
+                                    ? 'orange'
                                     : 'blue'
                             }
                             isCompact
@@ -3046,7 +3623,11 @@ const Ops: React.FC = () => {
                           </Label>
                           <span className="ops-history-counts">
                             {entry.workshopCount} workshop{entry.workshopCount !== 1 ? 's' : ''}
-                            {entry.fail > 0 ? ` · ${entry.ok} ok / ${entry.fail} fail` : entry.ok > 0 ? ` · ${entry.ok} ok` : ''}
+                            {entry.fail > 0
+                              ? ` · ${entry.ok} ok / ${entry.fail} fail`
+                              : entry.ok > 0
+                                ? ` · ${entry.ok} ok`
+                                : ''}
                             {entry.skipped ? ` · ${entry.skipped} skipped` : ''}
                           </span>
                         </div>
@@ -3075,12 +3656,17 @@ const Ops: React.FC = () => {
                 className="ops-infra-section"
               >
                 <div className="ops-infra-grid">
-                  {poolFleetStats.map(pool => {
-                    const healthColor = pool.total === 0 ? 'grey'
-                      : pool.available === 0 ? 'red'
-                      : pool.saturationPct >= 90 ? 'orange'
-                      : pool.saturationPct >= 70 ? 'yellow'
-                      : 'green';
+                  {poolFleetStats.map((pool) => {
+                    const healthColor =
+                      pool.total === 0
+                        ? 'grey'
+                        : pool.available === 0
+                          ? 'red'
+                          : pool.saturationPct >= 90
+                            ? 'orange'
+                            : pool.saturationPct >= 70
+                              ? 'yellow'
+                              : 'green';
                     return (
                       <div key={pool.name} className="ops-infra-pool-card">
                         <div className="ops-infra-pool-header">
@@ -3095,18 +3681,22 @@ const Ops: React.FC = () => {
                           )}
                         </div>
                         <div className="ops-infra-pool-detail">
-                          <span className="ops-infra-detail-item" style={{ color: 'var(--pf-t--global--color--status--success--default)' }}>
+                          <span
+                            className="ops-infra-detail-item"
+                            style={{ color: 'var(--pf-t--global--color--status--success--default)' }}
+                          >
                             {pool.available} avail
                           </span>
                           {pool.pending > 0 && (
-                            <span className="ops-infra-detail-item" style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}>
+                            <span
+                              className="ops-infra-detail-item"
+                              style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
+                            >
                               {pool.pending} pending
                             </span>
                           )}
                           {pool.disabled > 0 && (
-                            <span className="ops-infra-detail-item ops-muted">
-                              {pool.disabled} disabled
-                            </span>
+                            <span className="ops-infra-detail-item ops-muted">{pool.disabled} disabled</span>
                           )}
                           <span className="ops-infra-detail-item ops-muted" style={{ marginLeft: 'auto' }}>
                             {pool.saturationPct}% used
@@ -3117,9 +3707,12 @@ const Ops: React.FC = () => {
                             className="ops-infra-pool-bar-fill"
                             style={{
                               width: `${pool.saturationPct}%`,
-                              background: healthColor === 'red' ? 'var(--pf-t--global--color--status--danger--default)'
-                                : healthColor === 'orange' || healthColor === 'yellow' ? 'var(--pf-t--global--color--status--warning--default)'
-                                : 'var(--pf-t--global--color--status--success--default)',
+                              background:
+                                healthColor === 'red'
+                                  ? 'var(--pf-t--global--color--status--danger--default)'
+                                  : healthColor === 'orange' || healthColor === 'yellow'
+                                    ? 'var(--pf-t--global--color--status--warning--default)'
+                                    : 'var(--pf-t--global--color--status--success--default)',
                             }}
                           />
                         </div>
@@ -3153,19 +3746,39 @@ const Ops: React.FC = () => {
                 <SplitItem isFilled>
                   <Title headingLevel="h5">
                     {hasSelection ? 'Selected workshops' : 'Workshops in scope'}
-                    <Badge isRead style={{ marginLeft: 8 }}>{hasSelection ? selectedWs.size : workshopGroups.length}</Badge>
+                    <Badge isRead style={{ marginLeft: 8 }}>
+                      {hasSelection ? selectedWs.size : workshopGroups.length}
+                    </Badge>
                     {!hasSelection && maxTablePage > 1 && (
-                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: '0.78rem',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                        }}
+                      >
                         page {safeTablePage} of {maxTablePage} ({pagedWorkshopGroups.length} groups shown)
                       </span>
                     )}
                     {!hasSelection && workshopGroups.length !== targets.length && (
-                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: '0.78rem',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                        }}
+                      >
                         ({targets.length} instances)
                       </span>
                     )}
                     {hasSelection && selectedWs.size !== targets.length && (
-                      <span style={{ marginLeft: 6, fontSize: '0.78rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: '0.78rem',
+                          color: 'var(--pf-t--global--text--color--subtle)',
+                        }}
+                      >
                         of {targets.length} total
                       </span>
                     )}
@@ -3220,32 +3833,33 @@ const Ops: React.FC = () => {
                 </SplitItem>
                 {(workshopView === 'table' || workshopView === 'timeline') && (
                   <SplitItem>
-                      <Tooltip content="Per-row Soundcheck badges (batched status lookup, 60s cache, ≤100 visible). Badge opens idempotent /session/workshop/{guid} — reuses an existing session instead of spawning duplicates.">
-                        <Button
-                          variant={showSoundcheckCol ? 'secondary' : 'plain'}
-                          onClick={() => setShowSoundcheckCol((v) => !v)}
-                          aria-label="Toggle Soundcheck status badges"
-                          aria-pressed={showSoundcheckCol}
-                        >
-                          <CheckCircleIcon />
-                          <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
-                            {showSoundcheckCol
-                              ? scStatusLoading
-                                ? 'Soundcheck…'
-                                : 'Soundcheck on'
-                              : 'Soundcheck'}
-                          </span>
-                        </Button>
-                      </Tooltip>
-                    </SplitItem>
+                    <Tooltip content="Per-row Soundcheck badges (batched status lookup, 60s cache, ≤100 visible). Badge opens idempotent /session/workshop/{guid} — reuses an existing session instead of spawning duplicates.">
+                      <Button
+                        variant={showSoundcheckCol ? 'secondary' : 'plain'}
+                        onClick={() => setShowSoundcheckCol((v) => !v)}
+                        aria-label="Toggle Soundcheck status badges"
+                        aria-pressed={showSoundcheckCol}
+                      >
+                        <CheckCircleIcon />
+                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                          {showSoundcheckCol ? (scStatusLoading ? 'Soundcheck…' : 'Soundcheck on') : 'Soundcheck'}
+                        </span>
+                      </Button>
+                    </Tooltip>
+                  </SplitItem>
                 )}
                 {workshopView === 'table' && (
                   <>
                     <SplitItem>
-                      <Button variant="plain" onClick={() => setShowPasswords(p => !p)}
-                        aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}>
+                      <Button
+                        variant="plain"
+                        onClick={() => setShowPasswords((p) => !p)}
+                        aria-label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+                      >
                         {showPasswords ? <EyeSlashIcon /> : <EyeIcon />}
-                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>{showPasswords ? 'Hide passwords' : 'Show passwords'}</span>
+                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                          {showPasswords ? 'Hide passwords' : 'Show passwords'}
+                        </span>
                       </Button>
                     </SplitItem>
                   </>
@@ -3263,10 +3877,7 @@ const Ops: React.FC = () => {
                     </SplitItem>
                     {hasSelection && (
                       <SplitItem>
-                        <Button
-                          variant="link"
-                          onClick={() => setSelectedWs(new Set())}
-                        >
+                        <Button variant="link" onClick={() => setSelectedWs(new Set())}>
                           Clear selection
                         </Button>
                       </SplitItem>
@@ -3275,8 +3886,13 @@ const Ops: React.FC = () => {
                 )}
                 <SplitItem>
                   <Tooltip content="Export to CSV">
-                    <Button icon={<DownloadIcon />} variant="plain" onClick={handleDownloadCSV}
-                      aria-label="Export to CSV" isDisabled={workshopGroups.length === 0} />
+                    <Button
+                      icon={<DownloadIcon />}
+                      variant="plain"
+                      onClick={handleDownloadCSV}
+                      aria-label="Export to CSV"
+                      isDisabled={workshopGroups.length === 0}
+                    />
                   </Tooltip>
                 </SplitItem>
               </Split>
@@ -3284,7 +3900,9 @@ const Ops: React.FC = () => {
               {/* Filters: sort, status, region, range — shared across all views */}
               <div className="ops-scope-bar-extra">
                 <div className="ops-filter-row">
-                  <label htmlFor="ops-sort" className="ops-filter-inline-label">Sort</label>
+                  <label htmlFor="ops-sort" className="ops-filter-inline-label">
+                    Sort
+                  </label>
                   <FormSelect
                     id="ops-sort"
                     aria-label="Sort workshops"
@@ -3306,43 +3924,70 @@ const Ops: React.FC = () => {
                   </FormSelect>
                   <span className="ops-filter-inline-label">Status</span>
                   <div className="ops-schedule-filters">
-                  {([['all', 'grey', 'All'], ['Running', 'green', 'Running'], ['Failed', 'red', 'Failed'], ['Scheduled', 'blue', 'Scheduled'], ['Stopped', 'orange', 'Stopped']] as const).map(([key, color, label]) => {
-                    const matching = key === 'all' ? baseFilteredWorkshops : baseFilteredWorkshops.filter(w => getWorkshopStatus(w) === key);
-                    const count = matching.length;
-                    const tooltipContent = key === 'all' ? `${count} total workshops` : (
-                      <div style={{ maxHeight: 200, overflow: 'auto' }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}: {count}</div>
-                        {matching.slice(0, 15).map(w => {
-                          const seats = getSeats(w);
-                          const inst = getCurrentCount(w) ?? 1;
-                          return (
-                            <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 1 }}>
-                              {displayName(w)} — {inst} inst{seats ? `, ${seats.assigned}/${seats.total} seats` : ''}
+                    {(
+                      [
+                        ['all', 'grey', 'All'],
+                        ['Running', 'green', 'Running'],
+                        ['Failed', 'red', 'Failed'],
+                        ['Scheduled', 'blue', 'Scheduled'],
+                        ['Stopped', 'orange', 'Stopped'],
+                      ] as const
+                    ).map(([key, color, label]) => {
+                      const matching =
+                        key === 'all'
+                          ? baseFilteredWorkshops
+                          : baseFilteredWorkshops.filter((w) => getWorkshopStatus(w) === key);
+                      const count = matching.length;
+                      const tooltipContent =
+                        key === 'all' ? (
+                          `${count} total workshops`
+                        ) : (
+                          <div style={{ maxHeight: 200, overflow: 'auto' }}>
+                            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                              {label}: {count}
                             </div>
-                          );
-                        })}
-                        {matching.length > 15 && <div style={{ fontSize: 11, opacity: 0.6 }}>…and {matching.length - 15} more</div>}
-                      </div>
-                    );
-                    return (
-                      <Tooltip key={key} content={tooltipContent} maxWidth="360px">
-                        <Label
-                          color={statusFilter === key ? 'blue' : color as any}
-                          isCompact
-                          onClick={() => setStatusFilter(statusFilter === key ? 'all' : key as StatusKey | 'all')}
-                          className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
-                        >
-                          {label} ({count})
-                        </Label>
-                      </Tooltip>
-                    );
-                  })}
+                            {matching.slice(0, 15).map((w) => {
+                              const seats = getSeats(w);
+                              const inst = getCurrentCount(w) ?? 1;
+                              return (
+                                <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 1 }}>
+                                  {displayName(w)} — {inst} inst
+                                  {seats ? `, ${seats.assigned}/${seats.total} seats` : ''}
+                                </div>
+                              );
+                            })}
+                            {matching.length > 15 && (
+                              <div style={{ fontSize: 11, opacity: 0.6 }}>…and {matching.length - 15} more</div>
+                            )}
+                          </div>
+                        );
+                      return (
+                        <Tooltip key={key} content={tooltipContent} maxWidth="360px">
+                          <Label
+                            color={statusFilter === key ? 'blue' : color}
+                            isCompact
+                            onClick={() => setStatusFilter(statusFilter === key ? 'all' : (key as StatusKey | 'all'))}
+                            className={`ops-schedule-chip${key === 'Failed' && count > 0 ? ' ops-chip-failed' : ''}`}
+                          >
+                            {label} ({count})
+                          </Label>
+                        </Tooltip>
+                      );
+                    })}
                   </div>
-                  {(statusFilter !== 'all' || tableRegionFilter !== 'all' || clusterFilter !== 'all' || tenantAssignmentFilter !== 'all') && (
+                  {(statusFilter !== 'all' ||
+                    tableRegionFilter !== 'all' ||
+                    clusterFilter !== 'all' ||
+                    tenantAssignmentFilter !== 'all') && (
                     <Label
                       color="grey"
                       isCompact
-                      onClick={() => { setStatusFilter('all'); setTableRegionFilter('all'); setClusterFilter('all'); setTenantAssignmentFilter('all'); }}
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setTableRegionFilter('all');
+                        setClusterFilter('all');
+                        setTenantAssignmentFilter('all');
+                      }}
                       className="ops-schedule-chip"
                       style={{ fontStyle: 'italic' }}
                     >
@@ -3353,141 +3998,236 @@ const Ops: React.FC = () => {
                 <div className="ops-filter-row">
                   <span className="ops-filter-inline-label">Region</span>
                   <div className="ops-schedule-filters">
-                    <Tooltip content={
-                    <div style={{ lineHeight: 1.5, minWidth: 200 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
-                      <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
-                        <div>
-                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.counts.all}</div>
-                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>workshops</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{regionStats.instances.all}</div>
-                          <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
-                        </div>
-                      </div>
-                      {REGIONS.map(r => {
-                        const c = regionStats.counts[r.key];
-                        const run = regionStats.running[r.key];
-                        const dep = regionStats.deploying[r.key];
-                        if (c === 0 && run === 0 && dep === 0) return null;
-                        return (
-                          <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
-                            <strong>{r.label}:</strong> {c} total{run > 0 ? ` · ${run} running` : ''}{dep > 0 ? ` · ${dep} scheduled` : ''}
+                    <Tooltip
+                      content={
+                        <div style={{ lineHeight: 1.5, minWidth: 200 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All regions</div>
+                          <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                                {regionStats.counts.all}
+                              </div>
+                              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>workshops</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                                {regionStats.instances.all}
+                              </div>
+                              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  } maxWidth="320px">
-                    <Label
-                      color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setTableRegionFilter('all')}
-                      className="ops-schedule-chip"
+                          {REGIONS.map((r) => {
+                            const c = regionStats.counts[r.key];
+                            const run = regionStats.running[r.key];
+                            const dep = regionStats.deploying[r.key];
+                            if (c === 0 && run === 0 && dep === 0) return null;
+                            return (
+                              <div key={r.key} style={{ fontSize: 11, marginBottom: 2 }}>
+                                <strong>{r.label}:</strong> {c} total{run > 0 ? ` · ${run} running` : ''}
+                                {dep > 0 ? ` · ${dep} scheduled` : ''}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      }
+                      maxWidth="320px"
                     >
-                      All ({regionStats.counts.all})
-                    </Label>
-                  </Tooltip>
-                  {REGIONS.map(r => {
-                    const count = regionStats.counts[r.key];
-                    const inst = regionStats.instances[r.key];
-                    const deploy = regionStats.deploying[r.key];
-                    const run = regionStats.running[r.key];
-                    const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
-                    const spanning = regionStats.spanning[r.key];
-                    const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
-                    const peakColor = peak.count >= DAILY_SUPPORT_LIMIT ? 'red' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? 'orange' : 'grey';
+                      <Label
+                        color={tableRegionFilter === 'all' ? 'blue' : 'grey'}
+                        isCompact
+                        onClick={() => setTableRegionFilter('all')}
+                        className="ops-schedule-chip"
+                      >
+                        All ({regionStats.counts.all})
+                      </Label>
+                    </Tooltip>
+                    {REGIONS.map((r) => {
+                      const count = regionStats.counts[r.key];
+                      const inst = regionStats.instances[r.key];
+                      const deploy = regionStats.deploying[r.key];
+                      const run = regionStats.running[r.key];
+                      const peak = regionStats.dailyPeak[r.key] || { count: 0, day: '' };
+                      const spanning = regionStats.spanning[r.key];
+                      const tzCity = r.tz.split('/').pop()?.replace(/_/g, ' ') || r.tz;
+                      const peakColor =
+                        peak.count >= DAILY_SUPPORT_LIMIT
+                          ? 'red'
+                          : peak.count >= DAILY_SUPPORT_LIMIT - 1
+                            ? 'orange'
+                            : 'grey';
 
-                    let labelText: string;
-                    const parts: string[] = [];
-                    if (run > 0) parts.push(`${run} running`);
-                    if (deploy > 0) parts.push(`${deploy} scheduled`);
-                    if (parts.length > 0) {
-                      labelText = parts.join(' · ');
-                    } else if (count > 0) {
-                      labelText = `${count} total`;
-                    } else {
-                      labelText = 'none';
-                    }
+                      let labelText: string;
+                      const parts: string[] = [];
+                      if (run > 0) parts.push(`${run} running`);
+                      if (deploy > 0) parts.push(`${deploy} scheduled`);
+                      if (parts.length > 0) {
+                        labelText = parts.join(' · ');
+                      } else if (count > 0) {
+                        labelText = `${count} total`;
+                      } else {
+                        labelText = 'none';
+                      }
 
-                    // Workshops in this region
-                    const regionWorkshops = baseFilteredWorkshops.filter(w => {
-                      const primary = getWorkshopPrimaryRegion(w);
-                      const active = getWorkshopActiveRegions(w);
-                      return primary === r.key || active.includes(r.key);
-                    });
+                      // Workshops in this region
+                      const regionWorkshops = baseFilteredWorkshops.filter((w) => {
+                        const primary = getWorkshopPrimaryRegion(w);
+                        const active = getWorkshopActiveRegions(w);
+                        return primary === r.key || active.includes(r.key);
+                      });
 
-                    const tooltipContent = (
-                      <div style={{ lineHeight: 1.5, minWidth: 250, maxHeight: 350, overflow: 'auto' }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
-                        <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>Biz hours: 9am – 5pm {tzCity}</div>
-                        <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
-                          <div>
-                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
-                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total</div>
+                      const tooltipContent = (
+                        <div style={{ lineHeight: 1.5, minWidth: 250, maxHeight: 350, overflow: 'auto' }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{r.label}</div>
+                          <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 8 }}>
+                            Biz hours: 9am – 5pm {tzCity}
                           </div>
-                          <div>
-                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
-                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                          <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{count}</div>
+                              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>total</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{inst}</div>
+                              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>instances</div>
+                            </div>
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: 20,
+                                  fontWeight: 700,
+                                  lineHeight: 1,
+                                  color:
+                                    peak.count >= DAILY_SUPPORT_LIMIT
+                                      ? '#e53e3e'
+                                      : peak.count >= DAILY_SUPPORT_LIMIT - 1
+                                        ? '#dd6b20'
+                                        : 'inherit',
+                                }}
+                              >
+                                {peak.count}
+                              </div>
+                              <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1, color: peak.count >= DAILY_SUPPORT_LIMIT ? '#e53e3e' : peak.count >= DAILY_SUPPORT_LIMIT - 1 ? '#dd6b20' : 'inherit' }}>{peak.count}</div>
-                            <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>peak/day</div>
-                          </div>
-                        </div>
-                        {(deploy > 0 || run > 0) && (
-                          <div style={{ fontSize: 11, marginBottom: 6 }}>
-                            {deploy > 0 && <span>{deploy} scheduled</span>}
-                            {deploy > 0 && run > 0 && <span> · </span>}
-                            {run > 0 && <span>{run} running</span>}
-                          </div>
-                        )}
-                        {peak.count > 0 && peak.day && (
-                          <div style={{ fontSize: 11, padding: '4px 6px', borderRadius: 3, background: 'rgba(255,255,255,0.08)', marginBottom: 6 }}>
-                            <strong>Busiest:</strong> {peak.day} — {peak.count} active
-                            {peak.count >= DAILY_SUPPORT_LIMIT && <span style={{ color: '#e53e3e', fontWeight: 600 }}> (soft limit: {DAILY_SUPPORT_LIMIT}/day)</span>}
-                          </div>
-                        )}
-                        {spanning > 0 && (
-                          <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>↔ {spanning} cross-region</div>
-                        )}
-                        {regionWorkshops.length > 0 && (
-                          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>Workshops</div>
-                            {regionWorkshops.slice(0, 12).map(w => {
-                              const seats = getSeats(w);
-                              const wInst = getCurrentCount(w) ?? 1;
-                              const status = getWorkshopStatus(w as WorkshopWithResourceClaims);
-                              const statusIcon = status === 'Running' ? '●' : status === 'Failed' ? '✗' : status === 'Scheduled' ? '◔' : '■';
-                              const statusColor = status === 'Running' ? '#48bb78' : status === 'Failed' ? '#fc8181' : status === 'Scheduled' ? '#63b3ed' : '#ecc94b';
-                              return (
-                                <div key={wsKey(w)} style={{ fontSize: 11, marginBottom: 2, display: 'flex', gap: 6 }}>
-                                  <span style={{ color: statusColor, flexShrink: 0 }}>{statusIcon}</span>
-                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(w)}</span>
-                                  <span style={{ opacity: 0.6, flexShrink: 0 }}>{wInst} inst{seats ? ` · ${seats.assigned}/${seats.total}` : ''}</span>
+                          {(deploy > 0 || run > 0) && (
+                            <div style={{ fontSize: 11, marginBottom: 6 }}>
+                              {deploy > 0 && <span>{deploy} scheduled</span>}
+                              {deploy > 0 && run > 0 && <span> · </span>}
+                              {run > 0 && <span>{run} running</span>}
+                            </div>
+                          )}
+                          {peak.count > 0 && peak.day && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                padding: '4px 6px',
+                                borderRadius: 3,
+                                background: 'rgba(255,255,255,0.08)',
+                                marginBottom: 6,
+                              }}
+                            >
+                              <strong>Busiest:</strong> {peak.day} — {peak.count} active
+                              {peak.count >= DAILY_SUPPORT_LIMIT && (
+                                <span style={{ color: '#e53e3e', fontWeight: 600 }}>
+                                  {' '}
+                                  (soft limit: {DAILY_SUPPORT_LIMIT}/day)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {spanning > 0 && (
+                            <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 6 }}>↔ {spanning} cross-region</div>
+                          )}
+                          {regionWorkshops.length > 0 && (
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  opacity: 0.5,
+                                  textTransform: 'uppercase',
+                                  marginBottom: 4,
+                                }}
+                              >
+                                Workshops
+                              </div>
+                              {regionWorkshops.slice(0, 12).map((w) => {
+                                const seats = getSeats(w);
+                                const wInst = getCurrentCount(w) ?? 1;
+                                const status = getWorkshopStatus(w as WorkshopWithResourceClaims);
+                                const statusIcon =
+                                  status === 'Running'
+                                    ? '●'
+                                    : status === 'Failed'
+                                      ? '✗'
+                                      : status === 'Scheduled'
+                                        ? '◔'
+                                        : '■';
+                                const statusColor =
+                                  status === 'Running'
+                                    ? '#48bb78'
+                                    : status === 'Failed'
+                                      ? '#fc8181'
+                                      : status === 'Scheduled'
+                                        ? '#63b3ed'
+                                        : '#ecc94b';
+                                return (
+                                  <div
+                                    key={wsKey(w)}
+                                    style={{ fontSize: 11, marginBottom: 2, display: 'flex', gap: 6 }}
+                                  >
+                                    <span style={{ color: statusColor, flexShrink: 0 }}>{statusIcon}</span>
+                                    <span
+                                      style={{
+                                        flex: 1,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {displayName(w)}
+                                    </span>
+                                    <span style={{ opacity: 0.6, flexShrink: 0 }}>
+                                      {wInst} inst{seats ? ` · ${seats.assigned}/${seats.total}` : ''}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              {regionWorkshops.length > 12 && (
+                                <div style={{ fontSize: 11, opacity: 0.5 }}>
+                                  …and {regionWorkshops.length - 12} more
                                 </div>
-                              );
-                            })}
-                            {regionWorkshops.length > 12 && <div style={{ fontSize: 11, opacity: 0.5 }}>…and {regionWorkshops.length - 12} more</div>}
-                          </div>
-                        )}
-                      </div>
-                    );
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
 
-                    return (
-                      <Tooltip key={r.key} content={tooltipContent} maxWidth="360px">
-                        <Label
-                          color={tableRegionFilter === r.key ? 'blue' : peakColor === 'red' ? 'red' : peakColor === 'orange' ? 'orange' : 'grey'}
-                          isCompact
-                          onClick={() => setTableRegionFilter(tableRegionFilter === r.key ? 'all' : r.key)}
-                          className="ops-schedule-chip"
-                        >
-                          {r.label} — {labelText}
-                        </Label>
-                      </Tooltip>
-                    );
-                  })}
-                    <Tooltip content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time." maxWidth="320px">
+                      return (
+                        <Tooltip key={r.key} content={tooltipContent} maxWidth="360px">
+                          <Label
+                            color={
+                              tableRegionFilter === r.key
+                                ? 'blue'
+                                : peakColor === 'red'
+                                  ? 'red'
+                                  : peakColor === 'orange'
+                                    ? 'orange'
+                                    : 'grey'
+                            }
+                            isCompact
+                            onClick={() => setTableRegionFilter(tableRegionFilter === r.key ? 'all' : r.key)}
+                            className="ops-schedule-chip"
+                          >
+                            {r.label} — {labelText}
+                          </Label>
+                        </Tooltip>
+                      );
+                    })}
+                    <Tooltip
+                      content="Region is determined by when a workshop starts: whichever region's 9am–5pm business hours the start time falls into. Running workshops also appear in regions whose biz hours include the current time."
+                      maxWidth="320px"
+                    >
                       <span style={{ cursor: 'help', fontSize: '0.72rem', opacity: 0.5 }}>ⓘ</span>
                     </Tooltip>
                   </div>
@@ -3495,116 +4235,148 @@ const Ops: React.FC = () => {
                 <div className="ops-filter-row">
                   <span className="ops-filter-inline-label">Pool</span>
                   <div className="ops-schedule-filters">
-                  <Label
-                    color={clusterFilter === 'all' ? 'blue' : 'grey'}
-                    isCompact
-                    onClick={() => setClusterFilter('all')}
-                    className="ops-schedule-chip"
-                  >
-                    All ({clusterStats.totalCount})
-                  </Label>
-                  {clusterStats.sortedClusters.map(pool => (
                     <Label
-                      key={pool}
-                      color={clusterFilter === pool ? 'blue' : 'grey'}
+                      color={clusterFilter === 'all' ? 'blue' : 'grey'}
                       isCompact
-                      onClick={() => setClusterFilter(clusterFilter === pool ? 'all' : pool)}
+                      onClick={() => setClusterFilter('all')}
                       className="ops-schedule-chip"
                     >
-                      {pool} ({clusterStats.clusterCounts[pool]})
+                      All ({clusterStats.totalCount})
                     </Label>
-                  ))}
-                  {clusterStats.noneCount > 0 && (
-                    <Label
-                      color={clusterFilter === 'none' ? 'blue' : 'grey'}
-                      isCompact
-                      onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
-                      className="ops-schedule-chip"
-                    >
-                      No Pool ({clusterStats.noneCount})
-                    </Label>
-                  )}
+                    {clusterStats.sortedClusters.map((pool) => (
+                      <Label
+                        key={pool}
+                        color={clusterFilter === pool ? 'blue' : 'grey'}
+                        isCompact
+                        onClick={() => setClusterFilter(clusterFilter === pool ? 'all' : pool)}
+                        className="ops-schedule-chip"
+                      >
+                        {pool} ({clusterStats.clusterCounts[pool]})
+                      </Label>
+                    ))}
+                    {clusterStats.noneCount > 0 && (
+                      <Label
+                        color={clusterFilter === 'none' ? 'blue' : 'grey'}
+                        isCompact
+                        onClick={() => setClusterFilter(clusterFilter === 'none' ? 'all' : 'none')}
+                        className="ops-schedule-chip"
+                      >
+                        No Pool ({clusterStats.noneCount})
+                      </Label>
+                    )}
                   </div>
                 </div>
                 <div className="ops-filter-row">
                   <span className="ops-filter-inline-label">Tenant</span>
                   <div className="ops-schedule-filters">
-                  <Label
-                    color={tenantAssignmentFilter === 'all' ? 'blue' : 'grey'}
-                    isCompact
-                    onClick={() => setTenantAssignmentFilter('all')}
-                    className="ops-schedule-chip"
-                  >
-                    All ({tenantAssignmentStats.totalCount})
-                  </Label>
-                  <Label
-                    color={tenantAssignmentFilter === 'with-tenant' ? 'blue' : 'grey'}
-                    isCompact
-                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'with-tenant' ? 'all' : 'with-tenant')}
-                    className="ops-schedule-chip"
-                  >
-                    With Tenant Pool ({tenantAssignmentStats.withTenantCount})
-                  </Label>
-                  <Label
-                    color={tenantAssignmentFilter === 'no-tenant' ? 'blue' : 'grey'}
-                    isCompact
-                    onClick={() => setTenantAssignmentFilter(tenantAssignmentFilter === 'no-tenant' ? 'all' : 'no-tenant')}
-                    className="ops-schedule-chip"
-                  >
-                    No Tenant Pool ({tenantAssignmentStats.noTenantCount})
-                  </Label>
+                    <Label
+                      color={tenantAssignmentFilter === 'all' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() => setTenantAssignmentFilter('all')}
+                      className="ops-schedule-chip"
+                    >
+                      All ({tenantAssignmentStats.totalCount})
+                    </Label>
+                    <Label
+                      color={tenantAssignmentFilter === 'with-tenant' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() =>
+                        setTenantAssignmentFilter(tenantAssignmentFilter === 'with-tenant' ? 'all' : 'with-tenant')
+                      }
+                      className="ops-schedule-chip"
+                    >
+                      With Tenant Pool ({tenantAssignmentStats.withTenantCount})
+                    </Label>
+                    <Label
+                      color={tenantAssignmentFilter === 'no-tenant' ? 'blue' : 'grey'}
+                      isCompact
+                      onClick={() =>
+                        setTenantAssignmentFilter(tenantAssignmentFilter === 'no-tenant' ? 'all' : 'no-tenant')
+                      }
+                      className="ops-schedule-chip"
+                    >
+                      No Tenant Pool ({tenantAssignmentStats.noTenantCount})
+                    </Label>
                   </div>
                 </div>
                 <div className="ops-filter-row">
                   <span className="ops-filter-inline-label">Range</span>
                   <div className="ops-schedule-filters ops-date-range-controls">
-                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                    const today = new Date();
-                    handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
-                  }}>Today</Label>
-                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                    const today = new Date();
-                    handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
-                  }}>This Week</Label>
-                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                    const today = new Date();
-                    const nextMon = new Date(today);
-                    nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
-                    const nextSun = new Date(nextMon);
-                    nextSun.setDate(nextMon.getDate() + 6);
-                    handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
-                  }}>Next Week</Label>
-                  <Label color="blue" isCompact className="ops-schedule-chip" onClick={() => {
-                    const today = new Date();
-                    handleTimelineDateChange(
-                      getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
-                      getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0))
-                    );
-                  }}>This Month</Label>
-                  <DatePicker
-                    value={timelineDateRange.start.toISOString().split('T')[0]}
-                    onChange={(_e, val) => {
-                      if (val) {
-                        const d = new Date(val);
-                        if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
-                      }
-                    }}
-                    aria-label="Timeline start date"
-                    placeholder="Start"
-                    className="ops-date-picker-compact"
-                  />
-                  <DatePicker
-                    value={timelineDateRange.end.toISOString().split('T')[0]}
-                    onChange={(_e, val) => {
-                      if (val) {
-                        const d = new Date(val);
-                        if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
-                      }
-                    }}
-                    aria-label="Timeline end date"
-                    placeholder="End"
-                    className="ops-date-picker-compact"
-                  />
+                    <Label
+                      color="blue"
+                      isCompact
+                      className="ops-schedule-chip"
+                      onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(getStartOfDay(today), getEndOfDay(today));
+                      }}
+                    >
+                      Today
+                    </Label>
+                    <Label
+                      color="blue"
+                      isCompact
+                      className="ops-schedule-chip"
+                      onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(getStartOfDay(getMonday(today)), getEndOfDay(getSunday(today)));
+                      }}
+                    >
+                      This Week
+                    </Label>
+                    <Label
+                      color="blue"
+                      isCompact
+                      className="ops-schedule-chip"
+                      onClick={() => {
+                        const today = new Date();
+                        const nextMon = new Date(today);
+                        nextMon.setDate(today.getDate() + (7 - today.getDay() + 1));
+                        const nextSun = new Date(nextMon);
+                        nextSun.setDate(nextMon.getDate() + 6);
+                        handleTimelineDateChange(getStartOfDay(nextMon), getEndOfDay(nextSun));
+                      }}
+                    >
+                      Next Week
+                    </Label>
+                    <Label
+                      color="blue"
+                      isCompact
+                      className="ops-schedule-chip"
+                      onClick={() => {
+                        const today = new Date();
+                        handleTimelineDateChange(
+                          getStartOfDay(new Date(today.getFullYear(), today.getMonth(), 1)),
+                          getEndOfDay(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+                        );
+                      }}
+                    >
+                      This Month
+                    </Label>
+                    <DatePicker
+                      value={timelineDateRange.start.toISOString().split('T')[0]}
+                      onChange={(_e, val) => {
+                        if (val) {
+                          const d = new Date(val);
+                          if (!isNaN(d.getTime())) handleTimelineDateChange(getStartOfDay(d), timelineDateRange.end);
+                        }
+                      }}
+                      aria-label="Timeline start date"
+                      placeholder="Start"
+                      className="ops-date-picker-compact"
+                    />
+                    <DatePicker
+                      value={timelineDateRange.end.toISOString().split('T')[0]}
+                      onChange={(_e, val) => {
+                        if (val) {
+                          const d = new Date(val);
+                          if (!isNaN(d.getTime())) handleTimelineDateChange(timelineDateRange.start, getEndOfDay(d));
+                        }
+                      }}
+                      aria-label="Timeline end date"
+                      placeholder="End"
+                      className="ops-date-picker-compact"
+                    />
                   </div>
                 </div>
                 {regionStats.topBusyDays.length > 0 && (
@@ -3640,7 +4412,10 @@ const Ops: React.FC = () => {
                   page={safeTablePage}
                   perPage={tablePerPage}
                   onSetPage={(_e, p) => setTablePage(p)}
-                  onPerPageSelect={(_e, pp) => { setTablePerPage(pp); setTablePage(1); }}
+                  onPerPageSelect={(_e, pp) => {
+                    setTablePerPage(pp);
+                    setTablePage(1);
+                  }}
                   perPageOptions={[
                     { title: '10', value: 10 },
                     { title: '20', value: 20 },
@@ -3663,8 +4438,8 @@ const Ops: React.FC = () => {
                   {opsCalendarEvents.length === 0 ? (
                     <EmptyState titleText="Nothing to show on the calendar" headingLevel="h5">
                       <EmptyStateBody>
-                        No workshops in the current scope have a start time set, or filters exclude them.
-                        Adjust filters or switch to the table view.
+                        No workshops in the current scope have a start time set, or filters exclude them. Adjust filters
+                        or switch to the table view.
                       </EmptyStateBody>
                     </EmptyState>
                   ) : (
@@ -3674,7 +4449,7 @@ const Ops: React.FC = () => {
                       startAccessor="start"
                       endAccessor="end"
                       style={{ height: 640 }}
-                      onSelectEvent={ev => navigate(ev.url)}
+                      onSelectEvent={(ev) => navigate(ev.url)}
                       eventPropGetter={workshopCalendarEventStyleGetter}
                       showAllEvents
                       showMultiDayTimes
@@ -3688,7 +4463,9 @@ const Ops: React.FC = () => {
                     src="https://dashboard-rhdp-monitoring-dashboard.apps.ocpv-infra01.dal12.infra.demo.redhat.com/dashboard.html"
                     title="RHDP Monitoring Dashboard"
                     className="ops-monitoring-frame"
-                    onError={() => {/* iframe error is silent; fallback link is shown below */}}
+                    onError={() => {
+                      /* iframe error is silent; fallback link is shown below */
+                    }}
                   />
                   <div className="ops-monitoring-fallback">
                     <ExternalLinkAltIcon style={{ marginRight: 4 }} />
@@ -3699,8 +4476,8 @@ const Ops: React.FC = () => {
                       rel="noopener noreferrer"
                     >
                       open it in a new tab
-                    </a>.
-                    You may need to authenticate via OpenShift SSO on first visit.
+                    </a>
+                    . You may need to authenticate via OpenShift SSO on first visit.
                   </div>
                 </div>
               )}
@@ -3710,7 +4487,9 @@ const Ops: React.FC = () => {
                     src={soundcheckFrameUrl || soundcheckBase}
                     title="Soundcheck"
                     className="ops-monitoring-frame"
-                    onError={() => {/* silent */}}
+                    onError={() => {
+                      /* silent */
+                    }}
                   />
                   <div className="ops-monitoring-fallback">
                     <ExternalLinkAltIcon style={{ marginRight: 4 }} />
@@ -3722,13 +4501,16 @@ const Ops: React.FC = () => {
               )}
               {workshopView === 'timeline' && (
                 <WorkshopTimeline
-                  workshops={targets.map(ws => ({
-                    ...ws,
-                    resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || []
-                  } as WorkshopWithResourceClaims))}
+                  workshops={targets.map(
+                    (ws) =>
+                      ({
+                        ...ws,
+                        resourceClaims: resourceClaimsByWorkshop.get(wsKey(ws)) || [],
+                      }) as WorkshopWithResourceClaims,
+                  )}
                   selectedWorkshops={selectedWs}
                   onSelectWorkshop={(id, selected) => {
-                    setSelectedWs(prev => {
+                    setSelectedWs((prev) => {
                       const next = new Set(prev);
                       if (selected) next.add(id);
                       else next.delete(id);
@@ -3736,7 +4518,7 @@ const Ops: React.FC = () => {
                     });
                   }}
                   onClickWorkshop={(id) => {
-                    const workshop = targets.find(ws => wsKey(ws) === id);
+                    const workshop = targets.find((ws) => wsKey(ws) === id);
                     if (workshop) {
                       navigate(wsDetailPath(workshop));
                     }
@@ -3755,454 +4537,441 @@ const Ops: React.FC = () => {
                 />
               )}
               {workshopView === 'table' && (
-              <div className="ops-table-wrap">
-                <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 32 }}>
-                        <Checkbox id="select-all-ws" isChecked={allSelected} onChange={toggleSelectAll}
-                          aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'} />
-                      </th>
-                      <th></th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode(sortMode === 'name-asc' ? 'name-desc' : 'name-asc')}
-                          className="ops-col-sort-btn" aria-label="Sort by name">
-                          Name {sortMode === 'name-asc' ? <SortAmountDownIcon className="ops-col-sort-icon" /> : sortMode === 'name-desc' ? <SortAmountDownIcon className="ops-col-sort-icon" style={{ transform: 'scaleY(-1)' }} /> : null}
-                        </Button>
-                      </th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('status-asc')}
-                          className="ops-col-sort-btn" aria-label="Sort by status">
-                          Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      {showSoundcheckCol && (
-                        <th>
-                          <Tooltip content="Last Soundcheck session (page only, cached). Opt-in — off by default.">
-                            <span>Soundcheck{scStatusLoading ? '…' : ''}</span>
-                          </Tooltip>
+                <div className="ops-table-wrap">
+                  <table className="pf-v6-c-table pf-m-compact pf-m-grid-md" role="grid">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 32 }}>
+                          <Checkbox
+                            id="select-all-ws"
+                            isChecked={allSelected}
+                            onChange={toggleSelectAll}
+                            aria-label={maxTablePage > 1 ? 'Select all workshops on this page' : 'Select all workshops'}
+                          />
                         </th>
-                      )}
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('lock-asc')}
-                          className="ops-col-sort-btn" aria-label="Sort by lock status">
-                          Lock {sortMode === 'lock-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      <th>Assets</th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('instances-desc')}
-                          className="ops-col-sort-btn" aria-label="Sort by instance count">
-                          Instances {sortMode === 'instances-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      <th>Concurrency</th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('seats-desc')}
-                          className="ops-col-sort-btn" aria-label="Sort by seats">
-                          Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      <th>Tenant Pool</th>
-                      <th className="ops-col-reg">Reg</th>
-                      <th>Password</th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('stop-asc')}
-                          className="ops-col-sort-btn" aria-label="Sort by Auto-Stop soonest">
-                          Auto-Stop {sortMode === 'stop-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      <th>
-                        <Button variant="plain" isInline onClick={() => setSortMode('destroy-asc')}
-                          className="ops-col-sort-btn" aria-label="Sort by Auto-Destroy soonest">
-                          Auto-Destroy {sortMode === 'destroy-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
-                        </Button>
-                      </th>
-                      <th>Workshop URL</th>
-                      <th className="ops-col-white-glove">White glove</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedWorkshopGroups.map(group => {
-                      const expanded = expandedGroups.has(group.name);
-                      const isSingle = group.items.length === 1 && !group.multiWorkshop;
-                      const isMultiAsset = !!group.multiWorkshop;
-                      const firstWs = group.items[0];
-                      const firstStage = getStageFromK8sObject(firstWs);
-                      const mw = group.multiWorkshop;
-                      const mwAssetCount = mw?.spec?.assets?.length ?? group.items.length;
-                      const mwNumberSeats = mw?.spec?.numberSeats;
+                        <th></th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode(sortMode === 'name-asc' ? 'name-desc' : 'name-asc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by name"
+                          >
+                            Name{' '}
+                            {sortMode === 'name-asc' ? (
+                              <SortAmountDownIcon className="ops-col-sort-icon" />
+                            ) : sortMode === 'name-desc' ? (
+                              <SortAmountDownIcon className="ops-col-sort-icon" style={{ transform: 'scaleY(-1)' }} />
+                            ) : null}
+                          </Button>
+                        </th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('status-asc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by status"
+                          >
+                            Status {sortMode === 'status-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        {showSoundcheckCol && (
+                          <th>
+                            <Tooltip content="Last Soundcheck session (page only, cached). Opt-in — off by default.">
+                              <span>Soundcheck{scStatusLoading ? '…' : ''}</span>
+                            </Tooltip>
+                          </th>
+                        )}
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('lock-asc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by lock status"
+                          >
+                            Lock {sortMode === 'lock-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        <th>Assets</th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('instances-desc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by instance count"
+                          >
+                            Instances{' '}
+                            {sortMode === 'instances-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        <th>Concurrency</th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('seats-desc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by seats"
+                          >
+                            Seats {sortMode === 'seats-desc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        <th>Tenant Pool</th>
+                        <th className="ops-col-reg">Reg</th>
+                        <th>Password</th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('stop-asc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by Auto-Stop soonest"
+                          >
+                            Auto-Stop {sortMode === 'stop-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        <th>
+                          <Button
+                            variant="plain"
+                            isInline
+                            onClick={() => setSortMode('destroy-asc')}
+                            className="ops-col-sort-btn"
+                            aria-label="Sort by Auto-Destroy soonest"
+                          >
+                            Auto-Destroy{' '}
+                            {sortMode === 'destroy-asc' && <SortAmountDownIcon className="ops-col-sort-icon" />}
+                          </Button>
+                        </th>
+                        <th>Workshop URL</th>
+                        <th className="ops-col-white-glove">White glove</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedWorkshopGroups.map((group) => {
+                        const expanded = expandedGroups.has(group.name);
+                        const isSingle = group.items.length === 1 && !group.multiWorkshop;
+                        const isMultiAsset = !!group.multiWorkshop;
+                        const firstWs = group.items[0];
+                        const firstStage = getStageFromK8sObject(firstWs);
+                        const mw = group.multiWorkshop;
+                        const mwAssetCount = mw?.spec?.assets?.length ?? group.items.length;
+                        const mwNumberSeats = mw?.spec?.numberSeats;
 
-                      // Aggregate stats for the group header
-                      let grpInstances = 0;
-                      let grpSeatsAssigned = 0;
-                      let grpSeatsTotal = 0;
-                      let grpLocked = 0;
-                      let grpActive = 0;
-                      let grpStopped = 0;
-                      let grpFailed = 0;
-                      let grpDesired = 0;
-                      let grpClaimed = 0;
-                      let grpFailedCount = 0;
-                      let grpConcurrency = 0;
-                      let grpAttention = false;
-                      const grpPasswords = new Map<string, string>();
-                      const grpNamespaces = new Set<string>();
-                      const grpUrls: { id: string; url: string }[] = [];
-                      let grpWhiteGlove = 0;
-                      const grpClusters = new Set<string>();
-                      let grpClusterInfo: { poolName: string; poolNamespace: string; clusterName: string; totalClusters: number; availableClusters: number; poolSaturationPercent: number; maxPlacements: number; placementCount: number; maxTotalPlacements: number; placementCapacityPercent: number } | null = null;
+                        // Aggregate stats for the group header
+                        let grpInstances = 0;
+                        let grpSeatsAssigned = 0;
+                        let grpSeatsTotal = 0;
+                        let grpLocked = 0;
+                        let grpStopped = 0;
+                        let grpDesired = 0;
+                        let grpClaimed = 0;
+                        let grpConcurrency = 0;
+                        let grpAttention = false;
+                        const grpPasswords = new Map<string, string>();
+                        const grpNamespaces = new Set<string>();
+                        const grpUrls: { id: string; url: string }[] = [];
+                        let grpWhiteGlove = 0;
+                        const grpClusters = new Set<string>();
+                        let grpClusterInfo: {
+                          poolName: string;
+                          poolNamespace: string;
+                          clusterName: string;
+                          totalClusters: number;
+                          availableClusters: number;
+                          poolSaturationPercent: number;
+                          maxPlacements: number;
+                          placementCount: number;
+                          maxTotalPlacements: number;
+                          placementCapacityPercent: number;
+                        } | null = null;
 
-                      for (const ws of group.items) {
-                        const c = getCurrentCount(ws);
-                        grpInstances += c ?? 1;
-                        const s = getSeats(ws);
-                        if (s) { grpSeatsAssigned += s.assigned; grpSeatsTotal += s.total; }
-                        if (isWorkshopLocked(ws)) grpLocked++;
-                        if (s && s.assigned > 0) grpActive++;
-                        if (ws.spec?.provisionDisabled) grpStopped++;
-                        const prog = getProvisionProgress(ws);
-                        if (prog) {
-                          if (prog.failed > 0) grpFailed++;
-                          grpDesired += prog.desired;
-                          grpClaimed += prog.claimed;
-                          grpFailedCount += prog.failed;
-                          grpConcurrency += prog.concurrency;
+                        for (const ws of group.items) {
+                          const c = getCurrentCount(ws);
+                          grpInstances += c ?? 1;
+                          const s = getSeats(ws);
+                          if (s) {
+                            grpSeatsAssigned += s.assigned;
+                            grpSeatsTotal += s.total;
+                          }
+                          if (isWorkshopLocked(ws)) grpLocked++;
+                          if (ws.spec?.provisionDisabled) grpStopped++;
+                          const prog = getProvisionProgress(ws);
+                          if (prog) {
+                            grpDesired += prog.desired;
+                            grpClaimed += prog.claimed;
+                            grpConcurrency += prog.concurrency;
+                          }
+                          if (
+                            dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' ||
+                            dateUrgency(ws.spec?.lifespan?.end) === 'critical'
+                          )
+                            grpAttention = true;
+                          if (ws.spec?.accessPassword) {
+                            const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`] || displayName(ws);
+                            grpPasswords.set(assetKey, ws.spec.accessPassword);
+                          }
+                          grpNamespaces.add(ws.metadata.namespace);
+                          const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+                          if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
+                          if (getWhiteGloved(ws)) grpWhiteGlove++;
+
+                          const poolName = getWorkshopCluster(ws);
+                          if (poolName) grpClusters.add(poolName);
+                          if (!grpClusterInfo) {
+                            grpClusterInfo = getWorkshopClusterInfo(ws);
+                          }
                         }
-                        if (dateUrgency(ws.spec?.actionSchedule?.stop) === 'critical' || dateUrgency(ws.spec?.lifespan?.end) === 'critical') grpAttention = true;
-                        if (ws.spec?.accessPassword) {
-                          const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`] || displayName(ws);
-                          grpPasswords.set(assetKey, ws.spec.accessPassword);
-                        }
-                        grpNamespaces.add(ws.metadata.namespace);
-                        const wid = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-                        if (wid) grpUrls.push({ id: wid, url: `${window.location.origin}/workshop/${wid}` });
-                        if (getWhiteGloved(ws)) grpWhiteGlove++;
 
-                        const poolName = getWorkshopCluster(ws);
-                        if (poolName) grpClusters.add(poolName);
-                        if (!grpClusterInfo) {
-                          grpClusterInfo = getWorkshopClusterInfo(ws);
-                        }
-                      }
+                        const stageColor =
+                          firstStage === 'dev'
+                            ? ('green' as const)
+                            : firstStage === 'event'
+                              ? ('purple' as const)
+                              : firstStage === 'test'
+                                ? ('blue' as const)
+                                : firstStage === 'prod'
+                                  ? ('orange' as const)
+                                  : ('grey' as const);
+                        const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
 
-                      const stageColor = firstStage === 'dev' ? 'green' as const : firstStage === 'event' ? 'purple' as const : firstStage === 'test' ? 'blue' as const : firstStage === 'prod' ? 'orange' as const : 'grey' as const;
-                      const mwDetailPath = mw ? `/multi-workshop/${mw.metadata.namespace}/${mw.metadata.name}` : null;
+                        const groupKeys = group.items.map((ws) => wsKey(ws));
+                        const grpAllSelected = groupKeys.every((k) => selectedWs.has(k));
+                        const grpSomeSelected = !grpAllSelected && groupKeys.some((k) => selectedWs.has(k));
 
-                      const groupKeys = group.items.map(ws => wsKey(ws));
-                      const grpAllSelected = groupKeys.every(k => selectedWs.has(k));
-                      const grpSomeSelected = !grpAllSelected && groupKeys.some(k => selectedWs.has(k));
-
-                      const headerRow = (
-                        <tr key={`grp-${group.name}`}
-                          className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
-                          onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
-                          style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
-                        >
-                          <td onClick={e => e.stopPropagation()}>
-                            <Checkbox id={`select-grp-${group.name}`}
-                              isChecked={grpAllSelected ? true : grpSomeSelected ? null : false}
-                              onChange={() => toggleSelectGroup(group)}
-                              aria-label={`Select ${group.name}`} />
-                          </td>
-                          <td className="ops-expand-cell">
-                            {(group.items.length > 1 || isMultiAsset) && (
-                              expanded ? <AngleDownIcon className="ops-expand-icon" /> : <AngleRightIcon className="ops-expand-icon" />
-                            )}
-                          </td>
-                          <td>
-                            {isMultiAsset && mwDetailPath ? (
-                              <Link to={mwDetailPath} className="ops-ws-name-link" onClick={e => e.stopPropagation()}>
-                                <strong>{group.name}</strong>
-                              </Link>
-                            ) : isSingle ? (
-                              <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link"><strong>{group.name}</strong></Link>
-                            ) : (
-                              <strong>{group.name}</strong>
-                            )}
-                            {!isSingle && !isMultiAsset && <Badge isRead style={{ marginLeft: 6 }}>{group.items.length}</Badge>}
-                            {isSingle && <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">{firstWs.metadata.name}</Link>}
-                            <span className="ops-ws-labels">
-                              {firstStage && <Label isCompact color={stageColor}>{firstStage}</Label>}
-                              {isMultiNs && Array.from(grpNamespaces).map(ns => (
-                                <Label key={ns} isCompact color={
-                                  ns.includes('.prod') ? 'orange' : ns.includes('.event') ? 'purple' : ns.includes('.dev') ? 'green' : 'blue'
-                                }>{ns}</Label>
-                              ))}
-                              {isMultiAsset && (
-                                <Label isCompact color="teal">Multi-Asset</Label>
-                              )}
-                            </span>
-                          </td>
-                          <td className="ops-status-cell">
-                            {grpStopped === group.items.length ? (
-                              <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                            ) : (() => {
-                              const grpClaims = group.items.flatMap(ws => resourceClaimsByWorkshop.get(wsKey(ws)) ?? []);
-                              if (grpClaims.length > 0) {
-                                return <WorkshopStatus resourceClaims={grpClaims} />;
-                              }
-                              if (grpDesired > 0) {
-                                const startMs = getWorkshopScheduleStartMs(firstWs);
-                                const isScheduled = startMs && startMs > Date.now();
-                                return (
-                                  <>
-                                    <Icon status="info"><InProgressIcon /></Icon>
-                                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
-                                      {grpClaimed > 0 ? 'Provisioning' : 'Scheduled'} {grpClaimed}/{grpDesired}
-                                      {isScheduled && grpClaimed === 0 && (
-                                        <>
-                                          {' · '}
-                                          <Tooltip content={`Start: ${fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}`}>
-                                            <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                              <OutlinedClockIcon style={{ marginRight: 4 }} />
-                                              {fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}
-                                            </span>
-                                          </Tooltip>
-                                        </>
-                                      )}
-                                    </span>
-                                  </>
-                                );
-                              }
-                              return <><Icon status="info"><InProgressIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span></>;
-                            })()}
-                          </td>
-                          {renderSoundcheckCell(
-                            group.items.map(
-                              (ws) =>
-                                ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] ||
-                                ws.metadata.name,
-                            ),
-                          )}
-                          <td>
-                            {grpLocked > 0 ? (
-                              <Tooltip content={isMultiAsset
-                                ? `${grpLocked}/${group.items.length} locked — dates sync with parent when locked`
-                                : `${grpLocked} of ${group.items.length} locked`}>
-                                <Icon status="warning"><LockIcon /></Icon>
-                              </Tooltip>
-                            ) : (
-                              <Icon status="success"><LockOpenIcon /></Icon>
-                            )}
-                          </td>
-                          <td>
-                            {isMultiAsset ? (
-                              <Tooltip content={`${mwAssetCount} assets, ${group.items.length} provisioned`}>
-                                <strong>{mwAssetCount}</strong>
-                              </Tooltip>
-                            ) : <span className="ops-muted">&mdash;</span>}
-                          </td>
-                          <td><strong>{grpInstances}</strong></td>
-                          <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
-                          <td>
-                            {isMultiAsset && mwNumberSeats ? (
-                              <Tooltip content="MultiWorkshop numberSeats">
-                                <strong>{mwNumberSeats}</strong>
-                              </Tooltip>
-                            ) : grpSeatsTotal > 0 ? (
-                              <span>
-                                <strong className={seatColorClass(grpSeatsAssigned, grpSeatsTotal)}>{grpSeatsAssigned}</strong>
-                                {' '}/ {grpSeatsTotal}
-                              </span>
-                            ) : <span className="ops-muted">&mdash;</span>}
-                          </td>
-                          <td>
-                            {grpClusters.size === 1 && grpClusterInfo ? (
-                              (() => {
-                                const capacityState = grpClusterInfo.placementCapacityPercent >= 85 ? 'critical' : grpClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy';
-                                return (
-                                  <Tooltip content={`Pool: ${grpClusterInfo.poolName} · ${grpClusterInfo.availableClusters}/${grpClusterInfo.totalClusters} clusters available · ${grpClusterInfo.placementCount}/${grpClusterInfo.maxTotalPlacements} placements (${grpClusterInfo.placementCapacityPercent}%)`}>
-                                    <Label
-                                      isCompact
-                                      color={capacityState === 'critical' ? 'red' : capacityState === 'warning' ? 'orange' : 'blue'}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`);
-                                      }}
-                                      style={{ cursor: 'pointer' }}
-                                    >
-                                      {grpClusterInfo.poolName} ({grpClusterInfo.availableClusters}/{grpClusterInfo.totalClusters})
-                                    </Label>
-                                  </Tooltip>
-                                );
-                              })()
-                            ) : grpClusters.size > 1 ? (
-                              <Tooltip content={`Multiple pools: ${Array.from(grpClusters).join(', ')}`}>
-                                <Label isCompact color="purple">{grpClusters.size} pools</Label>
-                              </Tooltip>
-                            ) : (
-                              <span className="ops-muted">&mdash;</span>
-                            )}
-                          </td>
-                          <td>
-                            {firstWs.spec?.openRegistration !== false ? (
-                              <Label color="green" isCompact>Open</Label>
-                            ) : (
-                              <Label color="blue" isCompact>Pre-reg</Label>
-                            )}
-                          </td>
-                          <td>
-                            {isMultiAsset && grpPasswords.size > 1 ? (
-                              showPasswords
-                                ? <span className="ops-password-multi">{Array.from(grpPasswords.entries()).map(([k, v]) =>
-                                    <span key={k}><code className="ops-password">{k}: {v}</code></span>
-                                  )}</span>
-                                : <span className="ops-password-hidden">••• ({grpPasswords.size} passwords)</span>
-                            ) : grpPasswords.size === 1 ? (
-                              showPasswords
-                                ? <code className="ops-password">{Array.from(grpPasswords.values())[0]}</code>
-                                : <span className="ops-password-hidden">••••••••</span>
-                            ) : <span className="ops-muted">None</span>}
-                          </td>
-                          <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
-                          <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
-                          <td>
-                            {isMultiAsset && mw?.metadata?.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
-                              <a href={`${window.location.origin}/event/${mw.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
-                                target="_blank" rel="noopener noreferrer" className="ops-ws-link"
-                                onClick={e => e.stopPropagation()}>
-                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />Event page
-                              </a>
-                            ) : grpUrls.length > 0 ? (
-                              <a href={grpUrls[0].url} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
-                                <ExternalLinkAltIcon style={{ marginRight: 4 }} />
-                                {grpUrls[0].id}
-                              </a>
-                            ) : <span className="ops-muted">&mdash;</span>}
-                          </td>
-                          <td className="ops-wg-cell">
-                            {grpWhiteGlove === 0 ? (
-                              <span className="ops-muted">&mdash;</span>
-                            ) : grpWhiteGlove === group.items.length ? (
-                              <Label isCompact color="yellow">Yes</Label>
-                            ) : (
-                              <Tooltip content={`${grpWhiteGlove} of ${group.items.length} assets`}>
-                                <span><Label isCompact color="orange">{grpWhiteGlove}/{group.items.length}</Label></span>
-                              </Tooltip>
-                            )}
-                          </td>
-                        </tr>
-                      );
-
-                      if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
-
-                      const childRows = group.items.map(ws => {
-                        const locked = isWorkshopLocked(ws);
-                        const currentCount = getCurrentCount(ws);
-                        const seats = getSeats(ws);
-                        const password = ws.spec?.accessPassword;
-                        const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
-                        const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
-                        const provDisabled = ws.spec?.provisionDisabled === true;
-                        const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
-                        const progress = getProvisionProgress(ws);
-                        const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
-                        const wsClusterName = getWorkshopCluster(ws);
-                        const wsClusterInfo = getWorkshopClusterInfo(ws);
-                        const wsCapacityState = wsClusterInfo ? (wsClusterInfo.placementCapacityPercent >= 85 ? 'critical' : wsClusterInfo.placementCapacityPercent >= 70 ? 'warning' : 'healthy') : null;
-
-                        return (
-                          <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
-                            <td>
-                              <Checkbox id={`select-ws-${ws.metadata.name}`}
-                                isChecked={selectedWs.has(wsKey(ws))}
-                                onChange={() => setSelectedWs(prev => {
-                                  const next = new Set(prev);
-                                  const k = wsKey(ws);
-                                  next.has(k) ? next.delete(k) : next.add(k);
-                                  return next;
-                                })}
-                                aria-label={`Select ${ws.metadata.name}`} />
+                        const headerRow = (
+                          <tr
+                            key={`grp-${group.name}`}
+                            className={`ops-group-header ${isMultiAsset ? 'ops-multi-asset-header' : ''} ${grpAttention ? 'ops-row-attention' : ''} ${grpStopped === group.items.length ? 'ops-row-stopped' : ''}`}
+                            onClick={group.items.length > 1 || isMultiAsset ? () => toggleGroup(group.name) : undefined}
+                            style={group.items.length > 1 || isMultiAsset ? { cursor: 'pointer' } : undefined}
+                          >
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                id={`select-grp-${group.name}`}
+                                isChecked={grpAllSelected ? true : grpSomeSelected ? null : false}
+                                onChange={() => toggleSelectGroup(group)}
+                                aria-label={`Select ${group.name}`}
+                              />
                             </td>
-                            <td></td>
+                            <td className="ops-expand-cell">
+                              {(group.items.length > 1 || isMultiAsset) &&
+                                (expanded ? (
+                                  <AngleDownIcon className="ops-expand-icon" />
+                                ) : (
+                                  <AngleRightIcon className="ops-expand-icon" />
+                                ))}
+                            </td>
                             <td>
-                              {isMultiAsset && assetKey && (
-                                <Label isCompact color="teal" style={{ marginRight: 6 }}>{assetKey}</Label>
+                              {isMultiAsset && mwDetailPath ? (
+                                <Link
+                                  to={mwDetailPath}
+                                  className="ops-ws-name-link"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <strong>{group.name}</strong>
+                                </Link>
+                              ) : isSingle ? (
+                                <Link to={wsDetailPath(firstWs)} className="ops-ws-name-link">
+                                  <strong>{group.name}</strong>
+                                </Link>
+                              ) : (
+                                <strong>{group.name}</strong>
                               )}
-                              <Link to={wsDetailPath(ws)} className="ops-ws-meta">{displayName(ws)}</Link>
-                              <span className="ops-ws-meta" style={{ marginLeft: 4, opacity: 0.5, fontSize: '0.75rem' }}>{ws.metadata.name}</span>
-                              {isMultiNs && (
-                                <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
-                                  <Label isCompact color={
-                                    ws.metadata.namespace.includes('.prod') ? 'orange' :
-                                    ws.metadata.namespace.includes('.event') ? 'purple' :
-                                    ws.metadata.namespace.includes('.dev') ? 'green' : 'blue'
-                                  }>{ws.metadata.namespace}</Label>
-                                </span>
+                              {!isSingle && !isMultiAsset && (
+                                <Badge isRead style={{ marginLeft: 6 }}>
+                                  {group.items.length}
+                                </Badge>
                               )}
+                              {isSingle && (
+                                <Link to={wsDetailPath(firstWs)} className="ops-ws-meta">
+                                  {firstWs.metadata.name}
+                                </Link>
+                              )}
+                              <span className="ops-ws-labels">
+                                {firstStage && (
+                                  <Label isCompact color={stageColor}>
+                                    {firstStage}
+                                  </Label>
+                                )}
+                                {isMultiNs &&
+                                  Array.from(grpNamespaces).map((ns) => (
+                                    <Label
+                                      key={ns}
+                                      isCompact
+                                      color={
+                                        ns.includes('.prod')
+                                          ? 'orange'
+                                          : ns.includes('.event')
+                                            ? 'purple'
+                                            : ns.includes('.dev')
+                                              ? 'green'
+                                              : 'blue'
+                                      }
+                                    >
+                                      {ns}
+                                    </Label>
+                                  ))}
+                                {isMultiAsset && (
+                                  <Label isCompact color="teal">
+                                    Multi-Asset
+                                  </Label>
+                                )}
+                              </span>
                             </td>
                             <td className="ops-status-cell">
-                              {provDisabled ? (
-                                <><Icon status="danger"><PauseCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span></>
-                              ) : wsClaims.length > 0 ? (
-                                <WorkshopStatus resourceClaims={wsClaims} />
-                              ) : progress && progress.desired > 0 ? (
+                              {grpStopped === group.items.length ? (
+                                <>
+                                  <Icon status="danger">
+                                    <PauseCircleIcon />
+                                  </Icon>
+                                  <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span>
+                                </>
+                              ) : (
                                 (() => {
-                                  const startMs = getWorkshopScheduleStartMs(ws);
-                                  const isScheduled = startMs && startMs > Date.now();
+                                  const grpClaims = group.items.flatMap(
+                                    (ws) => resourceClaimsByWorkshop.get(wsKey(ws)) ?? [],
+                                  );
+                                  if (grpClaims.length > 0) {
+                                    return <WorkshopStatus resourceClaims={grpClaims} />;
+                                  }
+                                  if (grpDesired > 0) {
+                                    const startMs = getWorkshopScheduleStartMs(firstWs);
+                                    const isScheduled = startMs && startMs > Date.now();
+                                    return (
+                                      <>
+                                        <Icon status="info">
+                                          <InProgressIcon />
+                                        </Icon>
+                                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                          {grpClaimed > 0 ? 'Provisioning' : 'Scheduled'} {grpClaimed}/{grpDesired}
+                                          {isScheduled && grpClaimed === 0 && (
+                                            <>
+                                              {' · '}
+                                              <Tooltip
+                                                content={`Start: ${fmtDate(firstWs.spec?.actionSchedule?.start || firstWs.spec?.lifespan?.start)}`}
+                                              >
+                                                <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                  <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                                  {fmtDate(
+                                                    firstWs.spec?.actionSchedule?.start ||
+                                                      firstWs.spec?.lifespan?.start,
+                                                  )}
+                                                </span>
+                                              </Tooltip>
+                                            </>
+                                          )}
+                                        </span>
+                                      </>
+                                    );
+                                  }
                                   return (
                                     <>
-                                      <Icon status="info"><InProgressIcon /></Icon>
-                                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
-                                        {progress.claimed > 0 ? 'Provisioning' : 'Scheduled'} {progress.claimed}/{progress.desired}
-                                        {isScheduled && progress.claimed === 0 && (
-                                          <>
-                                            {' · '}
-                                            <Tooltip content={`Start: ${fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}`}>
-                                              <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                                                <OutlinedClockIcon style={{ marginRight: 4 }} />
-                                                {fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}
-                                              </span>
-                                            </Tooltip>
-                                          </>
-                                        )}
-                                      </span>
+                                      <Icon status="info">
+                                        <InProgressIcon />
+                                      </Icon>
+                                      <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Pending</span>
                                     </>
                                   );
                                 })()
-                              ) : (
-                                <><Icon status="warning"><ExclamationCircleIcon /></Icon><span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span></>
                               )}
                             </td>
-                            {renderSoundcheckCell([
-                              ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name,
-                            ])}
+                            {renderSoundcheckCell(
+                              group.items.map(
+                                (ws) => ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name,
+                              ),
+                            )}
                             <td>
-                              {locked ? (
-                                <Tooltip content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}>
-                                  <Icon status="warning"><LockIcon /></Icon>
+                              {grpLocked > 0 ? (
+                                <Tooltip
+                                  content={
+                                    isMultiAsset
+                                      ? `${grpLocked}/${group.items.length} locked — dates sync with parent when locked`
+                                      : `${grpLocked} of ${group.items.length} locked`
+                                  }
+                                >
+                                  <Icon status="warning">
+                                    <LockIcon />
+                                  </Icon>
                                 </Tooltip>
                               ) : (
-                                <Tooltip content={isMultiAsset ? 'Unlocked — date sync with parent is OFF' : 'Unlocked'}>
-                                  <Icon status={isMultiAsset ? 'danger' : 'success'}>{isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}</Icon>
-                                </Tooltip>
+                                <Icon status="success">
+                                  <LockOpenIcon />
+                                </Icon>
                               )}
                             </td>
-                            <td><span className="ops-muted">&mdash;</span></td>
-                            <td>{currentCount !== null ? <strong>{currentCount}</strong> : <span className="ops-muted">&mdash;</span>}</td>
-                            <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
                             <td>
-                              {seats ? (
+                              {isMultiAsset ? (
+                                <Tooltip content={`${mwAssetCount} assets, ${group.items.length} provisioned`}>
+                                  <strong>{mwAssetCount}</strong>
+                                </Tooltip>
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
+                            </td>
+                            <td>
+                              <strong>{grpInstances}</strong>
+                            </td>
+                            <td>{grpConcurrency > 0 ? grpConcurrency : <span className="ops-muted">&mdash;</span>}</td>
+                            <td>
+                              {isMultiAsset && mwNumberSeats ? (
+                                <Tooltip content="MultiWorkshop numberSeats">
+                                  <strong>{mwNumberSeats}</strong>
+                                </Tooltip>
+                              ) : grpSeatsTotal > 0 ? (
                                 <span>
-                                  <strong className={seatColorClass(seats.assigned, seats.total)}>{seats.assigned}</strong>
-                                  {' '}/ {seats.total}
+                                  <strong className={seatColorClass(grpSeatsAssigned, grpSeatsTotal)}>
+                                    {grpSeatsAssigned}
+                                  </strong>{' '}
+                                  / {grpSeatsTotal}
                                 </span>
-                              ) : <span className="ops-muted">&mdash;</span>}
+                              ) : (
+                                <span className="ops-muted">&mdash;</span>
+                              )}
                             </td>
                             <td>
-                              {wsClusterName && wsClusterInfo ? (
-                                <Tooltip content={`Pool: ${wsClusterInfo.poolName} · ${wsClusterInfo.availableClusters}/${wsClusterInfo.totalClusters} clusters available · ${wsClusterInfo.placementCount}/${wsClusterInfo.maxTotalPlacements} placements (${wsClusterInfo.placementCapacityPercent}%)`}>
-                                  <Label
-                                    isCompact
-                                    color={wsCapacityState === 'critical' ? 'red' : wsCapacityState === 'warning' ? 'orange' : 'blue'}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate(`/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`);
-                                    }}
-                                    style={{ cursor: 'pointer' }}
-                                  >
-                                    {wsClusterInfo.poolName} ({wsClusterInfo.availableClusters}/{wsClusterInfo.totalClusters})
+                              {grpClusters.size === 1 && grpClusterInfo ? (
+                                (() => {
+                                  const capacityState =
+                                    grpClusterInfo.placementCapacityPercent >= 85
+                                      ? 'critical'
+                                      : grpClusterInfo.placementCapacityPercent >= 70
+                                        ? 'warning'
+                                        : 'healthy';
+                                  return (
+                                    <Tooltip
+                                      content={`Pool: ${grpClusterInfo.poolName} · ${grpClusterInfo.availableClusters}/${grpClusterInfo.totalClusters} clusters available · ${grpClusterInfo.placementCount}/${grpClusterInfo.maxTotalPlacements} placements (${grpClusterInfo.placementCapacityPercent}%)`}
+                                    >
+                                      <Label
+                                        isCompact
+                                        color={
+                                          capacityState === 'critical'
+                                            ? 'red'
+                                            : capacityState === 'warning'
+                                              ? 'orange'
+                                              : 'blue'
+                                        }
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(
+                                            `/admin/tenantclusterpools/${grpClusterInfo.poolNamespace}/${grpClusterInfo.poolName}`,
+                                          );
+                                        }}
+                                        style={{ cursor: 'pointer' }}
+                                      >
+                                        {grpClusterInfo.poolName} ({grpClusterInfo.availableClusters}/
+                                        {grpClusterInfo.totalClusters})
+                                      </Label>
+                                    </Tooltip>
+                                  );
+                                })()
+                              ) : grpClusters.size > 1 ? (
+                                <Tooltip content={`Multiple pools: ${Array.from(grpClusters).join(', ')}`}>
+                                  <Label isCompact color="purple">
+                                    {grpClusters.size} pools
                                   </Label>
                                 </Tooltip>
                               ) : (
@@ -4210,45 +4979,350 @@ const Ops: React.FC = () => {
                               )}
                             </td>
                             <td>
-                              {ws.spec?.openRegistration !== false ? (
-                                <Label color="green" isCompact>Open</Label>
+                              {firstWs.spec?.openRegistration !== false ? (
+                                <Label color="green" isCompact>
+                                  Open
+                                </Label>
                               ) : (
-                                <Label color="blue" isCompact>Pre-reg</Label>
+                                <Label color="blue" isCompact>
+                                  Pre-reg
+                                </Label>
                               )}
                             </td>
                             <td>
-                              {password ? (
-                                showPasswords
-                                  ? <code className="ops-password">{password}</code>
-                                  : <span className="ops-password-hidden">••••••••</span>
-                              ) : <span className="ops-muted">None</span>}
+                              {isMultiAsset && grpPasswords.size > 1 ? (
+                                showPasswords ? (
+                                  <span className="ops-password-multi">
+                                    {Array.from(grpPasswords.entries()).map(([k, v]) => (
+                                      <span key={k}>
+                                        <code className="ops-password">
+                                          {k}: {v}
+                                        </code>
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : (
+                                  <span className="ops-password-hidden">••• ({grpPasswords.size} passwords)</span>
+                                )
+                              ) : grpPasswords.size === 1 ? (
+                                showPasswords ? (
+                                  <code className="ops-password">{Array.from(grpPasswords.values())[0]}</code>
+                                ) : (
+                                  <span className="ops-password-hidden">••••••••</span>
+                                )
+                              ) : (
+                                <span className="ops-muted">None</span>
+                              )}
                             </td>
-                            <td>{renderStopCell(ws.spec?.actionSchedule?.stop, ws.spec?.lifespan?.end)}</td>
-                            <td>{renderDestroyCell(ws.spec?.lifespan?.end)}</td>
+                            <td>{renderStopCell(firstWs.spec?.actionSchedule?.stop, firstWs.spec?.lifespan?.end)}</td>
+                            <td>{renderDestroyCell(firstWs.spec?.lifespan?.end)}</td>
                             <td>
-                              {workshopUrl ? (
-                                <a href={workshopUrl} target="_blank" rel="noopener noreferrer" className="ops-ws-link">
+                              {isMultiAsset && mw?.metadata?.labels?.[`${BABYLON_DOMAIN}/multi-workshop-id`] ? (
+                                <a
+                                  href={`${window.location.origin}/event/${mw.metadata.labels[`${BABYLON_DOMAIN}/multi-workshop-id`]}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ops-ws-link"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <ExternalLinkAltIcon style={{ marginRight: 4 }} />
-                                  {workshopId}
+                                  Event page
                                 </a>
-                              ) : <span className="ops-muted">&mdash;</span>}
-                            </td>
-                            <td className="ops-wg-cell">
-                              {getWhiteGloved(ws) ? (
-                                <Label isCompact color="yellow">Yes</Label>
+                              ) : grpUrls.length > 0 ? (
+                                <a
+                                  href={grpUrls[0].url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ops-ws-link"
+                                >
+                                  <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                                  {grpUrls[0].id}
+                                </a>
                               ) : (
                                 <span className="ops-muted">&mdash;</span>
                               )}
                             </td>
+                            <td className="ops-wg-cell">
+                              {grpWhiteGlove === 0 ? (
+                                <span className="ops-muted">&mdash;</span>
+                              ) : grpWhiteGlove === group.items.length ? (
+                                <Label isCompact color="yellow">
+                                  Yes
+                                </Label>
+                              ) : (
+                                <Tooltip content={`${grpWhiteGlove} of ${group.items.length} assets`}>
+                                  <span>
+                                    <Label isCompact color="orange">
+                                      {grpWhiteGlove}/{group.items.length}
+                                    </Label>
+                                  </span>
+                                </Tooltip>
+                              )}
+                            </td>
                           </tr>
                         );
-                      });
 
-                      return <React.Fragment key={`grp-f-${group.name}`}>{headerRow}{childRows}</React.Fragment>;
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        if ((isSingle && !isMultiAsset) || !expanded) return headerRow;
+
+                        const childRows = group.items.map((ws) => {
+                          const locked = isWorkshopLocked(ws);
+                          const currentCount = getCurrentCount(ws);
+                          const seats = getSeats(ws);
+                          const password = ws.spec?.accessPassword;
+                          const workshopId = ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`];
+                          const workshopUrl = workshopId ? `${window.location.origin}/workshop/${workshopId}` : null;
+                          const provDisabled = ws.spec?.provisionDisabled === true;
+                          const wsClaims = resourceClaimsByWorkshop.get(wsKey(ws)) ?? [];
+                          const progress = getProvisionProgress(ws);
+                          const assetKey = ws.metadata.labels?.[`${BABYLON_DOMAIN}/asset-key`];
+                          const wsClusterName = getWorkshopCluster(ws);
+                          const wsClusterInfo = getWorkshopClusterInfo(ws);
+                          const wsCapacityState = wsClusterInfo
+                            ? wsClusterInfo.placementCapacityPercent >= 85
+                              ? 'critical'
+                              : wsClusterInfo.placementCapacityPercent >= 70
+                                ? 'warning'
+                                : 'healthy'
+                            : null;
+
+                          return (
+                            <tr key={wsKey(ws)} className={`ops-child-row ${isMultiAsset ? 'ops-asset-row' : ''}`}>
+                              <td>
+                                <Checkbox
+                                  id={`select-ws-${ws.metadata.name}`}
+                                  isChecked={selectedWs.has(wsKey(ws))}
+                                  onChange={() =>
+                                    setSelectedWs((prev) => {
+                                      const next = new Set(prev);
+                                      const k = wsKey(ws);
+                                      if (next.has(k)) next.delete(k);
+                                      else next.add(k);
+                                      return next;
+                                    })
+                                  }
+                                  aria-label={`Select ${ws.metadata.name}`}
+                                />
+                              </td>
+                              <td></td>
+                              <td>
+                                {isMultiAsset && assetKey && (
+                                  <Label isCompact color="teal" style={{ marginRight: 6 }}>
+                                    {assetKey}
+                                  </Label>
+                                )}
+                                <Link to={wsDetailPath(ws)} className="ops-ws-meta">
+                                  {displayName(ws)}
+                                </Link>
+                                <span
+                                  className="ops-ws-meta"
+                                  style={{ marginLeft: 4, opacity: 0.5, fontSize: '0.75rem' }}
+                                >
+                                  {ws.metadata.name}
+                                </span>
+                                {isMultiNs && (
+                                  <span className="ops-ws-labels" style={{ marginLeft: 8 }}>
+                                    <Label
+                                      isCompact
+                                      color={
+                                        ws.metadata.namespace.includes('.prod')
+                                          ? 'orange'
+                                          : ws.metadata.namespace.includes('.event')
+                                            ? 'purple'
+                                            : ws.metadata.namespace.includes('.dev')
+                                              ? 'green'
+                                              : 'blue'
+                                      }
+                                    >
+                                      {ws.metadata.namespace}
+                                    </Label>
+                                  </span>
+                                )}
+                              </td>
+                              <td className="ops-status-cell">
+                                {provDisabled ? (
+                                  <>
+                                    <Icon status="danger">
+                                      <PauseCircleIcon />
+                                    </Icon>
+                                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>Stopped</span>
+                                  </>
+                                ) : wsClaims.length > 0 ? (
+                                  <WorkshopStatus resourceClaims={wsClaims} />
+                                ) : progress && progress.desired > 0 ? (
+                                  (() => {
+                                    const startMs = getWorkshopScheduleStartMs(ws);
+                                    const isScheduled = startMs && startMs > Date.now();
+                                    return (
+                                      <>
+                                        <Icon status="info">
+                                          <InProgressIcon />
+                                        </Icon>
+                                        <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>
+                                          {progress.claimed > 0 ? 'Provisioning' : 'Scheduled'} {progress.claimed}/
+                                          {progress.desired}
+                                          {isScheduled && progress.claimed === 0 && (
+                                            <>
+                                              {' · '}
+                                              <Tooltip
+                                                content={`Start: ${fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}`}
+                                              >
+                                                <span style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                                                  <OutlinedClockIcon style={{ marginRight: 4 }} />
+                                                  {fmtDate(ws.spec?.actionSchedule?.start || ws.spec?.lifespan?.start)}
+                                                </span>
+                                              </Tooltip>
+                                            </>
+                                          )}
+                                        </span>
+                                      </>
+                                    );
+                                  })()
+                                ) : (
+                                  <>
+                                    <Icon status="warning">
+                                      <ExclamationCircleIcon />
+                                    </Icon>
+                                    <span style={{ marginLeft: 6, fontSize: '0.85rem' }}>No provisions</span>
+                                  </>
+                                )}
+                              </td>
+                              {renderSoundcheckCell([
+                                ws.metadata.labels?.[`${BABYLON_DOMAIN}/workshop-id`] || ws.metadata.name,
+                              ])}
+                              <td>
+                                {locked ? (
+                                  <Tooltip
+                                    content={isMultiAsset ? 'Locked — dates sync with parent schedule' : 'Locked'}
+                                  >
+                                    <Icon status="warning">
+                                      <LockIcon />
+                                    </Icon>
+                                  </Tooltip>
+                                ) : (
+                                  <Tooltip
+                                    content={isMultiAsset ? 'Unlocked — date sync with parent is OFF' : 'Unlocked'}
+                                  >
+                                    <Icon status={isMultiAsset ? 'danger' : 'success'}>
+                                      {isMultiAsset ? <ExclamationTriangleIcon /> : <LockOpenIcon />}
+                                    </Icon>
+                                  </Tooltip>
+                                )}
+                              </td>
+                              <td>
+                                <span className="ops-muted">&mdash;</span>
+                              </td>
+                              <td>
+                                {currentCount !== null ? (
+                                  <strong>{currentCount}</strong>
+                                ) : (
+                                  <span className="ops-muted">&mdash;</span>
+                                )}
+                              </td>
+                              <td>{progress?.concurrency ?? <span className="ops-muted">&mdash;</span>}</td>
+                              <td>
+                                {seats ? (
+                                  <span>
+                                    <strong className={seatColorClass(seats.assigned, seats.total)}>
+                                      {seats.assigned}
+                                    </strong>{' '}
+                                    / {seats.total}
+                                  </span>
+                                ) : (
+                                  <span className="ops-muted">&mdash;</span>
+                                )}
+                              </td>
+                              <td>
+                                {wsClusterName && wsClusterInfo ? (
+                                  <Tooltip
+                                    content={`Pool: ${wsClusterInfo.poolName} · ${wsClusterInfo.availableClusters}/${wsClusterInfo.totalClusters} clusters available · ${wsClusterInfo.placementCount}/${wsClusterInfo.maxTotalPlacements} placements (${wsClusterInfo.placementCapacityPercent}%)`}
+                                  >
+                                    <Label
+                                      isCompact
+                                      color={
+                                        wsCapacityState === 'critical'
+                                          ? 'red'
+                                          : wsCapacityState === 'warning'
+                                            ? 'orange'
+                                            : 'blue'
+                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(
+                                          `/admin/tenantclusterpools/${wsClusterInfo.poolNamespace}/${wsClusterInfo.poolName}`,
+                                        );
+                                      }}
+                                      style={{ cursor: 'pointer' }}
+                                    >
+                                      {wsClusterInfo.poolName} ({wsClusterInfo.availableClusters}/
+                                      {wsClusterInfo.totalClusters})
+                                    </Label>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="ops-muted">&mdash;</span>
+                                )}
+                              </td>
+                              <td>
+                                {ws.spec?.openRegistration !== false ? (
+                                  <Label color="green" isCompact>
+                                    Open
+                                  </Label>
+                                ) : (
+                                  <Label color="blue" isCompact>
+                                    Pre-reg
+                                  </Label>
+                                )}
+                              </td>
+                              <td>
+                                {password ? (
+                                  showPasswords ? (
+                                    <code className="ops-password">{password}</code>
+                                  ) : (
+                                    <span className="ops-password-hidden">••••••••</span>
+                                  )
+                                ) : (
+                                  <span className="ops-muted">None</span>
+                                )}
+                              </td>
+                              <td>{renderStopCell(ws.spec?.actionSchedule?.stop, ws.spec?.lifespan?.end)}</td>
+                              <td>{renderDestroyCell(ws.spec?.lifespan?.end)}</td>
+                              <td>
+                                {workshopUrl ? (
+                                  <a
+                                    href={workshopUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ops-ws-link"
+                                  >
+                                    <ExternalLinkAltIcon style={{ marginRight: 4 }} />
+                                    {workshopId}
+                                  </a>
+                                ) : (
+                                  <span className="ops-muted">&mdash;</span>
+                                )}
+                              </td>
+                              <td className="ops-wg-cell">
+                                {getWhiteGloved(ws) ? (
+                                  <Label isCompact color="yellow">
+                                    Yes
+                                  </Label>
+                                ) : (
+                                  <span className="ops-muted">&mdash;</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        });
+
+                        return (
+                          <React.Fragment key={`grp-f-${group.name}`}>
+                            {headerRow}
+                            {childRows}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </>
@@ -4257,35 +5331,63 @@ const Ops: React.FC = () => {
 
       {/* ---------- Multi-namespace acknowledgement ---------- */}
 
-      <Modal variant="small" isOpen={showMultiNsConfirm} onClose={() => setShowMultiNsConfirm(false)} aria-labelledby="multi-ns-confirm">
+      <Modal
+        variant="small"
+        isOpen={showMultiNsConfirm}
+        onClose={() => setShowMultiNsConfirm(false)}
+        aria-labelledby="multi-ns-confirm"
+      >
         <ModalHeader title="Enable Multi-Namespace Mode" labelId="multi-ns-confirm" titleIconVariant="warning" />
         <ModalBody>
           <Alert variant="warning" isInline title="Cross-namespace operations" style={{ marginBottom: 12 }}>
-            <p>This mode allows you to select <strong>multiple namespaces</strong> and run operations across all of them simultaneously.</p>
+            <p>
+              This mode allows you to select <strong>multiple namespaces</strong> and run operations across all of them
+              simultaneously.
+            </p>
           </Alert>
-          <p>This is intended for large-scale events (e.g., Summit) where workshops span multiple projects. Mistakes in this mode can affect production workshops across many namespaces.</p>
+          <p>
+            This is intended for large-scale events (e.g., Summit) where workshops span multiple projects. Mistakes in
+            this mode can affect production workshops across many namespaces.
+          </p>
           <p style={{ marginTop: 12, fontWeight: 600 }}>Please confirm you understand the risks:</p>
           <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-            <li>All operations (lock, extend, scale, etc.) apply across <strong>every</strong> selected namespace</li>
+            <li>
+              All operations (lock, extend, scale, etc.) apply across <strong>every</strong> selected namespace
+            </li>
             <li>Confirmation modals will show namespace breakdowns before execution</li>
             <li>You can disable this mode at any time to return to single-namespace</li>
           </ul>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={enableMultiNs}>I understand, enable multi-namespace</Button>
-          <Button variant="link" onClick={() => setShowMultiNsConfirm(false)}>Cancel</Button>
+          <Button variant="warning" onClick={enableMultiNs}>
+            I understand, enable multi-namespace
+          </Button>
+          <Button variant="link" onClick={() => setShowMultiNsConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
       {/* ---------- Platform-wide mode acknowledgement ---------- */}
 
-      <Modal variant="small" isOpen={showPlatformConfirm} onClose={() => setShowPlatformConfirm(false)} aria-labelledby="platform-confirm">
+      <Modal
+        variant="small"
+        isOpen={showPlatformConfirm}
+        onClose={() => setShowPlatformConfirm(false)}
+        aria-labelledby="platform-confirm"
+      >
         <ModalHeader title="Enable Platform-Wide Mode" labelId="platform-confirm" titleIconVariant="danger" />
         <ModalBody>
           <Alert variant="danger" isInline title="All namespaces on the platform" style={{ marginBottom: 12 }}>
-            <p>This will load <strong>every workshop across every namespace</strong> on the platform. This can be slow and resource-intensive.</p>
+            <p>
+              This will load <strong>every workshop across every namespace</strong> on the platform. This can be slow
+              and resource-intensive.
+            </p>
           </Alert>
-          <p>Operations (lock, extend, scale, etc.) will apply to workshops from <strong>all namespaces</strong> unless you filter or select specific ones first.</p>
+          <p>
+            Operations (lock, extend, scale, etc.) will apply to workshops from <strong>all namespaces</strong> unless
+            you filter or select specific ones first.
+          </p>
           <p style={{ marginTop: 12, fontWeight: 600 }}>Please confirm you understand the risks:</p>
           <ul style={{ marginTop: 8, paddingLeft: 20 }}>
             <li>All workshops across the entire platform will be loaded</li>
@@ -4294,154 +5396,322 @@ const Ops: React.FC = () => {
           </ul>
         </ModalBody>
         <ModalFooter>
-          <Button variant="danger" onClick={enablePlatformMode}>I understand, show all workshops</Button>
-          <Button variant="link" onClick={() => setShowPlatformConfirm(false)}>Cancel</Button>
+          <Button variant="danger" onClick={enablePlatformMode}>
+            I understand, show all workshops
+          </Button>
+          <Button variant="link" onClick={() => setShowPlatformConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
       {/* ---------- Confirmation modals ---------- */}
 
-      <Modal variant="small" isOpen={showLockConfirm} onClose={() => setShowLockConfirm(false)} aria-labelledby="lock-confirm">
+      <Modal
+        variant="small"
+        isOpen={showLockConfirm}
+        onClose={() => setShowLockConfirm(false)}
+        aria-labelledby="lock-confirm"
+      >
         <ModalHeader title="Confirm Lock" labelId="lock-confirm" titleIconVariant="warning" />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+            <Alert
+              variant="info"
+              isInline
+              title={`Applies to all ${operationTargets.length} workshops in scope`}
+              style={{ marginBottom: 12 }}
+            >
               No workshop or stage filter is set. Consider filtering or selecting specific workshops.
             </Alert>
           )}
           <p className="ops-modal-scope">
-            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Set <code>lock-enabled=true</code> on <strong>{operationTargets.length}</strong> workshop
+            {operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
             Non-admin users will not be able to modify these resources.
           </p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleLock}>Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
-          <Button variant="link" onClick={() => setShowLockConfirm(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleLock}>
+            Lock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}
+          </Button>
+          <Button variant="link" onClick={() => setShowLockConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} aria-labelledby="unlock-confirm">
+      <Modal
+        variant="small"
+        isOpen={showUnlockConfirm}
+        onClose={() => setShowUnlockConfirm(false)}
+        aria-labelledby="unlock-confirm"
+      >
         <ModalHeader title="Confirm Unlock" labelId="unlock-confirm" titleIconVariant="warning" />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+            <Alert
+              variant="info"
+              isInline
+              title={`Applies to all ${operationTargets.length} workshops in scope`}
+              style={{ marginBottom: 12 }}
+            >
               No workshop or stage filter is set.
             </Alert>
           )}
           <p className="ops-modal-scope">
-            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Set <code>lock-enabled=false</code> on <strong>{operationTargets.length}</strong> workshop
+            {operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
             Users will be able to modify these resources.
           </p>
           {(() => {
-            const multiAssetChildren = operationTargets.filter(ws => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`]);
+            const multiAssetChildren = operationTargets.filter(
+              (ws) => ws.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`],
+            );
             return multiAssetChildren.length > 0 ? (
-              <Alert variant="danger" isInline title={`${multiAssetChildren.length} workshop(s) belong to a multi-asset parent`} style={{ marginTop: 12 }}>
-                Unlocking will <strong>stop date sync</strong> with the parent &mdash; stop and destroy
-                times will no longer update when the parent schedule changes.
-                Re-lock to restore sync.
+              <Alert
+                variant="danger"
+                isInline
+                title={`${multiAssetChildren.length} workshop(s) belong to a multi-asset parent`}
+                style={{ marginTop: 12 }}
+              >
+                Unlocking will <strong>stop date sync</strong> with the parent &mdash; stop and destroy times will no
+                longer update when the parent schedule changes. Re-lock to restore sync.
               </Alert>
             ) : null;
           })()}
         </ModalBody>
         <ModalFooter>
-          <Button variant="primary" onClick={handleUnlock}>Unlock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}</Button>
-          <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleUnlock}>
+            Unlock {operationTargets.length} workshop{operationTargets.length !== 1 ? 's' : ''}
+          </Button>
+          <Button variant="link" onClick={() => setShowUnlockConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showExtStopConfirm} onClose={() => setShowExtStopConfirm(false)} aria-labelledby="ext-stop-confirm">
+      <Modal
+        variant="small"
+        isOpen={showExtStopConfirm}
+        onClose={() => setShowExtStopConfirm(false)}
+        aria-labelledby="ext-stop-confirm"
+      >
         <ModalHeader title="Confirm Extend Stop Time" labelId="ext-stop-confirm" />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           <p className="ops-modal-scope">
-            Extend auto-stop by <strong>{extStopDays}d {extStopHours}h</strong> on{' '}
-            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Extend auto-stop by{' '}
+            <strong>
+              {extStopDays}d {extStopHours}h
+            </strong>{' '}
+            on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
-          {operationTargets.some(ws => !ws.spec?.actionSchedule?.stop) && (
+          {operationTargets.some((ws) => !ws.spec?.actionSchedule?.stop) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {operationTargets.filter(ws => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and will be skipped.
-              Only workshops with an existing stop schedule will be extended.
+              {operationTargets.filter((ws) => !ws.spec?.actionSchedule?.stop).length} workshop(s) have no auto-stop and
+              will be skipped. Only workshops with an existing stop schedule will be extended.
             </Alert>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleExtendStop}>Extend Stop</Button>
-          <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleExtendStop}>
+            Extend Stop
+          </Button>
+          <Button variant="link" onClick={() => setShowExtStopConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showExtDestroyConfirm} onClose={() => setShowExtDestroyConfirm(false)} aria-labelledby="ext-destroy-confirm">
+      <Modal
+        variant="small"
+        isOpen={showExtDestroyConfirm}
+        onClose={() => setShowExtDestroyConfirm(false)}
+        aria-labelledby="ext-destroy-confirm"
+      >
         <ModalHeader title="Confirm Extend Destroy Time" labelId="ext-destroy-confirm" titleIconVariant="warning" />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+            <Alert
+              variant="info"
+              isInline
+              title={`Applies to all ${operationTargets.length} workshops in scope`}
+              style={{ marginBottom: 12 }}
+            >
               No workshop or stage filter is set.
             </Alert>
           )}
           <p className="ops-modal-scope">
-            Extend auto-destroy by <strong>{extDestroyDays}d {extDestroyHours}h</strong> on{' '}
-            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Extend auto-destroy by{' '}
+            <strong>
+              {extDestroyDays}d {extDestroyHours}h
+            </strong>{' '}
+            on <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           <p style={{ marginTop: 8, color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem' }}>
-            This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for the extended period.
+            This pushes back the permanent destruction deadline. Resources will continue running and incurring costs for
+            the extended period.
           </p>
-          {operationTargets.some(ws => !ws.spec?.lifespan?.end) && (
+          {operationTargets.some((ws) => !ws.spec?.lifespan?.end) && (
             <Alert variant="info" isInline title="Note" style={{ marginTop: 12 }}>
-              {operationTargets.filter(ws => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and will be skipped.
-              Only workshops with an existing destroy schedule will be extended.
+              {operationTargets.filter((ws) => !ws.spec?.lifespan?.end).length} workshop(s) have no auto-destroy and
+              will be skipped. Only workshops with an existing destroy schedule will be extended.
             </Alert>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleExtendDestroy}>Extend Destroy</Button>
-          <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleExtendDestroy}>
+            Extend Destroy
+          </Button>
+          <Button variant="link" onClick={() => setShowExtDestroyConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showNoAutostopConfirm} onClose={() => setShowNoAutostopConfirm(false)} aria-labelledby="no-autostop-confirm">
+      <Modal
+        variant="small"
+        isOpen={showNoAutostopConfirm}
+        onClose={() => setShowNoAutostopConfirm(false)}
+        aria-labelledby="no-autostop-confirm"
+      >
         <ModalHeader title="Confirm Disable Auto-Stop" labelId="no-autostop-confirm" titleIconVariant="warning" />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
-            <Alert variant="info" isInline title={`Applies to all ${operationTargets.length} workshops in scope`} style={{ marginBottom: 12 }}>
+            <Alert
+              variant="info"
+              isInline
+              title={`Applies to all ${operationTargets.length} workshops in scope`}
+              style={{ marginBottom: 12 }}
+            >
               No workshop or stage filter is set.
             </Alert>
           )}
           <p className="ops-modal-scope">
-            Remove <code>actionSchedule.stop</code> from{' '}
-            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Remove <code>actionSchedule.stop</code> from <strong>{operationTargets.length}</strong> workshop
+            {operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           <Alert variant="warning" isInline title="Cloud cost impact" style={{ marginTop: 12 }}>
-            Workshops will remain running until their destroy deadline or manual stop.
-            This may incur additional cloud costs for the duration.
+            Workshops will remain running until their destroy deadline or manual stop. This may incur additional cloud
+            costs for the duration.
           </Alert>
         </ModalBody>
         <ModalFooter>
-          <Button variant="warning" onClick={handleDisableAutostop}>Disable Auto-Stop</Button>
-          <Button variant="link" onClick={() => setShowNoAutostopConfirm(false)}>Cancel</Button>
+          <Button variant="warning" onClick={handleDisableAutostop}>
+            Disable Auto-Stop
+          </Button>
+          <Button variant="link" onClick={() => setShowNoAutostopConfirm(false)}>
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showScaleConfirm} onClose={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-confirm">
-        <ModalHeader title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'} labelId="scale-confirm" titleIconVariant={isScaleDown ? 'warning' : undefined} />
+      <Modal
+        variant="small"
+        isOpen={showScaleConfirm}
+        onClose={() => {
+          setShowScaleConfirm(false);
+          setScaleConfirmText('');
+        }}
+        aria-labelledby="scale-confirm"
+      >
+        <ModalHeader
+          title={isScaleDown ? 'Confirm Scale Down' : 'Confirm Scale'}
+          labelId="scale-confirm"
+          titleIconVariant={isScaleDown ? 'warning' : undefined}
+        />
         <ModalBody>
-          {isMultiNs && <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert variant="warning" isInline title="Multi-namespace operation" style={{ marginBottom: 12 }} />
+          )}
           <p className="ops-modal-scope">
-            Set instance count to <strong>{scaleCount}</strong> on{' '}
-            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Set instance count to <strong>{scaleCount}</strong> on <strong>{operationTargets.length}</strong> workshop
+            {operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           {operationTargets.length > 0 && (
             <table className="ops-modal-table">
@@ -4455,19 +5725,28 @@ const Ops: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {operationTargets.map(ws => {
+                {operationTargets.map((ws) => {
                   const cur = getCurrentCount(ws);
                   const isDown = cur !== null && scaleCount < cur;
                   const isUp = cur !== null && scaleCount > cur;
                   const label = cur === null ? '' : isUp ? 'scale up' : isDown ? 'scale down' : 'no change';
-                  const color = isDown ? 'var(--pf-t--global--color--status--danger--default)' : isUp ? 'var(--pf-t--global--color--status--info--default)' : 'var(--pf-t--global--text--color--subtle)';
+                  const color = isDown
+                    ? 'var(--pf-t--global--color--status--danger--default)'
+                    : isUp
+                      ? 'var(--pf-t--global--color--status--info--default)'
+                      : 'var(--pf-t--global--text--color--subtle)';
                   return (
                     <tr key={wsKey(ws)}>
                       {isMultiNs && <td className="ops-modal-ns-cell">{ws.metadata.namespace}</td>}
                       <td className="ops-modal-ws-name">{displayName(ws)}</td>
                       <td className="ops-modal-count">{cur ?? '?'}</td>
                       <td className="ops-modal-arrow">&rarr;</td>
-                      <td className="ops-modal-count"><strong>{scaleCount}</strong> <span className="ops-modal-direction" style={{ color }}>{label}</span></td>
+                      <td className="ops-modal-count">
+                        <strong>{scaleCount}</strong>{' '}
+                        <span className="ops-modal-direction" style={{ color }}>
+                          {label}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -4476,51 +5755,120 @@ const Ops: React.FC = () => {
           )}
           {isScaleDown && (
             <>
-              <Alert variant={scaleDownPreference === 'used' ? 'danger' : 'warning'} isInline
-                title={scaleDownPreference === 'used'
-                  ? 'DANGEROUS: Removing USED instances first — students lose access immediately'
-                  : 'Scaling down will reduce running instances'}
-                style={{ marginTop: 12 }}>
+              <Alert
+                variant={scaleDownPreference === 'used' ? 'danger' : 'warning'}
+                isInline
+                title={
+                  scaleDownPreference === 'used'
+                    ? 'DANGEROUS: Removing USED instances first — students lose access immediately'
+                    : 'Scaling down will reduce running instances'
+                }
+                style={{ marginTop: 12 }}
+              >
                 {scaleDownPreference === 'used'
                   ? 'Active student sessions will be terminated. Only choose this if you are certain.'
                   : 'Unused instances are removed first. Students on remaining instances are not affected.'}
               </Alert>
-              <p style={{ marginTop: 12, fontWeight: 600 }}>Type <code>{scaleConfirmWord}</code> to confirm:</p>
-              <TextInput value={scaleConfirmText} onChange={(_e, val) => setScaleConfirmText(val)} aria-label="Confirm scale down" />
+              <p style={{ marginTop: 12, fontWeight: 600 }}>
+                Type <code>{scaleConfirmWord}</code> to confirm:
+              </p>
+              <TextInput
+                value={scaleConfirmText}
+                onChange={(_e, val) => setScaleConfirmText(val)}
+                aria-label="Confirm scale down"
+              />
             </>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant={isScaleDown ? (scaleDownPreference === 'used' ? 'danger' : 'warning') : 'primary'} onClick={handleScale} isDisabled={!scaleConfirmValid}>
+          <Button
+            variant={isScaleDown ? (scaleDownPreference === 'used' ? 'danger' : 'warning') : 'primary'}
+            onClick={handleScale}
+            isDisabled={!scaleConfirmValid}
+          >
             {isScaleDown ? 'Scale Down' : 'Scale'}
           </Button>
-          <Button variant="link" onClick={() => { setShowScaleConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
+          <Button
+            variant="link"
+            onClick={() => {
+              setShowScaleConfirm(false);
+              setScaleConfirmText('');
+            }}
+          >
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
-      <Modal variant="small" isOpen={showScaleZeroConfirm} onClose={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }} aria-labelledby="scale-zero-confirm">
+      <Modal
+        variant="small"
+        isOpen={showScaleZeroConfirm}
+        onClose={() => {
+          setShowScaleZeroConfirm(false);
+          setScaleConfirmText('');
+        }}
+        aria-labelledby="scale-zero-confirm"
+      >
         <ModalHeader title="Confirm Scale to Zero" labelId="scale-zero-confirm" titleIconVariant="danger" />
         <ModalBody>
-          {isMultiNs && <Alert variant="danger" isInline title="Multi-namespace destructive operation" style={{ marginBottom: 12 }} />}
+          {isMultiNs && (
+            <Alert
+              variant="danger"
+              isInline
+              title="Multi-namespace destructive operation"
+              style={{ marginBottom: 12 }}
+            />
+          )}
           {!hasSelection && isUnfiltered && operationTargets.length > 5 && (
-            <Alert variant="danger" isInline title={`This will affect ALL ${operationTargets.length} workshops`} style={{ marginBottom: 12 }}>
+            <Alert
+              variant="danger"
+              isInline
+              title={`This will affect ALL ${operationTargets.length} workshops`}
+              style={{ marginBottom: 12 }}
+            >
               No filter is set. Every workshop in scope will be scaled to zero.
             </Alert>
           )}
           <p className="ops-modal-scope">
-            Scaling to <strong>0</strong> will remove all instances on{' '}
-            <strong>{operationTargets.length}</strong> workshop{operationTargets.length !== 1 ? 's' : ''}
-            {hasSelection ? ' (selected)' : !isMultiNs && namespace ? <> in <code>{namespace}</code></> : modalScopeDescription}.
+            Scaling to <strong>0</strong> will remove all instances on <strong>{operationTargets.length}</strong>{' '}
+            workshop{operationTargets.length !== 1 ? 's' : ''}
+            {hasSelection ? (
+              ' (selected)'
+            ) : !isMultiNs && namespace ? (
+              <>
+                {' '}
+                in <code>{namespace}</code>
+              </>
+            ) : (
+              modalScopeDescription
+            )}
+            .
           </p>
           <Alert variant="danger" isInline title="Destructive operation" style={{ marginTop: 12 }}>
             All running resources will be destroyed. Students will lose access immediately. This cannot be undone.
           </Alert>
-          <p style={{ marginTop: 12, fontWeight: 600 }}>Type <code>{scaleConfirmWord}</code> to confirm:</p>
-          <TextInput value={scaleConfirmText} onChange={(_e, val) => setScaleConfirmText(val)} aria-label="Confirm scale to zero" />
+          <p style={{ marginTop: 12, fontWeight: 600 }}>
+            Type <code>{scaleConfirmWord}</code> to confirm:
+          </p>
+          <TextInput
+            value={scaleConfirmText}
+            onChange={(_e, val) => setScaleConfirmText(val)}
+            aria-label="Confirm scale to zero"
+          />
         </ModalBody>
         <ModalFooter>
-          <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>Scale to Zero</Button>
-          <Button variant="link" onClick={() => { setShowScaleZeroConfirm(false); setScaleConfirmText(''); }}>Cancel</Button>
+          <Button variant="danger" onClick={handleScale} isDisabled={!scaleConfirmValid}>
+            Scale to Zero
+          </Button>
+          <Button
+            variant="link"
+            onClick={() => {
+              setShowScaleZeroConfirm(false);
+              setScaleConfirmText('');
+            }}
+          >
+            Cancel
+          </Button>
         </ModalFooter>
       </Modal>
 
@@ -4533,22 +5881,22 @@ const Ops: React.FC = () => {
       >
         <ModalHeader title="Confirm Redeploy Failed Services" labelId="redeploy-confirm" />
         <ModalBody>
-          <Alert
-            variant="warning"
-            isInline
-            title="Warning"
-          >
+          <Alert variant="warning" isInline title="Warning">
             <p>
-              This will delete and recreate failed instances. Cloud resources will be deleted. Babylon will automatically recreate them.
+              This will delete and recreate failed instances. Cloud resources will be deleted. Babylon will
+              automatically recreate them.
             </p>
           </Alert>
 
           <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
             <p>The following workshops have failed instances:</p>
-            <ul style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {failedInstancesAnalysis.failedWorkshops.map(fw => (
+            <ul
+              style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              {failedInstancesAnalysis.failedWorkshops.map((fw) => (
                 <li key={wsKey(fw.workshop)}>
-                  <strong>{displayName(fw.workshop)}</strong> ({fw.workshop.metadata.namespace}): {fw.failedCount} failed
+                  <strong>{displayName(fw.workshop)}</strong> ({fw.workshop.metadata.namespace}): {fw.failedCount}{' '}
+                  failed
                 </li>
               ))}
             </ul>

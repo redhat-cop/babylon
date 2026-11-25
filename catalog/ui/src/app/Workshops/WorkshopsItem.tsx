@@ -81,11 +81,7 @@ import ProjectSelector from '@app/components/ProjectSelector';
 import ErrorBoundaryPage from '@app/components/ErrorBoundaryPage';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ReorderModal from '@app/components/ReorderModal';
-import {
-  canReorderWorkshop,
-  getWorkshopReorderSchedule,
-  reorderWorkshop,
-} from '@app/reorder-utils';
+import { canReorderWorkshop, getWorkshopReorderSchedule, reorderWorkshop } from '@app/reorder-utils';
 import useSWRImmutable from 'swr/immutable';
 import parseDuration from 'parse-duration';
 
@@ -153,7 +149,7 @@ const WorkshopsItemComponent: React.FC<{
       dedupingInterval: 2000, // Dedupe requests within 2s
     },
   );
-  
+
   // Check if user can manage collaborators (i.e., is the owner, not a collaborator)
   const { data: serviceAccessConfigResponse } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
     workshop && sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace)
@@ -164,8 +160,11 @@ const WorkshopsItemComponent: React.FC<{
       : null,
     optionalFetcher,
   );
-  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
-  
+  const canManageCollaborators =
+    (sessionServiceNamespaces.some((ns) => ns.name === workshop.metadata.namespace) &&
+      serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) ||
+    isAdmin;
+
   const { data: userAssigmentsList, mutate: mutateUserAssigmentsList } = useSWR<WorkshopUserAssignmentList>(
     apiPaths.WORKSHOP_USER_ASSIGNMENTS({
       workshopName,
@@ -231,7 +230,9 @@ const WorkshopsItemComponent: React.FC<{
   );
 
   const workshopProvision = useMemo(
-    () => workshopProvisions?.find((provision) => provision.metadata.name === workshop?.metadata.name) || workshopProvisions?.[0],
+    () =>
+      workshopProvisions?.find((provision) => provision.metadata.name === workshop?.metadata.name) ||
+      workshopProvisions?.[0],
     [workshop?.metadata.name, workshopProvisions],
   );
 
@@ -311,7 +312,13 @@ const WorkshopsItemComponent: React.FC<{
       ) {
         setModalState({ action, resourceClaims: modalResourceClaims });
         openModalAction();
-      } else if (action === 'scheduleDelete' || action === 'scheduleStop' || action === 'scheduleStart' || action === 'scheduleStartDate' || action === 'scheduleReadyByDate') {
+      } else if (
+        action === 'scheduleDelete' ||
+        action === 'scheduleStop' ||
+        action === 'scheduleStart' ||
+        action === 'scheduleStartDate' ||
+        action === 'scheduleReadyByDate'
+      ) {
         // Fetch fresh resourceClaims before opening schedule modal to ensure we have the latest data
         // (new resourceClaims might have been created since the last fetch)
         const freshResourceClaims = await mutateRC();
@@ -477,7 +484,9 @@ const WorkshopsItemComponent: React.FC<{
       const autoStopTime = new Date(readyByDate.getTime() + 12 * 60 * 60 * 1000);
       await startWorkshop(
         workshop,
-        !isWorkshopStarted(workshop, workshopProvisions) ? dateToApiString(new Date(date.getTime() + READY_BY_LEAD_TIME_MS)) : null,
+        !isWorkshopStarted(workshop, workshopProvisions)
+          ? dateToApiString(new Date(date.getTime() + READY_BY_LEAD_TIME_MS))
+          : null,
         !isWorkshopStarted(workshop, workshopProvisions)
           ? dateToApiString(new Date(date.getTime() + parseDuration('30h')))
           : dateToApiString(new Date(Date.now() + parseDuration('30h'))),
@@ -493,7 +502,7 @@ const WorkshopsItemComponent: React.FC<{
           },
         },
       });
-      
+
       mutateWorkshop(workshopUpdated);
       // Highlight auto-destroy in details after changing ready-by date
       setHighlightAutoDestroy(true);
@@ -575,10 +584,7 @@ const WorkshopsItemComponent: React.FC<{
           }}
         />
       </Modal>
-      <UserDisabledModal
-        isOpen={isUserDisabledModalOpen}
-        onClose={() => setIsUserDisabledModalOpen(false)}
-      />
+      <UserDisabledModal isOpen={isUserDisabledModalOpen} onClose={() => setIsUserDisabledModalOpen(false)} />
       {isAdmin || serviceNamespaces.length > 1 ? (
         <PageSection hasBodyWrapper={false} key="topbar" className="workshops-item__topbar">
           <ProjectSelector
@@ -609,7 +615,10 @@ const WorkshopsItemComponent: React.FC<{
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(workshop)}
               {isCollaborator ? (
-                <Label key="workshop-item__collaborator" tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}>
+                <Label
+                  key="workshop-item__collaborator"
+                  tooltipDescription={<div>You have been granted access to this workshop as a collaborator</div>}
+                >
                   Shared Service
                 </Label>
               ) : null}
@@ -618,7 +627,10 @@ const WorkshopsItemComponent: React.FC<{
                 Workshop UI
               </Label>
               {workshop.metadata.annotations?.[`${BABYLON_DOMAIN}/multiworkshop-source`] ? (
-                <Label key="workshop-item__multi-asset" tooltipDescription={<div>This workshop is managed by a Multi Asset Workshop</div>}>
+                <Label
+                  key="workshop-item__multi-asset"
+                  tooltipDescription={<div>This workshop is managed by a Multi Asset Workshop</div>}
+                >
                   Multi Asset Workshop
                 </Label>
               ) : null}
@@ -660,8 +672,7 @@ const WorkshopsItemComponent: React.FC<{
           </SplitItem>
         </Split>
       </PageSection>
-      {workshop.spec?.lifespan?.readyBy && 
-       new Date(workshop.spec.lifespan.readyBy).getTime() > Date.now() ? (
+      {workshop.spec?.lifespan?.readyBy && new Date(workshop.spec.lifespan.readyBy).getTime() > Date.now() ? (
         <PageSection hasBodyWrapper={false} key="ready-by-alert">
           <Alert variant="info" isInline title="Scheduled Ready Time">
             This workshop is scheduled to be ready by <LocalTimestamp timestamp={workshop.spec.lifespan.readyBy} />.
@@ -715,9 +726,7 @@ const WorkshopsItemComponent: React.FC<{
           ) : null}
           {clusterResourceClaims.length > 0 ? (
             <Tab eventKey="clusters" title={<TabTitleText>Clusters</TabTitleText>}>
-              {activeTab === 'clusters' ? (
-                <WorkshopsItemClusters resourceClaims={clusterResourceClaims} />
-              ) : null}
+              {activeTab === 'clusters' ? <WorkshopsItemClusters resourceClaims={clusterResourceClaims} /> : null}
             </Tab>
           ) : null}
           <Tab

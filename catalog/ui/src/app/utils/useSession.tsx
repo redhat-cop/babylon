@@ -68,16 +68,20 @@ export default function useSession(): {
   const userNamespace = useAppSelector(selectUserNamespace);
   const { userImpersonated, setImpersonation } = useImpersonateUser();
 
-  const promise = useMemo(async () => {
-    if (userImpersonated && !email) {
-      const session = getSessionFn(dispatch);
-      await setImpersonation(userImpersonated);
-      return session;
-    } else if (!email) {
-      return getSessionFn(dispatch);
-    }
-    return Promise.resolve();
-  }, [dispatch, email]);
+  const promise = useMemo(
+    () =>
+      (async () => {
+        if (userImpersonated && !email) {
+          const session = getSessionFn(dispatch);
+          await setImpersonation(userImpersonated);
+          return session;
+        } else if (!email) {
+          return getSessionFn(dispatch);
+        }
+        return Promise.resolve();
+      })(),
+    [dispatch, email],
+  );
 
   const getSession = useCallback(() => {
     if (!email) {

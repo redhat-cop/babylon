@@ -93,10 +93,8 @@ const WhiteGloveListContent: React.FC = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(defaultPerPage);
 
-  const { data, mutate } = useSWR<WhiteGloveRequestList>(
-    userNamespace
-      ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name })
-      : null,
+  const { data } = useSWR<WhiteGloveRequestList>(
+    userNamespace ? apiPaths.WHITE_GLOVE_REQUESTS({ namespace: userNamespace.name }) : null,
     fetcher,
     { refreshInterval: 8000 },
   );
@@ -180,87 +178,84 @@ const WhiteGloveListContent: React.FC = () => {
           </EmptyState>
         ) : (
           <>
-          <Pagination
-            itemCount={items.length}
-            page={page}
-            perPage={perPage}
-            onSetPage={(_evt, newPage) => setPage(newPage)}
-            onPerPageSelect={(_evt, newPerPage, newPage) => {
-              setPerPage(newPerPage);
-              setPage(newPage);
-            }}
-            perPageOptions={[
-              { title: '20', value: 20 },
-              { title: '50', value: 50 },
-              { title: '100', value: 100 },
-            ]}
-          />
-          <Table aria-label="White Glove Requests" variant="compact">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Status</Th>
-                <Th>Submitted</Th>
-                <Th>Assignee</Th>
-                <Th>Jira</Th>
-                <Th>Service</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {paginatedItems.map((wgr: WhiteGloveRequest) => {
-                const ann = wgr.metadata.annotations || {};
-                const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
-                const assignee = ann[`${DEMO_DOMAIN}/assignee`];
-                const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
-                const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
-                const svcName = ann[`${DEMO_DOMAIN}/service-name`];
-                const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
-                const svcType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
-                return (
-                  <Tr key={wgr.metadata.uid}>
-                    <Td>
-                      <Link to={`/white-glove/${wgr.metadata.namespace}/${wgr.metadata.name}`}>
-                        {wgr.spec.displayName || wgr.metadata.name}
-                      </Link>
-                    </Td>
-                    <Td>
-                      <span className={statusCssClass(state)}>
-                        {statusIcon(state)} {statusLabel(state)}
-                      </span>
-                    </Td>
-                    <Td>
-                      <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
-                    </Td>
-                    <Td>
-                      <JiraAssigneeCell jiraTicketId={jiraTicketId} wgr={wgr} fallback={assignee} />
-                    </Td>
-                    <Td>
-                      {jiraTicketUrl ? (
-                        <a href={jiraTicketUrl} target="_blank" rel="noopener noreferrer">
-                          {jiraTicketId || 'View'}
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </Td>
-                    <Td>
-                      {svcName && svcNamespace ? (
-                        <Link to={`/${svcType}/${svcNamespace}/${svcName}`}>
-                          View Service
+            <Pagination
+              itemCount={items.length}
+              page={page}
+              perPage={perPage}
+              onSetPage={(_evt, newPage) => setPage(newPage)}
+              onPerPageSelect={(_evt, newPerPage, newPage) => {
+                setPerPage(newPerPage);
+                setPage(newPage);
+              }}
+              perPageOptions={[
+                { title: '20', value: 20 },
+                { title: '50', value: 50 },
+                { title: '100', value: 100 },
+              ]}
+            />
+            <Table aria-label="White Glove Requests" variant="compact">
+              <Thead>
+                <Tr>
+                  <Th>Name</Th>
+                  <Th>Status</Th>
+                  <Th>Submitted</Th>
+                  <Th>Assignee</Th>
+                  <Th>Jira</Th>
+                  <Th>Service</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {paginatedItems.map((wgr: WhiteGloveRequest) => {
+                  const ann = wgr.metadata.annotations || {};
+                  const state = ann[`${DEMO_DOMAIN}/state`] || 'pending-approval';
+                  const assignee = ann[`${DEMO_DOMAIN}/assignee`];
+                  const jiraTicketId = ann[`${DEMO_DOMAIN}/jira-ticket-id`];
+                  const jiraTicketUrl = ann[`${DEMO_DOMAIN}/jira-ticket-url`];
+                  const svcName = ann[`${DEMO_DOMAIN}/service-name`];
+                  const svcNamespace = ann[`${DEMO_DOMAIN}/service-namespace`];
+                  const svcType = ann[`${DEMO_DOMAIN}/service-type`] || 'services';
+                  return (
+                    <Tr key={wgr.metadata.uid}>
+                      <Td>
+                        <Link to={`/white-glove/${wgr.metadata.namespace}/${wgr.metadata.name}`}>
+                          {wgr.spec.displayName || wgr.metadata.name}
                         </Link>
-                      ) : (
-                        '—'
-                      )}
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
+                      </Td>
+                      <Td>
+                        <span className={statusCssClass(state)}>
+                          {statusIcon(state)} {statusLabel(state)}
+                        </span>
+                      </Td>
+                      <Td>
+                        <TimeInterval toTimestamp={wgr.metadata.creationTimestamp} />
+                      </Td>
+                      <Td>
+                        <JiraAssigneeCell jiraTicketId={jiraTicketId} wgr={wgr} fallback={assignee} />
+                      </Td>
+                      <Td>
+                        {jiraTicketUrl ? (
+                          <a href={jiraTicketUrl} target="_blank" rel="noopener noreferrer">
+                            {jiraTicketId || 'View'}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </Td>
+                      <Td>
+                        {svcName && svcNamespace ? (
+                          <Link to={`/${svcType}/${svcNamespace}/${svcName}`}>View Service</Link>
+                        ) : (
+                          '—'
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
           </>
         )}
       </PageSection>
-
     </>
   );
 };

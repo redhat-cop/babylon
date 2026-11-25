@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useReducer } from 'react';
+import React, { Fragment, useCallback, useMemo, useReducer } from 'react';
 import { Link, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState, PageSection, Split, SplitItem, Title } from '@patternfly/react-core';
 import useSWRInfinite from 'swr/infinite';
@@ -256,11 +256,11 @@ const AnarchySubjects: React.FC = () => {
             rows={anarchySubjects.map((anarchySubject) => {
               return {
                 cells: [
-                  <>
+                  <Fragment key="namespace">
                     {anarchySubject.metadata.namespace}
                     <OpenshiftConsoleLink key="console" resource={anarchySubject} linkToNamespace={true} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="name">
                     <Link
                       key="admin"
                       to={`/admin/anarchysubjects/${anarchySubject.metadata.namespace}/${anarchySubject.metadata.name}`}
@@ -268,8 +268,8 @@ const AnarchySubjects: React.FC = () => {
                       {anarchySubject.metadata.name}
                     </Link>
                     <OpenshiftConsoleLink key="console" resource={anarchySubject} />
-                  </>,
-                  <>
+                  </Fragment>,
+                  <Fragment key="governor">
                     <Link
                       key="admin"
                       to={`/admin/anarchygovernors/${anarchySubject.metadata.namespace}/${anarchySubject.spec.governor}`}
@@ -285,23 +285,23 @@ const AnarchySubjects: React.FC = () => {
                         namespace: anarchySubject.metadata.namespace,
                       }}
                     />
-                  </>,
-                  anarchySubject.spec.vars?.current_state || <p>-</p>,
-                  <>
+                  </Fragment>,
+                  anarchySubject.spec.vars?.current_state || <p key="state">-</p>,
+                  <Fragment key="created">
                     <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.creationTimestamp} />
                     <span key="interval" style={{ padding: '0 6px' }}>
                       (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.creationTimestamp} />)
                     </span>
-                  </>,
+                  </Fragment>,
                   anarchySubject.metadata.deletionTimestamp ? (
-                    <>
+                    <Fragment key="deleted">
                       <LocalTimestamp key="timestamp" timestamp={anarchySubject.metadata.deletionTimestamp} />
                       <span key="interval" style={{ padding: '0 6px' }}>
                         (<TimeInterval key="time-interval" toTimestamp={anarchySubject.metadata.deletionTimestamp} />)
                       </span>
-                    </>
+                    </Fragment>
                   ) : (
-                    <p>-</p>
+                    <p key="deleted">-</p>
                   ),
                 ],
                 onSelect: (isSelected) =>

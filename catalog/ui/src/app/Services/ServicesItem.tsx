@@ -39,7 +39,12 @@ import {
   Alert,
   Popover,
 } from '@patternfly/react-core';
-import { Modal as PFModal, ModalBody as PFModalBody, ModalFooter as PFModalFooter, ModalHeader as PFModalHeader } from '@patternfly/react-core';
+import {
+  Modal as PFModal,
+  ModalBody as PFModalBody,
+  ModalFooter as PFModalFooter,
+  ModalHeader as PFModalHeader,
+} from '@patternfly/react-core';
 import {
   apiPaths,
   deleteResourceClaim,
@@ -87,7 +92,6 @@ import {
   namespaceToServiceNamespaceMapper,
   isLabDeveloper,
   DEMO_DOMAIN,
-  extractErrorMessage,
   getWhiteGloved,
   parseSalesforceItems,
 } from '@app/util';
@@ -129,11 +133,7 @@ import PlusCircleIcon from '@patternfly/react-icons/dist/js/icons/plus-circle-ic
 import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ReorderModal from '@app/components/ReorderModal';
-import {
-  canReorderResourceClaim,
-  getResourceClaimReorderSchedule,
-  reorderResourceClaim,
-} from '@app/reorder-utils';
+import { canReorderResourceClaim, getResourceClaimReorderSchedule, reorderResourceClaim } from '@app/reorder-utils';
 
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
 
@@ -183,9 +183,7 @@ const ComponentDetailsList: React.FC<{
         : null;
   const provisionMessagesHtml = useMemo(
     () =>
-      _provisionMessages ? (
-        <RenderedContent content={_provisionMessages} options={{ format: 'asciidoc' }} />
-      ) : null,
+      _provisionMessages ? <RenderedContent content={_provisionMessages} options={{ format: 'asciidoc' }} /> : null,
     [_provisionMessages],
   );
   const [now] = useState(() => Date.now());
@@ -530,7 +528,8 @@ const ServicesItemComponent: React.FC<{
     isLoading: serviceAccessLoading,
     mutate: mutateServiceAccessConfig,
   } = useSWR<ServiceAccessConfig | typeof FORBIDDEN_RESPONSE | null>(
-    !isManagedInstance && (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
+    !isManagedInstance &&
+      (isAdmin || sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace))
       ? apiPaths.SERVICE_ACCESS_CONFIG({
           namespace: resourceClaim.metadata.namespace,
           name: resourceClaim.metadata.name,
@@ -538,8 +537,13 @@ const ServicesItemComponent: React.FC<{
       : null,
     optionalFetcher,
   );
-  const canManageCollaborators = (sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace) && serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) || isAdmin;
-  const serviceAccessConfig = canManageCollaborators ? serviceAccessConfigResponse as ServiceAccessConfig | null : null;
+  const canManageCollaborators =
+    (sessionServiceNamespaces.some((ns) => ns.name === resourceClaim.metadata.namespace) &&
+      serviceAccessConfigResponse !== FORBIDDEN_RESPONSE) ||
+    isAdmin;
+  const serviceAccessConfig = canManageCollaborators
+    ? (serviceAccessConfigResponse as ServiceAccessConfig | null)
+    : null;
 
   const serviceAccessUsers = useMemo(() => {
     if (!serviceAccessConfig?.spec?.users) return [];
@@ -603,13 +607,17 @@ const ServicesItemComponent: React.FC<{
   }
 
   async function saveServiceAlias(alias: string) {
-    const updatedResourceClaim = await patchResourceClaim(resourceClaim.metadata.namespace, resourceClaim.metadata.name, {
-      metadata: {
-        annotations: {
-          [`${DEMO_DOMAIN}/service-alias`]: alias,
+    const updatedResourceClaim = await patchResourceClaim(
+      resourceClaim.metadata.namespace,
+      resourceClaim.metadata.name,
+      {
+        metadata: {
+          annotations: {
+            [`${DEMO_DOMAIN}/service-alias`]: alias,
+          },
         },
       },
-    });
+    );
     setServiceAlias(alias);
     mutate(updatedResourceClaim);
   }
@@ -714,7 +722,7 @@ const ServicesItemComponent: React.FC<{
     delete: () => showModal({ action: 'delete', modal: 'action', resourceClaim }),
     lifespan: () => showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim }),
   };
-  
+
   if (!isTenantClusterItem && anarchySubjects.find((anarchySubject) => canExecuteAction(anarchySubject, 'start'))) {
     actionHandlers.start = () => showModal({ action: 'start', modal: 'action', resourceClaim });
   }
@@ -930,10 +938,7 @@ const ServicesItemComponent: React.FC<{
       >
         <ServicesCreateWorkshop resourceClaim={resourceClaim} />
       </Modal>
-      <UserDisabledModal
-        isOpen={isUserDisabledModalOpen}
-        onClose={() => setIsUserDisabledModalOpen(false)}
-      />
+      <UserDisabledModal isOpen={isUserDisabledModalOpen} onClose={() => setIsUserDisabledModalOpen(false)} />
       <Modal
         ref={modalReorder}
         onConfirm={() => undefined}
@@ -1049,7 +1054,10 @@ const ServicesItemComponent: React.FC<{
             <Title headingLevel="h4" size="xl" style={{ display: 'flex', alignItems: 'center' }}>
               {displayName(resourceClaim)}
               {isCollaborator ? (
-                <Label key="service-item__collaborator" tooltipDescription={<div>You have been granted access to this service as a collaborator</div>}>
+                <Label
+                  key="service-item__collaborator"
+                  tooltipDescription={<div>You have been granted access to this service as a collaborator</div>}
+                >
                   Shared Service
                 </Label>
               ) : null}
@@ -1092,7 +1100,13 @@ const ServicesItemComponent: React.FC<{
                   {externalPlatformUrl}
                 </Button>
               ) : (
-                <ServiceActions position="right" resourceClaim={resourceClaim} actionHandlers={actionHandlers} canManageCollaborators={canManageCollaborators} isLocked={isLocked} />
+                <ServiceActions
+                  position="right"
+                  resourceClaim={resourceClaim}
+                  actionHandlers={actionHandlers}
+                  canManageCollaborators={canManageCollaborators}
+                  isLocked={isLocked}
+                />
               )}
             </Bullseye>
           </SplitItem>
@@ -1120,553 +1134,598 @@ const ServicesItemComponent: React.FC<{
             <Tab eventKey="details" key="details" title={<TabTitleText>Details</TabTitleText>}>
               {activeTab === 'details' || (!activeTab && !hasInfoMessageTemplate) ? (
                 <>
-                <DescriptionList isHorizontal>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Name</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {catalogItem?.metadata.namespace && catalogItem?.metadata.name ? (
-                        <Link to={`/catalog/${catalogItem?.metadata.namespace}?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}>
-                          {resourceClaim.metadata.name}
-                        </Link>
-                      ) : (
-                        <p>{resourceClaim.metadata.name}</p>
-                      )}
-                      {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  {!isTenantClusterItem ? (
-                    <DescriptionListGroup className="service-alias-field__group">
-                      <DescriptionListTerm>Alias</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <ServiceAliasField value={serviceAlias} onSave={saveServiceAlias} />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
-                  {labUserInterfaceUrl ? (
+                  <DescriptionList isHorizontal>
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
+                      <DescriptionListTerm>Name</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <LabInterfaceLink
-                          url={labUserInterfaceUrl}
-                          data={labUserInterfaceData}
-                          method={labUserInterfaceMethod}
-                        />
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>GUID</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {isAdmin && resourceClaim.status?.resourceHandle ? (
-                        <>
-                          <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
-                            <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
+                        {catalogItem?.metadata.namespace && catalogItem?.metadata.name ? (
+                          <Link
+                            to={`/catalog/${catalogItem?.metadata.namespace}?item=${catalogItem?.metadata.namespace}/${catalogItem?.metadata.name}`}
+                          >
+                            {resourceClaim.metadata.name}
                           </Link>
-                          <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle} />
-                        </>
-                      ) : (
-                        <code>{resourceClaim.status?.resourceHandle?.name.substring(5) || '...'}</code>
-                      )}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={[resourceClaim]} />
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Requested On</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  {supportLink ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Support</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Button
-                          component="a"
-                          href={supportLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          variant="link"
-                          isInline
-                          icon={<ExternalLinkAltIcon />}
-                          iconPosition="end"
-                        >
-                          {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink) ? 'Slack Channel' : 'Get Support'}
-                        </Button>
+                        ) : (
+                          <p>{resourceClaim.metadata.name}</p>
+                        )}
+                        {isAdmin ? <OpenshiftConsoleLink resource={resourceClaim} /> : null}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                  ) : null}
-
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Status</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <ResourceClaimStatus resourceClaim={resourceClaim} />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-
-                  {startTime && startTime > Date.now() ? (
+                    {!isTenantClusterItem ? (
+                      <DescriptionListGroup className="service-alias-field__group">
+                        <DescriptionListTerm>Alias</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <ServiceAliasField value={serviceAlias} onSave={saveServiceAlias} />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+                    {labUserInterfaceUrl ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Lab Instructions</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <LabInterfaceLink
+                            url={labUserInterfaceUrl}
+                            data={labUserInterfaceData}
+                            method={labUserInterfaceMethod}
+                          />
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Start</DescriptionListTerm>
+                      <DescriptionListTerm>GUID</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <AutoStopDestroy
-                          type="auto-start"
-                          onClick={() => {
-                            if (!isLocked) {
-                              showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
-                            }
-                          }}
-                          isDisabled={isLocked}
-                          resourceClaim={resourceClaim}
-                          className="services-item__schedule-btn"
-                          time={startTime}
-                          variant="extended"
-                        ></AutoStopDestroy>
+                        {isAdmin && resourceClaim.status?.resourceHandle ? (
+                          <>
+                            <Link key="admin" to={`/admin/resourcehandles/${resourceClaim.status.resourceHandle.name}`}>
+                              <code>{resourceClaim.status.resourceHandle.name.substring(5)}</code>
+                            </Link>
+                            <OpenshiftConsoleLink key="console" reference={resourceClaim.status.resourceHandle} />
+                          </>
+                        ) : (
+                          <code>{resourceClaim.status?.resourceHandle?.name.substring(5) || '...'}</code>
+                        )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                  ) : null}
-
-                  {!isTenantClusterItem ? (
+                    <ServiceClusterDetails isAdmin={isAdmin} resourceClaims={[resourceClaim]} />
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Auto-stop</DescriptionListTerm>
+                      <DescriptionListTerm>Requested On</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <AutoStopDestroy
-                          type="auto-stop"
-                          onClick={() => {
-                            if (!isLocked && !isManagedInstance) {
-                              showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
-                            }
-                          }}
-                          isDisabled={isLocked || isManagedInstance}
-                          resourceClaim={resourceClaim}
-                          className="services-item__schedule-btn"
-                          time={autoStopTime}
-                          variant="extended"
-                        ></AutoStopDestroy>
+                        <LocalTimestamp timestamp={resourceClaim.metadata.creationTimestamp} />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                  ) : null}
+                    {supportLink ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Support</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <Button
+                            component="a"
+                            href={supportLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="link"
+                            isInline
+                            icon={<ExternalLinkAltIcon />}
+                            iconPosition="end"
+                          >
+                            {/^https?:\/\/([^/]+\.)?slack\.com(\/|$)/i.test(supportLink)
+                              ? 'Slack Channel'
+                              : 'Get Support'}
+                          </Button>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
 
-                  {!isTenantClusterItem && !externalPlatformUrl && !isManagedInstance && (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
                     <DescriptionListGroup>
-                      <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
+                      <DescriptionListTerm>Status</DescriptionListTerm>
                       <DescriptionListDescription>
-                        <AutoStopDestroy
-                          type="auto-destroy"
-                          onClick={() => {
-                            if (!isLocked) {
-                              showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
-                            }
-                          }}
-                          isDisabled={isLocked}
-                          time={resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end}
-                          className="services-item__schedule-btn"
-                          variant="extended"
-                          resourceClaim={resourceClaim}
-                        >
-                          {resourceClaim.status?.lifespan?.end && resourceClaim.spec?.lifespan?.end &&
-                          resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
-                            <>
-                              {' '}
-                              <Spinner size="md" />
-                            </>
-                          ) : null}
-                        </AutoStopDestroy>
+                        <ResourceClaimStatus resourceClaim={resourceClaim} />
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                  ) : null}
 
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>
-                      Amount spent{' '}
-                      <Popover
-                        triggerAction="hover"
-                        headerContent="How is Amount spent calculated?"
-                        bodyContent={
-                          <div>
-                            <p>
-                              Amount spent represents an estimated cost based on the cloud provider and service backing
-                              this environment. Cost calculations follow provider-specific models and are updated once
-                              per day.
-                            </p>
-                            <p>
-                              <strong>Cost models by provider and service</strong>
-                            </p>
-                            <p>
-                              <strong>AWS and Azure</strong>
-                              <br />
-                              Costs are sourced directly from the cloud account or subscription and accrue from
-                              provisioning to deletion of resources.
-                            </p>
-                            <p>
-                              <strong>OpenShift CNV</strong>
-                              <br />
-                              Costs are calculated using a fixed hourly price list, based on project usage, and accrue
-                              from provisioning to deletion.
-                            </p>
-                            <p>
-                              <strong>GCP</strong>
-                              <br />
-                              Costs are sourced directly from the associated GCP project.
-                            </p>
-                            <p>
-                              The amount shown is the total accumulated cost, starting from the provision start date
-                              and time, including any initial provisioning or pool-related resources.
-                            </p>
-                          </div>
-                        }
-                      >
-                        <OutlinedQuestionCircleIcon
-                          aria-label="Amount spent calculation information"
-                          className="tooltip-icon-only"
-                          style={{ cursor: 'pointer' }}
-                        />
-                      </Popover>
-                    </DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {usageCost?.total_cost ? (
-                        <p>
-                          <CurrencyAmount amount={usageCost.total_cost} />{' '}
-                          <span className="services-item__estimated-cost-label">
-                            (Last update <TimeInterval toTimestamp={usageCost.last_update} />)
-                          </span>
-                        </p>
-                      ) : (
-                        'No data available'
-                      )}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
+                    {startTime && startTime > Date.now() ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Start</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <AutoStopDestroy
+                            type="auto-start"
+                            onClick={() => {
+                              if (!isLocked) {
+                                showModal({ action: 'start', modal: 'scheduleAction', resourceClaim });
+                              }
+                            }}
+                            isDisabled={isLocked}
+                            resourceClaim={resourceClaim}
+                            className="services-item__schedule-btn"
+                            time={startTime}
+                            variant="extended"
+                          ></AutoStopDestroy>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
 
-                  {isTenantClusterItem ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Cluster Registration</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <p style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.88rem', margin: 0 }}>
-                          Registration of the backing shared cluster with the Sandbox API. This is not the status of your service.
-                        </p>
-                        {sandboxApiStatus === 'loading' ? (
-                          <Spinner size="md" />
-                        ) : pendingTenantAction ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <Spinner size="md" />
-                            {{ onboard: 'Onboarding shared cluster...', offboard: 'Offboarding shared cluster...', enable: 'Enabling shared cluster...', disable: 'Disabling shared cluster...' }[pendingTenantAction] || 'Processing...'}
-                          </span>
-                        ) : sandboxApiStatus === 'not onboarded' ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                            <Alert
-                              variant="warning"
-                              isInline
-                              isPlain
-                              title="This cluster is not registered with the Sandbox API"
-                            >
-                              <p>Tenants will not be able to discover or request placements on this cluster until it is onboarded.</p>
-                            </Alert>
-                            <SandboxApiActions
-                              status={sandboxApiStatus}
-                              updating={tenantActionUpdating}
-                              performAction={performSandboxAction}
-                              isDisabled={!isRunning}
-                              placementCount={sandboxPlacementCount}
-                              clusterName={clusterName}
-                            />
-                          </div>
-                        ) : sandboxApiStatus === 'available' ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
-                              Onboarded — Enabled
-                            </span>
-                            <SandboxApiActions
-                              status={sandboxApiStatus}
-                              updating={tenantActionUpdating}
-                              performAction={performSandboxAction}
-                              placementCount={sandboxPlacementCount}
-                              clusterName={clusterName}
-                            />
-                          </div>
-                        ) : sandboxApiStatus === 'disabled' ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              Onboarded — Disabled
-                            </span>
-                            <SandboxApiActions
-                              status={sandboxApiStatus}
-                              updating={tenantActionUpdating}
-                              performAction={performSandboxAction}
-                              placementCount={sandboxPlacementCount}
-                              clusterName={clusterName}
-                            />
-                          </div>
-                        ) : null}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
+                    {!isTenantClusterItem ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Auto-stop</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <AutoStopDestroy
+                            type="auto-stop"
+                            onClick={() => {
+                              if (!isLocked && !isManagedInstance) {
+                                showModal({ action: 'stop', modal: 'scheduleAction', resourceClaim });
+                              }
+                            }}
+                            isDisabled={isLocked || isManagedInstance}
+                            resourceClaim={resourceClaim}
+                            className="services-item__schedule-btn"
+                            time={autoStopTime}
+                            variant="extended"
+                          ></AutoStopDestroy>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
 
-                  {!isManagedInstance && sfdc_enabled ? (
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <SalesforceItemsList items={salesforceItems} />
-                        <Button
-                          variant="plain"
-                          icon={<PlusCircleIcon />}
-                          onClick={() => setModalEditSalesforce(true)}
-                          style={{ alignSelf: 'flex-start' }}
-                        >
-                          Add Salesforce IDs
-                        </Button>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  ) : null}
+                    {!isTenantClusterItem &&
+                    !externalPlatformUrl &&
+                    !isManagedInstance &&
+                    (resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end) ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Auto-destroy</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <AutoStopDestroy
+                            type="auto-destroy"
+                            onClick={() => {
+                              if (!isLocked) {
+                                showModal({ action: 'retirement', modal: 'scheduleAction', resourceClaim });
+                              }
+                            }}
+                            isDisabled={isLocked}
+                            time={resourceClaim.status?.lifespan?.end || resourceClaim.spec?.lifespan?.end}
+                            className="services-item__schedule-btn"
+                            variant="extended"
+                            resourceClaim={resourceClaim}
+                          >
+                            {resourceClaim.status?.lifespan?.end &&
+                            resourceClaim.spec?.lifespan?.end &&
+                            resourceClaim.spec.lifespan.end != resourceClaim.status.lifespan.end ? (
+                              <>
+                                {' '}
+                                <Spinner size="md" />
+                              </>
+                            ) : null}
+                          </AutoStopDestroy>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
 
-                  {!isManagedInstance && !isTenantClusterItem && canManageCollaborators ? (
                     <DescriptionListGroup>
                       <DescriptionListTerm>
-                        Share service{' '}
-                        <Tooltip position="right" content={<p>Users who have access to this service.</p>}>
+                        Amount spent{' '}
+                        <Popover
+                          triggerAction="hover"
+                          headerContent="How is Amount spent calculated?"
+                          bodyContent={
+                            <div>
+                              <p>
+                                Amount spent represents an estimated cost based on the cloud provider and service
+                                backing this environment. Cost calculations follow provider-specific models and are
+                                updated once per day.
+                              </p>
+                              <p>
+                                <strong>Cost models by provider and service</strong>
+                              </p>
+                              <p>
+                                <strong>AWS and Azure</strong>
+                                <br />
+                                Costs are sourced directly from the cloud account or subscription and accrue from
+                                provisioning to deletion of resources.
+                              </p>
+                              <p>
+                                <strong>OpenShift CNV</strong>
+                                <br />
+                                Costs are calculated using a fixed hourly price list, based on project usage, and accrue
+                                from provisioning to deletion.
+                              </p>
+                              <p>
+                                <strong>GCP</strong>
+                                <br />
+                                Costs are sourced directly from the associated GCP project.
+                              </p>
+                              <p>
+                                The amount shown is the total accumulated cost, starting from the provision start date
+                                and time, including any initial provisioning or pool-related resources.
+                              </p>
+                            </div>
+                          }
+                        >
                           <OutlinedQuestionCircleIcon
-                            aria-label="Users who have access to this service."
+                            aria-label="Amount spent calculation information"
                             className="tooltip-icon-only"
+                            style={{ cursor: 'pointer' }}
                           />
-                        </Tooltip>
+                        </Popover>
                       </DescriptionListTerm>
                       <DescriptionListDescription>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}>
-                          {serviceAccessLoading ? (
-                            <Spinner size="md" />
-                          ) : serviceAccessUsers.length > 0 ? (
-                            <LabelGroup>
-                              {serviceAccessUsers.map((email: string) => (
-                                <PFLabel
-                                  key={email}
-                                  onClose={() => handleRemoveServiceAccessUser(email)}
-                                  closeBtnAriaLabel={`Remove ${email}`}
-                                >
-                                  {email}
-                                </PFLabel>
-                              ))}
-                            </LabelGroup>
-                          ) : (
-                            <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
-                              No users configured
+                        {usageCost?.total_cost ? (
+                          <p>
+                            <CurrencyAmount amount={usageCost.total_cost} />{' '}
+                            <span className="services-item__estimated-cost-label">
+                              (Last update <TimeInterval toTimestamp={usageCost.last_update} />)
                             </span>
-                          )}
-                          <Button
-                            variant="link"
-                            icon={<PlusCircleIcon />}
-                            onClick={() => setModalAddServiceAccess(true)}
-                            style={{ alignSelf: 'flex-start', paddingLeft: 0, paddingTop: 0, paddingBottom: 0, paddingRight: 0 }}
-                          >
-                            Share service
-                          </Button>
-                        </div>
+                          </p>
+                        ) : (
+                          'No data available'
+                        )}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
-                  ) : null}
 
-                  {!isManagedInstance && !isTenantClusterItem && isAdmin ? (
-                    <>
-                      <DescriptionListGroup className="services-item__admin-section">
-                        <DescriptionListTerm>Admin Settings</DescriptionListTerm>
-                        <DescriptionListDescription className="services-item__admin-description">
-                          <div className="services-item__admin-fields">
-                            <div className="services-item__admin-field">
-                              <Switch
-                                id="white-glove-switch"
-                                aria-label="White-Glove Support"
-                                label="White-Glove Support (for admins to tick when giving a white gloved experience)"
-                                isChecked={whiteGloved}
-                                hasCheckIcon
-                                onChange={async (_event: unknown, isChecked: boolean) => {
-                                  mutate(
-                                    await patchResourceClaim(
-                                      resourceClaim.metadata.namespace,
-                                      resourceClaim.metadata.name,
-                                      {
-                                        metadata: {
-                                          labels: {
-                                            [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
-                                          },
-                                        },
-                                      },
-                                    ),
-                                  );
-                                }}
+                    {isTenantClusterItem ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Cluster Registration</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <p
+                            style={{
+                              color: 'var(--pf-t--global--text--color--subtle)',
+                              fontSize: '0.88rem',
+                              margin: 0,
+                            }}
+                          >
+                            Registration of the backing shared cluster with the Sandbox API. This is not the status of
+                            your service.
+                          </p>
+                          {sandboxApiStatus === 'loading' ? (
+                            <Spinner size="md" />
+                          ) : pendingTenantAction ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                              <Spinner size="md" />
+                              {{
+                                onboard: 'Onboarding shared cluster...',
+                                offboard: 'Offboarding shared cluster...',
+                                enable: 'Enabling shared cluster...',
+                                disable: 'Disabling shared cluster...',
+                              }[pendingTenantAction] || 'Processing...'}
+                            </span>
+                          ) : sandboxApiStatus === 'not onboarded' ? (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'var(--pf-t--global--spacer--sm)',
+                              }}
+                            >
+                              <Alert
+                                variant="warning"
+                                isInline
+                                isPlain
+                                title="This cluster is not registered with the Sandbox API"
+                              >
+                                <p>
+                                  Tenants will not be able to discover or request placements on this cluster until it is
+                                  onboarded.
+                                </p>
+                              </Alert>
+                              <SandboxApiActions
+                                status={sandboxApiStatus}
+                                updating={tenantActionUpdating}
+                                performAction={performSandboxAction}
+                                isDisabled={!isRunning}
+                                placementCount={sandboxPlacementCount}
+                                clusterName={clusterName}
                               />
                             </div>
-                            <div className="services-item__admin-field">
-                              <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
-                                <label htmlFor="ops-effort-input">
-                                  Ops Effort
-                                </label>
-                                <NumberInput
-                                  id="ops-effort-input"
-                                  aria-label="Ops Effort"
-                                  min={0}
-                                  value={opsEffort}
-                                  onMinus={() => {
-                                    const newValue = Math.max(0, (typeof opsEffort === 'number' ? opsEffort : 0) - 1);
-                                    setOpsEffort(newValue);
-                                  }}
-                                  onPlus={() => {
-                                    const newValue = (typeof opsEffort === 'number' ? opsEffort : 0) + 1;
-                                    setOpsEffort(newValue);
-                                  }}
-                                  onChange={(event: React.FormEvent<HTMLInputElement>) => {
-                                    const inputValue = event.currentTarget.value;
-                                    const value = inputValue === '' ? 0 : parseInt(inputValue, 10);
-                                    if (!isNaN(value) && value >= 0) {
-                                      setOpsEffort(value);
-                                    }
-                                  }}
-                                />
-                                <Tooltip
-                                  position="right"
-                                  content={<div>Operations effort value for this workshop.</div>}
-                                >
-                                  <OutlinedQuestionCircleIcon
-                                    aria-label="Operations effort value for this workshop."
-                                    className="tooltip-icon-only"
-                                  />
-                                </Tooltip>
-                              </div>
-                            </div>
+                          ) : sandboxApiStatus === 'available' ? (
                             <div
-                              className="services-item__admin-field"
-                              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'var(--pf-t--global--spacer--sm)',
+                              }}
                             >
-                              <Switch
-                                id="lock-switch"
-                                aria-label="Locked"
-                                label="Locked"
-                                isChecked={isLocked}
-                                hasCheckIcon
-                                onChange={handleLockedChange}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+                                Onboarded — Enabled
+                              </span>
+                              <SandboxApiActions
+                                status={sandboxApiStatus}
+                                updating={tenantActionUpdating}
+                                performAction={performSandboxAction}
+                                placementCount={sandboxPlacementCount}
+                                clusterName={clusterName}
                               />
                             </div>
+                          ) : sandboxApiStatus === 'disabled' ? (
                             <div
-                              className="services-item__admin-field"
-                              style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 'var(--pf-t--global--spacer--sm)',
+                              }}
                             >
-                              <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
-                                <label htmlFor="resource-pool-selector">Resource Pool</label>
-                                <ResourcePoolSelector
-                                  disableAutoSelect
-                                  selectedPool={selectedResourcePool}
-                                  onSelect={handleResourcePoolChange}
-                                />
-                                <Tooltip
-                                  position="right"
-                                  content={<p>Select a specific resource pool for this service.</p>}
-                                >
-                                  <OutlinedQuestionCircleIcon
-                                    aria-label="Select a specific resource pool for this service"
-                                    className="tooltip-icon-only"
-                                  />
-                                </Tooltip>
-                              </div>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                Onboarded — Disabled
+                              </span>
+                              <SandboxApiActions
+                                status={sandboxApiStatus}
+                                updating={tenantActionUpdating}
+                                performAction={performSandboxAction}
+                                placementCount={sandboxPlacementCount}
+                                clusterName={clusterName}
+                              />
                             </div>
+                          ) : null}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+
+                    {!isManagedInstance && sfdc_enabled ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>Salesforce IDs</DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <SalesforceItemsList items={salesforceItems} />
+                          <Button
+                            variant="plain"
+                            icon={<PlusCircleIcon />}
+                            onClick={() => setModalEditSalesforce(true)}
+                            style={{ alignSelf: 'flex-start' }}
+                          >
+                            Add Salesforce IDs
+                          </Button>
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ) : null}
+
+                    {!isManagedInstance && !isTenantClusterItem && canManageCollaborators ? (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm>
+                          Share service{' '}
+                          <Tooltip position="right" content={<p>Users who have access to this service.</p>}>
+                            <OutlinedQuestionCircleIcon
+                              aria-label="Users who have access to this service."
+                              className="tooltip-icon-only"
+                            />
+                          </Tooltip>
+                        </DescriptionListTerm>
+                        <DescriptionListDescription>
+                          <div
+                            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--sm)' }}
+                          >
+                            {serviceAccessLoading ? (
+                              <Spinner size="md" />
+                            ) : serviceAccessUsers.length > 0 ? (
+                              <LabelGroup>
+                                {serviceAccessUsers.map((email: string) => (
+                                  <PFLabel
+                                    key={email}
+                                    onClose={() => handleRemoveServiceAccessUser(email)}
+                                    closeBtnAriaLabel={`Remove ${email}`}
+                                  >
+                                    {email}
+                                  </PFLabel>
+                                ))}
+                              </LabelGroup>
+                            ) : (
+                              <span style={{ color: 'var(--pf-t--global--color--nonstatus--gray--default)' }}>
+                                No users configured
+                              </span>
+                            )}
+                            <Button
+                              variant="link"
+                              icon={<PlusCircleIcon />}
+                              onClick={() => setModalAddServiceAccess(true)}
+                              style={{
+                                alignSelf: 'flex-start',
+                                paddingLeft: 0,
+                                paddingTop: 0,
+                                paddingBottom: 0,
+                                paddingRight: 0,
+                              }}
+                            >
+                              Share service
+                            </Button>
                           </div>
                         </DescriptionListDescription>
                       </DescriptionListGroup>
-                    </>
-                  ) : null}
-                </DescriptionList>
-                {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
-                  const resourceState = resourceStatus?.state;
-                  const componentDisplayName =
-                    catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
-                    resourceStatus?.name;
-                  const currentState =
-                    resourceState?.kind === 'AnarchySubject'
-                      ? resourceState.spec.vars?.current_state ?? ''
-                      : '';
-                  const stopTimestamp =
-                    resourceState?.kind === 'AnarchySubject'
-                      ? resourceState?.spec.vars.action_schedule?.stop
-                      : null;
-                  const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
-                  const stopDate = stopTime ? new Date(stopTime) : null;
-                  const provisionData =
-                    resourceState?.kind === 'AnarchySubject'
-                      ? resourceState.spec.vars?.provision_data
-                      : JSON.parse(resourceState?.data?.userData || '{}');
-                  const provisionMessages =
-                    resourceState?.kind === 'AnarchySubject'
-                      ? resourceState?.spec?.vars?.provision_messages
-                      : provisionData?.msg;
-                  const provisionDataEntries = provisionData
-                    ? Object.entries(provisionData).filter(([key]) => {
-                        if (
-                          key === 'bookbag_url' ||
-                          key === 'lab_ui_url' ||
-                          key === 'labUserInterfaceUrl' ||
-                          key === 'showroom_primary_view_url' ||
-                          key === 'msg' ||
-                          key === 'users'
-                        ) {
-                          return false;
-                        }
-                        if (userData) {
-                          if (userData[key]) {
-                            return true;
-                          } else {
+                    ) : null}
+
+                    {!isManagedInstance && !isTenantClusterItem && isAdmin ? (
+                      <>
+                        <DescriptionListGroup className="services-item__admin-section">
+                          <DescriptionListTerm>Admin Settings</DescriptionListTerm>
+                          <DescriptionListDescription className="services-item__admin-description">
+                            <div className="services-item__admin-fields">
+                              <div className="services-item__admin-field">
+                                <Switch
+                                  id="white-glove-switch"
+                                  aria-label="White-Glove Support"
+                                  label="White-Glove Support (for admins to tick when giving a white gloved experience)"
+                                  isChecked={whiteGloved}
+                                  hasCheckIcon
+                                  onChange={async (_event: unknown, isChecked: boolean) => {
+                                    mutate(
+                                      await patchResourceClaim(
+                                        resourceClaim.metadata.namespace,
+                                        resourceClaim.metadata.name,
+                                        {
+                                          metadata: {
+                                            labels: {
+                                              [`${DEMO_DOMAIN}/white-glove`]: String(isChecked),
+                                            },
+                                          },
+                                        },
+                                      ),
+                                    );
+                                  }}
+                                />
+                              </div>
+                              <div className="services-item__admin-field">
+                                <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
+                                  <label htmlFor="ops-effort-input">Ops Effort</label>
+                                  <NumberInput
+                                    id="ops-effort-input"
+                                    aria-label="Ops Effort"
+                                    min={0}
+                                    value={opsEffort}
+                                    onMinus={() => {
+                                      const newValue = Math.max(0, (typeof opsEffort === 'number' ? opsEffort : 0) - 1);
+                                      setOpsEffort(newValue);
+                                    }}
+                                    onPlus={() => {
+                                      const newValue = (typeof opsEffort === 'number' ? opsEffort : 0) + 1;
+                                      setOpsEffort(newValue);
+                                    }}
+                                    onChange={(event: React.FormEvent<HTMLInputElement>) => {
+                                      const inputValue = event.currentTarget.value;
+                                      const value = inputValue === '' ? 0 : parseInt(inputValue, 10);
+                                      if (!isNaN(value) && value >= 0) {
+                                        setOpsEffort(value);
+                                      }
+                                    }}
+                                  />
+                                  <Tooltip
+                                    position="right"
+                                    content={<div>Operations effort value for this workshop.</div>}
+                                  >
+                                    <OutlinedQuestionCircleIcon
+                                      aria-label="Operations effort value for this workshop."
+                                      className="tooltip-icon-only"
+                                    />
+                                  </Tooltip>
+                                </div>
+                              </div>
+                              <div
+                                className="services-item__admin-field"
+                                style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                              >
+                                <Switch
+                                  id="lock-switch"
+                                  aria-label="Locked"
+                                  label="Locked"
+                                  isChecked={isLocked}
+                                  hasCheckIcon
+                                  onChange={handleLockedChange}
+                                />
+                              </div>
+                              <div
+                                className="services-item__admin-field"
+                                style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                              >
+                                <div className="service-item__group-control--single" style={{ maxWidth: 350 }}>
+                                  <label htmlFor="resource-pool-selector">Resource Pool</label>
+                                  <ResourcePoolSelector
+                                    disableAutoSelect
+                                    selectedPool={selectedResourcePool}
+                                    onSelect={handleResourcePoolChange}
+                                  />
+                                  <Tooltip
+                                    position="right"
+                                    content={<p>Select a specific resource pool for this service.</p>}
+                                  >
+                                    <OutlinedQuestionCircleIcon
+                                      aria-label="Select a specific resource pool for this service"
+                                      className="tooltip-icon-only"
+                                    />
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </div>
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      </>
+                    ) : null}
+                  </DescriptionList>
+                  {(resourceClaim.status?.resources || []).map((resourceStatus, idx) => {
+                    const resourceState = resourceStatus?.state;
+                    const componentDisplayName =
+                      catalogItem?.spec.linkedComponents?.find((c) => c.name == resourceStatus.name)?.displayName ||
+                      resourceStatus?.name;
+                    const currentState =
+                      resourceState?.kind === 'AnarchySubject' ? (resourceState.spec.vars?.current_state ?? '') : '';
+                    const stopTimestamp =
+                      resourceState?.kind === 'AnarchySubject' ? resourceState?.spec.vars.action_schedule?.stop : null;
+                    const stopTime = stopTimestamp ? Date.parse(stopTimestamp) : null;
+                    const stopDate = stopTime ? new Date(stopTime) : null;
+                    const provisionData =
+                      resourceState?.kind === 'AnarchySubject'
+                        ? resourceState.spec.vars?.provision_data
+                        : JSON.parse(resourceState?.data?.userData || '{}');
+                    const provisionMessages =
+                      resourceState?.kind === 'AnarchySubject'
+                        ? resourceState?.spec?.vars?.provision_messages
+                        : provisionData?.msg;
+                    const provisionDataEntries = provisionData
+                      ? Object.entries(provisionData).filter(([key]) => {
+                          if (
+                            key === 'bookbag_url' ||
+                            key === 'lab_ui_url' ||
+                            key === 'labUserInterfaceUrl' ||
+                            key === 'showroom_primary_view_url' ||
+                            key === 'msg' ||
+                            key === 'users'
+                          ) {
                             return false;
                           }
-                        } else {
-                          return true;
-                        }
-                      })
-                    : null;
-
-                  const startTimestamp =
-                    resourceState?.kind == 'AnarchySubject'
-                      ? resourceState?.spec.vars.action_schedule?.start
+                          if (userData) {
+                            if (userData[key]) {
+                              return true;
+                            } else {
+                              return false;
+                            }
+                          } else {
+                            return true;
+                          }
+                        })
                       : null;
-                  const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
-                  const startDate = startTime ? new Date(startTime) : null;
 
-                  const detailsProps = {
-                    resourceState,
-                    isAdmin,
-                    groups,
-                    externalPlatformUrl,
-                    isPartOfWorkshop: isManagedInstance,
-                    startDate,
-                    startTimestamp,
-                    stopDate,
-                    currentState,
-                    provisionDataEntries,
-                    provisionMessages,
-                  };
+                    const startTimestamp =
+                      resourceState?.kind == 'AnarchySubject' ? resourceState?.spec.vars.action_schedule?.start : null;
+                    const startTime = startTimestamp ? Date.parse(startTimestamp) : null;
+                    const startDate = startTime ? new Date(startTime) : null;
 
-                  if (resourceClaim.status?.resources?.length > 1) {
-                    return (
-                      <Card
-                        key={idx}
-                        id={`component-card-${idx}`}
-                        isExpanded={expanded.includes(`item-${idx}`)}
-                        isCompact
-                        className="services-item__component-card"
-                      >
-                        <CardHeader
-                          onExpand={() => toggle(`item-${idx}`)}
-                          toggleButtonProps={{
-                            id: `component-toggle-${idx}`,
-                            'aria-label': `Toggle ${componentDisplayName}`,
-                          }}
+                    const detailsProps = {
+                      resourceState,
+                      isAdmin,
+                      groups,
+                      externalPlatformUrl,
+                      isPartOfWorkshop: isManagedInstance,
+                      startDate,
+                      startTimestamp,
+                      stopDate,
+                      currentState,
+                      provisionDataEntries,
+                      provisionMessages,
+                    };
+
+                    if (resourceClaim.status?.resources?.length > 1) {
+                      return (
+                        <Card
+                          key={idx}
+                          id={`component-card-${idx}`}
+                          isExpanded={expanded.includes(`item-${idx}`)}
+                          isCompact
+                          className="services-item__component-card"
                         >
-                          <CardTitle>{componentDisplayName}</CardTitle>
-                        </CardHeader>
-                        <CardExpandableContent>
-                          <CardBody>
-                            <ComponentDetailsList {...detailsProps} isInsideCard />
-                          </CardBody>
-                        </CardExpandableContent>
-                      </Card>
-                    );
-                  }
+                          <CardHeader
+                            onExpand={() => toggle(`item-${idx}`)}
+                            toggleButtonProps={{
+                              id: `component-toggle-${idx}`,
+                              'aria-label': `Toggle ${componentDisplayName}`,
+                            }}
+                          >
+                            <CardTitle>{componentDisplayName}</CardTitle>
+                          </CardHeader>
+                          <CardExpandableContent>
+                            <CardBody>
+                              <ComponentDetailsList {...detailsProps} isInsideCard />
+                            </CardBody>
+                          </CardExpandableContent>
+                        </Card>
+                      );
+                    }
 
-                  return <React.Fragment key={idx}><ComponentDetailsList {...detailsProps} /></React.Fragment>;
-                })}
+                    return (
+                      <React.Fragment key={idx}>
+                        <ComponentDetailsList {...detailsProps} />
+                      </React.Fragment>
+                    );
+                  })}
                 </>
               ) : null}
             </Tab>
@@ -1768,8 +1827,8 @@ const ServicesItemComponent: React.FC<{
         <PFModalBody>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pf-t--global--spacer--md)' }}>
             <Alert variant="info" isInline title="Grant user access">
-              By adding a user&apos;s email, they will gain access to manage this service. Please use
-              the email address associated with their account on the Demo platform.
+              By adding a user&apos;s email, they will gain access to manage this service. Please use the email address
+              associated with their account on the Demo platform.
             </Alert>
             <FormGroup label="Email address" isRequired fieldId="service-access-email">
               <TextInput

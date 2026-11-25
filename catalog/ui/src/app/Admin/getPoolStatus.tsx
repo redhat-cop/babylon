@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getAnarchySubject } from '@app/api';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ResourceHandle } from '@app/types';
 
 export function useIsMounted() {

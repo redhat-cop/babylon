@@ -4,9 +4,11 @@ import { render as customRender } from '@app/utils/test-utils';
 import { createMemoryHistory } from 'history';
 import MultiWorkshopLanding from './MultiWorkshopLanding';
 
+const mockUseParams = jest.fn((): Record<string, string> => ({ multiWorkshopId: 'mw-summit-2026' }));
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ multiWorkshopId: 'mw-summit-2026' }),
+  useParams: () => mockUseParams(),
 }));
 
 const mockPublicFetcher = jest.fn();
@@ -160,7 +162,7 @@ describe('MultiWorkshopLanding', () => {
 
 describe('MultiWorkshopLanding - invalid URL', () => {
   test('shows error when multiWorkshopId is missing', async () => {
-    jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({});
+    mockUseParams.mockReturnValue({});
 
     const { getByText } = await customRender(<MultiWorkshopLanding />, {
       history: createMemoryHistory({ initialEntries: ['/event/'] }),
