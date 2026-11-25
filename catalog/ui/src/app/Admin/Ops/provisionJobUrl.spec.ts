@@ -82,4 +82,22 @@ describe('getProvisionJobUrl', () => {
   it('returns null when the job id is not a positive integer', () => {
     expect(getProvisionJobUrl(claim({ towerHost: 'tower.example.com', deployerJob: 0 }))).toBeNull();
   });
+
+  it('returns null when the stored URL has no host', () => {
+    expect(getProvisionJobUrl(claim({ towerJobURL: '#/jobs/12/' }))).toBeNull();
+    expect(getProvisionJobUrl(claim({ towerJobURL: 'https://#/jobs/12/' }))).toBeNull();
+    expect(getProvisionJobUrl(claim({ towerJobURL: 'https:///#/jobs/12/' }))).toBeNull();
+    expect(getProvisionJobUrl(claim({ towerJobURL: '#/jobs/playbook/12/output' }))).toBeNull();
+  });
+
+  it('falls back to host and job id when the stored URL has no host', () => {
+    expect(
+      getProvisionJobUrl(claim({ towerJobURL: '#/jobs/12/', towerHost: 'tower.example.com', deployerJob: 12 })),
+    ).toBe('https://tower.example.com/#/jobs/playbook/12/output');
+  });
+
+  it('returns null when the host fallback is unusable', () => {
+    expect(getProvisionJobUrl(claim({ towerHost: 'https://', deployerJob: 12 }))).toBeNull();
+    expect(getProvisionJobUrl(claim({ towerHost: '   ', deployerJob: 12 }))).toBeNull();
+  });
 });

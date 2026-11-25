@@ -1,30 +1,34 @@
 import type { ResourceClaim } from '@app/types';
 
-/** AAP2 routes playbook jobs as `#/jobs/playbook/<id>/output`. */
-const TYPED_JOB = /#\/jobs\/(?:playbook|command|inventory|project)\/\d+/;
-/** Older rows store `#/jobs/<id>/` with no job type. */
-const UNTYPED_JOB = /^(.*?)#\/jobs\/(\d+)(?:[/?].*)?$/;
+/** Older rows store `#/jobs/<id>/` with no job type; AAP2 routes playbook jobs as `#/jobs/playbook/<id>/output`. */
+const TYPED_JOB = /^#\/jobs\/(?:playbook|command|inventory|project)\/\d+/;
+const UNTYPED_JOB = /^#\/jobs\/(\d+)/;
 const SCHEME = /^https?:\/\//i;
 
-function withScheme(host: string): string {
-  const trimmed = host.trim().replace(/\/+$/, '');
-  return SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`;
+/** Scheme + host with a non-empty host, or null when the value carries no host. */
+function hostPart(raw: string): string | null {
+  const value = raw.trim();
+  const scheme = SCHEME.exec(value)?.[0] ?? 'https://';
+  const rest = value.replace(SCHEME, '').replace(/^\/+/, '').replace(/\/+$/, '');
+  return rest ? `${scheme}${rest}` : null;
 }
 
-/** Returns a usable URL, or null when the stored value carries no host or id. */
+/** Returns a usable URL, or null when the stored value carries no host. */
 function normalise(raw: string): string | null {
   const value = raw.trim();
   if (!value) return null;
-  const withoutScheme = value.replace(SCHEME, '').replace(/^\/+/, '');
-  if (!withoutScheme) return null;
+  const rest = value.replace(SCHEME, '').replace(/^\/+/, '');
+  if (!rest) return null;
   const url = SCHEME.test(value) ? value : `https://${value}`;
-  if (TYPED_JOB.test(url)) return url;
-  const match = UNTYPED_JOB.exec(url);
-  if (match) {
-    const host = match[1].replace(/\/+$/, '');
-    return `${host}/#/jobs/playbook/${match[2]}/output`;
-  }
-  return url;
+  const hashAt = url.indexOf('#/');
+  if (hashAt < 0) return url;
+  const host = hostPart(url.slice(0, hashAt));
+  if (!host) return null;
+  const path = url.slice(hashAt);
+  if (TYPED_JOB.test(path)) return `${host}/${path}`;
+  const match = UNTYPED_JOB.exec(path);
+  if (match) return `${host}/#/jobs/playbook/${match[1]}/output`;
+  return `${host}/${path}`;
 }
 
 /** AAP2 job link for a failed provision, or null when the row has no job reference. */
@@ -38,8 +42,9 @@ export function getProvisionJobUrl(rc: ResourceClaim): string | null {
     if (normalised) return normalised;
   }
   const jobId = provJob.deployerJob;
-  if (provJob.towerHost && typeof jobId === 'number' && Number.isInteger(jobId) && jobId > 0) {
-    return `${withScheme(provJob.towerHost)}/#/jobs/playbook/${jobId}/output`;
+  if (typeof jobId === 'number' && Number.isInteger(jobId) && jobId > 0) {
+    const host = hostPart(provJob.towerHost ?? '');
+    if (host) return `${host}/#/jobs/playbook/${jobId}/output`;
   }
   return null;
 }
