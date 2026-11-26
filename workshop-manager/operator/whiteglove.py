@@ -1,13 +1,39 @@
 import base64
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 
 import aiohttp
+import kubernetes_asyncio
 
 from kopfobject import KopfObject
 from operatorruntime import OperatorRuntime
 
 logger = logging.getLogger(__name__)
+
+
+def parse_event_end_date(value):
+    """Parse spec.eventEndDate (ISO 8601, as written by the UI) into an aware UTC datetime.
+
+    Returns None when the value is missing or unparseable.
+    """
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def is_retention_expired(event_end_date, now, retention_days):
+    """True when the event ended at least retention_days before now."""
+    end = parse_event_end_date(event_end_date)
+    if end is None:
+        return False
+    return now >= end + timedelta(days=retention_days)
 
 
 class WhiteGloveRequest(KopfObject):
@@ -62,6 +88,66 @@ class WhiteGloveRequest(KopfObject):
             and bool(self.service_name)
             and bool(self.jira_ticket_id)
         )
+
+    @property
+    def event_end_date(self):
+        return self.spec.get('eventEndDate')
+
+    def _linked_service_api(self):
+        """(group, version, plural) for the linked service type, or None if unknown."""
+        if self.service_type == 'workshops':
+            return (OperatorRuntime.babylon_domain, OperatorRuntime.babylon_api_version, 'workshops')
+        if self.service_type == 'selfpacedlabs':
+            return (OperatorRuntime.babylon_domain, OperatorRuntime.babylon_api_version, 'selfpacedlabs')
+        if self.service_type == 'services':
+            return (OperatorRuntime.poolboy_domain, OperatorRuntime.poolboy_api_version, 'resourceclaims')
+        return None
+
+    async def linked_service_exists(self):
+        """Whether the linked service still exists.
+
+        Returns False when no service is linked. Unknown service types are treated
+        as existing, so we never delete a WGR we can't verify.
+        """
+        if not self.service_namespace or not self.service_name:
+            return False
+        api = self._linked_service_api()
+        if api is None:
+            return True
+        group, version, plural = api
+        try:
+            await OperatorRuntime.custom_objects_api.get_namespaced_custom_object(
+                group=group,
+                version=version,
+                namespace=self.service_namespace,
+                plural=plural,
+                name=self.service_name,
+            )
+        except kubernetes_asyncio.client.rest.ApiException as exc:
+            if exc.status == 404:
+                return False
+            raise
+        return True
+
+    async def check_and_cleanup(self, logger, retention_days, now=None):
+        """Delete this WGR if the event ended over retention_days ago and the linked service is gone.
+
+        Returns True if the WGR was deleted.
+        """
+        if self.is_deleting:
+            return False
+        now = now or datetime.now(timezone.utc)
+        if not is_retention_expired(self.event_end_date, now, retention_days):
+            return False
+        if await self.linked_service_exists():
+            return False
+        await self.delete()
+        logger.info(
+            "WGR %s/%s: deleted, event ended %s (> %d days ago) and linked %s %s/%s no longer exists",
+            self.namespace, self.name, self.event_end_date, retention_days,
+            self.service_type or 'service', self.service_namespace, self.service_name,
+        )
+        return True
 
     async def check_and_notify(self, logger):
         if not OperatorRuntime.jira_api_token or not OperatorRuntime.jira_user_email:

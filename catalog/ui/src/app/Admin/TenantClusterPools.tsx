@@ -20,7 +20,7 @@ import { apiPaths, fetcherItemsInAllPages } from '@app/api';
 import type { TenantClusterPool, TenantClusterPoolStatusCluster } from '@app/types';
 import KeywordSearchInput from '@app/components/KeywordSearchInput';
 import TimeInterval from '@app/components/TimeInterval';
-import { compareK8sObjectsArr, FETCH_BATCH_LIMIT } from '@app/util';
+import { compareK8sObjectsArr, FETCH_BATCH_LIMIT, getWorkshopOwnerName } from '@app/util';
 import useSWR from 'swr';
 import SandboxApiActions from '@app/components/SandboxApiActions';
 import Footer from '@app/components/Footer';
@@ -38,6 +38,8 @@ function keywordMatch(pool: TenantClusterPool, keyword: string): boolean {
 }
 
 function filterPool(pool: TenantClusterPool, keywordFilter: string[]): boolean {
+  // Workshop-owned pools are managed from the workshop detail page, not here.
+  if (getWorkshopOwnerName(pool)) return false;
   if (!keywordFilter) return true;
   for (const keyword of keywordFilter) {
     if (!keywordMatch(pool, keyword)) return false;

@@ -164,6 +164,8 @@ import {
   type OpsHistoryAction,
   type OpsHistoryEntry,
 } from '@app/Admin/Ops/opsHistory';
+import { ALERT_AUTO_DISMISS_MS, shouldAutoDismiss } from '@app/Admin/Ops/alertPolicy';
+import { getProvisionJobUrl } from '@app/Admin/Ops/provisionJobUrl';
 // Force webpack to include Timeline
 if (typeof window !== 'undefined') (window as Window & { __TIMELINE__?: unknown }).__TIMELINE__ = WorkshopTimeline;
 
@@ -449,20 +451,6 @@ function parseSearchTerms(input: string): string[] {
   return Array.from(new Set(terms));
 }
 
-function getProvisionJobUrl(rc: ResourceClaim): string | null {
-  const state = rc.status?.resources?.[0]?.state;
-  if (!state || state.kind !== 'AnarchySubject') return null;
-  const provJob = state.status?.towerJobs?.provision;
-  if (!provJob) return null;
-  if (provJob.towerJobURL) {
-    return provJob.towerJobURL.startsWith('https://') ? provJob.towerJobURL : `https://${provJob.towerJobURL}`;
-  }
-  if (provJob.towerHost && provJob.deployerJob) {
-    return `https://${provJob.towerHost}/#/jobs/${provJob.deployerJob}/`;
-  }
-  return null;
-}
-
 const Ops: React.FC = () => {
   const navigate = useNavigate();
   const { namespace } = useParams();
@@ -476,7 +464,9 @@ const Ops: React.FC = () => {
   const addAlert = useCallback((variant: AlertVariant, title: string, description?: string) => {
     const key = ++alertKeyCounter;
     setAlerts((prev) => [{ key, variant, title, description }, ...prev]);
-    setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== key)), 8000);
+    if (shouldAutoDismiss(variant)) {
+      setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== key)), ALERT_AUTO_DISMISS_MS);
+    }
   }, []);
 
   const removeAlert = useCallback((key: number) => {
