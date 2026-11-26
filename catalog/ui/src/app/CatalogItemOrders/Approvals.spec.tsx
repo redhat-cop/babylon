@@ -117,6 +117,19 @@ describe('approval review (email links)', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument());
   });
 
+  test('administrators see why no manager was asked', async () => {
+    const message = 'The Reporting API has no manager for you (tried 3 times); no approval request was sent and an administrator must review this request';
+    handler = () => ({
+      status: 200,
+      body: makeReview({
+        authority: { basis: 'administrator', source: 'catalog-api-session' },
+        approval: { state: 'Pending', expiresAt: '2099-11-20T10:00:00Z', manager: { state: 'Failed', message } },
+      }),
+    });
+    await renderAt('/approvals/uid-1');
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
   test('denying keeps an optional comment for the requester', async () => {
     handler = (url, init) => {
       if (init.method === 'POST') {

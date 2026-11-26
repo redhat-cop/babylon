@@ -74,6 +74,8 @@ from catalog_item_order_adapters import (
 from catalog_item_order_kube import KubeConflictError, KubeError, KubeOrderClient
 from catalog_item_order_manager import (
     AUTHORITY_BASES,
+    LOOKUP_INVALID,
+    LOOKUP_NOT_FOUND,
     MAX_MANAGER_LEVEL,
     ManagerExemptions,
     ManagerLookupError,
@@ -85,6 +87,18 @@ from catalog_order_policy import catalog_item_allows_ordering, ordering_block_re
 logger = logging.getLogger('catalog_item_order_controller')
 
 ACTOR = 'catalog-item-order-controller'
+# Manager lookups that fail because of the requester's data (unknown to the
+# Reporting API, no direct manager, malformed record) are tried this many
+# times and then marked Failed; retrying until expiry would not fix them.
+# Reporting API outages keep retrying until the approval expires.
+MANAGER_LOOKUP_MAX_ATTEMPTS = 3
+MANAGER_DATA_FAILURES = {
+    LOOKUP_NOT_FOUND: 'Your manager could not be found because you are not known to the Reporting API',
+    'DirectManagerMissing': 'The Reporting API has no manager for you',
+    LOOKUP_INVALID: 'Your manager could not be determined from the Reporting API data',
+}
+MANAGER_LOOKUP_FAILED = 'Failed'
+MANAGER_LOOKUP_UNRESOLVED = 'Unresolved'
 ADMIN_ACCESS = ('anarchy.gpte.redhat.com', 'anarchysubjects', 'patch')
 ORDERING_BLOCK_KEYS = {
     ORDER_TYPE_SERVICE: ('services_ordering_blocked', 'services_ordering_blocked_message'),
@@ -473,8 +487,10 @@ class CatalogItemOrderController:
 
         Resolution only selects the notification recipient; it is not
         authorization, which the decision endpoints check live. Failures leave
-        approval pending with an actionable condition and are retried with
-        backoff until the original expiry, which is never extended."""
+        approval pending with an actionable condition. Outages are retried with
+        backoff until the original expiry, which is never extended; data
+        failures are tried MANAGER_LOOKUP_MAX_ATTEMPTS times. Lookups that will
+        not be retried end in state Failed: an administrator must review."""
         manager = approval.setdefault('manager', {'source': 'reporting-api', 'attempts': 0})
         if manager.get('state') == 'Resolved':
             return False
@@ -509,13 +525,22 @@ class CatalogItemOrderController:
                     return True
                 reason = 'DirectManagerMissing'
                 message = 'Reporting API has no direct manager for the requester'
+        if reason in MANAGER_DATA_FAILURES and attempts >= MANAGER_LOOKUP_MAX_ATTEMPTS:
+            retry = False
+            message = (
+                f"{MANAGER_DATA_FAILURES[reason]} (tried {attempts} times); "
+                "no approval request was sent and an administrator must review this request"
+            )
         if retry:
             delay = min(60 * 2 ** (attempts - 1), 1800)
             manager['nextAttemptAt'] = format_time(now + timedelta(seconds=delay))
             message = f"{message}; retrying. Managers in the reporting chain and administrators can still review the request"
+            state = MANAGER_LOOKUP_UNRESOLVED
         else:
             manager.pop('nextAttemptAt', None)
-        manager.update({'state': 'Unresolved', 'reason': reason, 'message': message[:1024]})
+            state = MANAGER_LOOKUP_FAILED
+            self._history(status, 'ManagerLookupFailed', now, message[:1024])
+        manager.update({'state': state, 'reason': reason, 'message': message[:1024]})
         set_condition(status, 'ManagerResolved', 'False', reason, message[:1024], now)
         return True
 

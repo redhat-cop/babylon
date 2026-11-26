@@ -35,7 +35,8 @@ export type ApprovalDecision = {
 };
 
 export type ApprovalManager = {
-  state?: 'Pending' | 'Resolved' | 'Unresolved';
+  /** Failed: the lookup will not be retried and an administrator must review the request. */
+  state?: 'Pending' | 'Resolved' | 'Unresolved' | 'Failed';
   reason?: string;
   message?: string;
   directManager?: { email?: string; name?: string };

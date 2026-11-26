@@ -161,6 +161,47 @@ class TestManagerResolution(ApprovalTestCase):
         self.assertEqual(order['status']['phase'], 'PendingApproval')
         self.assertEqual(self.kube.resources, {})
 
+    async def test_outage_keeps_retrying_past_the_data_failure_limit(self):
+        self.lookup.error = ManagerLookupError(LOOKUP_UNAVAILABLE, 'Reporting API is unavailable')
+        order = await self.pending_order()
+        for minutes in (1, 2, 4, 8):
+            self.clock.advance(minutes=minutes)
+            order = await self.reconcile(order)
+        manager = order['status']['approval']['manager']
+        self.assertEqual((manager['attempts'], manager['state']), (5, 'Unresolved'))
+        self.assertIn('nextAttemptAt', manager, 'outages retry until the approval expires')
+
+    async def test_requester_unknown_to_reporting_api_fails_after_three_attempts(self):
+        self.lookup.error = ManagerLookupError(LOOKUP_NOT_FOUND, 'Requester is not known to the Reporting API')
+        order = await self.pending_order()
+        manager = order['status']['approval']['manager']
+        self.assertEqual((manager['attempts'], manager['state']), (1, 'Unresolved'))
+        self.assertIn('retrying', manager['message'])
+
+        self.clock.advance(minutes=1)
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['approval']['manager']['attempts'], 2)
+        self.clock.advance(minutes=2)
+        order = await self.reconcile(order)
+
+        manager = order['status']['approval']['manager']
+        self.assertEqual((manager['attempts'], manager['state'], manager['reason']), (3, 'Failed', LOOKUP_NOT_FOUND))
+        self.assertNotIn('nextAttemptAt', manager)
+        self.assertIn('not known to the Reporting API (tried 3 times)', manager['message'])
+        self.assertIn('an administrator must review this request', manager['message'])
+        condition = next(c for c in order['status']['conditions'] if c['type'] == 'ManagerResolved')
+        self.assertEqual((condition['status'], condition['reason']), ('False', LOOKUP_NOT_FOUND))
+        self.assertIn('ManagerLookupFailed', [event['event'] for event in order['status']['history']])
+
+        calls = len(self.lookup.calls)
+        self.clock.advance(hours=1)
+        order = await self.reconcile(order)
+        self.assertEqual(len(self.lookup.calls), calls, 'a failed lookup is not retried')
+        self.assertEqual(order['status']['phase'], 'PendingApproval', 'an administrator can still decide')
+        status, data = await self.decide(order, user='admin@example.com')
+        self.assertEqual(status, 200, data)
+        self.assertEqual((await self.reconcile(order))['status']['phase'], 'Approved')
+
     async def test_unresolvable_cases_never_approve_or_exempt(self):
         cases = {
             'not found': ('carol@example.com', None, LOOKUP_NOT_FOUND),

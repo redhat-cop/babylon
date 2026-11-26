@@ -159,7 +159,8 @@ class TestApprovalGate(ControllerTestCase):
         self.assertEqual(approval['policyDigest'], item['spec']['approvalPolicy']['digest'])
         self.assertEqual(approval['expiresAt'], format_time(NOW + timedelta(hours=72)))
         self.assertEqual(approval['reviewUrl'], f"{BASE_URL}/approvals/{order['metadata']['uid']}")
-        self.assertEqual(approval['manager']['state'], 'Unresolved')
+        # No Reporting API client in these tests: the lookup fails for good.
+        self.assertEqual(approval['manager']['state'], 'Failed')
         self.assertEqual(order['status']['policy']['matchedRules'][0]['id'], 'default')
         for _ in range(3):
             self.clock.advance(hours=1)

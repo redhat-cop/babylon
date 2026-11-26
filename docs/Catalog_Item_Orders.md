@@ -296,7 +296,7 @@ status:
   approval:
     manager:
       source: reporting-api
-      state: Resolved            # Pending | Resolved | Unresolved
+      state: Resolved            # Pending | Resolved | Unresolved (retrying) | Failed (not retried)
       resolvedAt: "2026-10-27T10:00:00Z"
       directManager: {email: dana.manager@example.com, name: Dana Manager}
       attempts: 1
@@ -311,18 +311,18 @@ Response contract (Reporting API v1.10.3; excerpt in `catalog/api/fixtures/repor
 
 Eligible approvers are the direct manager's email and every `level_N_email` of the requester's single active record (never the requester). This is set membership and does not depend on level order, which the schema does not define (live data has level 1 at the top). Because the chain reaches the top of the organization, every manager above the requester is eligible. Inactive records are ignored, and more than one active record makes the chain unavailable (the direct manager still applies). Job titles, `is_manager` and array lengths are not used.
 
-Failures leave approval pending and set `state: Unresolved` with `reason`, `message` and a `ManagerResolved=False` condition:
+Failures leave approval pending with `reason`, `message` and a `ManagerResolved=False` condition. While the lookup is retried, `state` is `Unresolved`; once it will not be retried, `state` is `Failed`, the message says that no approval request was sent and an administrator must review the request, and a `ManagerLookupFailed` history event is recorded. The order page shows a "Your manager could not be found" warning and the approval review page shows the message to administrators.
 
 | Reason | Retried | Meaning |
 |---|---|---|
-| `ManagerLookupUnavailable` | yes | Reporting API error, timeout or HTTP status other than 200/404 |
-| `RequesterNotFound` | yes | Reporting API returned 404 |
-| `InvalidManagerData` | yes | Response did not match the contract |
-| `DirectManagerMissing` | yes | No direct manager; chain managers and administrators can still review |
-| `RequesterEmailMissing` | no | The OpenShift user name is not an email; an administrator must review |
-| `ManagerLookupNotConfigured` | no | Controller has no Reporting API client |
+| `ManagerLookupUnavailable` | until the approval expires | Reporting API error, timeout or HTTP status other than 200/404 |
+| `RequesterNotFound` | 3 attempts, then `Failed` | Reporting API returned 404 |
+| `InvalidManagerData` | 3 attempts, then `Failed` | Response did not match the contract |
+| `DirectManagerMissing` | 3 attempts, then `Failed` | No direct manager; chain managers and administrators can still review |
+| `RequesterEmailMissing` | no, `Failed` | The OpenShift user name is not an email; an administrator must review |
+| `ManagerLookupNotConfigured` | no, `Failed` | Controller has no Reporting API client |
 
-Retries back off from 1 minute, doubling to a 30-minute cap, and never extend `approval.expiresAt`. Resolution only chooses the email recipient; it is not authorization.
+Retries back off from 1 minute, doubling to a 30-minute cap (so the 3 attempts for requester data problems span about 3 minutes), and never extend `approval.expiresAt`. A `Failed` lookup does not block the order: administrators, and managers in the reporting chain when the Reporting API knows one, can still decide until it expires. Resolution only chooses the email recipient; it is not authorization.
 
 ### Who can decide
 

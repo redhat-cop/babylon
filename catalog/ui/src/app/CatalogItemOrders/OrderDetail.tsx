@@ -83,7 +83,7 @@ const ApprovalDetails: React.FC<{ order: CatalogItemOrder }> = ({ order }) => {
         <Field term="Manager">
           {manager.directManager?.email
             ? `${manager.directManager.name ? `${manager.directManager.name} ` : ''}<${manager.directManager.email}>`
-            : manager.state === 'Unresolved'
+            : manager.state === 'Unresolved' || manager.state === 'Failed'
               ? manager.message || 'Your manager could not be determined yet.'
               : 'Looking up your manager...'}
         </Field>
@@ -212,6 +212,17 @@ const OrderDetailContent: React.FC<{ namespace: string; name: string }> = ({ nam
             style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           >
             {actionError.message}
+          </Alert>
+        ) : null}
+        {order.phase === 'PendingApproval' && order.approval?.manager?.state === 'Failed' ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="Your manager could not be found"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            {order.approval.manager.message ||
+              'No approval request was sent to a manager. An administrator must review this request.'}
           </Alert>
         ) : null}
         <Alert

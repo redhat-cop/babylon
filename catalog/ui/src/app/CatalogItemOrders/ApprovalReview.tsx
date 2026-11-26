@@ -134,6 +134,7 @@ const ApprovalReview: React.FC<{ uid: string; scope: ApprovalsScope }> = ({ uid,
   const scheduleRows = describeSchedule(review.request?.schedule);
   const parameters = Object.entries(review.parameters || {}).sort(([a], [b]) => a.localeCompare(b));
   const manager = review.approval?.manager?.directManager;
+  const managerLookup = review.approval?.manager;
 
   async function decide(outcome: 'approve' | 'deny', comment: string) {
     setNotice(null);
@@ -280,6 +281,8 @@ const ApprovalReview: React.FC<{ uid: string; scope: ApprovalsScope }> = ({ uid,
           ) : null}
           {manager?.email ? (
             <Field term="Direct manager">{manager.name ? `${manager.name} <${manager.email}>` : manager.email}</Field>
+          ) : managerLookup?.state === 'Failed' ? (
+            <Field term="Direct manager">{managerLookup.message || 'The manager lookup failed.'}</Field>
           ) : null}
           {review.authority ? <Field term="You can review as">{authorityLabel(review.authority)}</Field> : null}
           {decision ? (

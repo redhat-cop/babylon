@@ -102,6 +102,19 @@ describe('OrderDetail', () => {
     expect(screen.queryByText('admin_password')).not.toBeInTheDocument();
   });
 
+  test('a failed manager lookup is shown as a warning', async () => {
+    const message =
+      'Your manager could not be found because you are not known to the Reporting API (tried 3 times); no approval request was sent and an administrator must review this request';
+    orderResponses = [
+      makeOrder({
+        approval: { ...makeOrder().approval, manager: { state: 'Failed', reason: 'RequesterNotFound', message } },
+      }),
+    ];
+    await renderOrder();
+    expect(await screen.findByText('Your manager could not be found')).toBeInTheDocument();
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
+  });
+
   test('cancel is only offered when the backend allows it', async () => {
     orderResponses = [makeOrder({ phase: 'Approved', approval: { state: 'Approved' }, cancel: { allowed: false, code: 'dispatch_started' } })];
     await renderOrder();

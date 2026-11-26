@@ -394,6 +394,7 @@ spec:
                         - Pending
                         - Resolved
                         - Unresolved
+                        - Failed
                   policyDigest:
                     type: string
                   requestDigest:
