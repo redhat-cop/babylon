@@ -79,7 +79,11 @@ class CatalogItemOrderService:
             key, (catalog_namespace, catalog_name), namespace, order_type = validate_submission_envelope(body)
         except OrderValidationError as exception:
             raise OrderApiError(exception.status, exception.code, exception.message) from exception
-        if namespace not in _service_namespace_names(session):
+        # Administrators may order into any namespace, as they could create
+        # resources anywhere before orders; the order and its resources are
+        # recorded as theirs. Everyone else orders into their own namespaces.
+        # The `order`/`create` access check below applies to both.
+        if not session.get('admin') and namespace not in _service_namespace_names(session):
             raise OrderApiError(403, 'namespace_forbidden', f"Ordering into namespace {namespace} is not allowed")
 
         name = order_name(user_uid, namespace, key)

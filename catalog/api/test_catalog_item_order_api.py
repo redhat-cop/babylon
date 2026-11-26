@@ -176,6 +176,24 @@ class TestSubmit(OrderApiTestCase):
         status, data = await self.submit(catalogItem={'namespace': CATALOG_NAMESPACE, 'name': 'missing.item.prod'})
         self.assertEqual((status, data['error']), (403, 'catalog_item_unavailable'))
 
+    async def test_admin_orders_into_any_namespace_as_themselves(self):
+        self.sessions['admin']['serviceNamespaces'] = [{'name': 'user-admin'}]
+        status, data = await self.submit(user='admin', namespace='user-bob', key='key-admin-bob')
+        self.assertEqual(status, 202, data)
+        self.assertEqual(data['namespace'], 'user-bob')
+        order = self.kube.orders[('user-bob', data['name'])]
+        self.assertEqual(order['spec']['requester']['user'], 'admin', 'the order is recorded as the administrator\'s')
+
+        status, data = await self.call('GET', f"{ORDERS}/user-bob/{data['name']}", user='admin')
+        self.assertEqual(status, 200)
+        status, _ = await self.call('GET', f"{ORDERS}/user-bob/{data['name']}", user='bob')
+        self.assertEqual(status, 404, 'the namespace owner does not see another requester\'s order')
+
+        # The access check still applies to administrators.
+        self.denied_plurals.add('resourceclaims')
+        status, data = await self.submit(user='admin', namespace='user-carol', key='key-admin-carol')
+        self.assertEqual((status, data['error']), (403, 'namespace_access_denied'))
+
     async def test_existing_ordering_restrictions_apply_at_submission(self):
         self.system_status = {'services_ordering_blocked': True, 'services_ordering_blocked_message': 'Maintenance'}
         status, data = await self.submit()
