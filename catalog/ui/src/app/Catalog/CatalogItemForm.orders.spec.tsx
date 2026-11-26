@@ -2,6 +2,7 @@ import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { SWRConfig } from 'swr';
 import { fetcher } from '@app/api';
+import { createMemoryHistory } from 'history';
 import { render, fireEvent, waitFor, generateSession } from '../utils/test-utils';
 import CatalogItemForm from './CatalogItemForm';
 import catalogItemObj from '../__mocks__/catalogItem.json';
@@ -42,6 +43,7 @@ jest.mock('react-router-dom', () => ({
 
 const namespace = { displayName: 'User test-redhat.com', name: 'user-test-redhat-com', requester: 'test-redhat.com' };
 let mockIsImpersonating = false;
+let mockIsAdmin = false;
 jest.mock('@app/utils/useSession', () =>
   jest.fn(() => ({
     getSession: () =>
@@ -49,7 +51,7 @@ jest.mock('@app/utils/useSession', () =>
         serviceNamespaces: [namespace as ServiceNamespace],
         userNamespace: namespace as UserNamespace,
         groups: ['rhpds-devs'],
-        isAdmin: false,
+        isAdmin: mockIsAdmin,
         isImpersonating: mockIsImpersonating,
       }),
   })),
@@ -92,6 +94,7 @@ describe('CatalogItemForm with catalog item orders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsImpersonating = false;
+    mockIsAdmin = false;
     jest.mocked(fetcher).mockImplementation(async () => catalogItemObj);
   });
 
@@ -171,6 +174,40 @@ describe('CatalogItemForm with catalog item orders', () => {
     } finally {
       open.mockRestore();
     }
+  });
+
+  describe('white glove fulfilment (?wgr=)', () => {
+    const wgrHistory = () => createMemoryHistory({ initialEntries: ['/?wgr=user-test-redhat-com/my-wgr'] });
+    beforeEach(() => {
+      // The requester's own white glove request loads, as it would for the user who created it.
+      jest.mocked(fetcher).mockImplementation(async (path: string) =>
+        path.includes('my-wgr')
+          ? { metadata: { namespace: 'user-test-redhat-com', name: 'my-wgr', annotations: {} }, spec: {} }
+          : catalogItemObj,
+      );
+    });
+
+    test('a non-administrator with a wgr parameter still submits an order and gets approval', async () => {
+      submit.mockResolvedValue({ namespace: 'user-test-redhat-com', name: 'order-abc' } as never);
+      const utils = await render(<Form />, { history: wgrHistory() });
+      fireEvent.click(await fillRequiredFields(utils));
+      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+      expect(api.createServiceRequest).not.toHaveBeenCalled();
+    });
+
+    test('an administrator fulfilling a white glove request keeps the direct flow', async () => {
+      mockIsAdmin = true;
+      const created = { metadata: { namespace: 'user-test-redhat-com', name: 'created' } };
+      api.createServiceRequest.mockResolvedValue(created);
+      api.createWorkshop.mockResolvedValue(created);
+      const utils = await render(<Form />, { history: wgrHistory() });
+      fireEvent.click(await fillRequiredFields(utils));
+      // Depending on the request the form fulfils it as a service or a workshop, both direct.
+      await waitFor(() =>
+        expect(api.createServiceRequest.mock.calls.length + api.createWorkshop.mock.calls.length).toBe(1),
+      );
+      expect(submit).not.toHaveBeenCalled();
+    });
   });
 
   test('orders cannot be placed while impersonating', async () => {

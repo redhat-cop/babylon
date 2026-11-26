@@ -277,7 +277,13 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const orderingBlockedMessage = formState.workshop ? workshopOrderingBlockedMessage : serviceOrderingBlockedMessage;
   // Catalog item orders (GPTEINFRA-18190): requests go through the order API,
   // except external URL items and white glove orders, which keep the direct flow.
-  const submitsOrder = usesOrderApi({ catalogItem, whiteGloved: formState.whiteGloved || Boolean(wgrParam) });
+  // White glove requests are created by users but fulfilled only by administrators,
+  // so only an administrator's order can skip the order API; for anyone else a
+  // `wgr` URL parameter (or their own loaded request) never bypasses approval.
+  const submitsOrder = usesOrderApi({
+    catalogItem,
+    whiteGloved: isAdmin && (formState.whiteGloved || Boolean(wgrParam)),
+  });
   // The order API records the authenticated requester and rejects impersonation.
   const orderUnsupportedReason =
     submitsOrder && isImpersonating
