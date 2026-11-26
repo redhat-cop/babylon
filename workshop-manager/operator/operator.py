@@ -272,3 +272,27 @@ async def white_glove_request_daemon(logger, stopped, **kwargs):
             await asyncio.sleep(wgr_watcher_interval)
     except asyncio.CancelledError:
         pass
+
+
+wgr_cleanup_interval = int(os.environ.get('WGR_CLEANUP_INTERVAL', 3600))
+wgr_cleanup_retention_days = int(os.environ.get('WGR_CLEANUP_RETENTION_DAYS', 30))
+
+@kopf.daemon(
+    WhiteGloveRequest.api_group, WhiteGloveRequest.api_version, WhiteGloveRequest.plural,
+    id='white_glove_request_cleanup_daemon',
+    cancellation_timeout=1,
+)
+async def white_glove_request_cleanup_daemon(logger, stopped, **kwargs):
+    """Delete WGRs 30 days (configurable) after the event end once the linked service is gone."""
+    wgr = WhiteGloveRequest.load(**kwargs)
+    try:
+        while not stopped:
+            try:
+                await wgr.refresh()
+                if await wgr.check_and_cleanup(logger=logger, retention_days=wgr_cleanup_retention_days):
+                    return
+            except Exception:
+                logger.exception("WGR cleanup check failed for %s/%s", wgr.namespace, wgr.name)
+            await asyncio.sleep(wgr_cleanup_interval)
+    except asyncio.CancelledError:
+        pass
