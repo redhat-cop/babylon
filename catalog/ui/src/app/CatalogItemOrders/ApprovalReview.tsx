@@ -63,8 +63,7 @@ const ReviewError: React.FC<{ error: OrderApiError; onRetry: () => void }> = ({ 
     return (
       <EmptyState headingLevel="h2" titleText="You cannot review your own order" variant="lg">
         <EmptyStateBody>
-          Your manager, or someone higher in your management chain, needs to review it. Administrators cannot approve
-          their own orders either.
+          Your manager, someone higher in your management chain, or an administrator needs to review it.
         </EmptyStateBody>
       </EmptyState>
     );

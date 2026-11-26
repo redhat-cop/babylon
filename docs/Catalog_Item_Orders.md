@@ -330,11 +330,11 @@ Retries back off from 1 minute, doubling to a 30-minute cap, and never extend `a
 |---|---|---|
 | Requester's direct manager (Reporting API, at decision time) | yes | `direct_manager` |
 | Anyone in the requester's active management chain (Reporting API, at decision time) | yes | `management_chain` with `level` |
-| Administrator (server-side role check from the session), any namespace, also during Reporting API outages | yes | `administrator` |
-| The requester, **including when the requester is an administrator** | no | — |
+| Administrator (server-side role check from the session), any namespace, also during Reporting API outages, including their own orders | yes | `administrator` |
+| The requester, unless they are an administrator | no | — |
 | Anyone else | no | — |
 
-Self-decision is the one exception to "administrators can decide all requests": an administrator cannot approve or deny their own order, matched by user name or email. The relationship is looked up again for every decision, so a changed manager or a cached notification recipient grants nothing. If the Reporting API is unavailable, non-administrators get `503 manager_lookup_unavailable` and nothing is recorded; a 404 or malformed response grants no authority.
+Administrators can decide every request, including their own; such a decision is recorded with the `administrator` basis and the administrator as `decidedBy`, so it is auditable. Other requesters cannot decide their own orders, matched by user name or email. The relationship is looked up again for every decision, so a changed manager or a cached notification recipient grants nothing. If the Reporting API is unavailable, non-administrators get `503 manager_lookup_unavailable` and nothing is recorded; a 404 or malformed response grants no authority.
 
 Each decision records `status.approval.decision`: `outcome`, `decidedBy` (user name), `decidedByEmail`, `decidedAt`, `comment`, `authority` (`basis`, `source`, `level`), `requestDigest`, `policyDigest` and `source: catalog-api`. The controller rejects decisions without a recognized authority basis, then performs the `Approved` or `Denied` transition and creates the resources.
 
@@ -377,7 +377,7 @@ Review shape (also returned by approve and deny):
 |---|---|---|
 | 200 | — | Decision recorded, or the same actor repeats the same decision (idempotent, also after the controller transition) |
 | 400 | `invalid_request`, `invalid_comment`, `invalid_limit`, `invalid_continue`, `invalid_json`, `impersonation_not_supported` | Malformed request |
-| 403 | `self_decision` | Caller is the requester (administrators included) |
+| 403 | `self_decision` | Caller is the requester and not an administrator |
 | 403 | `not_authorized` | Caller is not an eligible approver |
 | 403 | `cross_site_request` | `Origin` header does not match the catalog host |
 | 404 | `order_not_found` | No order with that uid |

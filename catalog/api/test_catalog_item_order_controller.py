@@ -232,6 +232,21 @@ class TestApprovalGate(ControllerTestCase):
             self.assertIn(order['status']['phase'], ('Denied', 'Expired', 'Cancelled'))
         self.assertEqual(self.kube.resources, {})
 
+    async def test_administrator_self_decision_releases(self):
+        item = self.add_item(raw_policy=MANAGER_POLICY)
+        order = await self.reconcile(await self.submit(item, submission(key='key-admin-self')))
+
+        def decide(status, order=order):
+            status['approval']['decision'] = {
+                'outcome': 'Approved', 'decidedBy': 'alice', 'decidedAt': format_time(self.clock()),
+                'requestDigest': order['spec']['requestDigest'],
+                'policyDigest': status['approval']['policyDigest'], 'source': 'catalog-api',
+                'authority': {'basis': 'administrator'},
+            }
+        self.kube.force_status(order['metadata']['namespace'], order['metadata']['name'], decide)
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['phase'], 'Approved')
+
     async def test_forged_or_stale_decisions_do_not_release(self):
         item = self.add_item(raw_policy=MANAGER_POLICY)
         cases = {

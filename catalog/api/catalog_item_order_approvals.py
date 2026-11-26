@@ -6,7 +6,9 @@ Who may decide a pending order:
 - administrators (server-side role check), across namespaces and also when
   the Reporting API is unavailable.
 
-Nobody may decide their own order, administrators included.
+Requesters may not decide their own orders unless they are administrators;
+an administrator's decision on their own order is recorded with the
+`administrator` authority basis like any other administrator decision.
 
 Decisions are recorded with record_approval_decision and a resourceVersion
 precondition. The order controller performs the resulting transition and all
@@ -128,13 +130,14 @@ class ApprovalService:
     async def _authority(self, order, user_name, session, lookup):
         """Return an authority dict, or None if the actor may not decide.
 
-        Raises ApprovalApiError for self-decisions and, for non-administrators,
-        when the Reporting API is unavailable."""
+        Raises ApprovalApiError, for non-administrators, for self-decisions and
+        when the Reporting API is unavailable. Administrators may decide any
+        order, including their own."""
+        if session.get('admin'):
+            return {'basis': BASIS_ADMINISTRATOR, 'source': 'catalog-api-session'}
         actor_email = trusted_user_email(user_name)
         if _is_requester(order, user_name, actor_email):
             raise ApprovalApiError(403, 'self_decision', 'Requesters cannot review or decide their own orders')
-        if session.get('admin'):
-            return {'basis': BASIS_ADMINISTRATOR, 'source': 'catalog-api-session'}
         requester_email = normalize_email(order['spec']['requester'].get('email'))
         if actor_email is None or requester_email is None:
             return None

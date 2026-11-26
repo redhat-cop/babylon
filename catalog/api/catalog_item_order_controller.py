@@ -404,7 +404,10 @@ class CatalogItemOrderController:
         decided_by = decision.get('decidedBy')
         if not decided_by:
             return 'Decision approver is missing'
-        if decided_by == order['spec']['requester']['user']:
+        if (
+            decided_by == order['spec']['requester']['user']
+            and decision['authority']['basis'] != 'administrator'
+        ):
             return 'Requesters cannot decide their own orders'
         if (
             decision.get('requestDigest') != order['spec']['requestDigest']

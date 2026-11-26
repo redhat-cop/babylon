@@ -227,12 +227,24 @@ class TestDecisions(ApprovalTestCase):
             ('bob@example.com', (403, 'not_authorized')),
             ('manager-without-email', (403, 'not_authorized')),
             ('alice', (403, 'self_decision')),
-            ('alice@example.com', (403, 'self_decision')),
         ):
             with self.subTest(user=user):
                 status, data = await self.decide(order, user=user)
                 self.assertEqual((status, data['error']), expected)
         self.assertNotIn('decision', self.current(order)['status']['approval'])
+
+    async def test_administrator_can_decide_own_order(self):
+        # alice@example.com matches the requester's email and has an admin session.
+        order = await self.pending_order()
+        status, data = await self.call('GET', f"{APPROVALS}/{order['metadata']['uid']}", user='alice@example.com')
+        self.assertEqual(status, 200, data)
+        self.lookup.error = ManagerLookupError(LOOKUP_UNAVAILABLE, 'down')
+        status, data = await self.decide(order, user='alice@example.com', comment='Admin self-approval')
+        self.assertEqual(status, 200, data)
+        decision = data['approval']['decision']
+        self.assertEqual(decision['authority']['basis'], 'administrator')
+        self.assertEqual(decision['decidedBy'], 'alice@example.com')
+        self.assertEqual((await self.reconcile(order))['status']['phase'], 'Approved')
 
     async def test_admin_decides_across_namespaces_during_reporting_outage(self):
         order = await self.pending_order()

@@ -343,6 +343,15 @@ class TestDecisionContract(unittest.TestCase):
         self.assertEqual(decision['policyDigest'], 'sha256:policy')
         self.assertEqual(status['phase'], PHASE_PENDING_APPROVAL)
 
+    def test_administrator_may_decide_own_order(self):
+        order = pending_order()
+        for kwargs in (dict(decided_by='alice'), dict(decided_by='admin', decided_by_email='alice@example.com')):
+            with self.subTest(**kwargs):
+                status = record_approval_decision(
+                    order, authority={'basis': 'administrator', 'source': 'catalog-api-session'},
+                    outcome='Approved', now=NOW, source='s', **kwargs)
+                self.assertEqual(status['approval']['decision']['authority']['basis'], 'administrator')
+
     def test_rejects_invalid_decisions(self):
         order = pending_order()
         cases = {
@@ -356,6 +365,9 @@ class TestDecisionContract(unittest.TestCase):
                     record_approval_decision(order, authority=MANAGER_AUTHORITY, now=NOW, source='s', **kwargs)
         with self.assertRaises(ApprovalDecisionError):
             record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager', now=NOW + timedelta(hours=73), source='s')
+        with self.assertRaises(ApprovalDecisionError):
+            record_approval_decision(order, authority=MANAGER_AUTHORITY, outcome='Approved', decided_by='manager',
+                                     decided_by_email='ALICE@example.com', now=NOW, source='s')
         stale = pending_order()
         stale['status']['approval']['requestDigest'] = 'sha256:old'
         with self.assertRaises(ApprovalDecisionError):

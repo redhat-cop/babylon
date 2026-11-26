@@ -900,10 +900,10 @@ def record_approval_decision(order, *, outcome, decided_by, now, source, authori
             return status
         raise ApprovalDecisionError('already_decided', 'A decision has already been recorded')
     requester = order['spec']['requester']
-    if decided_by == requester['user'] or (
+    if authority['basis'] != 'administrator' and (decided_by == requester['user'] or (
         decided_by_email and requester.get('email')
         and decided_by_email.lower() == requester['email'].lower()
-    ):
+    )):
         raise ApprovalDecisionError('self_approval', 'Requesters cannot decide their own orders')
     expires_at = parse_time(approval.get('expiresAt'))
     if expires_at is None or now > expires_at:
