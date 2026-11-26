@@ -36,7 +36,7 @@ helm template catalog/helm \
   --set catalogItemOrders.controller.catalogBaseUrl=https://catalog.example.com
 ```
 
-The catalog chart always deploys the order controller and grants the API its order RBAC; there is no feature flag. The `CatalogItemOrder` CRD ships with the main `helm` chart, so deploy it before or with the catalog chart. Deploy the agnosticv-operator with client library `python-client-library-v0.3.10` or later before relying on `approvalPolicy`; an older operator does not publish the field.
+The catalog chart always deploys the order controller and grants the API its order RBAC; there is no feature flag. The `CatalogItemOrder` CRD ships with the main `helm` chart, so deploy it before or with the catalog chart. Deploy the agnosticv-operator with client library `python-client-library-v0.3.11` or later before relying on `approvalPolicy`; an older operator does not publish the field.
 
 | Controller environment | Default | Meaning |
 |---|---|---|
