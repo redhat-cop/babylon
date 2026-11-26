@@ -27,7 +27,7 @@ from catalog_order_policy import (
     reject_direct_catalog_item_order_write,
     reject_server_side_apply,
 )
-from catalog_item_order import ORDER_VERB
+from catalog_item_order import ORDER_ACCESS_VERBS
 from catalog_item_order_kube import KubeError, KubeOrderClient
 from catalog_item_order_service import CatalogItemOrderService, OrderApiError
 from catalog_item_order_approvals import ApprovalApiError, ApprovalService
@@ -2301,7 +2301,10 @@ def catalog_item_order_service(session):
     async def check_order_access(group, plural, namespace):
         api_client = proxy_api_client(session)
         try:
-            return await check_api_access(api_client, group, plural, ORDER_VERB, namespace)
+            for verb in ORDER_ACCESS_VERBS:
+                if await check_api_access(api_client, group, plural, verb, namespace):
+                    return True
+            return False
         finally:
             await api_client.close()
 

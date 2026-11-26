@@ -27,6 +27,7 @@ import kubernetes_asyncio
 from approval_policy import evaluate_approval_policy, parse_duration
 from catalog_item_order import (
     API_GROUP,
+    ORDER_ACCESS_VERBS,
     ORDER_VERB,
     API_VERSION,
     APPROVAL_APPROVED,
@@ -549,7 +550,10 @@ class CatalogItemOrderController:
             if not catalog_item_allows_ordering(catalog_item, groups):
                 return 'CatalogItemAccessDenied', 'Requester is not allowed to order this catalog item', True
         kind = ORDER_TYPE_KINDS[spec['orderType']][0]
-        if not await self.kube.check_access(user, groups, kind.api_group, kind.plural, ORDER_VERB, namespace):
+        for verb in ORDER_ACCESS_VERBS:
+            if await self.kube.check_access(user, groups, kind.api_group, kind.plural, verb, namespace):
+                break
+        else:
             return (
                 'NamespaceAccessDenied',
                 f"Requester cannot {ORDER_VERB} {kind.plural} in namespace {namespace}",

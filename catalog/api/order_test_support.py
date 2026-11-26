@@ -89,6 +89,9 @@ class FakeKube:
         self.user_groups = defaultdict(list)
         self.admins = set()
         self.namespace_access = defaultdict(set)
+        # Namespaces where a user has `create` on provisioning resources (for
+        # example an administrator role outside Babylon), but not `order`.
+        self.create_access = defaultdict(set)
         self.create_errors = {}
         self.delete_finalizers = False
         self.created = []
@@ -262,6 +265,8 @@ class FakeKube:
             return False
         # Users order through the custom `order` verb; they have no `create`
         # on ResourceClaims or WorkshopProvisions.
+        if verb == 'create':
+            return namespace in self.create_access[user]
         return verb == 'order' and namespace in self.namespace_access[user]
 
 

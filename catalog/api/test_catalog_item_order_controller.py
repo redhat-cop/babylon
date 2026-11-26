@@ -495,6 +495,14 @@ class TestDispatchRestrictions(ControllerTestCase):
         self.assertEqual(order['status']['blocked']['reason'], 'NamespaceAccessDenied')
         self.assertEqual(self.kube.resources, {})
 
+    async def test_create_access_still_allows_ordering(self):
+        # Roles that grant `create` but not the custom `order` verb, such as
+        # administrator roles defined outside Babylon or self-paced lab access.
+        self.kube.namespace_access['alice'].clear()
+        self.kube.create_access['alice'].add(USER_NAMESPACE)
+        order = await self.reconcile(await self.submit())
+        self.assertEqual(order['status']['phase'], 'Approved')
+
     async def test_admin_bypasses_ordering_block(self):
         self.kube.admins.add('alice')
         self.kube.system_status = {'services_ordering_blocked': True}

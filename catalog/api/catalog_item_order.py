@@ -79,6 +79,11 @@ RESERVED_PARAMETERS = ('purpose', 'purpose_activity', 'purpose_explanation', 'sa
 # CatalogItemOrders, and only the order controller creates ResourceClaims and
 # WorkshopProvisions, so users do not need `create` on them.
 ORDER_VERB = 'order'
+# Verbs that allow ordering, checked in this order. `create` keeps working for
+# whoever still has it (administrators, and self-paced labs, whose access is
+# granted only through `create` or full access): anyone with `create` could
+# create the resource directly anyway.
+ORDER_ACCESS_VERBS = (ORDER_VERB, 'create')
 SALESFORCE_ITEM_TYPES = ('campaign', 'opportunity', 'project')
 SUBMISSION_KEYS = {
     'activity', 'catalogItem', 'explanation', 'idempotencyKey', 'namespace',
