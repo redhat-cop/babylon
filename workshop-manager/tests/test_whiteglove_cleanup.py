@@ -58,7 +58,6 @@ def _install_stubs():
 
 _install_stubs()
 import whiteglove  # noqa: E402
-from whiteglove import WhiteGloveRequest, is_retention_expired, parse_event_end_date  # noqa: E402
 
 def api_exc(status):
     # Use whichever ApiException whiteglove actually sees (stub here, real lib in CI).
@@ -76,7 +75,7 @@ def make_wgr(event_end_date='2026-10-01T10:00:00.000Z', service_type='workshops'
             'demo.redhat.com/service-namespace': 'user-ns',
             'demo.redhat.com/service-name': 'my-workshop',
         }
-    wgr = WhiteGloveRequest(
+    wgr = whiteglove.WhiteGloveRequest(
         annotations=annotations, labels={}, meta=meta or {}, name='wgr-1', namespace='user-ns',
         spec={'eventEndDate': event_end_date} if event_end_date else {}, status={}, uid='uid-1',
     )
@@ -97,17 +96,17 @@ def run(coro):
 
 class RetentionTest(unittest.TestCase):
     def test_parse(self):
-        self.assertEqual(parse_event_end_date('2026-10-01T10:00:00.000Z'),
+        self.assertEqual(whiteglove.parse_event_end_date('2026-10-01T10:00:00.000Z'),
                          datetime(2026, 10, 1, 10, 0, tzinfo=timezone.utc))
-        self.assertEqual(parse_event_end_date('2026-10-01T12:00:00+02:00'),
+        self.assertEqual(whiteglove.parse_event_end_date('2026-10-01T12:00:00+02:00'),
                          datetime(2026, 10, 1, 10, 0, tzinfo=timezone.utc))
         for bad in [None, '', 'not-a-date', 123]:
-            self.assertIsNone(parse_event_end_date(bad))
+            self.assertIsNone(whiteglove.parse_event_end_date(bad))
 
     def test_boundary(self):
-        self.assertTrue(is_retention_expired('2026-10-27T12:00:00Z', NOW, 30))
-        self.assertFalse(is_retention_expired('2026-10-27T12:00:01Z', NOW, 30))
-        self.assertFalse(is_retention_expired(None, NOW, 30))
+        self.assertTrue(whiteglove.is_retention_expired('2026-10-27T12:00:00Z', NOW, 30))
+        self.assertFalse(whiteglove.is_retention_expired('2026-10-27T12:00:01Z', NOW, 30))
+        self.assertFalse(whiteglove.is_retention_expired(None, NOW, 30))
 
 
 class CleanupTest(unittest.TestCase):

@@ -295,4 +295,5 @@ async def white_glove_request_cleanup_daemon(logger, stopped, **kwargs):
                 logger.exception("WGR cleanup check failed for %s/%s", wgr.namespace, wgr.name)
             await asyncio.sleep(wgr_cleanup_interval)
     except asyncio.CancelledError:
+        # Raised when kopf stops the daemon (operator shutdown or WGR deleted); exit quietly.
         pass
