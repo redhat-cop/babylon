@@ -49,13 +49,13 @@ class OrderApiTestCase(unittest.IsolatedAsyncioTestCase):
         async def get_system_status():
             return dict(self.system_status)
 
-        async def check_create_access(group, plural, namespace):
+        async def check_order_access(group, plural, namespace):
             return plural not in self.denied_plurals
 
         self.denied_plurals = set()
 
         def service(session):
-            return CatalogItemOrderService(self.kube, get_system_status, check_create_access, clock=self.clock)
+            return CatalogItemOrderService(self.kube, get_system_status, check_order_access, clock=self.clock)
 
         async def get_proxy_user(request):
             return USERS[request.headers.get('X-Test-User', 'alice')]

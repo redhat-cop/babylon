@@ -73,6 +73,12 @@ CATALOG_ITEM_NAME_LABEL = f'{BABYLON_DOMAIN}/catalogItemName'
 CATALOG_ITEM_NAMESPACE_LABEL = f'{BABYLON_DOMAIN}/catalogItemNamespace'
 
 RESERVED_PARAMETERS = ('purpose', 'purpose_activity', 'purpose_explanation', 'salesforce_id')
+# Custom RBAC verb that allows ordering a type of resource in a namespace,
+# checked against the order type's first resource kind (for example
+# `order` on `resourceclaims`). No API request uses it: users order through
+# CatalogItemOrders, and only the order controller creates ResourceClaims and
+# WorkshopProvisions, so users do not need `create` on them.
+ORDER_VERB = 'order'
 SALESFORCE_ITEM_TYPES = ('campaign', 'opportunity', 'project')
 SUBMISSION_KEYS = {
     'activity', 'catalogItem', 'explanation', 'idempotencyKey', 'namespace',

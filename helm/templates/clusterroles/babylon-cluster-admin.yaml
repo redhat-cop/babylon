@@ -56,6 +56,13 @@ rules:
   - patch
   - update
   - watch
+# Custom verb checked by the catalog API and order controller for orders.
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - order
 - apiGroups:
   - {{ .Values.catalog.api.group }}
   resources:
@@ -71,3 +78,9 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  verbs:
+  - order

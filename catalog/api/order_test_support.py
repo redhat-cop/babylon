@@ -260,7 +260,9 @@ class FakeKube:
             return True
         if (group, resource, verb) == ('anarchy.gpte.redhat.com', 'anarchysubjects', 'patch'):
             return False
-        return namespace in self.namespace_access[user]
+        # Users order through the custom `order` verb; they have no `create`
+        # on ResourceClaims or WorkshopProvisions.
+        return verb == 'order' and namespace in self.namespace_access[user]
 
 
 def make_parameters():

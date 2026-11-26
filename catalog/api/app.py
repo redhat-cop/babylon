@@ -27,6 +27,7 @@ from catalog_order_policy import (
     reject_direct_catalog_item_order_write,
     reject_server_side_apply,
 )
+from catalog_item_order import ORDER_VERB
 from catalog_item_order_kube import KubeError, KubeOrderClient
 from catalog_item_order_service import CatalogItemOrderService, OrderApiError
 from catalog_item_order_approvals import ApprovalApiError, ApprovalService
@@ -2297,10 +2298,10 @@ async def update_system_status(request):
         raise web.HTTPInternalServerError(reason="Failed to update system status")
 
 def catalog_item_order_service(session):
-    async def check_create_access(group, plural, namespace):
+    async def check_order_access(group, plural, namespace):
         api_client = proxy_api_client(session)
         try:
-            return await check_api_access(api_client, group, plural, 'create', namespace)
+            return await check_api_access(api_client, group, plural, ORDER_VERB, namespace)
         finally:
             await api_client.close()
 
@@ -2311,7 +2312,7 @@ def catalog_item_order_service(session):
             system_status_configmap=system_status_configmap_name,
         ),
         get_system_status=lambda: get_system_status_from_configmap(strict=True),
-        check_create_access=check_create_access,
+        check_order_access=check_order_access,
     )
 
 

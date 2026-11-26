@@ -5,6 +5,7 @@ written with the catalog API service account after ownership checks; users
 have no direct Kubernetes access to CatalogItemOrders."""
 
 from catalog_item_order import (
+    ORDER_VERB,
     REQUESTER_UID_LABEL,
     ORDER_TYPE_SERVICE,
     OrderConflictError,
@@ -45,12 +46,13 @@ def _service_namespace_names(session):
 
 
 class CatalogItemOrderService:
-    def __init__(self, kube, get_system_status, check_create_access, clock=utcnow):
-        """check_create_access(group, plural, namespace) reports whether the
-        authenticated requester may create that resource in the namespace."""
+    def __init__(self, kube, get_system_status, check_order_access, clock=utcnow):
+        """check_order_access(group, plural, namespace) reports whether the
+        authenticated requester may order that resource in the namespace
+        (RBAC verb ORDER_VERB)."""
         self.kube = kube
         self.get_system_status = get_system_status
-        self.check_create_access = check_create_access
+        self.check_order_access = check_order_access
         self.clock = clock
 
     def _can_access(self, order, session, user_uid):
@@ -106,10 +108,10 @@ class CatalogItemOrderService:
         # requester could never provision (for example self-paced labs without
         # access) are rejected before anyone is asked to approve them.
         kind = ORDER_TYPE_KINDS[order_type][0]
-        if not await self.check_create_access(kind.api_group, kind.plural, namespace):
+        if not await self.check_order_access(kind.api_group, kind.plural, namespace):
             raise OrderApiError(
                 403, 'namespace_access_denied',
-                f"Requester cannot create {kind.plural} in namespace {namespace}",
+                f"Requester cannot {ORDER_VERB} {kind.plural} in namespace {namespace}",
             )
 
         groups = session.get('groups') if isinstance(session.get('groups'), list) else []

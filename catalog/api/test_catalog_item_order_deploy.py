@@ -127,6 +127,18 @@ class TestCrds(unittest.TestCase):
                       spec_schema['x-kubernetes-validations'])
         self.assertEqual(spec_strings_without_max_length(spec_schema), [])
 
+    def test_workshop_provision_catalog_item_is_immutable(self):
+        # Users may patch their WorkshopProvisions (scaling, parameters) but must
+        # not retarget one at a catalog item that requires approval.
+        path = os.path.join(REPO_ROOT, 'helm', 'crds', 'workshopprovisions.babylon.gpte.redhat.com.yaml')
+        with open(path) as stream:
+            crd = yaml.safe_load(stream)
+        schema = crd['spec']['versions'][0]['schema']['openAPIV3Schema']
+        catalog_item = schema['properties']['spec']['properties']['catalogItem']
+        self.assertIn({'rule': 'self == oldSelf', 'message': 'catalogItem is immutable'},
+                      catalog_item.get('x-kubernetes-validations', []))
+        self.assertEqual(structural_problems(schema), [])
+
     def test_catalog_item_crd_approval_policy_is_structural(self):
         self.assertEqual(structural_problems(CATALOG_ITEM_SCHEMA), [])
 
@@ -292,6 +304,51 @@ class TestHelm(unittest.TestCase):
                 continue
             with self.subTest(role=role['metadata']['name']):
                 self.assertEqual(order_rules(role), {}, 'users must not write or read orders directly')
+
+
+    def test_users_cannot_create_provisioning_resources_directly(self):
+        """GPTEINFRA-18191: only the order controller, operators and administrators
+        create ResourceClaims and WorkshopProvisions, so approval cannot be
+        bypassed with direct writes. Users order through the `order` verb."""
+        docs = helm_template('helm', '--set', 'environmentLevel=dev')
+
+        def verbs(role, resource):
+            return {verb for rule in role['rules'] if resource in rule['resources'] for verb in rule['verbs']}
+
+        aggregated = [
+            role for role in find(docs, 'ClusterRole')
+            if any(key.startswith('rbac.authorization.k8s.io/aggregate-to-')
+                   and key.split('aggregate-to-')[1] in ('edit', 'admin', 'view')
+                   for key in (role['metadata'].get('labels') or {}))
+        ]
+        self.assertEqual(
+            sorted(role['metadata']['name'] for role in aggregated),
+            ['babylon-user-catalog-access', 'babylon-user-service-access', 'babylon-workshop-admin'],
+        )
+        for role in aggregated:
+            for resource in ('resourceclaims', 'workshopprovisions', 'selfpacedlabs', 'selfpacedlabprovisionitems'):
+                with self.subTest(role=role['metadata']['name'], resource=resource):
+                    self.assertNotIn('create', verbs(role, resource))
+                    self.assertNotIn('*', verbs(role, resource))
+
+        user = find(docs, 'ClusterRole', 'babylon-user-service-access')[0]
+        self.assertIn('order', verbs(user, 'resourceclaims'))
+        self.assertIn('order', verbs(user, 'workshops'))
+        self.assertNotIn('order', verbs(user, 'selfpacedlabs'), 'self-paced lab orders stay administrator-only')
+        # Lifecycle actions and the flows kept on the direct path still work.
+        self.assertTrue({'patch', 'delete'} <= verbs(user, 'resourceclaims'))
+        self.assertTrue({'patch', 'delete'} <= verbs(user, 'workshopprovisions'))
+        self.assertIn('create', verbs(user, 'workshops'))
+        self.assertIn('create', verbs(user, 'multiworkshops'))
+
+        workshop_admin = find(docs, 'ClusterRole', 'babylon-workshop-admin')[0]
+        self.assertIn('order', verbs(workshop_admin, 'workshops'))
+        self.assertIn('patch', verbs(workshop_admin, 'workshopprovisions'))
+
+        admin = find(docs, 'ClusterRole', 'babylon-cluster-admin')[0]
+        for resource in ('resourceclaims', 'workshops'):
+            self.assertTrue({'create', 'order'} <= verbs(admin, resource), resource)
+        self.assertIn('create', verbs(admin, 'workshopprovisions'))
 
 
 if __name__ == '__main__':

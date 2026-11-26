@@ -10,11 +10,11 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- include "babylon.labels" . | nindent 4 }}
 rules:
+# No `create` on WorkshopProvisions; see babylon-user-service-access.
 - apiGroups:
   - {{ .Values.catalog.api.group }}
   resources:
   - workshops
-  - workshopprovisions
   - workshopuserassignments
   - multiworkshops
   verbs:
@@ -25,3 +25,20 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshopprovisions
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  verbs:
+  - order

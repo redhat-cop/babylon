@@ -10,12 +10,16 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     {{- include "babylon.labels" . | nindent 4 }}
 rules:
+# No `create` on ResourceClaims and WorkshopProvisions: they are created only by
+# the CatalogItemOrder controller (after any required approval), workshop-manager
+# and administrators, so users cannot bypass approval with direct writes. The
+# custom `order` verb is what the catalog API and order controller check before
+# accepting and fulfilling an order; no API request uses it.
 - apiGroups:
   - {{ .Values.resourceBroker.api.group }}
   resources:
   - resourceclaims
   verbs:
-  - create
   - delete
   - deletecollection
   - get
@@ -24,10 +28,15 @@ rules:
   - update
   - watch
 - apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - order
+- apiGroups:
   - {{ .Values.catalog.api.group }}
   resources:
   - workshops
-  - workshopprovisions
   - workshopuserassignments
   - multiworkshops
   verbs:
@@ -38,6 +47,23 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshopprovisions
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+  - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  verbs:
+  - order
 - apiGroups:
   - {{ .Values.catalog.api.group }}
   resources:

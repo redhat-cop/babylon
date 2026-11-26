@@ -4,7 +4,7 @@ Status: implemented (GPTEINFRA-18188). Always enabled; there is no feature flag.
 
 `CatalogItemOrder` is a durable order created by the catalog API before provisioning. A controller evaluates the catalog item's approval policy and creates provisioning resources only when approval is satisfied or not required. Pending orders create no ResourceClaim, Workshop, WorkshopProvision, SelfPacedLab or SelfPacedLabProvisionItem, so they never allocate pooled environments.
 
-> **Approval applies to the catalog UI order form and the CLI.** Some paths still create resources without consulting approval policies, by design: `kubectl`, direct writes through the Kubernetes proxy (including older CLI versions), MultiWorkshops, external URL items, white glove fulfilment by administrators, workshop scaling and multi-user service conversion. See [Paths that do not request approval](#paths-that-do-not-request-approval).
+> **Users cannot create ResourceClaims or WorkshopProvisions directly.** Only the order controller (after any required approval), the Babylon operators and administrators can, so `kubectl`, the Kubernetes proxy and older CLI versions cannot bypass approval. By design, MultiWorkshops, white glove fulfilment by administrators, scaling or editing an existing workshop, and multi-user service conversion still do not request approval. See [Who can create provisioning resources](#who-can-create-provisioning-resources).
 
 ## Components
 
@@ -210,7 +210,7 @@ POST /api/catalog-item-orders
 Rules:
 
 - Unknown fields, including `requester`, `metadata`, `spec`, `status` or approval fields, are rejected. The body never carries identity, approval state or manifests.
-- `namespace` must be one of the requester's service namespaces, and a SelfSubjectAccessReview must allow the requester to create the order type's first resource kind there (for example `selfpacedlabs`), the same check the controller repeats at dispatch. The catalog item must be in a session catalog namespace. Existing ordering blocks and catalog access control apply at submission (admins bypass them, as in the proxy policy) and again at dispatch.
+- `namespace` must be one of the requester's service namespaces, and a SelfSubjectAccessReview must allow the requester the custom `order` verb on the order type's first resource kind there (`resourceclaims`, `workshops` or `selfpacedlabs`), the same check the controller repeats at dispatch. See [Who can create provisioning resources](#who-can-create-provisioning-resources). The catalog item must be in a session catalog namespace. Existing ordering blocks and catalog access control apply at submission (admins bypass them, as in the proxy policy) and again at dispatch.
 - The order name is `order-` plus a digest of requester uid, namespace and idempotency key, so idempotency is scoped to requester and namespace. Reusing a key with a different body returns `409`.
 - Defaults match the catalog UI: lifespan end from `lifespan.default`, auto-stop from `runtime.default` unless stop is not supported or the runtime contains `999h`. Without an explicit start, these defaults are stored as `schedule.endAfter` / `schedule.stopAfter` and resolved when each attempt is dispatched (`status.attempts[].schedule`), so waiting for approval does not shorten the runtime or lifespan. Explicit start, stop and end times stay absolute; workshop count 1, concurrency 10 (1 for multi-user), start delay 30, generated access password; self-paced lab pool size 5, assigned lifespan 4h, unassigned lifespan from `runtime.default`.
 - Parameters are validated against each parameter's `openAPIV3Schema` (type, enum, bounds, length, pattern). Unknown and reserved names (`purpose`, `purpose_activity`, `purpose_explanation`, `salesforce_id`) are rejected.
@@ -269,7 +269,7 @@ Conditions: `PolicyEvaluated`, `ApprovalSatisfied`, `Dispatched`, `Ready`. `stat
 
 ### Dispatch checks
 
-Before claiming an attempt the controller verifies: valid, unrevoked approval; catalog item uid, material digest and policy digest unchanged; schedule end and auto-stop still in the future; and, for non-admin requesters (admin determined by SubjectAccessReview), the system status ordering block for the order type and catalog item access control using the requester's current groups. It also requires a SubjectAccessReview allowing the requester to create the first resource kind in the target namespace.
+Before claiming an attempt the controller verifies: valid, unrevoked approval; catalog item uid, material digest and policy digest unchanged; schedule end and auto-stop still in the future; and, for non-admin requesters (admin determined by SubjectAccessReview), the system status ordering block for the order type and catalog item access control using the requester's current groups. It also requires a SubjectAccessReview allowing the requester the `order` verb on the first resource kind in the target namespace.
 
 ### Durability
 
@@ -440,7 +440,7 @@ Behaviour and compatibility:
 - **Parameters.** Only `--param` values are sent; the API applies catalog defaults, as for UI orders.
 - **Workshop passwords.** Order responses never include access passwords, so the CLI generates one when `--access-password` is not given and prints it once the workshop exists.
 - **Retries.** A submission is resent with the same idempotency key after a network or gateway error; the API returns the existing order instead of creating another.
-- **Older CLI versions** still create resources directly and do not request approval. Upgrade to the release that contains this change.
+- **Older CLI versions** create resources directly, which users are no longer allowed to do: `service order` and `workshop create` fail with `403 Forbidden` (`cannot create resource "resourceclaims"` / `"workshopprovisions"`). Upgrade to the release that contains this change.
 
 ### Automation and other HTTP clients
 
@@ -450,17 +450,29 @@ Use the CLI (`-o json`) or call the order API directly with a catalog API sessio
 
 `babylon_async` is the Kubernetes client the Babylon operators use with their own service accounts; nothing uses it to order on behalf of a user. It has no order helpers on purpose: users have no RBAC on `catalogitemorders`, and orders must go through the catalog API so the requester comes from the authenticated session.
 
-### Paths that do not request approval
+### Who can create provisioning resources
 
-These keep creating or scaling resources without consulting approval policies. This is a deliberate scope decision, not an oversight:
+Users have no `create` on ResourceClaims and WorkshopProvisions, the resources that start environments:
 
-- `kubectl`/`oc` and direct writes through the catalog API Kubernetes proxy (including older CLI versions and scripts), because users have create rights on ResourceClaims, Workshops and WorkshopProvisions in their namespaces;
-- MultiWorkshop creation, which workshop-manager provisions for each asset;
-- external URL items (nothing is provisioned);
+| Role | ResourceClaims | WorkshopProvisions | Workshops, MultiWorkshops |
+|---|---|---|---|
+| `babylon-user-service-access` (aggregated to `edit`) | `order`, get, list, watch, patch, update, delete | get, list, watch, patch, update, delete | create, `order` (workshops), … |
+| `babylon-workshop-admin` (aggregated to `admin`) | — | get, list, watch, patch, update, delete | create, `order` (workshops), … |
+| `babylon-cluster-admin` | create, `order`, … | create, … | create, `order` (workshops), … |
+
+- They are created by the **order controller** (orders from the catalog UI and the CLI, after any required approval), **workshop-manager** (MultiWorkshops and workshop seats) and **administrators** (white glove fulfilment). `kubectl`, the Kubernetes proxy and older CLI versions get `403 Forbidden`.
+- `order` is a custom RBAC verb: no API request uses it. The catalog API (at submission) and the order controller (at dispatch) check it on the order type's first resource kind instead of `create`. Self-paced labs are unchanged: no user role grants `create` or `order` on `selfpacedlabs`, so only administrators with full access can order them.
+- Users keep `patch`, `update` and `delete` for start, stop, retire, delete and workshop scaling, and `create` on Workshops (a Workshop alone provisions nothing; multi-user service conversion creates one) and MultiWorkshops.
+- `WorkshopProvision.spec.catalogItem` is immutable (CRD validation rule), so a provision cannot be pointed at a catalog item that requires approval.
+- RBAC lives in the main `helm` chart. User namespaces get these permissions through the standard `edit`/`admin` aggregation; any other role bound in user namespaces that grants `create` on these resources (for example from another chart) would reopen direct creation. Check with `oc auth can-i create resourceclaims -n <user-namespace> --as <user>`.
+
+Paths that still do not request approval, by design:
+
+- MultiWorkshop creation: users create the MultiWorkshop and workshop-manager provisions its assets;
 - white glove fulfilment, which only administrators can perform;
-- scaling an existing workshop, and converting a multi-user service into a workshop.
-
-Approval is therefore a process control on the catalog UI order form and the CLI, not a security boundary. Cluster-side enforcement (an admission policy or webhook) would be needed to make it one, and only makes sense if the paths above are also covered.
+- scaling or editing an existing workshop (`count`, `concurrency`, `parameters` on its WorkshopProvision), and converting a multi-user service into a workshop;
+- changing parameter values of an existing ResourceClaim, where the ResourceProvider allows updates;
+- external URL items, which provision nothing.
 
 ## Contracts for dependent tickets
 
@@ -485,7 +497,7 @@ Behavior:
 - **Identity.** Order and approval SWR keys include the signed-in user, so cached privileged data is never shown to another identity. Approval authority always comes from the API; the UI never uses the displayed or impersonated email.
 - **Deep links.** oauth-proxy returns unauthenticated users to the requested URL after login, and the session retry in `api.ts` now stays on the current path instead of redirecting to `/`.
 
-The direct flows above do not request approval; see [Paths that do not request approval](#paths-that-do-not-request-approval).
+The direct flows above do not request approval; see [Who can create provisioning resources](#who-can-create-provisioning-resources).
 
 ### GPTEINFRA-18192: pilot
 
