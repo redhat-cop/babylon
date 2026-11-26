@@ -58,9 +58,9 @@ export type OrderFormInput = {
 
 /**
  * Whether the order form submits this request as a CatalogItemOrder. Two flows
- * keep the direct path until GPTEINFRA-18191 migrates them: external URL items
- * (they only record the request and open an external site; nothing is
- * provisioned) and white glove orders, which the order API does not accept.
+ * keep the direct path by design: external URL items (they only record the
+ * request and open an external site; nothing is provisioned) and white glove
+ * orders fulfilled by administrators, which the order API does not accept.
  */
 export function usesOrderApi({ catalogItem, whiteGloved }: { catalogItem: CatalogItem; whiteGloved?: boolean }): boolean {
   return !catalogItem.spec.externalUrl && !whiteGloved;

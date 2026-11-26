@@ -232,39 +232,6 @@ func TestStopResourceClaimProviderBackedPatchesProviderParametersWithoutSummary(
 	}
 }
 
-func TestOrderServiceCopiesCatalogSupportLinkAnnotation(t *testing.T) {
-	var servicePayload map[string]interface{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("unexpected request method %s", r.Method)
-		}
-		if err := json.NewDecoder(r.Body).Decode(&servicePayload); err != nil {
-			t.Fatal(err)
-		}
-		json.NewEncoder(w).Encode(types.ResourceClaim{})
-	}))
-	defer server.Close()
-
-	catalogItem := &types.CatalogItem{}
-	if err := json.Unmarshal([]byte(`{
-		"metadata":{"name":"catalog","namespace":"catalog","labels":{}},
-		"spec":{"supportLink":"https://example.com/support"}
-	}`), catalogItem); err != nil {
-		t.Fatal(err)
-	}
-	client := NewClient(server.URL)
-	client.Session = &types.Session{User: "user"}
-
-	if _, err := client.OrderService(catalogItem, "user", nil, time.Date(2026, 9, 22, 12, 0, 0, 0, time.UTC)); err != nil {
-		t.Fatal(err)
-	}
-
-	annotations := servicePayload["metadata"].(map[string]interface{})["annotations"].(map[string]interface{})
-	if annotations[types.BabylonDomain+"/support-link"] != "https://example.com/support" {
-		t.Fatalf("expected support link annotation, got %#v", annotations)
-	}
-}
-
 func legacyResourceClaim() types.ResourceClaim {
 	template := json.RawMessage(`{"spec":{"vars":{"action_schedule":{"start":"2026-01-01T00:00:00Z","stop":"2026-01-01T04:00:00Z"}}}}`)
 	return types.ResourceClaim{

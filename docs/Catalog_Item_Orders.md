@@ -4,7 +4,7 @@ Status: implemented (GPTEINFRA-18188). Always enabled; there is no feature flag.
 
 `CatalogItemOrder` is a durable order created by the catalog API before provisioning. A controller evaluates the catalog item's approval policy and creates provisioning resources only when approval is satisfied or not required. Pending orders create no ResourceClaim, Workshop, WorkshopProvision, SelfPacedLab or SelfPacedLabProvisionItem, so they never allocate pooled environments.
 
-> **Not enforced on legacy paths yet.** Direct ResourceClaim/Workshop creation through the catalog UI, the Kubernetes proxy, the CLI or `kubectl` does not consult approval policies. Do not configure `approval_policy` on production items until GPTEINFRA-18191 enforces it on those paths.
+> **Approval applies to the catalog UI order form and the CLI.** Some paths still create resources without consulting approval policies, by design: `kubectl`, direct writes through the Kubernetes proxy (including older CLI versions), MultiWorkshops, external URL items, white glove fulfilment by administrators, workshop scaling and multi-user service conversion. See [Paths that do not request approval](#paths-that-do-not-request-approval).
 
 ## Components
 
@@ -418,6 +418,50 @@ The check runs once, when the policy is evaluated. A lookup failure, a missing o
 
 Level numbering comes from live data; the Reporting API schema does not define it.
 
+## Client migration (GPTEINFRA-18191)
+
+Clients that order services and workshops submit a `CatalogItemOrder` through the order API and follow it, instead of creating ResourceClaims, Workshops or WorkshopProvisions themselves.
+
+### Babylon CLI
+
+| Command | Before | Now |
+|---|---|---|
+| `babylon service order <item>` | POST a ResourceClaim through the proxy | POST `/api/catalog-item-orders` (`orderType: service`), then poll the order |
+| `babylon workshop create <item> --seats N` | POST a Workshop, then a WorkshopProvision | POST one `workshop` order (`count` and `concurrency` = N, concurrency at most 100) |
+| `babylon order list` / `status <name>` / `cancel <name>` | — | New: follow and cancel orders |
+
+Behaviour and compatibility:
+
+- **Waiting.** Both ordering commands wait up to `--wait` (default `60s`; `0` returns right after submitting). They return as soon as the resource exists, approval is required, or the order ends.
+- **Output when created.** The table, JSON and YAML output is the created ResourceClaim or Workshop, as before, so scripts that read it keep working when no approval is needed. Table output also shows the order name.
+- **Output otherwise.** If approval is required, or the order is still processing when `--wait` ends, the output is the **order view** (see [Order API](#order-api)), not a ResourceClaim or Workshop, and the exit status is 0. Scripts that order governed items must check `.phase` (or `.kind`) before reading resource fields. Denied, expired, cancelled and permanently blocked orders exit non-zero.
+- **End date.** `--end-date` durations (`72h`) are counted from submission and sent as an absolute `schedule.end`, so waiting for approval uses part of them. Without `--end-date`, the catalog default lifespan starts when the resource is created.
+- **Purpose.** `--purpose` (new on `workshop create`), else a `purpose` parameter or catalog default, else `Development`, as before. It is sent as the order `purpose`, not as a parameter. Items whose purpose parameter has `x-form-options` (most catalog items) require one of those option names, so the old `Development` fallback no longer works for them: the CLI lists the valid options and asks for `--purpose`. `--explanation` (or `--param purpose_explanation=…`) provides the explanation some purposes require. `--param purpose_activity=…` and `--param salesforce_id=…` are rejected because the catalog derives them.
+- **Parameters.** Only `--param` values are sent; the API applies catalog defaults, as for UI orders.
+- **Workshop passwords.** Order responses never include access passwords, so the CLI generates one when `--access-password` is not given and prints it once the workshop exists.
+- **Retries.** A submission is resent with the same idempotency key after a network or gateway error; the API returns the existing order instead of creating another.
+- **Older CLI versions** still create resources directly and do not request approval. Upgrade to the release that contains this change.
+
+### Automation and other HTTP clients
+
+Use the CLI (`-o json`) or call the order API directly with a catalog API session: the same oauth-proxy cookie and `Authentication: Bearer <session token>` header the CLI uses. Submit with a random `idempotencyKey`, reuse it when resending after a transport error, then poll `statusUrl` until `phase` is `PendingApproval` or the order is final. A created resource is the entry in `attempts[].resources` with a `uid`.
+
+### Python client library
+
+`babylon_async` is the Kubernetes client the Babylon operators use with their own service accounts; nothing uses it to order on behalf of a user. It has no order helpers on purpose: users have no RBAC on `catalogitemorders`, and orders must go through the catalog API so the requester comes from the authenticated session.
+
+### Paths that do not request approval
+
+These keep creating or scaling resources without consulting approval policies. This is a deliberate scope decision, not an oversight:
+
+- `kubectl`/`oc` and direct writes through the catalog API Kubernetes proxy (including older CLI versions and scripts), because users have create rights on ResourceClaims, Workshops and WorkshopProvisions in their namespaces;
+- MultiWorkshop creation, which workshop-manager provisions for each asset;
+- external URL items (nothing is provisioned);
+- white glove fulfilment, which only administrators can perform;
+- scaling an existing workshop, and converting a multi-user service into a workshop.
+
+Approval is therefore a process control on the catalog UI order form and the CLI, not a security boundary. Cluster-side enforcement (an admission policy or webhook) would be needed to make it one, and only makes sense if the paths above are also covered.
+
 ## Contracts for dependent tickets
 
 ### GPTEINFRA-18190: UI
@@ -435,17 +479,13 @@ Implemented in `catalog/ui/src/app/CatalogItemOrders/`, always on.
 Behavior:
 
 - **Submission.** The catalog order form submits one `CatalogItemOrder` and opens a waiting page (`/orders/<namespace>/<name>/placing`) that polls the order and replaces itself with the created service, workshop or lab when no approval is needed, or with the order page as soon as approval is needed (or the order is blocked, denied, ...). After 30 seconds it says it is still working and links to My Services, and keeps checking. Orders that need no approval never show an order page and are not listed in Orders or in the approval lists. The form never calls the direct ResourceClaim, Workshop or SelfPacedLab helpers and sends no white glove or Jira "provisioning started" updates. The idempotency key is reused for the same request body (double clicks, transport retries, and a manual resubmit after an ambiguous failure) and replaced when the request changes. Transport failures and `503 order_backend_unavailable` are retried twice with the same key. When the user keeps the catalog default runtime and lifespan without a start time, `stop` and `end` are omitted so the defaults apply at dispatch.
-- **Direct flows kept until GPTEINFRA-18191.** External URL items (nothing is provisioned; the request is recorded and the external site opens) and white glove orders (fulfilment from a white glove request, or the admin White-Glove Support switch) keep the previous direct flow, as do MultiWorkshop creation and converting a multi-user service into a workshop. Ordering while impersonating is explained and disabled, because the order API records the authenticated requester.
+- **Direct flows kept.** External URL items (nothing is provisioned; the request is recorded and the external site opens) and white glove orders (fulfilment from a white glove request, or the admin White-Glove Support switch) keep the previous direct flow. White glove requests are created by users but fulfilled only by administrators, so only administrators get that direct flow; a `?wgr=` link never lets anyone else skip approval. MultiWorkshop creation and converting a multi-user service into a workshop also keep the direct flow. Ordering while impersonating is explained and disabled, because the order API records the authenticated requester.
 - **Reorder** on services and workshops opens the order form for the same item, which is a new order evaluated afresh.
 - **Errors.** Backend `error`/`message` are shown as returned; a 403 is not treated as a disabled account. Stale approval decisions (`already_decided`, `not_pending`, `expired`, `request_changed`, `policy_changed`, `order_conflict`) reload the request instead of replaying the decision; `manager_lookup_unavailable` is shown as temporary.
 - **Identity.** Order and approval SWR keys include the signed-in user, so cached privileged data is never shown to another identity. Approval authority always comes from the API; the UI never uses the displayed or impersonated email.
 - **Deep links.** oauth-proxy returns unauthenticated users to the requested URL after login, and the session retry in `api.ts` now stays on the current path instead of redirecting to `/`.
 
-Not covered here (GPTEINFRA-18191): the direct flows above, the Kubernetes proxy, the CLI and other clients still create resources without consulting approval policies.
-
-### GPTEINFRA-18191: client migration and enforcement
-
-Approval is enforced only for orders submitted through this API. Legacy UI submission, the proxy, CLI, automation and direct Kubernetes writes still create provisioning resources without consulting policies. Enforcement must cover every path that can create or scale ResourceClaims, Workshops, WorkshopProvisions, SelfPacedLabs, SelfPacedLabProvisionItems and MultiWorkshops for governed items (for example admission checks that verify order labels against an order and its approval). Order labels alone are not proof of approval. The unsupported order types listed above must remain blocked for governed items until migrated.
+The direct flows above do not request approval; see [Paths that do not request approval](#paths-that-do-not-request-approval).
 
 ### GPTEINFRA-18192: pilot
 

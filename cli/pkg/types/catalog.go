@@ -56,6 +56,14 @@ type SchemaSpec struct {
 	Type    string        `json:"type,omitempty" yaml:"type,omitempty"`
 	Default interface{}   `json:"default,omitempty" yaml:"default,omitempty"`
 	Enum    []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
+	// Purpose options of the "purpose" parameter; orders must use one of their names.
+	XFormOptions []PurposeOption `json:"x-form-options,omitempty" yaml:"x-form-options,omitempty"`
+}
+
+type PurposeOption struct {
+	Name             string `json:"name" yaml:"name"`
+	Activity         string `json:"activity,omitempty" yaml:"activity,omitempty"`
+	RequireUserInput bool   `json:"requireUserInput,omitempty" yaml:"requireUserInput,omitempty"`
 }
 
 type LifespanSpec struct {

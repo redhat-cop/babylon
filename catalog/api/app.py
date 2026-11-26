@@ -70,8 +70,6 @@ response_cache_miss_semaphore = asyncio.Semaphore(response_cache_max_in_flight)
 response_cache_clean_task = None
 session_cache = {}
 session_lifetime = int(os.environ.get('SESSION_LIFETIME', 600))
-# CatalogItemOrder endpoints are opt-in until approval decisions (GPTEINFRA-18189),
-# UI (GPTEINFRA-18190) and enforcement on direct paths (GPTEINFRA-18191) land.
 
 logging.basicConfig(level=os.environ.get('LOGGING_LEVEL', 'INFO'))
 

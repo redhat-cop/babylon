@@ -55,28 +55,9 @@ func runWorkshopLifecycle(ctx context.Context, run cliCommand, options lifecycle
 	}()
 	args := workshopArgs("create", options.catalogItem, options.serviceNamespace,
 		"--seats", strconv.Itoa(seats), "--end-date", "2h", "--display-name", displayName)
+	// The order API creates the Workshop and its WorkshopProvision together on
+	// the server, so a failed create leaves nothing for the CLI to clean up.
 	if err := readJSON(ctx, run, &created, args...); err != nil {
-		// A Workshop can exist even when creating its WorkshopProvision failed.
-		// Recover only this invocation's unique display name and catalog identity.
-		if strings.Contains(err.Error(), "created but provision failed") {
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), options.stepTimeout)
-			defer cancel()
-			var workshops []types.Workshop
-			if lookupErr := readJSON(cleanupCtx, run, &workshops, workshopArgs("list", "", options.serviceNamespace)...); lookupErr != nil {
-				return errors.Join(err, fmt.Errorf("locate partially created workshop: %w", lookupErr))
-			}
-			for _, ws := range workshops {
-				if ws.Spec.DisplayName == displayName &&
-					ws.Metadata.Labels[types.BabylonDomain+"/catalogItemName"] == catalog.Metadata.Name &&
-					ws.Metadata.Labels[types.BabylonDomain+"/catalogItemNamespace"] == catalog.Metadata.Namespace {
-					created = ws
-					break
-				}
-			}
-			if created.Metadata.Name == "" || created.Metadata.Namespace == "" {
-				return errors.Join(err, fmt.Errorf("could not locate partially created workshop for cleanup"))
-			}
-		}
 		return err
 	}
 	if created.Metadata.Name == "" || created.Metadata.Namespace == "" || created.Metadata.UID == "" {
