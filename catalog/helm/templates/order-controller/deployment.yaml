@@ -33,7 +33,8 @@ spec:
         - python3
         - /opt/app-root/src/catalog_item_order_controller.py
         env:
-        {{- with $controller.catalogBaseUrl }}
+        {{- $catalogBaseUrl := $controller.catalogBaseUrl | default (ternary (printf "https://%s" .Values.route.host) "" (not (empty .Values.route.host))) }}
+        {{- with $catalogBaseUrl }}
         - name: CATALOG_BASE_URL
           value: {{ . | quote }}
         {{- end }}

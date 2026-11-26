@@ -35,11 +35,12 @@ MANAGER_AUTHORITY = {'basis': 'direct_manager', 'source': 'reporting-api'}
 REQUESTER = Requester(user='alice', uid=USER_UID, email='alice@example.com')
 
 
-def build(body=None, catalog_item=None, groups=('rhpds-users',), now=NOW):
+def build(body=None, catalog_item=None, groups=('rhpds-users',), now=NOW, admin=False):
     catalog_item = catalog_item or make_catalog_item()
     catalog_item['metadata'].setdefault('uid', 'catalog-uid')
     return build_order(
         body or submission(), catalog_item=catalog_item, requester=REQUESTER, groups=list(groups), now=now,
+        admin=admin,
     )
 
 
@@ -240,6 +241,43 @@ class TestBuildOrder(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 'unsupported_order_type')
         with self.assertRaises(OrderValidationError):
             build(submission(order_type='service', workshop={'count': 2}))
+
+    def test_workshop_limits_match_the_order_form(self):
+        # Without workshopUiMaxInstances the form allows 40 instances, and 0.
+        unlimited = make_catalog_item()
+        del unlimited['spec']['workshopUiMaxInstances']
+        self.assertEqual(build(submission(order_type='workshop', workshop={'count': 40}), catalog_item=unlimited)
+                         ['spec']['request']['workshop']['count'], 40)
+        with self.assertRaises(OrderValidationError):
+            build(submission(order_type='workshop', workshop={'count': 41}), catalog_item=unlimited)
+        self.assertEqual(build(submission(order_type='workshop', workshop={'count': 0}))
+                         ['spec']['request']['workshop']['count'], 0)
+        # Administrators may exceed the catalog limit, as in the form (up to 999).
+        self.assertEqual(build(submission(order_type='workshop', workshop={'count': 100}), admin=True)
+                         ['spec']['request']['workshop']['count'], 100)
+        with self.assertRaises(OrderValidationError):
+            build(submission(order_type='workshop', workshop={'count': 1000}), admin=True)
+        multi = make_catalog_item(workshopUserMode='multi')
+        with self.assertRaises(OrderValidationError):
+            build(submission(order_type='workshop', workshop={'count': 2}), catalog_item=multi, admin=True)
+
+    def test_administrators_may_exceed_the_maximum_lifespan(self):
+        beyond = {'end': format_time(NOW + timedelta(days=30))}
+        with self.assertRaises(OrderValidationError):
+            build(submission(schedule=beyond))
+        self.assertEqual(build(submission(schedule=beyond), admin=True)['spec']['request']['schedule']['end'], beyond['end'])
+
+    def test_required_parameters_behind_form_conditions_are_not_enforced(self):
+        for key in ('formHideCondition', 'formDisableCondition', 'formRequireCondition'):
+            with self.subTest(key):
+                parameters = [{'name': 'cluster_size', 'required': True, key: 'mode == "custom"',
+                               'openAPIV3Schema': {'type': 'string'}}]
+                order = build(submission(purpose=None, parameters={}), catalog_item=make_catalog_item(parameters=parameters))
+                self.assertNotIn('cluster_size', order['spec']['request']['parameters'])
+        parameters = [{'name': 'cluster_size', 'required': True, 'openAPIV3Schema': {'type': 'string'}}]
+        with self.assertRaises(OrderValidationError) as caught:
+            build(submission(purpose=None, parameters={}), catalog_item=make_catalog_item(parameters=parameters))
+        self.assertEqual(caught.exception.code, 'missing_required_parameter')
 
     def test_self_paced_lab_defaults_match_ui(self):
         order = build(submission(order_type='selfPacedLab'))

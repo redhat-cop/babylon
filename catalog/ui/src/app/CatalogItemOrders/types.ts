@@ -118,6 +118,7 @@ export type CatalogItemOrder = {
   completedAt?: string | null;
   orderUrl?: string | null;
   attempts: OrderAttempt[];
+  conditions?: { type: string; status: string; reason?: string; message?: string; lastTransitionTime?: string }[];
   history?: { event: string; timestamp?: string; phase?: string; actor?: string; message?: string }[];
   cancel?: OrderCancel;
 };

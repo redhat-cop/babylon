@@ -114,7 +114,14 @@ _CATALOG_ITEM_NAME_RE = re.compile(r'^[a-zA-Z0-9]([-a-zA-Z0-9._]{0,251}[a-zA-Z0-
 _ACCESS_PASSWORD_ALPHABET = '23456789abcdefghjkmnpqrstuzwxyz'
 MAX_PARAMETERS_BYTES = 65536
 MAX_STRING_PARAMETER_LENGTH = 16384
-DEFAULT_WORKSHOP_MAX_INSTANCES = 30
+# Same defaults as the catalog UI order form (workshopInstanceLimit and
+# PatientNumberInput's administrator limit).
+DEFAULT_WORKSHOP_MAX_INSTANCES = 40
+ADMIN_WORKSHOP_MAX_INSTANCES = 999
+# Parameters whose visibility or requirement depends on form JavaScript. The
+# UI leaves hidden and disabled parameters out of the request, and the backend
+# cannot evaluate the conditions, so `required` is not enforced for them.
+FORM_CONDITION_KEYS = ('formHideCondition', 'formDisableCondition', 'formRequireCondition')
 MAX_SELF_PACED_LAB_POOL_SIZE = 200
 
 
@@ -406,7 +413,10 @@ def normalize_parameters(catalog_item, submitted):
             value = schema['default']
         else:
             value = _coerce_default(schema.get('type'), parameter.get('value'))
-        if (value is None or value == '') and parameter.get('required') and name not in RESERVED_PARAMETERS:
+        if (
+            (value is None or value == '') and parameter.get('required') and name not in RESERVED_PARAMETERS
+            and not any(parameter.get(key) for key in FORM_CONDITION_KEYS)
+        ):
             raise OrderValidationError(
                 'missing_required_parameter', f"parameters.{name} is required"
             )
@@ -490,7 +500,7 @@ def _schedule_time(value, path):
     return parsed
 
 
-def normalize_schedule(catalog_item, body, order_type, now):
+def normalize_schedule(catalog_item, body, order_type, now, admin=False):
     """Resolve start/stop/end the way the catalog UI form initializes them."""
     schedule = _mapping(body.get('schedule'), 'schedule', SCHEDULE_KEYS)
     spec = catalog_item.get('spec') or {}
@@ -526,7 +536,8 @@ def normalize_schedule(catalog_item, body, order_type, now):
         parse_duration(lifespan.get(key)) for key in ('maximum', 'relativeMaximum')
         if parse_duration(lifespan.get(key))
     ]
-    if maximums and (end - origin).total_seconds() > min(maximums):
+    # Administrators may exceed the catalog maximum, as the order form allows.
+    if maximums and not admin and (end - origin).total_seconds() > min(maximums):
         raise OrderValidationError('invalid_schedule', 'schedule.end exceeds the catalog item maximum lifespan')
     if ready_by is not None and order_type != ORDER_TYPE_WORKSHOP:
         raise OrderValidationError('invalid_schedule', 'schedule.readyBy is only supported for workshops')
@@ -567,7 +578,7 @@ def catalog_display_name(catalog_item):
     return spec.get('displayName') or (catalog_item.get('metadata') or {}).get('name')
 
 
-def normalize_order_options(catalog_item, body, order_type):
+def normalize_order_options(catalog_item, body, order_type, admin=False):
     spec = catalog_item.get('spec') or {}
     if order_type == ORDER_TYPE_SERVICE:
         for key in ('workshop', 'selfPacedLab'):
@@ -587,6 +598,8 @@ def normalize_order_options(catalog_item, body, order_type):
     max_instances = spec.get('workshopUiMaxInstances')
     if not isinstance(max_instances, int) or isinstance(max_instances, bool) or max_instances <= 0:
         max_instances = DEFAULT_WORKSHOP_MAX_INSTANCES
+    if admin:
+        max_instances = max(max_instances, ADMIN_WORKSHOP_MAX_INSTANCES)
 
     if order_type == ORDER_TYPE_WORKSHOP:
         for key in ('service', 'selfPacedLab'):
@@ -597,7 +610,7 @@ def normalize_order_options(catalog_item, body, order_type):
         workshop = {
             'autoDetach': _boolean(options.get('autoDetach'), 'workshop.autoDetach', True),
             'concurrency': _integer(options.get('concurrency'), 'workshop.concurrency', 1 if multi else 10, 1, 100),
-            'count': _integer(options.get('count'), 'workshop.count', 1, 1, 1 if multi else max_instances),
+            'count': _integer(options.get('count'), 'workshop.count', 1, 0, 1 if multi else max_instances),
             'description': _string(options.get('description'), 'workshop.description', max_length=65536) or '<p></p>',
             'displayName': _string(options.get('displayName'), 'workshop.displayName') or catalog_display_name(catalog_item),
             'openRegistration': _boolean(options.get('openRegistration'), 'workshop.openRegistration', True),
@@ -669,7 +682,7 @@ def validate_submission_envelope(body):
     return key, (namespace, name), target_namespace, order_type
 
 
-def build_order(body, *, catalog_item, requester, groups, now):
+def build_order(body, *, catalog_item, requester, groups, now, admin=False):
     """Build a CatalogItemOrder definition from an authenticated submission.
 
     Identity comes from `requester` (session-derived); the body never supplies
@@ -693,9 +706,9 @@ def build_order(body, *, catalog_item, requester, groups, now):
     request = {
         **purpose,
         'parameters': parameters,
-        'schedule': normalize_schedule(catalog_item, body, order_type, now),
+        'schedule': normalize_schedule(catalog_item, body, order_type, now, admin=admin),
         'skipSalesforceId': skip_salesforce_id,
-        **normalize_order_options(catalog_item, body, order_type),
+        **normalize_order_options(catalog_item, body, order_type, admin=admin),
     }
     if salesforce_items:
         request['salesforceItems'] = salesforce_items

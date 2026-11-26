@@ -122,6 +122,35 @@ class ApprovalTestCase(unittest.IsolatedAsyncioTestCase):
         return self.kube.orders[(order['metadata']['namespace'], order['metadata']['name'])]
 
 
+class TestApprovalListSafety(ApprovalTestCase):
+    async def test_list_hides_password_parameters_like_the_review(self):
+        parameters = make_parameters() + [{'name': 'admin_pw', 'openAPIV3Schema': {'type': 'string', 'format': 'password'}}]
+        self.item = self.kube.add_catalog_item(make_catalog_item(raw_policy=MANAGER_POLICY, parameters=parameters))
+        order = await self.pending_order(parameters={'admin_pw': 'hunter2', 'notes': 'visible'})
+        status, data = await self.call('GET', APPROVALS)
+        self.assertEqual(status, 200, data)
+        listed = data['items'][0]['parameters']
+        self.assertNotIn('admin_pw', listed)
+        self.assertEqual(listed.get('notes'), 'visible')
+        status, review = await self.call('GET', f"{APPROVALS}/{order['metadata']['uid']}")
+        self.assertEqual(review['parameters'], listed, 'list and review hide the same parameters')
+
+    async def test_list_stops_calling_an_unavailable_reporting_api(self):
+        from catalog_item_order import Requester
+        for index, name in enumerate(('carol', 'dave', 'erin')):
+            order = await create_order(
+                self.kube, self.item, body=submission(key=f"key-outage-{index}"),
+                requester=Requester(user=name, uid=f"uid-{name}", email=f"{name}@example.com"), now=self.clock(),
+            )
+            await self.reconcile(order)
+        self.lookup.error = ManagerLookupError(LOOKUP_UNAVAILABLE, 'Reporting API is unavailable')
+        self.lookup.calls.clear()
+        status, data = await self.call('GET', APPROVALS)
+        self.assertEqual(status, 200, data)
+        self.assertTrue(data['incomplete'])
+        self.assertEqual(len(self.lookup.calls), 1, 'one outage error is enough for the whole list')
+
+
 class TestManagerResolution(ApprovalTestCase):
     async def test_controller_resolves_direct_manager_for_notification(self):
         order = await self.pending_order()

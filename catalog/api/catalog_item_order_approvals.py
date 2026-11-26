@@ -55,19 +55,34 @@ class ApprovalApiError(Exception):
 
 
 class CachedManagerLookup:
-    """Short-lived cache for listing. Decisions always use a fresh lookup."""
+    """Short-lived cache for listing. Decisions always use a fresh lookup.
+
+    Failures are cached too, and after the first outage error every further
+    lookup fails at once: a list request must not call an unavailable
+    Reporting API (with its timeouts and retries) once per pending order."""
 
     def __init__(self, lookup, ttl=60, clock=time.monotonic):
         self.lookup = lookup
         self.ttl = ttl
         self.clock = clock
         self.cache = {}
+        self.outage = None
 
     async def get_manager_data(self, email):
+        if self.outage is not None:
+            raise self.outage
         cached = self.cache.get(email)
         if cached and cached[1] > self.clock():
+            if isinstance(cached[0], ManagerLookupError):
+                raise cached[0]
             return cached[0]
-        data = await self.lookup.get_manager_data(email)
+        try:
+            data = await self.lookup.get_manager_data(email)
+        except ManagerLookupError as exception:
+            self.cache[email] = (exception, self.clock() + self.ttl)
+            if exception.reason == LOOKUP_UNAVAILABLE:
+                self.outage = exception
+            raise
         self.cache[email] = (data, self.clock() + self.ttl)
         return data
 
@@ -212,8 +227,18 @@ class ApprovalService:
             if authority is not None:
                 eligible.append((order, authority))
         page = eligible[offset:offset + limit]
+        # The catalog item tells review_view which parameters are passwords, so
+        # list items hide the same parameters as the single review.
+        catalog_items = {}
+        items = []
+        for order, authority in page:
+            reference = order['spec']['catalogItem']
+            key = (reference['namespace'], reference['name'])
+            if key not in catalog_items:
+                catalog_items[key] = await self._catalog_item(order)
+            items.append(review_view(order, catalog_items[key], authority, self.clock()))
         result = {
-            'items': [review_view(order, None, authority, self.clock()) for order, authority in page],
+            'items': items,
             'incomplete': incomplete,
         }
         if offset + limit < len(eligible):

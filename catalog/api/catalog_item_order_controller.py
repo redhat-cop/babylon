@@ -443,6 +443,10 @@ class CatalogItemOrderController:
         catalog_item = await self._catalog_item(order)
         problem = self._catalog_item_problem(order, catalog_item)
         if problem:
+            # A briefly unavailable catalog item recovers here too, as it does
+            # before evaluation and at dispatch; a replaced or changed one does not.
+            if problem[0] == 'CatalogItemUnavailable':
+                return self._block(order, status, *problem, now, True, PHASE_PENDING_APPROVAL)
             return self._block(order, status, *problem, now)
         if self._policy_digest(catalog_item) != (status.get('policy') or {}).get('digest'):
             return self._block(
@@ -712,15 +716,23 @@ class CatalogItemOrderController:
     async def _blocked(self, order, status, now):
         blocked = status.get('blocked') or {}
         resume_phase = blocked.get('resumePhase')
-        if not blocked.get('recoverable') or resume_phase not in (PHASE_SUBMITTED, PHASE_APPROVED):
+        handlers = {
+            PHASE_SUBMITTED: self._submitted,
+            PHASE_PENDING_APPROVAL: self._pending_approval,
+            PHASE_APPROVED: self._approved,
+        }
+        if not blocked.get('recoverable') or resume_phase not in handlers:
             return None
         resumed = copy.deepcopy(order)
         resumed_status = resumed.setdefault('status', {})
         resumed_status['phase'] = resume_phase
         resumed_status.pop('blocked', None)
-        handler = self._submitted if resume_phase == PHASE_SUBMITTED else self._approved
-        new_status = await handler(resumed, copy.deepcopy(resumed_status), now)
+        new_status = await handlers[resume_phase](resumed, copy.deepcopy(resumed_status), now)
         if new_status is None:
+            # A pending order that is fine again just waits for its decision.
+            if resume_phase == PHASE_PENDING_APPROVAL:
+                self._history(resumed_status, 'Resumed', now, blocked.get('reason', ''))
+                return resumed_status
             return None
         new_blocked = new_status.get('blocked') or {}
         if (

@@ -396,17 +396,35 @@ export function placingPagePath(order: Pick<CatalogItemOrder, 'namespace' | 'nam
   return `${orderPagePath(order)}/placing`;
 }
 
+const ORDER_PAGE_PHASES: CatalogItemOrder['phase'][] = ['PendingApproval', 'Blocked', 'Denied', 'Expired', 'Cancelled'];
+
+/** Whether creating the order's resources is failing (and being retried). */
+function creationFailing(order: CatalogItemOrder): boolean {
+  return (order.conditions || []).some(
+    (condition) => condition.type === 'Dispatched' && condition.status === 'False' && condition.reason !== 'Dispatching',
+  );
+}
+
 /**
  * Where a just-submitted order should take the requester, or null while the
- * controller is still working. Orders that need no approval never show an
- * order page: they go straight to the created service, workshop or lab.
- * Orders that need approval, or that cannot continue, open their order page.
+ * controller is still working. Orders that need no approval go straight to
+ * the created service, workshop or lab. Orders that need approval, that cannot
+ * continue (blocked, denied, expired, cancelled) or whose resources cannot be
+ * created open their order page, which explains why, whether or not approval
+ * was needed.
  */
 export function orderDestination(order: CatalogItemOrder): string | null {
-  if (order.approval?.state === 'NotRequired') {
-    return orderResourceLinks(order)[0]?.to || null;
+  if (ORDER_PAGE_PHASES.includes(order.phase)) {
+    return orderPagePath(order);
   }
-  if (order.approval?.requestedAt || ['PendingApproval', 'Blocked', 'Denied', 'Expired', 'Cancelled'].includes(order.phase)) {
+  if (order.approval?.state === 'NotRequired') {
+    const created = orderResourceLinks(order)[0]?.to;
+    if (created) {
+      return created;
+    }
+    return creationFailing(order) ? orderPagePath(order) : null;
+  }
+  if (order.approval?.requestedAt) {
     return orderPagePath(order);
   }
   return null;

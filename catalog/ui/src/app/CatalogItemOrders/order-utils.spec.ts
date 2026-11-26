@@ -268,4 +268,18 @@ describe('orderDestination', () => {
     }
     expect(placingPagePath(order())).toBe('/orders/user-test/order-1/placing');
   });
+
+  test('orders without approval that cannot continue open the order page instead of waiting forever', () => {
+    const notRequired = { state: 'NotRequired' as const };
+    expect(
+      orderDestination(order({ phase: 'Blocked', approval: notRequired, blocked: { reason: 'OrderingBlocked' } })),
+    ).toBe('/orders/user-test/order-1');
+    expect(orderDestination(order({ phase: 'Cancelled', approval: notRequired }))).toBe('/orders/user-test/order-1');
+    const failing = [{ type: 'Dispatched', status: 'False', reason: 'CreateFailed', message: 'quota exceeded' }];
+    expect(orderDestination(order({ phase: 'Approved', approval: notRequired, conditions: failing }))).toBe(
+      '/orders/user-test/order-1',
+    );
+    const creating = [{ type: 'Dispatched', status: 'False', reason: 'Dispatching', message: 'Attempt 1 creating resources' }];
+    expect(orderDestination(order({ phase: 'Approved', approval: notRequired, conditions: creating }))).toBeNull();
+  });
 });

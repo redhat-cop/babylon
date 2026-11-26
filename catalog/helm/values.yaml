@@ -38,6 +38,7 @@ catalogItemOrders:
     name: # default use chart name + '-order-controller'
     replicaCount: 1
     # Public catalog URL used for resource url annotations and approval review links.
+    # Defaults to https://<route.host>; set it when the catalog is served elsewhere.
     catalogBaseUrl:
     # Reporting API base URL for manager resolution; defaults to the in-cluster
     # service the catalog API uses. The token comes from salesforceApi.secretName.

@@ -23,6 +23,10 @@ def _wrap(exception):
     return KubeError(exception.status or 0, exception.reason or '')
 
 
+# Virtual groups of every user signed in through OpenShift OAuth.
+AUTHENTICATED_GROUPS = ('system:authenticated', 'system:authenticated:oauth')
+
+
 class KubeOrderClient:
     def __init__(self, api_client, babylon_namespace=None, system_status_configmap='babylon-system-status'):
         self.api_client = api_client
@@ -168,10 +172,15 @@ class KubeOrderClient:
         ]
 
     async def check_access(self, user, groups, group, resource, verb, namespace=None):
-        """SubjectAccessReview for the requester, evaluated at dispatch."""
+        """SubjectAccessReview for the requester, evaluated at dispatch.
+
+        OpenShift Group objects do not include the virtual groups every
+        signed-in user has, which the catalog API's own check (made as the
+        user) does include; add them so both checks agree."""
         attributes = {'group': group, 'resource': resource, 'verb': verb}
         if namespace:
             attributes['namespace'] = namespace
+        groups = list(groups) + [group_name for group_name in AUTHENTICATED_GROUPS if group_name not in groups]
         try:
             review = await self.authorization_api.create_subject_access_review(
                 body={

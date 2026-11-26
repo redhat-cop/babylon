@@ -255,6 +255,17 @@ class TestHelm(unittest.TestCase):
         self.assertEqual(env['ORDER_MANAGER_EXEMPTION_MAX_LEVEL'], '5')
         self.assertFalse(container['securityContext']['allowPrivilegeEscalation'])
 
+    def test_controller_catalog_url_defaults_to_the_route_host(self):
+        def env(docs):
+            deployment = [d for d in find(docs, 'Deployment') if d['metadata']['name'].endswith('-order-controller')][0]
+            return {e['name']: e.get('value') for e in deployment['spec']['template']['spec']['containers'][0]['env']}
+        self.assertEqual(env(helm_template('catalog/helm', '--set', 'route.host=catalog.example.com'))['CATALOG_BASE_URL'],
+                         'https://catalog.example.com')
+        self.assertEqual(env(helm_template('catalog/helm', '--set', 'route.host=catalog.example.com',
+                                           '--set', 'catalogItemOrders.controller.catalogBaseUrl=https://demo.example.com'))
+                         ['CATALOG_BASE_URL'], 'https://demo.example.com')
+        self.assertNotIn('CATALOG_BASE_URL', env(helm_template('catalog/helm')))
+
     def test_controller_gets_reporting_api_credentials(self):
         docs = helm_template(
             'catalog/helm',

@@ -2359,7 +2359,7 @@ async def handle_catalog_item_order_request(request, operation, audit_event=None
                 details={'policy_code': exception.code},
             )
         return catalog_item_order_error(exception.code, exception.message, exception.status)
-    except (KubeError, aiohttp.ClientError, asyncio.TimeoutError) as exception:
+    except (KubeError, kubernetes_asyncio.client.exceptions.ApiException, aiohttp.ClientError, asyncio.TimeoutError) as exception:
         logging.exception("CatalogItemOrder request failed")
         return catalog_item_order_error('order_backend_unavailable', 'Unable to process order', 503)
     if audit_event:
@@ -2416,7 +2416,7 @@ async def handle_catalog_item_order_approval_request(request, operation, audit_e
                 details={'policy_code': exception.code},
             )
         return catalog_item_order_error(exception.code, exception.message, exception.status)
-    except (KubeError, aiohttp.ClientError, asyncio.TimeoutError):
+    except (KubeError, kubernetes_asyncio.client.exceptions.ApiException, aiohttp.ClientError, asyncio.TimeoutError):
         logging.exception("CatalogItemOrder approval request failed")
         return catalog_item_order_error('order_backend_unavailable', 'Unable to process approval', 503)
     if audit_event:

@@ -50,7 +50,11 @@ class OrderApiTestCase(unittest.IsolatedAsyncioTestCase):
             return dict(self.system_status)
 
         async def check_order_access(group, plural, namespace):
+            if self.access_check_error:
+                raise self.access_check_error
             return plural not in self.denied_plurals
+
+        self.access_check_error = None
 
         self.denied_plurals = set()
 
@@ -175,6 +179,21 @@ class TestSubmit(OrderApiTestCase):
 
         status, data = await self.submit(catalogItem={'namespace': CATALOG_NAMESPACE, 'name': 'missing.item.prod'})
         self.assertEqual((status, data['error']), (403, 'catalog_item_unavailable'))
+
+    async def test_kubernetes_errors_are_reported_as_retryable(self):
+        import kubernetes_asyncio
+        self.access_check_error = kubernetes_asyncio.client.exceptions.ApiException(status=500, reason='apiserver error')
+        status, data = await self.submit()
+        self.assertEqual((status, data['error']), (503, 'order_backend_unavailable'))
+        self.assertEqual(self.kube.orders, {})
+
+    async def test_admin_order_may_exceed_the_workshop_limit(self):
+        self.sessions['admin']['serviceNamespaces'] = [{'name': 'user-admin'}]
+        status, data = await self.submit(user='admin', namespace='user-admin', key='key-admin-100',
+                                         order_type='workshop', workshop={'count': 100})
+        self.assertEqual(status, 202, data)
+        status, data = await self.submit(order_type='workshop', workshop={'count': 100}, key='key-user-100')
+        self.assertEqual((status, data['error']), (400, 'invalid_request'))
 
     async def test_admin_orders_into_any_namespace_as_themselves(self):
         self.sessions['admin']['serviceNamespaces'] = [{'name': 'user-admin'}]

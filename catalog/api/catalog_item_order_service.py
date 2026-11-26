@@ -126,6 +126,7 @@ class CatalogItemOrderService:
                 requester=Requester(user=session['user'], uid=user_uid, email=email),
                 groups=groups,
                 now=self.clock(),
+                admin=bool(session.get('admin')),
             )
         except OrderValidationError as exception:
             raise OrderApiError(exception.status, exception.code, exception.message) from exception

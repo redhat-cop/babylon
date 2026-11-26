@@ -233,6 +233,26 @@ class TestApprovalGate(ControllerTestCase):
             self.assertIn(order['status']['phase'], ('Denied', 'Expired', 'Cancelled'))
         self.assertEqual(self.kube.resources, {})
 
+    async def test_catalog_item_briefly_unavailable_while_pending_recovers(self):
+        item = self.add_item(raw_policy=MANAGER_POLICY)
+        order = await self.reconcile(await self.submit(item))
+        self.assertEqual(order['status']['phase'], 'PendingApproval')
+        key = (item['metadata']['namespace'], item['metadata']['name'])
+        saved = self.kube.catalog_items.pop(key)
+
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['phase'], 'Blocked')
+        blocked = order['status']['blocked']
+        self.assertEqual((blocked['reason'], blocked['recoverable']), ('CatalogItemUnavailable', True))
+        self.assertNotIn('completedAt', order['status'])
+
+        self.kube.catalog_items[key] = saved
+        order = await self.reconcile(order)
+        self.assertEqual(order['status']['phase'], 'PendingApproval')
+        self.assertNotIn('blocked', order['status'])
+        await self.decide(order)
+        self.assertEqual((await self.reconcile(order))['status']['phase'], 'Approved')
+
     async def test_administrator_self_decision_releases(self):
         item = self.add_item(raw_policy=MANAGER_POLICY)
         order = await self.reconcile(await self.submit(item, submission(key='key-admin-self')))
