@@ -26,6 +26,7 @@ export default [
         },
         project: './tsconfig.json',
         tsconfigRootDir: import.meta.dirname,
+        jsxPragma: 'React',
       },
       globals: {
         ...globals.browser,
