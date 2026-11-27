@@ -2,20 +2,20 @@ import re
 from datetime import datetime, timezone
 from math import ceil
 
-import kopf
-from kubernetes_asyncio.client.exceptions import ApiException as k8sApiException
-from pydantic.utils import deep_update
-from strgen import StringGenerator
-
-from babylon_async import BabylonApiException
-
 import catalogitem
+import kopf
 import resourceclaim
 import resourceprovider
 import workshop as workshop_import
-from operatorruntime import OperatorRuntime
+from babylon_async import BabylonApiException
 from cachedkopfobject import CachedKopfObject
-from multiuser import num_users_schema, next_instance_users
+from kubernetes_asyncio.client.exceptions import \
+    ApiException as k8sApiException
+from multiuser import next_instance_users, num_users_schema
+from operatorruntime import OperatorRuntime
+from pydantic.utils import deep_update
+from strgen import StringGenerator
+from worker_sizing import compute_registered_placements, compute_worker_count
 
 LAB_KEY_GENERATOR = StringGenerator("[a-z0-9]{32}")
 
@@ -385,9 +385,27 @@ class WorkshopProvision(CachedKopfObject):
             definition['spec']['enabled'] = True
 
             # Set tenant cluster pool sizing
-            cluster_count = ceil(
-                self.count / shared_tenant_cluster_pool.sandbox_host.max_placements
-            )
+            max_placements = shared_tenant_cluster_pool.sandbox_host.max_placements
+
+            # When worker_sizing is configured for the catalog item, right size
+            # the clusters for this order instead of provisioning them at the
+            # static size from the item definition.
+            worker_sizing = shared_tenant_cluster_pool.sandbox_host.worker_sizing
+            if worker_sizing is not None:
+                # Register only the placements this order needs, plus a small
+                # buffer to absorb seat retries, clamped at the placement
+                # ceiling of the catalog item.
+                max_placements = compute_registered_placements(
+                    self.count, max_placements
+                )
+                definition['spec']['sandboxHost']['max_placements'] = max_placements
+                # Provision workers for the tenants a single cluster will
+                # carry, clamped between the configured bounds.
+                definition['spec']['clusterProvisioning']['provider']['parameterValues'][
+                    'worker_instance_count'
+                ] = compute_worker_count(self.count, max_placements, worker_sizing)
+
+            cluster_count = ceil(self.count / max_placements)
             definition['spec']['maxClusters'] = cluster_count
             # Initialize with zeros and only handle scaling in management loop.
             definition['spec']['minAvailableSandboxPlacements'] = 0

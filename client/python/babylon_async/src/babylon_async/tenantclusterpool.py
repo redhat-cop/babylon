@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import json
-
+from copy import deepcopy
 from hashlib import sha1
 from typing import Any, List, Mapping
 
 from .exceptions import BabylonApiException
 from .k8s_object import K8sObject
+
 
 class TenantClusterPool(K8sObject):
     api_group = "babylon.gpte.redhat.com"
@@ -104,6 +104,12 @@ class TenantClusterPool(K8sObject):
     def tenant_pools(self) -> Mapping[TenantClusterPoolSpecTenantPool]:
         """Configuration to maintain pools of provisioned tenant items."""
         return self.spec.tenant_pools or {}
+
+    @property
+    def worker_sizing(self) -> TenantClusterPoolSpecSandboxHostWorkerSizing | None:
+        """Configuration for the sizing of the workers per cluster.
+        Return Nopne if the worker sizing is not configured."""
+        return self.spec.sandbox_host.worker_sizing
 
     @property
     def workshop_name(self) -> str|None:
@@ -426,9 +432,41 @@ class TenantClusterPoolSpecSandboxHost:
         return self._definition['max_placements']
 
     @property
+    def worker_sizing(self) -> TenantClusterPoolSpecSandboxHostWorkerSizing | None:
+        """Configuration for sizing the worker count of the provisioned clusters from the pool."""
+        worker_sizing = self._definition.get('worker_sizing', None)
+
+        if worker_sizing is None:
+            return None
+
+        return TenantClusterPoolSpecSandboxHostWorkerSizing(worker_sizing)
+
+    @property
     def quota_required(self) -> bool:
         """Configure whether tenant sandbox request must include quota."""
         return self._definition.get('quota_required', False)
+
+
+class TenantClusterPoolSpecSandboxHostWorkerSizing:
+    """Configuration for sizing the worker count of the provisioned clusters from the pool."""
+
+    def __init__(self, definition):
+        self._definition = definition
+
+    @property
+    def max_workers(self) -> int:
+        """Maximum number of workers to provision for a cluster."""
+        return self._definition['max_workers']
+
+    @property
+    def min_workers(self) -> int:
+        """Minimum number of workers to provision for a cluster."""
+        return self._definition['min_workers']
+
+    @property
+    def placements_per_worker(self) -> int:
+        """Number of tenant placements supported by each worker."""
+        return self._definition['placements_per_worker']
 
 
 class TenantClusterPoolSpecTenantPool:
