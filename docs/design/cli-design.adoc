@@ -52,8 +52,12 @@ babylon
 ├── catalog
 │   ├── list          # List available catalog items
 │   └── describe      # Show details of a catalog item
+├── order
+│   ├── list          # List your catalog item orders
+│   ├── status        # Show an order, its approval and what it created
+│   └── cancel        # Cancel an order before anything is created
 ├── workshop (alias: ws)
-│   ├── create        # Create a workshop from a catalog item
+│   ├── create        # Order a workshop from a catalog item
 │   ├── list          # List workshops
 │   ├── status        # Show workshop provisioning status
 │   └── delete        # Delete a workshop
@@ -127,9 +131,21 @@ All Kubernetes-style endpoints follow the pattern:
 | GET
 | `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims/{name}`
 
-| `service order`
+| `service order`, `workshop create`
+| POST, then GET
+| `/api/catalog-item-orders`, then `/api/catalog-item-orders/{ns}/{name}` until created or waiting for approval
+
+| `order list`
+| GET
+| `/api/catalog-item-orders[?namespace={ns}]`
+
+| `order status`
+| GET
+| `/api/catalog-item-orders/{ns}/{name}`
+
+| `order cancel`
 | POST
-| `/apis/poolboy.gpte.redhat.com/v1/namespaces/{ns}/resourceclaims`
+| `/api/catalog-item-orders/{ns}/{name}/cancel`
 
 | `service start`
 | PATCH
@@ -264,27 +280,33 @@ If `--namespace` is not specified, searches across all catalog namespaces.
 
 === `service order`
 
-Orders a new service from a catalog item.
+Orders a new service from a catalog item through the catalog item order API (see `docs/Catalog_Item_Orders.md`). The CLI never creates the ResourceClaim itself: the order controller evaluates the catalog item's approval policy and creates it once approval is satisfied or not required.
 
 [source,bash]
 ----
 babylon service order my-catalog-item
 babylon service order my-catalog-item --end-date 3d --purpose Development
 babylon service order my-catalog-item --param region=us-east-1 --param size=large
+babylon service order my-catalog-item --wait 0
 ----
 
-Generates a Kubernetes-compliant name: sanitized catalog item name + 5-char random suffix (max 63 chars).
-On a `409 Conflict`, retries with a new name (up to 5 attempts).
+==== Order submission
 
-==== ResourceClaim Construction
+* **catalogItem**, **namespace** (`--namespace`, default the session user namespace) and **orderType** `service`.
+* **purpose**: `--purpose`, else a `purpose` parameter value or catalog default, else `Development`. Items whose purpose parameter defines `x-form-options` require one of those option names; the CLI checks this before submitting and lists the valid options. **explanation**: `--explanation` or `--param purpose_explanation=…`, required by options with `requireUserInput`.
+* **parameters**: only the `--param` values given, validated and typed against the catalog item. The API applies catalog defaults. `purpose_activity` and `salesforce_id` are derived from the purpose and are rejected.
+* **schedule.end**: from `--end-date`. Without it the catalog default lifespan applies from when the service is created, so time spent waiting for approval does not shorten it.
+* **skipSalesforceId**: `true`, as earlier CLI versions marked services to provide a Salesforce ID later.
+* **idempotencyKey**: random per command. The CLI resends the submission with the same key after a network or gateway error, so a retry never creates a second order.
 
-The CLI builds the ResourceClaim body following the same pattern as the UI (`api.ts:481-618`):
+==== Waiting and output
 
-* **metadata.labels**: `catalogItemName`, `catalogItemNamespace`, `asset-uuid`
-* **metadata.annotations**: `catalogItemDisplayName`, `requester`, `orderedBy`, `category`
-* **spec.provider.name**: catalog item name
-* **spec.provider.parameterValues**: defaults from catalog item parameters, overridden by `--param` flags
-* **spec.lifespan.end**: from `--end-date` (defaults to 24h)
+After submitting, the CLI polls the order (`--wait`, default 60s; `0` returns immediately):
+
+* **Created**: prints the created ResourceClaim, the same JSON/YAML as before orders, plus the order name in table output.
+* **Approval required**: returns as soon as this is known, with exit status 0, and prints the order: reason, manager, expiry and review link. JSON/YAML output is the order view, not a ResourceClaim. Follow it with `babylon order status`.
+* **Denied, expired, cancelled or permanently blocked**: prints the order and exits non-zero.
+* **Still processing when `--wait` ends**: prints the order with exit status 0.
 
 === `service start`
 
@@ -314,7 +336,11 @@ Requires `--yes` flag or interactive confirmation.
 
 === `workshop`
 
-The CLI supports `workshop create`, `workshop list`, `workshop status`, and `workshop delete` (also available through the `ws` alias). `create` accepts a catalog item and required `--seats` value, with optional display name, access password, open registration, end date, and parameters. `status --watch` polls until all seats are ready. `delete` requires confirmation unless `--yes` is supplied.
+The CLI supports `workshop create`, `workshop list`, `workshop status`, and `workshop delete` (also available through the `ws` alias). `create` accepts a catalog item and required `--seats` value, with optional display name, access password, open registration, end date, purpose, explanation, parameters and `--wait`. It submits a `workshop` order with `count` = seats and `concurrency` = seats (at most 100), and waits and prints exactly like `service order`, printing the created Workshop. The access password is generated by the CLI when not given, because order responses never include it. `status --watch` polls until all seats are ready. `delete` requires confirmation unless `--yes` is supplied.
+
+=== `order`
+
+`order list` lists the user's orders (all namespaces, or `--namespace`; administrators may list any namespace). `order status <name>` shows the phase, approval state, matched policy reasons, manager, expiry, review link, decision, block reason and created resources. `order cancel <name>` cancels an order before any resource is created; the API returns `409 dispatch_started` afterwards.
 
 == Safety and Error Handling
 

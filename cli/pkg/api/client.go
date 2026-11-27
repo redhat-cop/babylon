@@ -69,6 +69,7 @@ func (c *Client) debugf(format string, args ...interface{}) {
 type APIError struct {
 	StatusCode int
 	Status     string
+	Code       string // "error" field of catalog API JSON errors, when present
 	Message    string
 }
 
@@ -289,14 +290,18 @@ func (c *Client) requestOnce(method, path string, body interface{}, contentType 
 	if resp.StatusCode >= 400 {
 		msg := ""
 		var status struct {
-			Message string `json:"message"`
+			Error   interface{} `json:"error"`
+			Message string      `json:"message"`
 		}
+		code := ""
 		if json.Unmarshal(respBody, &status) == nil {
 			msg = status.Message
+			code, _ = status.Error.(string)
 		}
 		return nil, &APIError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,
+			Code:       code,
 			Message:    msg,
 		}
 	}

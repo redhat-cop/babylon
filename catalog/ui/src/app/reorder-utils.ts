@@ -1,25 +1,6 @@
 import parseDuration from 'parse-duration';
-import {
-  createServiceRequest,
-  createWorkshop,
-  createWorkshopProvision,
-} from '@app/api';
-import type { CreateServiceRequestParameterValues } from '@app/api';
-import type {
-  CatalogItem,
-  ResourceClaim,
-  ServiceNamespace,
-  Workshop,
-  WorkshopProvision,
-} from '@app/types';
-import {
-  BABYLON_DOMAIN,
-  checkAccessControl,
-  DEMO_DOMAIN,
-  getWhiteGloved,
-  isResourceClaimPartOfWorkshop,
-  parseSalesforceItems,
-} from '@app/util';
+import type { CatalogItem, ResourceClaim, Workshop, WorkshopProvision } from '@app/types';
+import { BABYLON_DOMAIN, checkAccessControl, isResourceClaimPartOfWorkshop } from '@app/util';
 
 export interface ReorderSchedule {
   startDate?: Date;
@@ -124,49 +105,6 @@ export function isValidReorderSchedule(schedule: ReorderSchedule, now = Date.now
   return true;
 }
 
-function getSkippedSfdc(annotations: Record<string, string>): boolean {
-  return annotations[`${DEMO_DOMAIN}/provide_salesforce-id_later`] === 'true';
-}
-
-function getServiceNamespaceFromObject(
-  namespace: string,
-  annotations: Record<string, string>,
-): ServiceNamespace {
-  return {
-    name: namespace,
-    displayName: namespace,
-    requester: annotations[`${DEMO_DOMAIN}/requester`],
-  };
-}
-
-function getParameterValuesFromResourceClaim(resourceClaim: ResourceClaim): CreateServiceRequestParameterValues {
-  const parameterValues: CreateServiceRequestParameterValues = {
-    ...(resourceClaim.spec.provider?.parameterValues || {}),
-  };
-  delete parameterValues.stop_timestamp;
-
-  const annotations = resourceClaim.metadata.annotations || {};
-  if (annotations[`${DEMO_DOMAIN}/purpose`]) {
-    parameterValues.purpose = annotations[`${DEMO_DOMAIN}/purpose`];
-  }
-  if (annotations[`${DEMO_DOMAIN}/purpose-activity`]) {
-    parameterValues.purpose_activity = annotations[`${DEMO_DOMAIN}/purpose-activity`];
-  }
-  if (annotations[`${DEMO_DOMAIN}/purpose-explanation`]) {
-    parameterValues.purpose_explanation = annotations[`${DEMO_DOMAIN}/purpose-explanation`];
-  }
-
-  return parameterValues;
-}
-
-function getParameterValuesFromWorkshopProvision(
-  workshopProvision: WorkshopProvision,
-): CreateServiceRequestParameterValues {
-  const parameters: CreateServiceRequestParameterValues = { ...(workshopProvision.spec.parameters || {}) };
-  delete parameters.salesforce_items;
-  return parameters;
-}
-
 function canReorderCatalogItem(
   catalogItem: CatalogItem | undefined,
   groups: string[],
@@ -229,111 +167,4 @@ export function canReorderWorkshop(
     return false;
   }
   return canReorderCatalogItem(catalogItem, groups, isAdmin);
-}
-
-export async function reorderResourceClaim({
-  resourceClaim,
-  catalogItem,
-  groups,
-  isAdmin,
-  email,
-  schedule: scheduleOverride,
-}: {
-  resourceClaim: ResourceClaim;
-  catalogItem: CatalogItem;
-  groups: string[];
-  isAdmin: boolean;
-  email: string;
-  schedule?: ReorderSchedule;
-}): Promise<ResourceClaim> {
-  const schedule = scheduleOverride ?? getResourceClaimReorderSchedule(resourceClaim);
-  if (!schedule.endDate) {
-    throw new Error('Cannot reorder: auto-destroy date is missing from the original service.');
-  }
-  if (!isValidReorderSchedule(schedule)) {
-    throw new Error('Cannot reorder: schedule dates are invalid.');
-  }
-  const annotations = resourceClaim.metadata.annotations || {};
-  const serviceNamespace = getServiceNamespaceFromObject(resourceClaim.metadata.namespace, annotations);
-  const selectedResourcePool = annotations['poolboy.gpte.redhat.com/resource-pool-name'];
-  const catalogNamespaceName =
-    annotations[`${BABYLON_DOMAIN}/catalogDisplayName`] || catalogItem.metadata.namespace;
-
-  return createServiceRequest({
-    catalogItem,
-    catalogNamespaceName,
-    groups,
-    isAdmin,
-    parameterValues: getParameterValuesFromResourceClaim(resourceClaim),
-    serviceNamespace,
-    startDate: schedule.startDate,
-    stopDate: schedule.stopDate,
-    endDate: schedule.endDate,
-    selectedResourcePool,
-    useAutoDetach: !!resourceClaim.spec.autoDetach,
-    email,
-    skippedSfdc: getSkippedSfdc(annotations),
-    whiteGloved: getWhiteGloved(resourceClaim),
-    salesforceItems: parseSalesforceItems(annotations),
-  });
-}
-
-export async function reorderWorkshop({
-  workshop,
-  workshopProvision,
-  catalogItem,
-  email,
-  schedule: scheduleOverride,
-}: {
-  workshop: Workshop;
-  workshopProvision: WorkshopProvision;
-  catalogItem: CatalogItem;
-  email: string;
-  schedule?: ReorderSchedule;
-}): Promise<Workshop> {
-  const schedule = scheduleOverride ?? getWorkshopReorderSchedule(workshop);
-  if (!schedule.endDate) {
-    throw new Error('Cannot reorder: auto-destroy date is missing from the original workshop.');
-  }
-  if (!isValidReorderSchedule(schedule)) {
-    throw new Error('Cannot reorder: schedule dates are invalid.');
-  }
-  const annotations = workshop.metadata.annotations || {};
-  const serviceNamespace = getServiceNamespaceFromObject(workshop.metadata.namespace, annotations);
-  const parameterValues = getParameterValuesFromWorkshopProvision(workshopProvision);
-  const readyByDate = parseOptionalDate(workshop.spec.lifespan?.readyBy);
-
-  const newWorkshop = await createWorkshop({
-    accessPassword: workshop.spec.accessPassword,
-    catalogItem,
-    description: workshop.spec.description,
-    displayName: workshop.spec.displayName,
-    openRegistration: workshop.spec.openRegistration ?? true,
-    serviceNamespace,
-    stopDate: schedule.stopDate,
-    endDate: schedule.endDate,
-    startDate: schedule.startDate,
-    readyByDate,
-    email,
-    parameterValues,
-    skippedSfdc: getSkippedSfdc(annotations),
-    whiteGloved: getWhiteGloved(workshop),
-    salesforceItems: parseSalesforceItems(annotations),
-  });
-
-  await createWorkshopProvision({
-    catalogItem,
-    concurrency: workshopProvision.spec.concurrency,
-    count: workshopProvision.spec.count,
-    parameters: {
-      ...parameterValues,
-      salesforce_items: JSON.stringify(parseSalesforceItems(annotations)),
-    },
-    startDelay: workshopProvision.spec.startDelay,
-    workshop: newWorkshop,
-    useAutoDetach: !!workshopProvision.spec.autoDetach,
-    selectedResourcePool: workshopProvision.spec.resourcePool,
-  });
-
-  return newWorkshop;
 }

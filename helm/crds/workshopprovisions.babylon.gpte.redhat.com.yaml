@@ -70,7 +70,9 @@ spec:
                     type: string
               catalogItem:
                 description: >-
-                  CatalogItem for workshop.
+                  CatalogItem for workshop. Immutable, so a provision created
+                  for one catalog item cannot be pointed at another item that
+                  requires approval.
                 type: object
                 required:
                 - name
@@ -80,6 +82,9 @@ spec:
                     type: string
                   namespace:
                     type: string
+                x-kubernetes-validations:
+                - rule: self == oldSelf
+                  message: catalogItem is immutable
               concurrency:
                 description: >-
                   Maximum number of concurrent provisions for scaling up workshop.

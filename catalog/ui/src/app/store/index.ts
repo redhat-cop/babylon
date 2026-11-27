@@ -130,6 +130,8 @@ export const selectConsoleURL = createSelector(selectSelf, (state): string => st
 
 export const selectInterface = createSelector(selectSelf, (state): string => state.interface);
 
+export const selectIsImpersonating = createSelector(selectSelf, (state): boolean => state.impersonate !== null);
+
 export const selectUser = createSelector(selectAuth, (state): string => state.user);
 
 export const selectUserFullName = createSelector(selectSelf, (state): string => state.auth.fullName || '');

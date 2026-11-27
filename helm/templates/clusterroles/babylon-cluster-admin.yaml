@@ -17,6 +17,16 @@ rules:
   - get
   - list
   - watch
+# Read-only: CatalogItemOrders are written only by the catalog API and the order
+# controller service accounts so that approval state cannot be forged.
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - catalogitemorders
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - {{ .Values.anarchy.api.group }}
   resources:
@@ -46,6 +56,13 @@ rules:
   - patch
   - update
   - watch
+# Custom verb checked by the catalog API and order controller for orders.
+- apiGroups:
+  - {{ .Values.resourceBroker.api.group }}
+  resources:
+  - resourceclaims
+  verbs:
+  - order
 - apiGroups:
   - {{ .Values.catalog.api.group }}
   resources:
@@ -61,3 +78,9 @@ rules:
   - patch
   - watch
   - update
+- apiGroups:
+  - {{ .Values.catalog.api.group }}
+  resources:
+  - workshops
+  verbs:
+  - order

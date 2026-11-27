@@ -94,21 +94,38 @@ const Navigation: React.FC = () => {
   );
 
   const serviceNavigation = userNamespace ? (
+    <NavExpandable title="My Services" isExpanded={true}>
+      <NavItem>
+        <NavLink
+          to={`/services/${userNamespace.name}`}
+          className={
+            location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
+            location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
+            location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
+              ? 'pf-m-current'
+              : ''
+          }
+        >
+          Services
+        </NavLink>
+      </NavItem>
+      <NavItem>
+        <NavLink to="/orders" className={locationStartsWith('/orders') ? 'pf-m-current' : ''}>
+          Orders
+        </NavLink>
+      </NavItem>
+    </NavExpandable>
+  ) : null;
+
+  // Anyone can be a manager, so the panel is offered to every user; the API
+  // returns only the requests the signed-in user is authorized to review.
+  const approvalsNavigation = (
     <NavItem>
-      <NavLink
-        to={`/services/${userNamespace.name}`}
-        className={
-          location.pathname.match(/\/services\/[a-zA-Z0-9_.-]/) ||
-          location.pathname.match(/\/workshops\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/) ||
-          location.pathname.match(/\/selfpacedlabs\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/)
-            ? 'pf-m-current'
-            : ''
-        }
-      >
-        My Services
+      <NavLink to="/approvals" className={locationStartsWith('/approvals') ? 'pf-m-current' : ''}>
+        Approvals
       </NavLink>
     </NavItem>
-  ) : null;
+  );
 
   const whiteGloveNavigation = userNamespace && white_glove_enabled ? (
     <NavItem>
@@ -246,6 +263,11 @@ const Navigation: React.FC = () => {
         </ExactNavLink>
       </NavItem>
       <NavItem>
+        <ExactNavLink className={locationStartsWith('/admin/approvals') ? 'pf-m-current' : ''} to="/admin/approvals">
+          Order Approvals
+        </ExactNavLink>
+      </NavItem>
+      <NavItem>
         <ExactNavLink
           className={locationStartsWith('/admin/system-status') ? 'pf-m-current' : ''}
           to="/admin/system-status"
@@ -268,6 +290,7 @@ const Navigation: React.FC = () => {
       <NavList id="nav-list-simple">
         {catalogNavigation}
         {serviceNavigation}
+        {approvalsNavigation}
         {activityNavigation}
         {multiWorkshopNavigation}
         {whiteGloveNavigation}

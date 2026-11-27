@@ -83,6 +83,8 @@ import useInterfaceConfig from '@app/utils/useInterfaceConfig';
 import useSystemStatus from '@app/utils/useSystemStatus';
 import UserDisabledModal from '@app/components/UserDisabledModal';
 import ResourcePoolSelector from '@app/components/ResourcePoolSelector';
+import { IdempotencyKeys, submitCatalogItemOrder, toOrderApiError } from '@app/CatalogItemOrders/catalog-item-order-api';
+import { buildOrderSubmission, orderErrorTitle, placingPagePath, usesOrderApi } from '@app/CatalogItemOrders/order-utils';
 
 import './catalog-item-form.css';
 
@@ -104,7 +106,23 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [useDirectProvisioningDate, setUseDirectProvisioningDate] = useState(false);
   const prevSandboxParametersRef = React.useRef<Record<string, unknown>>({});
-  const { isAdmin, groups, roles, serviceNamespaces, userNamespace, email, userInterface } = useSession().getSession();
+  const {
+    isAdmin,
+    groups,
+    roles,
+    serviceNamespaces,
+    userNamespace,
+    email,
+    userInterface,
+    isImpersonating,
+  } = useSession().getSession();
+  // Catalog item orders (GPTEINFRA-18190): one idempotency key per logical request,
+  // a synchronous guard against double clicks, and whether the user changed the
+  // default schedule (otherwise the API applies the catalog defaults at dispatch).
+  const orderKeysRef = React.useRef(new IdempotencyKeys());
+  const orderSubmittingRef = React.useRef(false);
+  const [scheduleEdited, setScheduleEdited] = useState(false);
+  const [orderError, setOrderError] = useState<{ title: string; message: string; transient: boolean } | null>(null);
   const { sfdc_enabled } = useInterfaceConfig();
   const {
     isWorkshopOrderingBlocked,
@@ -257,8 +275,22 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     ? isWorkshopOrderingBlocked && !isAdmin
     : isServiceOrderingBlocked && !isAdmin;
   const orderingBlockedMessage = formState.workshop ? workshopOrderingBlockedMessage : serviceOrderingBlockedMessage;
+  // Catalog item orders (GPTEINFRA-18190): requests go through the order API,
+  // except external URL items and white glove orders, which keep the direct flow.
+  // White glove requests are created by users but fulfilled only by administrators,
+  // so only an administrator's order can skip the order API; for anyone else a
+  // `wgr` URL parameter (or their own loaded request) never bypasses approval.
+  const submitsOrder = usesOrderApi({
+    catalogItem,
+    whiteGloved: isAdmin && (formState.whiteGloved || Boolean(wgrParam)),
+  });
+  // The order API records the authenticated requester and rejects impersonation.
+  const orderUnsupportedReason =
+    submitsOrder && isImpersonating
+      ? 'Orders cannot be placed while impersonating another user. Stop impersonating to order.'
+      : null;
   const submitRequestEnabled =
-    isOrderingBlocked || isQuotaExceeded
+    isOrderingBlocked || isQuotaExceeded || orderUnsupportedReason
       ? false
       : incident.disabled && !isAdmin
         ? false
@@ -441,6 +473,10 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     parameterValues['purpose_activity'] = formState.activity;
     parameterValues['purpose_explanation'] = formState.explanation;
 
+    if (submitsOrder) {
+      return submitOrder(parameterValues);
+    }
+
     try {
       if (catalogItem.spec.externalUrl) {
         await saveExternalItemRequest({
@@ -584,6 +620,56 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
     }
   }
 
+  /**
+   * Submit a CatalogItemOrder. The catalog API creates provisioning resources
+   * once approval is satisfied or not required, so nothing is created here and
+   * no white glove or Jira "provisioning started" updates are sent.
+   */
+  async function submitOrder(parameterValues: CreateServiceRequestParameterValues): Promise<void> {
+    if (orderSubmittingRef.current) return;
+    orderSubmittingRef.current = true;
+    setOrderError(null);
+    try {
+      const body = buildOrderSubmission({
+        catalogItem,
+        namespace: formState.serviceNamespace.name,
+        parameterValues,
+        purpose: formState.purpose,
+        activity: formState.activity,
+        explanation: formState.explanation,
+        salesforceItems: formState.salesforceItems,
+        skipSalesforceId: formState.salesforceId.skip,
+        startDate: formState.startDate,
+        stopDate: isAutoStopDisabled(catalogItem) ? undefined : formState.stopDate,
+        endDate: formState.endDate,
+        readyByDate:
+          useDirectProvisioningDate && formState.startDate
+            ? new Date(formState.startDate.getTime() + READY_BY_LEAD_TIME_MS)
+            : undefined,
+        usesDefaultSchedule: !scheduleEdited,
+        useAutoDetach: formState.useAutoDetach,
+        selectedResourcePool: formState.selectedResourcePool,
+        workshop: formState.workshop,
+        selfPacedLab: formState.selfPacedLab,
+      });
+      const order = await submitCatalogItemOrder({ ...body, idempotencyKey: orderKeysRef.current.keyFor(body) });
+      // The waiting page redirects to the created service, or to the order page
+      // when approval is needed.
+      navigate(placingPagePath(order));
+    } catch (error: unknown) {
+      const apiError = await toOrderApiError(error);
+      const title = orderErrorTitle(apiError.code);
+      setOrderError({
+        title: title === 'Request failed' ? 'Your order was not submitted' : title,
+        message: apiError.message,
+        transient: apiError.isTransient,
+      });
+    } finally {
+      orderSubmittingRef.current = false;
+      setIsLoading(false);
+    }
+  }
+
   if ('deny' === checkAccessControl(catalogItem.spec.accessControl, groups, isAdmin)) {
     return <Navigate to="/" replace />;
   }
@@ -610,13 +696,14 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
                 (formState.startDate ? formState.startDate.getTime() : Date.now()) - Date.now() + parseDuration('5d')
               : maxAutoDestroyTime
         }
-        onConfirm={(dates: TDates) =>
-          autoStopDestroyModal === 'auto-destroy'
+        onConfirm={(dates: TDates) => {
+          setScheduleEdited(true);
+          return autoStopDestroyModal === 'auto-destroy'
             ? dispatchFormState({ type: 'dates', endDate: dates.endDate })
             : autoStopDestroyModal === 'auto-stop'
               ? dispatchFormState({ type: 'dates', stopDate: dates.stopDate })
-              : null
-        }
+              : null;
+        }}
         onClose={() => setAutoStopDestroyModal(null)}
         title={_displayName}
       />
@@ -627,6 +714,7 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         // eslint-disable-next-line @eslint-react/purity -- default start is "now" when no start date is chosen; must reflect current time when the modal opens
         startDate={formState.startDate || new Date()}
         onConfirm={(startDate: Date, readyByMode: boolean) => {
+          setScheduleEdited(true);
           setUseDirectProvisioningDate(readyByMode);
           if (formState.workshop) {
             const readyByTime = startDate.getTime() + READY_BY_LEAD_TIME_MS;
@@ -710,6 +798,16 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
         </Alert>
       )}
       {formState.error ? <p className="error">{formState.error}</p> : null}
+      {orderUnsupportedReason ? (
+        <Alert
+          variant="warning"
+          isInline
+          title="Ordering is not available while impersonating"
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          {orderUnsupportedReason}
+        </Alert>
+      ) : null}
       <Form className="catalog-item-form__form">
         {(isAdmin || serviceNamespaces.length > 1) && !catalogItem.spec.externalUrl ? (
           <FormGroup key="service-namespace" fieldId="service-namespace" label="Create Request in Project">
@@ -1547,11 +1645,35 @@ const CatalogItemFormData: React.FC<{ catalogItemName: string; catalogNamespaceN
             })()}
         </div>
 
+        {orderError ? (
+          <Alert
+            variant="danger"
+            isInline
+            title={orderError.title}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            aria-live="polite"
+          >
+            <p>{orderError.message}</p>
+            {orderError.transient ? (
+              <p>
+                We could not confirm that your order was received. Ordering again is safe: it does not create a
+                duplicate order.
+              </p>
+            ) : null}
+          </Alert>
+        ) : null}
+        {submitsOrder && !orderUnsupportedReason ? (
+          <p style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            Some catalog items need manager approval before provisioning starts. You can follow your order under My
+            Services, Orders.
+          </p>
+        ) : null}
         <ActionList>
           <ActionListItem>
             <Button
               isAriaDisabled={!submitRequestEnabled}
               isDisabled={!submitRequestEnabled}
+              isLoading={submitsOrder && isLoading}
               onClick={() => submitRequest()}
             >
               Order

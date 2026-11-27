@@ -3,9 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -73,20 +71,6 @@ func (c *Client) GetResourceClaim(namespace, name string) (*types.ResourceClaim,
 }
 
 // CreateResourceClaim creates a new resource claim.
-func (c *Client) CreateResourceClaim(claim *types.ResourceClaim) (*types.ResourceClaim, error) {
-	path := fmt.Sprintf("/apis/%s/v1/namespaces/%s/resourceclaims", types.PoolboyDomain, claim.Metadata.Namespace)
-	data, err := c.post(path, claim)
-	if err != nil {
-		return nil, err
-	}
-
-	var result types.ResourceClaim
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("parsing created resource claim: %w", err)
-	}
-	return &result, nil
-}
-
 // PatchResourceClaim patches a resource claim with a merge patch.
 func (c *Client) PatchResourceClaim(namespace, name string, patch interface{}) (*types.ResourceClaim, error) {
 	path := fmt.Sprintf("/apis/%s/v1/namespaces/%s/resourceclaims/%s", types.PoolboyDomain, namespace, name)
@@ -293,191 +277,9 @@ func structToMap(v interface{}) map[string]interface{} {
 	return m
 }
 
-// OrderService creates a new service from a catalog item.
-// This mirrors the UI's createServiceRequest in api.ts.
-func (c *Client) OrderService(catalogItem *types.CatalogItem, serviceNamespace string, params map[string]interface{}, endDate time.Time) (*types.ResourceClaim, error) {
-	name := generateK8sName(catalogItem.Metadata.Name)
-
-	// Determine catalog namespace display name
-	catalogDisplayName := catalogItem.Metadata.Namespace
-	for _, cns := range c.Session.CatalogNamespaces {
-		if cns.Name == catalogItem.Metadata.Namespace {
-			if cns.DisplayName != "" {
-				catalogDisplayName = cns.DisplayName
-			}
-			break
-		}
-	}
-
-	// Determine requester
-	requester := c.Session.User
-	for _, sns := range c.Session.ServiceNamespaces {
-		if sns.Name == serviceNamespace && sns.Requester != "" {
-			requester = sns.Requester
-			break
-		}
-	}
-
-	displayName := catalogItem.Spec.DisplayName
-	if displayName == "" {
-		displayName = catalogItem.Metadata.Name
-	}
-
-	annotations := map[string]string{
-		types.BabylonDomain + "/catalogDisplayName":       catalogDisplayName,
-		types.BabylonDomain + "/catalogItemDisplayName":   displayName,
-		types.DemoDomain + "/requester":                   requester,
-		types.DemoDomain + "/orderedBy":                   c.Session.User,
-		types.BabylonDomain + "/category":                 catalogItem.Spec.Category,
-		types.BabylonDomain + "/url":                      fmt.Sprintf("%s/services/%s/%s", c.BaseURL, serviceNamespace, name),
-		types.DemoDomain + "/scheduled":                   "false",
-		types.DemoDomain + "/provide_salesforce-id_later": "true",
-	}
-	if catalogItem.Spec.SupportLink != "" {
-		annotations[types.BabylonDomain+"/support-link"] = catalogItem.Spec.SupportLink
-	}
-
-	// Copy userData from catalog item if present
-	if catalogItem.Spec.UserData != nil {
-		if data, err := json.Marshal(catalogItem.Spec.UserData); err == nil {
-			annotations[types.BabylonDomain+"/userData"] = string(data)
-		}
-	}
-
-	// Copy message templates if present
-	if catalogItem.Spec.MessageTemplates != nil {
-		if catalogItem.Spec.MessageTemplates.Info != nil {
-			if data, err := json.Marshal(catalogItem.Spec.MessageTemplates.Info); err == nil {
-				annotations[types.DemoDomain+"/info-message-template"] = string(data)
-			}
-		}
-		if catalogItem.Spec.WorkshopUserMode != "none" && catalogItem.Spec.MessageTemplates.User != nil {
-			if data, err := json.Marshal(catalogItem.Spec.MessageTemplates.User); err == nil {
-				annotations[types.DemoDomain+"/user-message-template"] = string(data)
-			}
-		}
-	}
-
-	if catalogItem.Spec.WorkshopUiDisabled {
-		annotations[types.DemoDomain+"/workshopUiDisabled"] = "true"
-	}
-
-	// Copy displayNameComponent annotations from catalog item
-	for key, value := range catalogItem.Metadata.Annotations {
-		if strings.HasPrefix(key, types.BabylonDomain+"/displayNameComponent") {
-			annotations[key] = value
-		}
-	}
-
-	labels := map[string]string{
-		types.BabylonDomain + "/catalogItemName":      catalogItem.Metadata.Name,
-		types.BabylonDomain + "/catalogItemNamespace": catalogItem.Metadata.Namespace,
-		types.DemoDomain + "/white-glove":             "false",
-	}
-
-	// Copy asset-uuid label if present
-	if uuid, ok := catalogItem.Metadata.Labels["gpte.redhat.com/asset-uuid"]; ok {
-		labels["gpte.redhat.com/asset-uuid"] = uuid
-	}
-
-	// Copy bookbag label if present
-	if catalogItem.Spec.Bookbag != nil {
-		labels[types.BabylonDomain+"/labUserInterface"] = "bookbag"
-	}
-
-	claim := &types.ResourceClaim{
-		APIVersion: types.PoolboyDomain + "/v1",
-		Kind:       "ResourceClaim",
-		Metadata: types.ObjectMeta{
-			Name:        name,
-			Namespace:   serviceNamespace,
-			Labels:      labels,
-			Annotations: annotations,
-		},
-		Spec: types.ResourceClaimSpec{
-			Provider: &types.ResourceClaimProvider{
-				Name:            catalogItem.Metadata.Name,
-				ParameterValues: make(map[string]interface{}),
-			},
-			Lifespan: &types.ResourceClaimLifespan{
-				End: formatTime(endDate),
-			},
-		},
-	}
-
-	// Set parameter values from catalog item defaults
-	for _, param := range catalogItem.Spec.Parameters {
-		var value interface{}
-		if param.OpenAPIV3Schema != nil && param.OpenAPIV3Schema.Default != nil {
-			value = param.OpenAPIV3Schema.Default
-		} else if param.Value != "" {
-			value = param.Value
-		}
-		if value != nil {
-			claim.Spec.Provider.ParameterValues[param.Name] = value
-		}
-	}
-
-	// Apply user-provided parameter overrides
-	for k, v := range params {
-		claim.Spec.Provider.ParameterValues[k] = v
-	}
-
-	// Ensure purpose is set
-	if _, ok := claim.Spec.Provider.ParameterValues["purpose"]; !ok {
-		claim.Spec.Provider.ParameterValues["purpose"] = "Development"
-	}
-
-	// Try to create, retry with new name on conflict
-	for attempts := 0; attempts < 5; attempts++ {
-		result, err := c.CreateResourceClaim(claim)
-		if err != nil {
-			if IsConflict(err) {
-				newName := generateK8sName(catalogItem.Metadata.Name)
-				claim.Metadata.Name = newName
-				claim.Metadata.Annotations[types.BabylonDomain+"/url"] =
-					fmt.Sprintf("%s/services/%s/%s", c.BaseURL, serviceNamespace, newName)
-				continue
-			}
-			return nil, err
-		}
-		return result, nil
-	}
-	return nil, fmt.Errorf("failed to create service after multiple attempts due to name conflicts")
-}
-
 // formatTime formats a time for the Babylon API.
 func formatTime(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
-}
-
-// generateK8sName generates a K8s-compliant name with random suffix.
-func generateK8sName(baseName string) string {
-	sanitized := sanitizeForK8s(baseName)
-	suffix := randomSuffix(5)
-	maxBase := 63 - 6 // reserve for "-xxxxx"
-	if len(sanitized) > maxBase {
-		sanitized = sanitized[:maxBase]
-	}
-	return sanitized + "-" + suffix
-}
-
-var nonAlphaNum = regexp.MustCompile(`[^a-z0-9.]+`)
-
-func sanitizeForK8s(name string) string {
-	s := strings.ToLower(name)
-	s = nonAlphaNum.ReplaceAllString(s, "-")
-	s = strings.Trim(s, "-")
-	return s
-}
-
-func randomSuffix(n int) string {
-	const chars = "bcdfghjklmnpqrstvwxz2456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(b)
 }
 
 // parseDuration parses duration strings like "4h", "2d", "30m".

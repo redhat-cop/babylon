@@ -1,0 +1,23 @@
+{% extends "base.mjml.j2" %}
+{% block title %}{% include "_catalog-item-order-title.mjml.j2" %}{% endblock title %}
+{% block content %}
+<mj-column>
+  <mj-text font-family="Red Hat Text" color="#4a5557" font-size="16px" line-height="1.5" padding-bottom="12px">
+    <p>Your order for <strong>{{ catalog_item_display_name|e }}</strong> was approved{% if decided_by %} by {{ decided_by|e }}{% endif %}.</p>
+    {% if decision_comment %}<p><strong>Comment:</strong> {{ decision_comment|e }}</p>{% endif %}
+    <p>The order will now continue to provisioning, subject to the usual availability and scheduling checks. You will receive the normal service notifications as it progresses.</p>
+    {% include "_catalog-item-order-summary.mjml.j2" %}
+  </mj-text>
+</mj-column>
+{% endblock content %}
+{% block action %}
+{% if order_url %}
+<mj-section padding-top="0" padding-bottom="12px" padding-left="12px" padding-right="12px" background-color="#f0f0f0">
+  <mj-column>
+    <mj-button font-family="Red Hat Text" background-color="#ee0000" color="#ffffff" font-size="16px" href="{{ order_url|e }}">
+      View order
+    </mj-button>
+  </mj-column>
+</mj-section>
+{% endif %}
+{% endblock action %}

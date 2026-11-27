@@ -20,19 +20,19 @@ const workshopTestItem = "tests.test-empty-config.prod"
 const workshopTestCatalogNamespace = "babylon-catalog-test"
 
 type workshopHTTPModel struct {
-	mu              sync.Mutex
-	namespace       string
-	workshop        *types.Workshop
-	claims          map[string]*types.ResourceClaim
-	actions         []string
-	provisionDenied bool
-	seatFails       bool
-	deleteDenied    bool
-	provisioned     bool
-	claimLists      int
-	deletePolls     int
-	claimPolls      map[string]int
-	watchSnapshots  [][]types.ResourceClaim
+	mu             sync.Mutex
+	namespace      string
+	workshop       *types.Workshop
+	claims         map[string]*types.ResourceClaim
+	actions        []string
+	orderBlocked   bool
+	seatFails      bool
+	deleteDenied   bool
+	provisioned    bool
+	claimLists     int
+	deletePolls    int
+	claimPolls     map[string]int
+	watchSnapshots [][]types.ResourceClaim
 }
 
 func (m *workshopHTTPModel) serve(t *testing.T, w http.ResponseWriter, r *http.Request) {
@@ -62,50 +62,44 @@ func (m *workshopHTTPModel) serve(t *testing.T, w http.ResponseWriter, r *http.R
 				Name: "purpose", Required: true, OpenAPIV3Schema: &types.SchemaSpec{Type: "string"},
 			}}},
 		})
-	case r.URL.Path == workshopsPath && r.Method == http.MethodPost:
-		m.workshop = &types.Workshop{}
-		if err := json.NewDecoder(r.Body).Decode(m.workshop); err != nil {
-			t.Errorf("decode workshop: %v", err)
+	case r.Method == http.MethodPost && r.URL.Path == "/api/catalog-item-orders":
+		var order types.OrderSubmission
+		if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
+			t.Errorf("decode order: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if m.workshop.Metadata.Namespace != m.namespace || m.workshop.Spec.AccessPassword == "" ||
-			m.workshop.Spec.Lifespan == nil || m.workshop.Spec.MultiuserServices || m.workshop.Spec.OpenRegistration {
-			t.Error("create did not use the expected workshop settings")
+		if order.OrderType != types.OrderTypeWorkshop || order.Namespace != m.namespace || order.Purpose != "Development" ||
+			order.CatalogItem != (types.OrderCatalogItemRef{Name: workshopTestItem, Namespace: workshopTestCatalogNamespace}) ||
+			order.Workshop == nil || order.Workshop.Count != 2 || order.Workshop.Concurrency != 2 ||
+			order.Workshop.AccessPassword == "" || order.Workshop.OpenRegistration || order.Workshop.DisplayName == "" {
+			t.Errorf("order has incorrect type, seats, defaults or catalog: %+v", order)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		end, err := time.Parse(time.RFC3339, m.workshop.Spec.Lifespan.End)
+		end, err := time.Parse(time.RFC3339, order.Schedule.End)
 		if err != nil || time.Until(end) < 119*time.Minute || time.Until(end) > 121*time.Minute {
-			t.Error("create did not use a two-hour lifespan")
+			t.Error("order did not request a two-hour lifespan")
 		}
-		m.workshop.Metadata.UID = "workshop-uid"
-		m.workshop.Metadata.CreationTimestamp = time.Now().UTC().Format(time.RFC3339)
-		m.actions = append(m.actions, "create")
-		w.WriteHeader(http.StatusCreated)
-		write(m.workshop)
-	case r.Method == http.MethodPost && r.URL.Path == workshopsPath[:len(workshopsPath)-len("workshops")]+"workshopprovisions":
-		m.actions = append(m.actions, "provision")
-		if m.provisionDenied {
-			w.WriteHeader(http.StatusForbidden)
-			write(map[string]string{"message": "provision denied"})
+		m.actions = append(m.actions, "order")
+		w.WriteHeader(http.StatusAccepted)
+		write(map[string]any{"name": "order-test", "namespace": m.namespace, "phase": types.OrderPhaseSubmitted})
+		if m.orderBlocked {
 			return
 		}
-		var provision types.WorkshopProvision
-		if err := json.NewDecoder(r.Body).Decode(&provision); err != nil || m.workshop == nil {
-			t.Error("invalid workshop provision")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		if provision.Spec.Count != 2 || provision.Spec.Concurrency != 2 || provision.Spec.WorkshopName != m.workshop.Metadata.Name ||
-			provision.Spec.Parameters["purpose"] != "Development" ||
-			provision.Spec.CatalogItem.Name != workshopTestItem || provision.Spec.CatalogItem.Namespace != workshopTestCatalogNamespace ||
-			len(provision.Metadata.OwnerReferences) != 1 || provision.Metadata.OwnerReferences[0].UID != m.workshop.Metadata.UID ||
-			provision.Metadata.OwnerReferences[0].Controller == nil || !*provision.Metadata.OwnerReferences[0].Controller {
-			t.Error("provision has incorrect seats, defaults, catalog, or ownership")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		// Play the order controller: no approval needed, so it creates the
+		// Workshop and its WorkshopProvision, which starts the seats.
+		m.workshop = &types.Workshop{Kind: "Workshop", Metadata: types.ObjectMeta{
+			Name: workshopTestItem + "-1a2b3c4d", Namespace: m.namespace, UID: "workshop-uid",
+			CreationTimestamp: time.Now().UTC().Format(time.RFC3339),
+			Labels: map[string]string{
+				types.BabylonDomain + "/catalogItemName":      workshopTestItem,
+				types.BabylonDomain + "/catalogItemNamespace": workshopTestCatalogNamespace,
+			},
+		}, Spec: types.WorkshopSpec{
+			DisplayName: order.Workshop.DisplayName, AccessPassword: order.Workshop.AccessPassword,
+			Lifespan: &types.WorkshopLifespan{End: order.Schedule.End},
+		}}
 		m.provisioned = true
 		m.workshop.Status = &types.WorkshopStatus{ProvisionCount: &types.WorkshopProvisionCount{Ordered: 2}}
 		m.claims["seat-1"] = workshopTestSeat(m.namespace, m.workshop.Metadata.Name, "seat-1", "provisioning")
@@ -113,8 +107,29 @@ func (m *workshopHTTPModel) serve(t *testing.T, w http.ResponseWriter, r *http.R
 		if m.seatFails {
 			m.workshop.Status.ProvisionCount.Failed = 1
 		}
-		w.WriteHeader(http.StatusCreated)
-		write(provision)
+	case r.Method == http.MethodGet && r.URL.Path == "/api/catalog-item-orders/"+m.namespace+"/order-test":
+		if m.orderBlocked {
+			write(map[string]any{
+				"name": "order-test", "namespace": m.namespace, "phase": types.OrderPhaseBlocked,
+				"blocked": map[string]any{"reason": "OrderingBlocked", "message": "Workshop ordering is disabled", "recoverable": false},
+			})
+			return
+		}
+		var resources []any
+		for _, kind := range []string{"Workshop", "WorkshopProvision"} {
+			resources = append(resources, map[string]any{
+				"apiVersion": types.BabylonDomain + "/v1", "kind": kind,
+				"name": m.workshop.Metadata.Name, "namespace": m.namespace, "uid": kind + "-uid",
+			})
+		}
+		write(map[string]any{
+			"name": "order-test", "namespace": m.namespace, "phase": types.OrderPhaseApproved,
+			"approval": map[string]any{"state": "NotRequired"}, "completedAt": time.Now().UTC().Format(time.RFC3339),
+			"attempts": []any{map[string]any{"state": "Created", "resources": resources}},
+		})
+	case r.Method == http.MethodPost && (r.URL.Path == workshopsPath || strings.HasSuffix(r.URL.Path, "/workshopprovisions")):
+		t.Error("the CLI must order through the order API, not create Workshops or WorkshopProvisions")
+		w.WriteHeader(http.StatusForbidden)
 	case r.URL.Path == workshopsPath && r.Method == http.MethodGet:
 		items := []types.Workshop{}
 		if m.workshop != nil {
@@ -236,23 +251,23 @@ func workshopHTTPRunner(t *testing.T, binary string, model *workshopHTTPModel) c
 func TestCLIWorkshopLifecycleAgainstHTTPServer(t *testing.T) {
 	binary := buildCLI(t)
 	for _, tc := range []struct {
-		name            string
-		namespace       string
-		provisionDenied bool
-		seatFails       bool
-		deleteDenied    bool
-		cancel          bool
-		wantError       string
+		name         string
+		namespace    string
+		orderBlocked bool
+		seatFails    bool
+		deleteDenied bool
+		cancel       bool
+		wantError    string
 	}{
 		{name: "complete lifecycle", namespace: "test-user"},
 		{name: "explicit namespace", namespace: "workshop-team"},
 		{name: "cleanup after provisioning failure", namespace: "test-user", seatFails: true, wantError: "failed provisions"},
-		{name: "cleanup after partial creation", namespace: "test-user", provisionDenied: true, wantError: "API error 403: provision denied"},
+		{name: "blocked order creates nothing", namespace: "test-user", orderBlocked: true, wantError: "is blocked: Workshop ordering is disabled"},
 		{name: "cleanup after cancellation", namespace: "test-user", cancel: true, wantError: "context canceled"},
 		{name: "reports cleanup failure", namespace: "test-user", deleteDenied: true, wantError: "cleanup of workshop"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			model := &workshopHTTPModel{namespace: tc.namespace, provisionDenied: tc.provisionDenied,
+			model := &workshopHTTPModel{namespace: tc.namespace, orderBlocked: tc.orderBlocked,
 				seatFails: tc.seatFails, deleteDenied: tc.deleteDenied, claims: map[string]*types.ResourceClaim{
 					"unrelated": workshopTestSeat(tc.namespace, "another-workshop", "unrelated", "started"),
 				}, claimPolls: make(map[string]int)}
@@ -281,7 +296,10 @@ func TestCLIWorkshopLifecycleAgainstHTTPServer(t *testing.T) {
 			}
 			model.mu.Lock()
 			defer model.mu.Unlock()
-			wantActions := []string{"create", "provision", "delete"}
+			wantActions := []string{"order", "delete"}
+			if tc.orderBlocked {
+				wantActions = []string{"order"}
+			}
 			if tc.deleteDenied {
 				wantActions = append(wantActions, "delete")
 			} else if model.workshop != nil || len(model.claims) != 1 {

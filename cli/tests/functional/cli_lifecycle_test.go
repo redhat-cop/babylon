@@ -59,24 +59,50 @@ func TestCLIServiceLifecycleAgainstHTTPServer(t *testing.T) {
 							Name: "purpose", Required: true, OpenAPIV3Schema: &types.SchemaSpec{Type: "string"},
 						}}},
 					})
-				case r.Method == http.MethodPost && r.URL.Path == claimsPath:
-					claim = &types.ResourceClaim{}
-					if err := json.NewDecoder(r.Body).Decode(claim); err != nil {
+				case r.Method == http.MethodPost && r.URL.Path == "/api/catalog-item-orders":
+					var order types.OrderSubmission
+					if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 						t.Errorf("decode order: %v", err)
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
-					if claim.Spec.Provider == nil || claim.Spec.Provider.ParameterValues["purpose"] != "Development" {
-						t.Error("order did not use the default purpose")
+					if order.OrderType != types.OrderTypeService || order.Namespace != namespace || order.Purpose != "Development" ||
+						order.CatalogItem != (types.OrderCatalogItemRef{Name: item, Namespace: catalogNamespace}) || order.IdempotencyKey == "" {
+						t.Errorf("unexpected order submission: %+v", order)
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
-					claim.Metadata.UID = "test-uid"
-					claim.Status = &types.ResourceClaimStatus{Summary: &types.ResourceClaimSummary{State: "provisioning"}}
+					end, err := time.Parse(time.RFC3339, order.Schedule.End)
+					if err != nil || time.Until(end) < 119*time.Minute || time.Until(end) > 121*time.Minute {
+						t.Error("order did not request a two-hour lifespan")
+					}
+					// Play the order controller: no approval needed, so it creates the claim.
+					claim = &types.ResourceClaim{Kind: "ResourceClaim", Metadata: types.ObjectMeta{
+						Name: item + "-1a2b3c4d", Namespace: namespace, UID: "test-uid",
+						Labels: map[string]string{
+							types.BabylonDomain + "/catalogItemName":      item,
+							types.BabylonDomain + "/catalogItemNamespace": catalogNamespace,
+						},
+					}, Spec: types.ResourceClaimSpec{
+						Provider: &types.ResourceClaimProvider{Name: item, ParameterValues: map[string]interface{}{"purpose": order.Purpose}},
+						Lifespan: &types.ResourceClaimLifespan{End: order.Schedule.End},
+					}, Status: &types.ResourceClaimStatus{Summary: &types.ResourceClaimSummary{State: "provisioning"}}}
 					pendingPolls = 1
 					actions = append(actions, "order")
-					w.WriteHeader(http.StatusCreated)
-					write(claim)
+					w.WriteHeader(http.StatusAccepted)
+					write(map[string]any{"name": "order-test", "namespace": namespace, "phase": types.OrderPhaseSubmitted})
+				case r.Method == http.MethodGet && r.URL.Path == "/api/catalog-item-orders/"+namespace+"/order-test":
+					write(map[string]any{
+						"name": "order-test", "namespace": namespace, "phase": types.OrderPhaseApproved,
+						"approval": map[string]any{"state": "NotRequired"}, "completedAt": time.Now().UTC().Format(time.RFC3339),
+						"attempts": []any{map[string]any{"state": "Created", "resources": []any{map[string]any{
+							"apiVersion": types.PoolboyDomain + "/v1", "kind": "ResourceClaim",
+							"name": claim.Metadata.Name, "namespace": namespace, "uid": claim.Metadata.UID,
+						}}}},
+					})
+				case r.Method == http.MethodPost && r.URL.Path == claimsPath:
+					t.Error("the CLI must order through the order API, not create ResourceClaims")
+					w.WriteHeader(http.StatusForbidden)
 				case r.Method == http.MethodGet && r.URL.Path == claimsPath:
 					items := []types.ResourceClaim{}
 					if claim != nil {

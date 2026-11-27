@@ -1,0 +1,16 @@
+{# Shared order summary. Every value is user- or catalog-controlled: escape it. #}
+<p>
+  <strong>Requester:</strong> {{ requester_name|e }}{% if requester_email %} ({{ requester_email|e }}){% endif %}<br>
+  <strong>Catalog item:</strong> {{ catalog_item_display_name|e }}<br>
+  <strong>Order type:</strong> {{ summary.order_type|e }}{% if summary.quantity and summary.quantity != 1 %} &times; {{ summary.quantity|e }}{% endif %}<br>
+  {% if purpose %}<strong>Purpose:</strong> {{ purpose|e }}{% if activity %} ({{ activity|e }}){% endif %}<br>{% endif %}
+  {% if explanation %}<strong>Explanation:</strong> {{ explanation|e }}<br>{% endif %}
+  {% if summary.start %}<strong>Start:</strong> {{ summary.start|e }}<br>{% endif %}
+  {% if summary.end %}<strong>End:</strong> {{ summary.end|e }}<br>{% elif summary.lifespan %}<strong>Lifespan:</strong> {{ summary.lifespan|e }} from provisioning<br>{% endif %}
+</p>
+{% if reasons %}
+<p><strong>Why approval is required:</strong></p>
+<ul>
+  {% for reason in reasons %}<li>{{ reason|e }}</li>{% endfor %}
+</ul>
+{% endif %}
